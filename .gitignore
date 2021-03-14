@@ -1,0 +1,10 @@
+*.vs
+*.sln
+*.vcxproj
+*.filters
+*.user
+*.spv
+*.tlog
+*.obj
+
+Dough/x64/
