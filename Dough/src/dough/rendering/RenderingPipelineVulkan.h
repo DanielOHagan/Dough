@@ -2,6 +2,7 @@
 
 #include "dough/rendering/SwapChainVulkan.h"
 #include "dough/rendering/buffer/BufferVulkan.h"
+#include "dough/rendering/buffer/IndexBufferVulkan.h"
 
 namespace DOH {
 
@@ -42,7 +43,8 @@ namespace DOH {
 
 		//TEMP:: For testing
 		BufferVulkan mVertexBuffer;
-		BufferVulkan mIndexBuffer;
+		IndexBufferVulkan mIndexBuffer;
+		//BufferVulkan mIndexBuffer;
 
 	public:
 

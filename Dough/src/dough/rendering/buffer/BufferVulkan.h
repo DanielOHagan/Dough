@@ -6,13 +6,22 @@ namespace DOH {
 
 	class BufferVulkan {
 
-	private:
+	protected:
 		VkBuffer mBuffer;
 		VkDeviceMemory mBufferMemory;
 
 	public:
 		BufferVulkan();
 
+		void setData(VkDevice logicDevice, const void* data, size_t size);
+		void setData(VkDevice logicDevice, void* data, size_t size) { setData(logicDevice, (const void*) data, size); }
+
+		void close(VkDevice logicDevice);
+
+		VkBuffer getBuffer() const { return mBuffer; }
+		VkDeviceMemory getDeviceMemory() const { return mBufferMemory; }
+
+	protected:
 		void init(
 			VkDevice logicDevice,
 			VkPhysicalDevice phyiscalDevice,
@@ -30,15 +39,8 @@ namespace DOH {
 			VkBufferUsageFlags usage,
 			VkMemoryPropertyFlags props
 		);
-		void close(VkDevice logicDevice);
-		
-		void setData(VkDevice logicDevice, const void* data, size_t size);
-		void setData(VkDevice logicDevice, void* data, size_t size) { setData(logicDevice, (const void*) data, size); }
 
-		VkBuffer getBuffer() const { return mBuffer; }
-		VkDeviceMemory getDeviceMemory() const { return mBufferMemory; }
-
-
+	public:
 		static BufferVulkan createBuffer(
 			VkDevice logicDevice,
 			VkPhysicalDevice physicalDevice,

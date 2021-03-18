@@ -71,7 +71,6 @@ namespace DOH {
 		stagingBuffer.setData(logicDevice, data, size);
 
 		init(logicDevice, physicalDevice, size, usage, props);
-
 		BufferVulkan::copyBuffer(logicDevice, cmdPool, graphicsQueue, stagingBuffer.getBuffer(), mBuffer, size);
 
 		stagingBuffer.close(logicDevice);

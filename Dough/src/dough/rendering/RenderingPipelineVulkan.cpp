@@ -52,15 +52,14 @@ namespace DOH {
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
-		mIndexBuffer = BufferVulkan::createStagedBuffer(
+		mIndexBuffer = IndexBufferVulkan::createStagedIndexBuffer(
 			mLogicDevice,
 			mPhysicalDevice,
 			mCommandPool,
 			mGraphicsQueue,
 			indices.data(),
 			sizeof(indices[0]) * indices.size(),
-			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+			static_cast<uint32_t>(indices.size())
 		);
 		
 		createCommandBuffers();
@@ -413,7 +412,7 @@ namespace DOH {
 
 			vkCmdDrawIndexed(
 				mCommandBuffers[i],
-				static_cast<uint32_t>(indices.size()),
+				mIndexBuffer.getCount(),
 				1,
 				0,
 				0,
