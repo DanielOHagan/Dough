@@ -13,13 +13,13 @@ namespace DOH {
 	void BufferVulkan::init(
 		VkDevice logicDevice,
 		VkPhysicalDevice physicalDevice,
-		size_t sizeOfDataBytes,
+		size_t size,
 		VkBufferUsageFlags usage,
 		VkMemoryPropertyFlags props
 	) {
 		VkBufferCreateInfo bufferCreateInfo = {};
 		bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		bufferCreateInfo.size = sizeOfDataBytes;
+		bufferCreateInfo.size = size;
 		bufferCreateInfo.usage = usage;
 		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -48,6 +48,35 @@ namespace DOH {
 		vkBindBufferMemory(logicDevice, mBuffer, mBufferMemory, 0);
 	}
 
+	void BufferVulkan::initStaged(
+		VkDevice logicDevice,
+		VkPhysicalDevice physicalDevice,
+		VkCommandPool cmdPool,
+		VkQueue graphicsQueue,
+		const void* data,
+		size_t size,
+		VkBufferUsageFlags usage,
+		VkMemoryPropertyFlags props
+	) {
+		//Add transfer dst bit to usage if not included already
+		usage = usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+		BufferVulkan stagingBuffer = BufferVulkan::createBuffer(
+			logicDevice,
+			physicalDevice,
+			size,
+			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+		);
+		stagingBuffer.setData(logicDevice, data, size);
+
+		init(logicDevice, physicalDevice, size, usage, props);
+
+		BufferVulkan::copyBuffer(logicDevice, cmdPool, graphicsQueue, stagingBuffer.getBuffer(), mBuffer, size);
+
+		stagingBuffer.close(logicDevice);
+	}
+
 	void BufferVulkan::close(VkDevice logicDevice) {
 		vkDestroyBuffer(logicDevice, mBuffer, nullptr);
 		vkFreeMemory(logicDevice, mBufferMemory, nullptr);
@@ -68,7 +97,63 @@ namespace DOH {
 		VkMemoryPropertyFlags props
 	) {
 		BufferVulkan buffer = BufferVulkan();
-		buffer.init(logicDevice, physicalDevice, (uint32_t) size, usage, props);
+		buffer.init(logicDevice, physicalDevice, size, usage, props);
 		return buffer;
+	}
+
+	BufferVulkan BufferVulkan::createStagedBuffer(
+		VkDevice logicDevice,
+		VkPhysicalDevice physicalDevice,
+		VkCommandPool cmdPool,
+		VkQueue graphicsQueue,
+		const void* data,
+		VkDeviceSize size,
+		VkBufferUsageFlags usage,
+		VkMemoryPropertyFlags props
+	) {
+		BufferVulkan buffer = BufferVulkan();
+		buffer.initStaged(logicDevice, physicalDevice, cmdPool, graphicsQueue, data, size, usage, props);
+		return buffer;
+	}
+
+	void BufferVulkan::copyBuffer(
+		VkDevice logicDevice,
+		VkCommandPool cmdPool,
+		VkQueue graphicsQueue,
+		VkBuffer srcBuffer,
+		VkBuffer dstBuffer,
+		VkDeviceSize size
+	) {
+		VkCommandBufferAllocateInfo allocation = {};
+		allocation.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocation.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocation.commandPool = cmdPool;
+		allocation.commandBufferCount = 1;
+
+		VkCommandBuffer cmdBuffer;
+		vkAllocateCommandBuffers(logicDevice, &allocation, &cmdBuffer);
+
+		VkCommandBufferBeginInfo cmdBegin = {};
+		cmdBegin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		cmdBegin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		vkBeginCommandBuffer(cmdBuffer, &cmdBegin);
+		
+		VkBufferCopy copyRegion = {};
+		copyRegion.srcOffset = 0;
+		copyRegion.dstOffset = 0;
+		copyRegion.size = size;
+		vkCmdCopyBuffer(cmdBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+		vkEndCommandBuffer(cmdBuffer);
+
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &cmdBuffer;
+
+		vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+		vkQueueWaitIdle(graphicsQueue);
+
+		vkFreeCommandBuffers(logicDevice, cmdPool, 1, &cmdBuffer);
 	}
 }

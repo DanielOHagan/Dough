@@ -10,6 +10,9 @@ namespace DOH {
 		{{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
 		{{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
 	};
+	const std::vector<uint16_t> indices {
+		0, 1, 2, 2, 3, 0
+	};
 
 	class RenderingPipelineVulkan {
 
@@ -37,7 +40,9 @@ namespace DOH {
 		std::vector<VkFence> mInFlightFences;
 		std::vector<VkFence> mImageFencesInFlight;
 
+		//TEMP:: For testing
 		BufferVulkan mVertexBuffer;
+		BufferVulkan mIndexBuffer;
 
 	public:
 

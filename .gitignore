@@ -6,5 +6,6 @@
 *.spv
 *.tlog
 *.obj
+*.hint
 
 Dough/x64/

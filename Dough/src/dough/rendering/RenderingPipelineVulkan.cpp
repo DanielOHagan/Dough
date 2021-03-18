@@ -33,7 +33,7 @@ namespace DOH {
 
 		createQueues(queueFamilyIndices);
 
-		mSwapChain.init(logicDevice, scSupport, surface, queueFamilyIndices, width, height);
+		mSwapChain.init(mLogicDevice, scSupport, surface, queueFamilyIndices, width, height);
 
 		createRenderPass();
 		createGraphicsPipeline();
@@ -42,15 +42,27 @@ namespace DOH {
 
 		createCommandPool(queueFamilyIndices);
 
-		mVertexBuffer = BufferVulkan::createBuffer(
-			logicDevice,
-			physicalDevice,
+		mVertexBuffer = BufferVulkan::createStagedBuffer(
+			mLogicDevice,
+			mPhysicalDevice,
+			mCommandPool,
+			mGraphicsQueue,
+			vertices.data(),
 			sizeof(vertices[0]) * vertices.size(),
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
-		mVertexBuffer.setData(mLogicDevice, vertices.data(), sizeof(vertices[0]) * vertices.size());
-
+		mIndexBuffer = BufferVulkan::createStagedBuffer(
+			mLogicDevice,
+			mPhysicalDevice,
+			mCommandPool,
+			mGraphicsQueue,
+			indices.data(),
+			sizeof(indices[0]) * indices.size(),
+			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		);
+		
 		createCommandBuffers();
 
 		createSyncObjects();
@@ -67,8 +79,8 @@ namespace DOH {
 
 		mSwapChain.destroyFramebuffers(mLogicDevice);
 
-		//Close Vertex Buffer
 		mVertexBuffer.close(mLogicDevice);
+		mIndexBuffer.close(mLogicDevice);
 
 		vkDestroyPipeline(mLogicDevice, mGraphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(mLogicDevice, mPipelineLayout, nullptr);
@@ -397,12 +409,15 @@ namespace DOH {
 			VkDeviceSize offsets[] = {0};
 			vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, vertexBuffers, offsets);
 
-			vkCmdDraw(
+			vkCmdBindIndexBuffer(mCommandBuffers[i], mIndexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT16);
+
+			vkCmdDrawIndexed(
 				mCommandBuffers[i],
-				static_cast<uint32_t>(vertices.size()), //Vertex count
-				1, //Instance count (used for instanced rendering)
-				0, //First vertex
-				0 //First instance
+				static_cast<uint32_t>(indices.size()),
+				1,
+				0,
+				0,
+				0
 			);
 
 			vkCmdEndRenderPass(mCommandBuffers[i]);
