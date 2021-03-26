@@ -78,7 +78,16 @@ namespace DOH {
 			VkBufferUsageFlags usage,
 			VkMemoryPropertyFlags props
 		) {
-			return createStagedBuffer(logicDevice, physicalDevice, cmdPool, graphicsQueue, (const void*) data, size, usage, props);
+			return createStagedBuffer(
+				logicDevice,
+				physicalDevice,
+				cmdPool,
+				graphicsQueue,
+				(const void*) data,
+				size,
+				usage,
+				props
+			);
 		}
 
 		static void copyBuffer(

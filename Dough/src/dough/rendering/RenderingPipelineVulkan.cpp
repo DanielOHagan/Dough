@@ -3,6 +3,10 @@
 #include "dough/rendering/shader/ShaderVulkan.h"
 #include "dough/rendering/RenderingContextVulkan.h"
 
+#include <glm/gtc/matrix_transform.hpp>
+#include <chrono>
+
+
 namespace DOH {
 
 	RenderingPipelineVulkan::RenderingPipelineVulkan()
@@ -15,7 +19,9 @@ namespace DOH {
 		mPresentQueue(VK_NULL_HANDLE),
 		mSwapChain(SwapChainVulkan::createNull()),
 		mCommandPool(VK_NULL_HANDLE),
-		mCurrentFrame(0)
+		mCurrentFrame(0),
+		mDescriptorSetLayout(VK_NULL_HANDLE),
+		mDescriptorPool(VK_NULL_HANDLE)
 	{
 	}
 
@@ -36,6 +42,7 @@ namespace DOH {
 		mSwapChain.init(mLogicDevice, scSupport, surface, queueFamilyIndices, width, height);
 
 		createRenderPass();
+		createDescriptorSetLayout();
 		createGraphicsPipeline();
 
 		mSwapChain.createFramebuffers(mLogicDevice, mRenderPass);
@@ -61,6 +68,9 @@ namespace DOH {
 			sizeof(indices[0]) * indices.size(),
 			static_cast<uint32_t>(indices.size())
 		);
+		createUniformBuffers();
+		createDescriptorPool();
+		createDescriptorSets();
 		
 		createCommandBuffers();
 
@@ -74,18 +84,12 @@ namespace DOH {
 			vkDestroyFence(mLogicDevice, mInFlightFences[i], nullptr);
 		}
 
-		vkDestroyCommandPool(mLogicDevice, mCommandPool, nullptr);
-
-		mSwapChain.destroyFramebuffers(mLogicDevice);
-
 		mVertexBuffer.close(mLogicDevice);
 		mIndexBuffer.close(mLogicDevice);
 
-		vkDestroyPipeline(mLogicDevice, mGraphicsPipeline, nullptr);
-		vkDestroyPipelineLayout(mLogicDevice, mPipelineLayout, nullptr);
-		vkDestroyRenderPass(mLogicDevice, mRenderPass, nullptr);
+		closeOldSwapChain();
 
-		mSwapChain.close(mLogicDevice);
+		vkDestroyCommandPool(mLogicDevice, mCommandPool, nullptr);
 	}
 
 	void RenderingPipelineVulkan::resizeSwapChain(
@@ -101,9 +105,16 @@ namespace DOH {
 			closeOldSwapChain();
 
 			mSwapChain.init(mLogicDevice, scSupport, surface, queueFamilyIndices, width, height);
+			
 			createRenderPass();
+			createDescriptorSetLayout();
 			createGraphicsPipeline();
+
 			mSwapChain.createFramebuffers(mLogicDevice, mRenderPass);
+			
+			createUniformBuffers();
+			createDescriptorPool();
+			createDescriptorSets();
 			createCommandBuffers();
 		}
 	}
@@ -114,6 +125,10 @@ namespace DOH {
 
 		uint32_t imageIndex;
 		vkAcquireNextImageKHR(mLogicDevice, mSwapChain.getSwapChain(), UINT64_MAX, mImageAvailableSemaphores[mCurrentFrame], VK_NULL_HANDLE, &imageIndex);
+		
+		//TODO:: Check result of vkAcquireNextImageKHR here
+
+		updateUniformBuffer(imageIndex);
 
 		//Check if a previous frame is using this image (i.e. there is its fence to wait on)
 		if (mImageFencesInFlight[imageIndex] != VK_NULL_HANDLE) {
@@ -158,7 +173,39 @@ namespace DOH {
 
 		vkQueuePresentKHR(mPresentQueue, &present);
 
+		//TODO:: Check result of vkQueuePresentKHR here
+
 		mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+	}
+
+	void RenderingPipelineVulkan::updateUniformBuffer(uint32_t currentImage) {
+		static auto startTime = std::chrono::high_resolution_clock::now();
+
+		auto currentTime = std::chrono::high_resolution_clock::now();
+		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+		UniformBufferObject ubo = {};
+		ubo.model = glm::rotate(
+			glm::mat4(1.0f),
+			time * glm::radians(90.0f),
+			glm::vec3(0.0f, 0.0f, 1.0f)
+		);
+		ubo.view = glm::lookAt(
+			glm::vec3(2.0f, 2.0f, 2.0f),
+			glm::vec3(0.0f, 0.0f, 0.0f),
+			glm::vec3(0.0f, 0.0f, 1.0f)
+		);
+		ubo.proj = glm::perspective(
+			glm::radians(45.0f),
+			mSwapChain.getExtent().width / (float) mSwapChain.getExtent().height,
+			0.1f,
+			10.0f
+		);
+
+		//NOTE:: GLM was designed for OpenGL where the y clip coord is inverted. This fixes it for Vulkan:
+		ubo.proj[1][1] *= -1;
+
+		mUniformBuffers[currentImage].setData(mLogicDevice, &ubo, sizeof(ubo));
 	}
 
 	void RenderingPipelineVulkan::createQueues(QueueFamilyIndices& queueFamilyIndices) {
@@ -206,6 +253,24 @@ namespace DOH {
 		TRY(
 			vkCreateRenderPass(mLogicDevice, &renderPass, nullptr, &mRenderPass) != VK_SUCCESS,
 			"Failed to create Render Pass."
+		);
+	}
+
+	void RenderingPipelineVulkan::createDescriptorSetLayout() {
+		VkDescriptorSetLayoutBinding layoutBinding = {};
+		layoutBinding.binding = 0;
+		layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		layoutBinding.descriptorCount = 1;
+		layoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+		VkDescriptorSetLayoutCreateInfo dslCreateInfo = {};
+		dslCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		dslCreateInfo.bindingCount = 1;
+		dslCreateInfo.pBindings = &layoutBinding;
+
+		TRY(
+			vkCreateDescriptorSetLayout(mLogicDevice, &dslCreateInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS,
+			"Failed to create descriptor set layout."
 		);
 	}
 
@@ -271,7 +336,7 @@ namespace DOH {
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizer.lineWidth = 1.0f;
 		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-		rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizer.depthBiasEnable = VK_FALSE;
 		rasterizer.depthBiasConstantFactor = 0.0f; //Optional
 		rasterizer.depthBiasClamp = 0.0f; //Optional
@@ -315,10 +380,8 @@ namespace DOH {
 
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutCreateInfo.setLayoutCount = 0; //Optional
-		pipelineLayoutCreateInfo.pSetLayouts = nullptr; //Optional
-		pipelineLayoutCreateInfo.pushConstantRangeCount = 0; //Optional
-		pipelineLayoutCreateInfo.pPushConstantRanges = nullptr; //Optional
+		pipelineLayoutCreateInfo.setLayoutCount = 1; 
+		pipelineLayoutCreateInfo.pSetLayouts = &mDescriptorSetLayout;
 
 		TRY(
 			vkCreatePipelineLayout(mLogicDevice, &pipelineLayoutCreateInfo, nullptr, &mPipelineLayout) != VK_SUCCESS,
@@ -410,6 +473,17 @@ namespace DOH {
 
 			vkCmdBindIndexBuffer(mCommandBuffers[i], mIndexBuffer.getBuffer(), 0, VK_INDEX_TYPE_UINT16);
 
+			vkCmdBindDescriptorSets(
+				mCommandBuffers[i],
+				VK_PIPELINE_BIND_POINT_GRAPHICS,
+				mPipelineLayout,
+				0,
+				1,
+				&mDescriptorSets[i],
+				0,
+				nullptr
+			);
+
 			vkCmdDrawIndexed(
 				mCommandBuffers[i],
 				mIndexBuffer.getCount(),
@@ -425,6 +499,78 @@ namespace DOH {
 				vkEndCommandBuffer(mCommandBuffers[i]) != VK_SUCCESS,
 				"Failed to record Command Buffer."
 			);
+		}
+	}
+
+	void RenderingPipelineVulkan::createUniformBuffers() {
+		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+
+		size_t imageCount = mSwapChain.getImageCount();
+
+		mUniformBuffers.resize(imageCount);
+
+		for (size_t i = 0; i < imageCount; i++) {
+			mUniformBuffers[i] = BufferVulkan::createBuffer(
+				mLogicDevice,
+				mPhysicalDevice,
+				bufferSize,
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			);
+		}
+	}
+
+	void RenderingPipelineVulkan::createDescriptorPool() {
+		uint32_t imageCount = static_cast<uint32_t>(mSwapChain.getImageCount());
+
+		VkDescriptorPoolSize poolSize = {};
+		poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSize.descriptorCount = imageCount;
+
+		VkDescriptorPoolCreateInfo poolCreateInfo = {};
+		poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		poolCreateInfo.poolSizeCount = 1;
+		poolCreateInfo.pPoolSizes = &poolSize;
+		poolCreateInfo.maxSets = imageCount;
+
+		TRY(
+			vkCreateDescriptorPool(mLogicDevice, &poolCreateInfo, nullptr, &mDescriptorPool) != VK_SUCCESS,
+			"Failed to create descriptor pool."
+		);
+	}
+
+	void RenderingPipelineVulkan::createDescriptorSets() {
+		std::vector<VkDescriptorSetLayout> layouts(mSwapChain.getImageCount(), mDescriptorSetLayout);
+
+		VkDescriptorSetAllocateInfo allocation = {};
+		allocation.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		allocation.descriptorPool = mDescriptorPool;
+		allocation.descriptorSetCount = static_cast<uint32_t>(mSwapChain.getImageCount());
+		allocation.pSetLayouts = layouts.data();
+
+		mDescriptorSets.resize(mSwapChain.getImageCount());
+
+		TRY(
+			vkAllocateDescriptorSets(mLogicDevice, &allocation, mDescriptorSets.data()) != VK_SUCCESS,
+			"Failed to allocate descriptor sets."
+		);
+
+		for (size_t i = 0; i < mSwapChain.getImageCount(); i++) {
+			VkDescriptorBufferInfo bufferInfo = {};
+			bufferInfo.buffer = mUniformBuffers[i].getBuffer();
+			bufferInfo.offset = 0;
+			bufferInfo.range = sizeof(UniformBufferObject);
+
+			VkWriteDescriptorSet descWrite = {};
+			descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descWrite.dstSet = mDescriptorSets[i];
+			descWrite.dstBinding = 0;
+			descWrite.dstArrayElement = 0;
+			descWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descWrite.descriptorCount = 1;
+			descWrite.pBufferInfo = &bufferInfo;
+
+			vkUpdateDescriptorSets(mLogicDevice, 1, &descWrite, 0, nullptr);
 		}
 	}
 
@@ -458,6 +604,11 @@ namespace DOH {
 	void RenderingPipelineVulkan::closeOldSwapChain() {
 		mSwapChain.destroyFramebuffers(mLogicDevice);
 
+		for (BufferVulkan buffer : mUniformBuffers) {
+			buffer.close(mLogicDevice);
+		}
+		vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
+
 		vkFreeCommandBuffers(mLogicDevice, mCommandPool, static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
 
 		vkDestroyPipeline(mLogicDevice, mGraphicsPipeline, nullptr);
@@ -465,5 +616,7 @@ namespace DOH {
 		vkDestroyRenderPass(mLogicDevice, mRenderPass, nullptr);
 
 		mSwapChain.close(mLogicDevice);
+
+		vkDestroyDescriptorSetLayout(mLogicDevice, mDescriptorSetLayout, nullptr);
 	}
 }

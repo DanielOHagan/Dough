@@ -2,7 +2,6 @@
 
 #include "dough/rendering/buffer/BufferVulkan.h"
 
-
 namespace DOH {
 
 	class IndexBufferVulkan : public BufferVulkan {

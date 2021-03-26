@@ -8,7 +8,8 @@ namespace DOH {
 	:	mWidth(width),
 		mHeight(height),
 		mWindowPtr(nullptr),
-		mRenderingContext() {
+		mRenderingContext() 
+	{
 		TRY(width < 0 || height < 0, "Window width and height must be greater than 0.");
 	}
 
