@@ -191,8 +191,8 @@ namespace DOH {
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-		auto bindDesc = Vertex::getBindingDescription();
-		auto attribDescs = Vertex::getAttributeDescriptions();
+		auto bindDesc = getBindingDescription();
+		auto attribDescs = getAttributeDescriptions();
 
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
 		vertexInputInfo.pVertexBindingDescriptions = &bindDesc;
