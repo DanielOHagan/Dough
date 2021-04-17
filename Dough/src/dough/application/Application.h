@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dough/Window.h"
+#include "dough/rendering/RendererVulkan.h"
 
 namespace DOH {
 
@@ -9,38 +10,18 @@ namespace DOH {
 	private:
 
 		Window mWindow;
+		//RendererVulkan mRenderer;
 
 	public:
-		Application()
-			: mWindow(800, 600) {
-		}
+		Application();
 
-		void run() {
-			init();
-
-			mainLoop();
-
-			close();
-		}
+		void run();
 
 	private:
-		void init() {
-			mWindow.init();
-		}
-
-		void mainLoop() {
-			while (!mWindow.shouldClose()) {
-				mWindow.pollEvents();
-				update();
-			}
-		}
-
-		void update() {
-			mWindow.drawFrame();
-		}
-
-		void close() {
-			mWindow.close();
-		}
+		void init();
+		void mainLoop();
+		void update();
+		void render();
+		void close();
 	};
 }

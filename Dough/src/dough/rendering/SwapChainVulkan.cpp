@@ -79,6 +79,8 @@ namespace DOH {
 	}
 
 	void SwapChainVulkan::close(VkDevice logicDevice) {
+		destroyFramebuffers(logicDevice);
+
 		for (auto imageView : mVkSwapChainImageViews) {
 			vkDestroyImageView(logicDevice, imageView, nullptr);
 		}
@@ -199,5 +201,22 @@ namespace DOH {
 
 			return actualExtent;
 		}
+	}
+
+	SwapChainVulkan SwapChainVulkan::create(
+		VkDevice logicDevice,
+		SwapChainSupportDetails scsd,
+		VkSurfaceKHR surface,
+		QueueFamilyIndices& indices,
+		uint32_t width,
+		uint32_t height
+	) {
+		SwapChainVulkan sc = SwapChainVulkan();
+		sc.init(logicDevice, scsd, surface, indices, width, height);
+		return sc;
+	}
+	
+	SwapChainVulkan SwapChainVulkan::createNonInit() {
+		return SwapChainVulkan();
 	}
 }

@@ -2,6 +2,8 @@
 
 namespace DOH {
 
+	const std::string& ShaderVulkan::NO_PATH = "notSet";
+
 	ShaderVulkan::ShaderVulkan(EShaderType type, VkShaderModule shaderModule)
 	:	mShaderType(type),
 		mShaderModule(shaderModule)

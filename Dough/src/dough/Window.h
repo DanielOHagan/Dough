@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dough/rendering/RenderingContextVulkan.h"
+#include "dough/rendering/RendererVulkan.h"
 
 namespace DOH {
 
@@ -12,7 +12,7 @@ namespace DOH {
 		uint32_t mHeight;
 		GLFWwindow* mWindowPtr;
 
-		RenderingContextVulkan mRenderingContext;
+		RendererVulkan mRenderer;
 
 	public:
 		Window(uint32_t width, uint32_t height);

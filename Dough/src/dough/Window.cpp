@@ -8,7 +8,7 @@ namespace DOH {
 	:	mWidth(width),
 		mHeight(height),
 		mWindowPtr(nullptr),
-		mRenderingContext() 
+		mRenderer()
 	{
 		TRY(width < 0 || height < 0, "Window width and height must be greater than 0.");
 	}
@@ -25,7 +25,7 @@ namespace DOH {
 
 		glfwSetWindowUserPointer(mWindowPtr, this);
 
-		mRenderingContext.init(mWindowPtr, mWidth, mHeight);
+		mRenderer.init(mWindowPtr, mWidth, mHeight);
 
 		glfwSetWindowSizeCallback(mWindowPtr, [](GLFWwindow* windowPtr, int width, int height) {
 			if (width > 0 && height > 0) {
@@ -38,7 +38,7 @@ namespace DOH {
 		glfwSetFramebufferSizeCallback(mWindowPtr, [](GLFWwindow* windowPtr, int width, int height) {
 			if (width > 0 && height > 0) {
 				auto window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(windowPtr));
-				window->mRenderingContext.resizeSwapChain(width, height);
+				window->mRenderer.resizeSwapChain(width, height);
 			}
 			});
 	}
@@ -52,12 +52,12 @@ namespace DOH {
 	}
 
 	void Window::drawFrame() {
-		mRenderingContext.drawFrame();
+		mRenderer.drawFrame();
 	}
 
 	void Window::close() {
-		if (!mRenderingContext.isClosed()) {
-			mRenderingContext.close();
+		if (!mRenderer.isClosed()) {
+			mRenderer.close();
 		}
 
 		glfwDestroyWindow(mWindowPtr);

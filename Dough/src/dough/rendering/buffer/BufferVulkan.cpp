@@ -1,6 +1,6 @@
 #include "dough/rendering/buffer/BufferVulkan.h"
 
-#include "dough/rendering/RenderingContextVulkan.h"
+#include "dough/rendering/RendererVulkan.h"
 
 namespace DOH {
 
@@ -34,7 +34,7 @@ namespace DOH {
 		VkMemoryAllocateInfo allocation = {};
 		allocation.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 		allocation.allocationSize = memRequirements.size;
-		allocation.memoryTypeIndex = RenderingContextVulkan::findPhysicalDeviceMemoryType(
+		allocation.memoryTypeIndex = RendererVulkan::findPhysicalDeviceMemoryType(
 			physicalDevice,
 			memRequirements.memoryTypeBits,
 			props
@@ -58,7 +58,7 @@ namespace DOH {
 		VkBufferUsageFlags usage,
 		VkMemoryPropertyFlags props
 	) {
-		//Add transfer dst bit to usage if not included already
+		//Add transfer destination bit to usage if not included already
 		usage = usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
 		BufferVulkan stagingBuffer = BufferVulkan::createBuffer(

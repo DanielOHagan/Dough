@@ -19,6 +19,9 @@ namespace DOH {
 		EShaderType mShaderType;
 		VkShaderModule mShaderModule;
 
+	public:
+		static const std::string& NO_PATH;
+
 	private:
 		ShaderVulkan(EShaderType type, VkShaderModule shaderModule);
 
@@ -31,6 +34,7 @@ namespace DOH {
 		VkShaderModule getShaderModule() const { return mShaderModule; }
 		EShaderType getShaderType() const { return mShaderType; }
 
+	public:
 		static ShaderVulkan create(VkDevice logicDevice, EShaderType type, const std::string& filePath);
 	};
 }
