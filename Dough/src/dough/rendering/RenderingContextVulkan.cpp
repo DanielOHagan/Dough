@@ -63,12 +63,8 @@ namespace DOH {
 			sizeof(indices[0]) * indices.size(),
 			static_cast<uint32_t>(indices.size())
 		);
-		mGraphicsPipeline.createUniformBuffers(mLogicDevice, mPhysicalDevice);
-		createDescriptorPool();
-		mGraphicsPipeline.setDescriptorPool(mDescriptorPool);
-		mGraphicsPipeline.createDescriptorSets(mLogicDevice);
 
-		mGraphicsPipeline.createCommandBuffers(mLogicDevice, mVertexBuffer.getBuffer(), mIndexBuffer.getBuffer(), mIndexBuffer.getCount());
+		preparePipeline();
 
 		createSyncObjects();
 	}
@@ -82,14 +78,8 @@ namespace DOH {
 
 		mVertexBuffer.close(mLogicDevice);
 		mIndexBuffer.close(mLogicDevice);
-
-		//for (BufferVulkan buffer : mUniformBuffers) {
-		//	buffer.close(mLogicDevice);
-		//}
 		
 		mGraphicsPipeline.close(mLogicDevice);
-
-		//vkFreeCommandBuffers(mLogicDevice, mCommandPool, static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
 
 		vkDestroyCommandPool(mLogicDevice, mCommandPool, nullptr);
 		vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
@@ -105,9 +95,6 @@ namespace DOH {
 		if (mGraphicsPipeline.getSwapChain().isResizable()) {
 			vkDeviceWaitIdle(mLogicDevice);
 
-			//for (BufferVulkan uniformBuffer : mUniformBuffers) {
-			//	uniformBuffer.close(mLogicDevice);
-			//}
 			mGraphicsPipeline.close(mLogicDevice);
 
 			GraphicsPipelineVulkan::create(
@@ -126,12 +113,7 @@ namespace DOH {
 
 			vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
 
-			mGraphicsPipeline.createUniformBuffers(mLogicDevice, mPhysicalDevice);
-			createDescriptorPool();
-			mGraphicsPipeline.setDescriptorPool(mDescriptorPool);
-			mGraphicsPipeline.createDescriptorSets(mLogicDevice);
-
-			mGraphicsPipeline.createCommandBuffers(mLogicDevice, mVertexBuffer.getBuffer(), mIndexBuffer.getBuffer(), mIndexBuffer.getCount());
+			preparePipeline();
 		}
 	}
 
@@ -228,7 +210,7 @@ namespace DOH {
 		//NOTE:: GLM was designed for OpenGL where the y clip coord is inverted. This fixes it for Vulkan:
 		ubo.proj[1][1] *= -1;
 
-		mGraphicsPipeline.getUniformBuffers()[currentImage].setData(mLogicDevice, &ubo, sizeof(ubo));
+		mGraphicsPipeline.getShaderUniformBufferObject().getBuffers()[currentImage].setData(mLogicDevice, &ubo, sizeof(ubo));
 	}
 
 	void RenderingContextVulkan::createQueues(QueueFamilyIndices& queueFamilyIndices) {
@@ -291,5 +273,14 @@ namespace DOH {
 				"Failed to create Fence."
 			);
 		}
+	}
+
+	void RenderingContextVulkan::preparePipeline() {
+		createDescriptorPool();
+
+		mGraphicsPipeline.setDescriptorPool(mDescriptorPool);
+		mGraphicsPipeline.uploadShaderUBO(mLogicDevice, mPhysicalDevice);
+
+		mGraphicsPipeline.createCommandBuffers(mLogicDevice, mVertexBuffer.getBuffer(), mIndexBuffer.getBuffer(), mIndexBuffer.getCount());
 	}
 }

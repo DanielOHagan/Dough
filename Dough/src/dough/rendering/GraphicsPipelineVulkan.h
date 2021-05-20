@@ -4,7 +4,7 @@
 
 #include "dough/rendering/SwapChainVulkan.h"
 #include "dough/rendering/RenderPassVulkan.h"
-#include "dough/rendering/buffer/BufferVulkan.h"
+#include "dough/rendering/shader/ShaderUniformVulkan.h"
 
 #include <vulkan/vulkan_core.h>
 
@@ -20,9 +20,6 @@ namespace DOH {
 		SwapChainVulkan mSwapChain;
 		RenderPassVulkan mRenderPass;
 
-		//TOOD:: UniformBuffer class with (Layout, sizeof)
-		VkDescriptorSetLayout mDescriptorSetLayout;
-		VkDeviceSize mUniformBufferSize;
 		//NOTE:: Command Pool may be used by other Pipeline
 		//			instances so its lifetime is not matched to this
 		VkCommandPool mCommandPool;
@@ -32,8 +29,8 @@ namespace DOH {
 
 
 		std::vector<VkCommandBuffer> mCommandBuffers;
-		std::vector<BufferVulkan> mUniformBuffers;
-		std::vector<VkDescriptorSet> mDescriptorSets;
+
+		ShaderUniformVulkan mShaderUniformBufferObject;
 
 		std::string mVertShaderPath;
 		std::string mFragShaderPath;
@@ -47,9 +44,8 @@ namespace DOH {
 			std::string& mFragShaderPath
 		);
 
-		void createUniformBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice);
-		void createDescriptorSetLayout(VkDevice logicDevice);
-		void createDescriptorSets(VkDevice logicDevice);
+		void createUniformBufferObject(VkDevice logicDevice, VkDeviceSize bufferSize /*TODO:: ShaderUniformLayout layout*/);
+		void uploadShaderUBO(VkDevice logicDevice, VkPhysicalDevice physicalDevice);
 		void createCommandBuffers(VkDevice logicDevice /*TEMP::*/, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indexCount/*::TEMP*/);
 		void init(VkDevice logicDevice);
 		void bind(VkCommandBuffer cmdBuffer);
@@ -66,13 +62,12 @@ namespace DOH {
 		inline const VkCommandPool getCommandPool() const { return mCommandPool; }
 		inline void setDescriptorPool(VkDescriptorPool descPool) { mDescriptorPool = descPool; }
 		inline const VkDescriptorPool getDescriptorPool() const { return mDescriptorPool; }
-		inline const VkDescriptorSetLayout getDescriptorSetLayout() const { return mDescriptorSetLayout; }
+		inline ShaderUniformVulkan& getShaderUniformBufferObject() { return mShaderUniformBufferObject; }
 
 		inline VkPipeline get() const { return mGraphicsPipeline; }
 		inline VkPipelineLayout getPipelineLayout() const { return mGraphicsPipelineLayout; }
 		inline SwapChainVulkan getSwapChain() const { return mSwapChain; }
 		inline RenderPassVulkan getRenderPass() const { return mRenderPass; }
-		inline std::vector<BufferVulkan>& getUniformBuffers() { return mUniformBuffers; }
 		inline std::vector<VkCommandBuffer>& getCommandBuffers() { return mCommandBuffers; }
 
 	public:

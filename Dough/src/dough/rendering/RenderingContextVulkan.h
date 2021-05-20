@@ -82,6 +82,9 @@ namespace DOH {
 
 	private:
 
+		//NOTE:: Convenience function, used in initial creation of Pipeline and in resizing
+		void preparePipeline();
+
 		void createQueues(QueueFamilyIndices& queueFamilyIndices);
 
 		void createCommandPool(QueueFamilyIndices& queueFamilyIndices);

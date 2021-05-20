@@ -10,8 +10,7 @@ namespace DOH {
 		mGraphicsPipelineLayout(VK_NULL_HANDLE),
 		mSwapChain(SwapChainVulkan::createNonInit()),
 		mRenderPass(RenderPassVulkan::createNonInit()),
-		mDescriptorSetLayout(VK_NULL_HANDLE),
-		mUniformBufferSize(0),
+		mShaderUniformBufferObject(0),
 		mCommandPool(VK_NULL_HANDLE),
 		mDescriptorPool(VK_NULL_HANDLE),
 		mVertShaderPath(ShaderVulkan::NO_PATH),
@@ -28,8 +27,7 @@ namespace DOH {
 		mGraphicsPipelineLayout(VK_NULL_HANDLE),
 		mSwapChain(swapChain),
 		mRenderPass(renderPass),
-		mDescriptorSetLayout(VK_NULL_HANDLE),
-		mUniformBufferSize(0),
+		mShaderUniformBufferObject(0),
 		mCommandPool(VK_NULL_HANDLE),
 		mDescriptorPool(VK_NULL_HANDLE),
 		mVertShaderPath(vertShaderPath),
@@ -37,74 +35,16 @@ namespace DOH {
 	{
 	}
 
-	void GraphicsPipelineVulkan::createUniformBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice) {
-		size_t imageCount = mSwapChain.getImageCount();
-
-		mUniformBuffers.resize(imageCount);
-
-		for (size_t i = 0; i < imageCount; i++) {
-			mUniformBuffers[i] = BufferVulkan::createBuffer(
-				logicDevice,
-				physicalDevice,
-				mUniformBufferSize,
-				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-			);
-		}
+	void GraphicsPipelineVulkan::createUniformBufferObject(VkDevice logicDevice, size_t bufferSize /*TODO:: ShaderUniformLayout layout*/) {
+		mShaderUniformBufferObject.setBufferSize(bufferSize);
+		mShaderUniformBufferObject.createDescriptorSetLayout(logicDevice);
 	}
 
-	void GraphicsPipelineVulkan::createDescriptorSetLayout(VkDevice logicDevice) {
-		VkDescriptorSetLayoutBinding layoutBinding = {};
-		layoutBinding.binding = 0;
-		layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		layoutBinding.descriptorCount = 1;
-		layoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	
-		VkDescriptorSetLayoutCreateInfo dslCreateInfo = {};
-		dslCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		dslCreateInfo.bindingCount = 1;
-		dslCreateInfo.pBindings = &layoutBinding;
-	
-		TRY(
-			vkCreateDescriptorSetLayout(logicDevice, &dslCreateInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS,
-			"Failed to create descriptor set layout."
-		);
-	}
-
-	void GraphicsPipelineVulkan::createDescriptorSets(VkDevice logicDevice) {
-		size_t imageCount = mSwapChain.getImageCount();
-		std::vector<VkDescriptorSetLayout> layouts(imageCount, mDescriptorSetLayout);
-
-		VkDescriptorSetAllocateInfo allocation = {};
-		allocation.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocation.descriptorPool = mDescriptorPool;
-		allocation.descriptorSetCount = static_cast<uint32_t>(imageCount);
-		allocation.pSetLayouts = layouts.data();
-
-		mDescriptorSets.resize(imageCount);
-
-		TRY(
-			vkAllocateDescriptorSets(logicDevice, &allocation, mDescriptorSets.data()) != VK_SUCCESS,
-			"Failed to allocate descriptor sets."
-		);
-
-		for (size_t i = 0; i < imageCount; i++) {
-			VkDescriptorBufferInfo bufferInfo = {};
-			bufferInfo.buffer = mUniformBuffers[i].getBuffer();
-			bufferInfo.offset = 0;
-			bufferInfo.range = mUniformBufferSize;
-
-			VkWriteDescriptorSet descWrite = {};
-			descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descWrite.dstSet = mDescriptorSets[i];
-			descWrite.dstBinding = 0;
-			descWrite.dstArrayElement = 0;
-			descWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descWrite.descriptorCount = 1;
-			descWrite.pBufferInfo = &bufferInfo;
-
-			vkUpdateDescriptorSets(logicDevice, 1, &descWrite, 0, nullptr);
-		}
+	void GraphicsPipelineVulkan::uploadShaderUBO(VkDevice logicDevice, VkPhysicalDevice physicalDevice) {
+		const size_t count = mSwapChain.getImageCount();
+		mShaderUniformBufferObject.createBuffers(logicDevice, physicalDevice, count);
+		mShaderUniformBufferObject.createDescriptorSets(logicDevice, count, mDescriptorPool);
+		mShaderUniformBufferObject.updateDescriptorSets(logicDevice, count);
 	}
 
 	void GraphicsPipelineVulkan::createCommandBuffers(VkDevice logicDevice /*TEMP:*/, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indexCount) {
@@ -141,16 +81,7 @@ namespace DOH {
 			vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, vertexBuffers, offsets);
 			vkCmdBindIndexBuffer(mCommandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-			vkCmdBindDescriptorSets(
-				mCommandBuffers[i],
-				VK_PIPELINE_BIND_POINT_GRAPHICS,
-				mGraphicsPipelineLayout,
-				0,
-				1,
-				&mDescriptorSets[i],
-				0,
-				nullptr
-			);
+			mShaderUniformBufferObject.bindDescriptorSets(mCommandBuffers[i], mGraphicsPipelineLayout, i);
 
 			vkCmdDrawIndexed(
 				mCommandBuffers[i],
@@ -257,7 +188,8 @@ namespace DOH {
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutCreateInfo.setLayoutCount = 1;
-		pipelineLayoutCreateInfo.pSetLayouts = &mDescriptorSetLayout;
+		//pipelineLayoutCreateInfo.pSetLayouts = &mDescriptorSetLayout;
+		pipelineLayoutCreateInfo.pSetLayouts = &mShaderUniformBufferObject.getDescriptorSetLayout();
 
 		TRY(
 			vkCreatePipelineLayout(logicDevice, &pipelineLayoutCreateInfo, nullptr, &mGraphicsPipelineLayout) != VK_SUCCESS,
@@ -302,9 +234,7 @@ namespace DOH {
 	}
 
 	void GraphicsPipelineVulkan::close(VkDevice logicDevice) {
-		for (BufferVulkan uniformBuffer : mUniformBuffers) {
-			uniformBuffer.close(logicDevice);
-		}
+		mShaderUniformBufferObject.close(logicDevice); //adding in vkDescriptDescriptorSetLayout here, may need to add a "closeBuffers" func to separate from the time when closing descSetLayout
 
 		vkFreeCommandBuffers(logicDevice, mCommandPool, static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
 
@@ -312,8 +242,6 @@ namespace DOH {
 		vkDestroyPipelineLayout(logicDevice, mGraphicsPipelineLayout, nullptr);
 		mRenderPass.close(logicDevice);
 		mSwapChain.close(logicDevice);
-
-		vkDestroyDescriptorSetLayout(logicDevice, mDescriptorSetLayout, nullptr);
 	}
 
 	void GraphicsPipelineVulkan::create(
@@ -334,8 +262,7 @@ namespace DOH {
 		dst->mVertShaderPath.assign(vertShaderPath);
 		dst->mFragShaderPath.assign(fragShaderPath);
 		dst->mCommandPool = cmdPool;
-		dst->mUniformBufferSize = uniformBufferSize;
-		dst->createDescriptorSetLayout(logicDevice);
+		dst->createUniformBufferObject(logicDevice, uniformBufferSize);
 		dst->init(logicDevice);
 	}
 
