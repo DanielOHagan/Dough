@@ -4,7 +4,7 @@
 
 #include "dough/rendering/SwapChainVulkan.h"
 #include "dough/rendering/RenderPassVulkan.h"
-#include "dough/rendering/shader/ShaderUniformVulkan.h"
+#include "dough/rendering/DescriptorVulkan.h"
 
 #include <vulkan/vulkan_core.h>
 
@@ -30,7 +30,7 @@ namespace DOH {
 
 		std::vector<VkCommandBuffer> mCommandBuffers;
 
-		ShaderUniformVulkan mShaderUniformBufferObject;
+		DescriptorVulkan mUniformDescriptor;
 
 		std::string mVertShaderPath;
 		std::string mFragShaderPath;
@@ -44,7 +44,7 @@ namespace DOH {
 			std::string& mFragShaderPath
 		);
 
-		void createUniformBufferObject(VkDevice logicDevice, VkDeviceSize bufferSize /*TODO:: ShaderUniformLayout layout*/);
+		void createUniformBufferObject(VkDevice logicDevice, VkDeviceSize bufferSize);
 		void uploadShaderUBO(VkDevice logicDevice, VkPhysicalDevice physicalDevice);
 		void createCommandBuffers(VkDevice logicDevice /*TEMP::*/, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indexCount/*::TEMP*/);
 		void init(VkDevice logicDevice);
@@ -62,7 +62,7 @@ namespace DOH {
 		inline const VkCommandPool getCommandPool() const { return mCommandPool; }
 		inline void setDescriptorPool(VkDescriptorPool descPool) { mDescriptorPool = descPool; }
 		inline const VkDescriptorPool getDescriptorPool() const { return mDescriptorPool; }
-		inline ShaderUniformVulkan& getShaderUniformBufferObject() { return mShaderUniformBufferObject; }
+		inline DescriptorVulkan& getUniformDescriptor() { return mUniformDescriptor; }
 
 		inline VkPipeline get() const { return mGraphicsPipeline; }
 		inline VkPipelineLayout getPipelineLayout() const { return mGraphicsPipelineLayout; }
@@ -88,5 +88,4 @@ namespace DOH {
 
 		static GraphicsPipelineVulkan createNonInit();
 	};
-
 }

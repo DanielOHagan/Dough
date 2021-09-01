@@ -1,23 +1,21 @@
-#include "dough/rendering/shader/ShaderUniformVulkan.h"
+#include "dough/rendering/DescriptorVulkan.h"
 
 namespace DOH {
 
-	ShaderUniformVulkan::ShaderUniformVulkan(size_t bufferSize)
+	DescriptorVulkan::DescriptorVulkan(size_t bufferSize)
 	:	mBufferSize(bufferSize),
 		mDescriptorSetLayout(VK_NULL_HANDLE)
 	{
 	}
 
-	void ShaderUniformVulkan::createDescriptorSetLayout(VkDevice logicDevice) {
-		VkDescriptorSetLayoutBinding layoutBinding = {};
-		layoutBinding.binding = 0;
-		layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		layoutBinding.descriptorCount = 1;
-		layoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
+	void DescriptorVulkan::createDescriptorSetLayout(
+		VkDevice logicDevice,
+		VkDescriptorSetLayoutBinding layoutBinding,
+		uint32_t bindingCount
+	) {
 		VkDescriptorSetLayoutCreateInfo dslCreateInfo = {};
 		dslCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		dslCreateInfo.bindingCount = 1;
+		dslCreateInfo.bindingCount = bindingCount;
 		dslCreateInfo.pBindings = &layoutBinding;
 
 		TRY(
@@ -26,7 +24,7 @@ namespace DOH {
 		);
 	}
 
-	void ShaderUniformVulkan::createBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice, size_t count) {
+	void DescriptorVulkan::createBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice, size_t count) {
 		mBuffers.resize(count);
 
 		for (size_t i = 0; i < count; i++) {
@@ -40,7 +38,7 @@ namespace DOH {
 		}
 	}
 
-	void ShaderUniformVulkan::createDescriptorSets(VkDevice logicDevice, size_t count, VkDescriptorPool descPool) {
+	void DescriptorVulkan::createDescriptorSets(VkDevice logicDevice, size_t count, VkDescriptorPool descPool) {
 		std::vector<VkDescriptorSetLayout> layouts(count, mDescriptorSetLayout);
 
 		VkDescriptorSetAllocateInfo allocation = {};
@@ -57,7 +55,7 @@ namespace DOH {
 		);
 	}
 
-	void ShaderUniformVulkan::updateDescriptorSets(VkDevice logicDevice, size_t count) {
+	void DescriptorVulkan::updateDescriptorSets(VkDevice logicDevice, size_t count) {
 		for (size_t i = 0; i < count; i++) {
 			VkDescriptorBufferInfo bufferInfo = {};
 			bufferInfo.buffer = mBuffers[i].getBuffer();
@@ -77,7 +75,7 @@ namespace DOH {
 		}
 	}
 
-	void ShaderUniformVulkan::bindDescriptorSets(
+	void DescriptorVulkan::bindDescriptorSets(
 		VkCommandBuffer cmdBuffer,
 		VkPipelineLayout pipelineLayout,
 		size_t descriptorSetIndex
@@ -94,11 +92,27 @@ namespace DOH {
 		);
 	}
 
-	void ShaderUniformVulkan::close(VkDevice logicDevice) {
+	void DescriptorVulkan::close(VkDevice logicDevice) {
 		for (BufferVulkan& buffers : mBuffers) {
 			buffers.close(logicDevice);
 		}
 
 		vkDestroyDescriptorSetLayout(logicDevice, mDescriptorSetLayout, nullptr);
+	}
+
+	VkDescriptorSetLayoutBinding DescriptorVulkan::createLayoutBinding(
+		VkDevice logicDevice,
+		VkDescriptorType descriptorType,
+		VkShaderStageFlags stages,
+		uint32_t descriptorCount,
+		uint32_t binding
+	) {
+		VkDescriptorSetLayoutBinding layoutBinding = {};
+		layoutBinding.binding = binding;
+		layoutBinding.descriptorType = descriptorType;
+		layoutBinding.descriptorCount = descriptorCount;
+		layoutBinding.stageFlags = stages;
+
+		return layoutBinding;
 	}
 }

@@ -210,7 +210,7 @@ namespace DOH {
 		//NOTE:: GLM was designed for OpenGL where the y clip coord is inverted. This fixes it for Vulkan:
 		ubo.proj[1][1] *= -1;
 
-		mGraphicsPipeline.getShaderUniformBufferObject().getBuffers()[currentImage].setData(mLogicDevice, &ubo, sizeof(ubo));
+		mGraphicsPipeline.getUniformDescriptor().getBuffers()[currentImage].setData(mLogicDevice, &ubo, sizeof(ubo));
 	}
 
 	void RenderingContextVulkan::createQueues(QueueFamilyIndices& queueFamilyIndices) {

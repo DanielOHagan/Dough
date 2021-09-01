@@ -6,7 +6,7 @@
 
 namespace DOH {
 
-	class ShaderUniformVulkan {
+	class DescriptorVulkan {
 
 	private:
 
@@ -16,9 +16,9 @@ namespace DOH {
 		std::vector<BufferVulkan> mBuffers;
 
 	public:
-		ShaderUniformVulkan(size_t bufferSize);
+		DescriptorVulkan(size_t bufferSize);
 
-		void createDescriptorSetLayout(VkDevice logicDevice);
+		void createDescriptorSetLayout(VkDevice logicDevice, VkDescriptorSetLayoutBinding layoutBinding, uint32_t bindingCount);
 		void createBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice, size_t count);
 		void createDescriptorSets(VkDevice logicDevice, size_t count, VkDescriptorPool descPool);
 
@@ -31,5 +31,13 @@ namespace DOH {
 
 		inline const VkDescriptorSetLayout& getDescriptorSetLayout() const { return mDescriptorSetLayout; }
 		inline std::vector<BufferVulkan>& getBuffers() { return mBuffers; }
+
+		static VkDescriptorSetLayoutBinding createLayoutBinding(
+			VkDevice logicDevice,
+			VkDescriptorType descriptorType,
+			VkShaderStageFlags stages,
+			uint32_t descriptorCount,
+			uint32_t binding
+		);
 	};
 }
