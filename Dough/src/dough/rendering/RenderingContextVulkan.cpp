@@ -12,7 +12,6 @@ namespace DOH {
 		mPhysicalDevice(physicalDevice),
 		mGraphicsQueue(VK_NULL_HANDLE),
 		mPresentQueue(VK_NULL_HANDLE),
-		mGraphicsPipeline(GraphicsPipelineVulkan::createNonInit()),
 		mDescriptorPool(VK_NULL_HANDLE),
 		mCommandPool(VK_NULL_HANDLE),
 		mCurrentFrame(0)
@@ -26,11 +25,14 @@ namespace DOH {
 		uint32_t width,
 		uint32_t height
 	) {
+		mPhysicalDeviceProperties = std::make_unique<VkPhysicalDeviceProperties>();
+		vkGetPhysicalDeviceProperties(mPhysicalDevice, mPhysicalDeviceProperties.get());
+
 		createQueues(queueFamilyIndices);
 
 		createCommandPool(queueFamilyIndices);
 
-		GraphicsPipelineVulkan::create(
+		mGraphicsPipeline = std::make_unique<GraphicsPipelineVulkan>(GraphicsPipelineVulkan::create(
 			mLogicDevice,
 			scSupport,
 			surface,
@@ -40,11 +42,10 @@ namespace DOH {
 			(std::string&) vertShaderPath,
 			(std::string&) fragShaderPath,
 			mCommandPool,
-			sizeof(UniformBufferObject),
-			&mGraphicsPipeline
-		);
+			sizeof(UniformBufferObject)
+		));
 
-		mVertexBuffer = BufferVulkan::createStagedBuffer(
+		mVertexBuffer = std::make_unique<BufferVulkan>(BufferVulkan::createStagedBuffer(
 			mLogicDevice,
 			mPhysicalDevice,
 			mCommandPool,
@@ -53,8 +54,8 @@ namespace DOH {
 			sizeof(vertices[0]) * vertices.size(),
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-		);
-		mIndexBuffer = IndexBufferVulkan::createStagedIndexBuffer(
+		));
+		mIndexBuffer = std::make_unique<IndexBufferVulkan>(IndexBufferVulkan::createStagedIndexBuffer(
 			mLogicDevice,
 			mPhysicalDevice,
 			mCommandPool,
@@ -62,7 +63,15 @@ namespace DOH {
 			indices.data(),
 			sizeof(indices[0]) * indices.size(),
 			static_cast<uint32_t>(indices.size())
-		);
+		));
+
+		mTestTexture = std::make_unique<TextureVulkan>(TextureVulkan::create(
+			mLogicDevice,
+			mPhysicalDevice,
+			mCommandPool,
+			mGraphicsQueue,
+			(std::string&) testTexturePath
+		));
 
 		preparePipeline();
 
@@ -76,10 +85,12 @@ namespace DOH {
 			vkDestroyFence(mLogicDevice, mInFlightFences[i], nullptr);
 		}
 
-		mVertexBuffer.close(mLogicDevice);
-		mIndexBuffer.close(mLogicDevice);
+		mVertexBuffer->close(mLogicDevice);
+		mIndexBuffer->close(mLogicDevice);
+
+		mTestTexture->close(mLogicDevice);
 		
-		mGraphicsPipeline.close(mLogicDevice);
+		mGraphicsPipeline->close(mLogicDevice);
 
 		vkDestroyCommandPool(mLogicDevice, mCommandPool, nullptr);
 		vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
@@ -92,12 +103,12 @@ namespace DOH {
 		uint32_t width,
 		uint32_t height
 	) {
-		if (mGraphicsPipeline.getSwapChain().isResizable()) {
+		if (mGraphicsPipeline->getSwapChain().isResizable()) {
 			vkDeviceWaitIdle(mLogicDevice);
 
-			mGraphicsPipeline.close(mLogicDevice);
+			mGraphicsPipeline->close(mLogicDevice);
 
-			GraphicsPipelineVulkan::create(
+			mGraphicsPipeline = std::make_unique<GraphicsPipelineVulkan>(GraphicsPipelineVulkan::create(
 				mLogicDevice,
 				scSupport,
 				surface,
@@ -107,9 +118,8 @@ namespace DOH {
 				(std::string&) vertShaderPath,
 				(std::string&) fragShaderPath,
 				mCommandPool,
-				sizeof(UniformBufferObject),
-				&mGraphicsPipeline
-			);
+				sizeof(UniformBufferObject)
+			));
 
 			vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
 
@@ -124,7 +134,7 @@ namespace DOH {
 		uint32_t imageIndex;
 		vkAcquireNextImageKHR(
 			mLogicDevice,
-			mGraphicsPipeline.getSwapChain().get(),
+			mGraphicsPipeline->getSwapChain().get(),
 			UINT64_MAX,
 			mImageAvailableSemaphores[mCurrentFrame],
 			VK_NULL_HANDLE,
@@ -152,7 +162,7 @@ namespace DOH {
 		submitInfo.pWaitSemaphores = waitSemaphores;
 		submitInfo.pWaitDstStageMask = waitStages;
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &mGraphicsPipeline.getCommandBuffers()[imageIndex];//&mCommandBuffers[imageIndex];
+		submitInfo.pCommandBuffers = &mGraphicsPipeline->getCommandBuffers()[imageIndex];//&mCommandBuffers[imageIndex];
 
 		VkSemaphore signalSemaphores[] = {mRenderFinishedSemaphores[mCurrentFrame]};
 		submitInfo.signalSemaphoreCount = 1;
@@ -170,7 +180,7 @@ namespace DOH {
 		present.waitSemaphoreCount = 1;
 		present.pWaitSemaphores = signalSemaphores;
 
-		VkSwapchainKHR swapChains[] = {mGraphicsPipeline.getSwapChain().get()};
+		VkSwapchainKHR swapChains[] = {mGraphicsPipeline->getSwapChain().get()};
 		present.swapchainCount = 1;
 		present.pSwapchains = swapChains;
 		present.pImageIndices = &imageIndex;
@@ -187,6 +197,10 @@ namespace DOH {
 
 		auto currentTime = std::chrono::high_resolution_clock::now();
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+		const float aspectRatio = static_cast<float>(
+			mGraphicsPipeline->getSwapChain().getExtent().width /
+			mGraphicsPipeline->getSwapChain().getExtent().height
+		);
 
 		UniformBufferObject ubo = {};
 		ubo.model = glm::rotate(
@@ -201,8 +215,7 @@ namespace DOH {
 		);
 		ubo.proj = glm::perspective(
 			glm::radians(45.0f),
-			mGraphicsPipeline.getSwapChain().getExtent().width /
-				(float) mGraphicsPipeline.getSwapChain().getExtent().height,
+			aspectRatio,
 			0.1f,
 			10.0f
 		);
@@ -210,7 +223,7 @@ namespace DOH {
 		//NOTE:: GLM was designed for OpenGL where the y clip coord is inverted. This fixes it for Vulkan:
 		ubo.proj[1][1] *= -1;
 
-		mGraphicsPipeline.getUniformDescriptor().getBuffers()[currentImage].setData(mLogicDevice, &ubo, sizeof(ubo));
+		mGraphicsPipeline->getShaderDescriptor().getBuffers()[currentImage].setData(mLogicDevice, &ubo, sizeof(ubo));
 	}
 
 	void RenderingContextVulkan::createQueues(QueueFamilyIndices& queueFamilyIndices) {
@@ -230,16 +243,18 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::createDescriptorPool() {
-		uint32_t imageCount = static_cast<uint32_t>(mGraphicsPipeline.getSwapChain().getImageCount());
+		uint32_t imageCount = static_cast<uint32_t>(mGraphicsPipeline->getSwapChain().getImageCount());
 
-		VkDescriptorPoolSize poolSize = {};
-		poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSize.descriptorCount = imageCount;
+		std::array<VkDescriptorPoolSize, 2> poolSizes{};
+		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSizes[0].descriptorCount = imageCount;
+		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSizes[1].descriptorCount = imageCount;
 
 		VkDescriptorPoolCreateInfo poolCreateInfo = {};
 		poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		poolCreateInfo.poolSizeCount = 1;
-		poolCreateInfo.pPoolSizes = &poolSize;
+		poolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+		poolCreateInfo.pPoolSizes = poolSizes.data();
 		poolCreateInfo.maxSets = imageCount;
 
 		TRY(
@@ -252,7 +267,7 @@ namespace DOH {
 		mImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
 		mRenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
 		mInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-		mImageFencesInFlight.resize(mGraphicsPipeline.getSwapChain().getImageCount(), VK_NULL_HANDLE);
+		mImageFencesInFlight.resize(mGraphicsPipeline->getSwapChain().getImageCount(), VK_NULL_HANDLE);
 
 		VkSemaphoreCreateInfo semaphore = {};
 		semaphore.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -278,9 +293,125 @@ namespace DOH {
 	void RenderingContextVulkan::preparePipeline() {
 		createDescriptorPool();
 
-		mGraphicsPipeline.setDescriptorPool(mDescriptorPool);
-		mGraphicsPipeline.uploadShaderUBO(mLogicDevice, mPhysicalDevice);
+		mGraphicsPipeline->setDescriptorPool(mDescriptorPool);
+		mGraphicsPipeline->uploadShaderUBO(mLogicDevice, mPhysicalDevice, *mTestTexture);
+		
 
-		mGraphicsPipeline.createCommandBuffers(mLogicDevice, mVertexBuffer.getBuffer(), mIndexBuffer.getBuffer(), mIndexBuffer.getCount());
+		mGraphicsPipeline->createCommandBuffers(mLogicDevice, mVertexBuffer->getBuffer(), mIndexBuffer->getBuffer(), mIndexBuffer->getCount());
+	}
+
+	VkCommandBuffer RenderingContextVulkan::beginSingleTimeCommands() {
+		VkCommandBufferAllocateInfo allocation{};
+		allocation.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocation.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocation.commandPool = mCommandPool;
+		allocation.commandBufferCount = 1;
+
+		VkCommandBuffer cmdBuffer;
+		vkAllocateCommandBuffers(mLogicDevice, &allocation, &cmdBuffer);
+
+		VkCommandBufferBeginInfo begin{};
+		begin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+		vkBeginCommandBuffer(cmdBuffer, &begin);
+
+		return cmdBuffer;
+	}
+
+	void RenderingContextVulkan::endSingleTimeCommands(VkCommandBuffer cmdBuffer) {
+		vkEndCommandBuffer(cmdBuffer);
+
+		VkSubmitInfo submit{};
+		submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submit.commandBufferCount = 1;
+		submit.pCommandBuffers = &cmdBuffer;
+
+		vkQueueSubmit(mGraphicsQueue, 1, &submit, VK_NULL_HANDLE);
+		vkQueueWaitIdle(mGraphicsQueue);
+
+		vkFreeCommandBuffers(mLogicDevice, mCommandPool, 1, &cmdBuffer);
+	}
+
+	void RenderingContextVulkan::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
+		VkCommandBuffer cmdBuffer = beginSingleTimeCommands();
+
+		VkBufferImageCopy region{};
+		region.bufferOffset = 0;
+		region.bufferRowLength = 0;
+		region.bufferImageHeight = 0;
+		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		region.imageSubresource.mipLevel = 0;
+		region.imageSubresource.baseArrayLayer = 0;
+		region.imageSubresource.layerCount = 1;
+		region.imageOffset = {0, 0, 0};
+		region.imageExtent = {
+			width,
+			height,
+			1
+		};
+
+		vkCmdCopyBufferToImage(
+			cmdBuffer,
+			buffer,
+			image,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1,
+			&region
+		);
+
+		endSingleTimeCommands(cmdBuffer);
+	}
+
+	VkImageView RenderingContextVulkan::createImageView(VkImage image, VkFormat format) {
+		VkImageViewCreateInfo view{};
+		view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+		view.image = image;
+		view.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		view.format = format;
+		view.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		view.subresourceRange.baseMipLevel = 0;
+		view.subresourceRange.levelCount = 1;
+		view.subresourceRange.baseArrayLayer = 0;
+		view.subresourceRange.layerCount = 1;
+
+		VkImageView imageView;
+		TRY(
+			vkCreateImageView(mLogicDevice, &view, nullptr, &imageView) != VK_SUCCESS,
+			"Failed to create image view"
+		);
+		return imageView;
+	}
+
+	VkSampler RenderingContextVulkan::createSampler() {
+		VkSamplerCreateInfo samplerCreate{};
+		samplerCreate.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerCreate.magFilter = VK_FILTER_LINEAR;
+		samplerCreate.minFilter = VK_FILTER_LINEAR;
+		samplerCreate.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerCreate.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerCreate.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerCreate.anisotropyEnable = VK_TRUE;
+		samplerCreate.maxAnisotropy = mPhysicalDeviceProperties->limits.maxSamplerAnisotropy; //TODO:: Make this a variable instead of always max possible value device allows->>
+		samplerCreate.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		samplerCreate.unnormalizedCoordinates = VK_FALSE;
+		samplerCreate.compareEnable = VK_FALSE;
+		samplerCreate.compareOp = VK_COMPARE_OP_ALWAYS;
+		samplerCreate.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		samplerCreate.mipLodBias = 0.0f;
+		samplerCreate.minLod = 0.0f;
+		samplerCreate.maxLod = 0.0f;
+
+		VkSampler sampler;
+		TRY(
+			vkCreateSampler(mLogicDevice, &samplerCreate, nullptr, &sampler),
+			"Failed to create sampler"
+		);
+		return sampler;
+	}
+
+	void RenderingContextVulkan::setPhysicalDevice(VkPhysicalDevice physicalDevice) {
+		mPhysicalDevice = physicalDevice;
+		vkGetPhysicalDeviceProperties(mPhysicalDevice, mPhysicalDeviceProperties.get());
 	}
 }

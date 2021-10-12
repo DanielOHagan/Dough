@@ -1,6 +1,9 @@
 #pragma once
 
-#include "dough/rendering/RendererVulkan.h"
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
+#include <vector>
 
 namespace DOH {
 
@@ -12,19 +15,15 @@ namespace DOH {
 		uint32_t mHeight;
 		GLFWwindow* mWindowPtr;
 
-		RendererVulkan mRenderer;
-
 	public:
 		Window(uint32_t width, uint32_t height);
 
 		void init();
-		void close();
-
 		bool shouldClose() const;
-
 		void pollEvents();
-
-		void drawFrame();
+		VkSurfaceKHR createVulkanSurface(VkInstance vulkanInstance);
+		std::vector<const char*> getRequiredExtensions(bool validationLayersEnabled);
+		void close();
 
 		inline uint32_t getWidth() const { return mWidth; }
 		inline uint32_t getHeight() const { return mHeight; }

@@ -1,12 +1,14 @@
 #include "dough/rendering/buffer/BufferVulkan.h"
 
 #include "dough/rendering/RendererVulkan.h"
+#include "dough/application/Application.h"
 
 namespace DOH {
 
 	BufferVulkan::BufferVulkan()
 	:	mBuffer(VK_NULL_HANDLE),
-		mBufferMemory(VK_NULL_HANDLE)
+		mBufferMemory(VK_NULL_HANDLE),
+		mSize(0)
 	{
 	}
 
@@ -17,6 +19,8 @@ namespace DOH {
 		VkBufferUsageFlags usage,
 		VkMemoryPropertyFlags props
 	) {
+		mSize = size;
+
 		VkBufferCreateInfo bufferCreateInfo = {};
 		bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		bufferCreateInfo.size = size;
@@ -58,6 +62,8 @@ namespace DOH {
 		VkBufferUsageFlags usage,
 		VkMemoryPropertyFlags props
 	) {
+		mSize = size;
+
 		//Add transfer destination bit to usage if not included already
 		usage = usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
@@ -82,6 +88,7 @@ namespace DOH {
 	}
 
 	void BufferVulkan::setData(VkDevice logicDevice, const void* data, size_t size) {
+		mSize = size;
 		void* mappedData;
 		vkMapMemory(logicDevice, mBufferMemory, 0, size, 0, &mappedData);
 		memcpy(mappedData, data, size);
@@ -98,6 +105,14 @@ namespace DOH {
 		BufferVulkan buffer = BufferVulkan();
 		buffer.init(logicDevice, physicalDevice, size, usage, props);
 		return buffer;
+	}
+
+	void BufferVulkan::copyToBuffer(BufferVulkan& destination) {
+		BufferVulkan::copyBuffer(*this, destination);
+	}
+
+	void BufferVulkan::copyFromBuffer(BufferVulkan& source) {
+		BufferVulkan::copyBuffer(source, *this);
 	}
 
 	BufferVulkan BufferVulkan::createStagedBuffer(
@@ -154,5 +169,15 @@ namespace DOH {
 		vkQueueWaitIdle(graphicsQueue);
 
 		vkFreeCommandBuffers(logicDevice, cmdPool, 1, &cmdBuffer);
+	}
+
+	void BufferVulkan::copyBuffer(BufferVulkan& source, BufferVulkan& destination) {
+		VkCommandBuffer cmdBuffer = Application::get().getRenderer().getContext().beginSingleTimeCommands();
+
+		VkBufferCopy copy{};
+		copy.size = source.getSize();
+		vkCmdCopyBuffer(cmdBuffer, source.getBuffer(), destination.getBuffer(), 1, &copy);
+
+		Application::get().getRenderer().getContext().endSingleTimeCommands(cmdBuffer);
 	}
 }

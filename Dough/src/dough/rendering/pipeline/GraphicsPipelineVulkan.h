@@ -2,11 +2,10 @@
 
 #include "dough/Utils.h"
 
-#include "dough/rendering/SwapChainVulkan.h"
-#include "dough/rendering/RenderPassVulkan.h"
-#include "dough/rendering/DescriptorVulkan.h"
-
-#include <vulkan/vulkan_core.h>
+#include "dough/rendering/pipeline/SwapChainVulkan.h"
+#include "dough/rendering/pipeline/RenderPassVulkan.h"
+#include "dough/rendering/pipeline/DescriptorVulkan.h"
+#include "dough/rendering/TextureVulkan.h"
 
 namespace DOH {
 
@@ -16,10 +15,6 @@ namespace DOH {
 		
 		VkPipeline mGraphicsPipeline;
 		VkPipelineLayout mGraphicsPipelineLayout;
-
-		SwapChainVulkan mSwapChain;
-		RenderPassVulkan mRenderPass;
-
 		//NOTE:: Command Pool may be used by other Pipeline
 		//			instances so its lifetime is not matched to this
 		VkCommandPool mCommandPool;
@@ -27,10 +22,14 @@ namespace DOH {
 		//			instances so its lifetime is not matched to this
 		VkDescriptorPool mDescriptorPool;
 
+		SwapChainVulkan mSwapChain;
+		//std::unique_ptr<SwapChainVulkan> mSwapChain;
+		RenderPassVulkan mRenderPass;
 
 		std::vector<VkCommandBuffer> mCommandBuffers;
 
-		DescriptorVulkan mUniformDescriptor;
+		DescriptorVulkan mShaderDescriptor;
+
 
 		std::string mVertShaderPath;
 		std::string mFragShaderPath;
@@ -38,31 +37,32 @@ namespace DOH {
 	public:
 		GraphicsPipelineVulkan();
 		GraphicsPipelineVulkan(
-			SwapChainVulkan swapChain,
+			SwapChainVulkan& swapChain,
 			RenderPassVulkan renderPass,
 			std::string& mVertShaderPath,
 			std::string& mFragShaderPath
 		);
 
 		void createUniformBufferObject(VkDevice logicDevice, VkDeviceSize bufferSize);
-		void uploadShaderUBO(VkDevice logicDevice, VkPhysicalDevice physicalDevice);
+		void uploadShaderUBO(VkDevice logicDevice, VkPhysicalDevice physicalDevice, TextureVulkan& texture);
 		void createCommandBuffers(VkDevice logicDevice /*TEMP::*/, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indexCount/*::TEMP*/);
 		void init(VkDevice logicDevice);
 		void bind(VkCommandBuffer cmdBuffer);
 		void beginRenderPass(size_t framebufferIndex, VkCommandBuffer cmdBuffer);
 		void endRenderPass(VkCommandBuffer cmdBuffer);
 		void close(VkDevice logicDevice);
+		
+		//-----TEMP:: these "singleTime" methods should be asynchronous, see tutorial for better explanation and refresher on why these are being used.
+		//TODO:: Make buffer for these and flush it at the end instead of creating one and instantly using/binding it
+		VkCommandBuffer beginSingleTimeCommands(VkDevice logicDevice);
+		void endSingleTimeCommands(VkDevice logicDevice, VkCommandBuffer cmdBuffer);
 
-		inline const std::string& getVertShaderPath() const { return mVertShaderPath; }
-		inline const std::string& getFragShaderPath() const { return mFragShaderPath; }
-		inline void setVertShaderPath(std::string& vertShaderPath) { mVertShaderPath = vertShaderPath; }
-		inline void setFragShaderPath(std::string& fragShaderPath) { mFragShaderPath = fragShaderPath; }
 
 		inline void setCommandPool(VkCommandPool cmdPool) { mCommandPool = cmdPool; }
 		inline const VkCommandPool getCommandPool() const { return mCommandPool; }
 		inline void setDescriptorPool(VkDescriptorPool descPool) { mDescriptorPool = descPool; }
 		inline const VkDescriptorPool getDescriptorPool() const { return mDescriptorPool; }
-		inline DescriptorVulkan& getUniformDescriptor() { return mUniformDescriptor; }
+		inline DescriptorVulkan& getShaderDescriptor() { return /*mUniformDescriptor*/ mShaderDescriptor; }
 
 		inline VkPipeline get() const { return mGraphicsPipeline; }
 		inline VkPipelineLayout getPipelineLayout() const { return mGraphicsPipelineLayout; }
@@ -72,7 +72,8 @@ namespace DOH {
 
 	public:
 		//TODO:: Uniform info including DescriptorSetLayout creation args, size, and more
-		static void create(
+		
+		static GraphicsPipelineVulkan create(
 			VkDevice logicDevice,
 			SwapChainSupportDetails scsd,
 			VkSurfaceKHR surface,
@@ -82,8 +83,7 @@ namespace DOH {
 			std::string& vertShaderPath,
 			std::string& fragShaderPath,
 			VkCommandPool cmdPool,
-			VkDeviceSize uniformBufferSize,
-			GraphicsPipelineVulkan* dst
+			VkDeviceSize uniformBufferSize
 		);
 
 		static GraphicsPipelineVulkan createNonInit();

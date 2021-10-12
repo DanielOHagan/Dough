@@ -1,4 +1,4 @@
-#include "dough/rendering/GraphicsPipelineVulkan.h"
+#include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 
 #include "dough/rendering/buffer/BufferVulkan.h"
 #include "dough/rendering/shader/ShaderVulkan.h"
@@ -8,18 +8,18 @@ namespace DOH {
 	GraphicsPipelineVulkan::GraphicsPipelineVulkan()
 	:	mGraphicsPipeline(VK_NULL_HANDLE),
 		mGraphicsPipelineLayout(VK_NULL_HANDLE),
-		mSwapChain(SwapChainVulkan::createNonInit()),
-		mRenderPass(RenderPassVulkan::createNonInit()),
-		mUniformDescriptor(0),
 		mCommandPool(VK_NULL_HANDLE),
 		mDescriptorPool(VK_NULL_HANDLE),
+		mSwapChain(SwapChainVulkan::createNonInit()),
+		mRenderPass(RenderPassVulkan::createNonInit()),
+		mShaderDescriptor(0),
 		mVertShaderPath(ShaderVulkan::NO_PATH),
 		mFragShaderPath(ShaderVulkan::NO_PATH)
 	{
 	}
 
 	GraphicsPipelineVulkan::GraphicsPipelineVulkan(
-		SwapChainVulkan swapChain,
+		SwapChainVulkan& swapChain,
 		RenderPassVulkan renderPass,
 		std::string& vertShaderPath,
 		std::string& fragShaderPath
@@ -27,7 +27,7 @@ namespace DOH {
 		mGraphicsPipelineLayout(VK_NULL_HANDLE),
 		mSwapChain(swapChain),
 		mRenderPass(renderPass),
-		mUniformDescriptor(0),
+		mShaderDescriptor(0),
 		mCommandPool(VK_NULL_HANDLE),
 		mDescriptorPool(VK_NULL_HANDLE),
 		mVertShaderPath(vertShaderPath),
@@ -36,20 +36,49 @@ namespace DOH {
 	}
 
 	void GraphicsPipelineVulkan::createUniformBufferObject(VkDevice logicDevice, size_t bufferSize) {
-		mUniformDescriptor.setBufferSize(bufferSize);
-		VkDescriptorSetLayoutBinding layoutBinding = DescriptorVulkan::createLayoutBinding(logicDevice, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 1, 0);
-		mUniformDescriptor.createDescriptorSetLayout(
+		//mUniformDescriptor.setBufferSize(bufferSize);
+		//VkDescriptorSetLayoutBinding layoutBinding = DescriptorVulkan::createLayoutBinding(
+		//	VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+		//	VK_SHADER_STAGE_VERTEX_BIT,
+		//	1,
+		//	0
+		//);
+		//mUniformDescriptor.createDescriptorSetLayout(
+		//	logicDevice,
+		//	layoutBinding,
+		//	1
+		//);
+		mShaderDescriptor.setBufferSize(bufferSize);
+		std::vector<VkDescriptorSetLayoutBinding> layoutBindings = {
+			DescriptorVulkan::createLayoutBinding(
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				VK_SHADER_STAGE_VERTEX_BIT,
+				1,
+				0
+			),
+			DescriptorVulkan::createLayoutBinding(
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				VK_SHADER_STAGE_FRAGMENT_BIT,
+				1,
+				1
+			)
+		};
+		mShaderDescriptor.createDescriptorSetLayout(
 			logicDevice,
-			layoutBinding,
-			1
+			layoutBindings,
+			static_cast<uint32_t>(layoutBindings.size())
 		);
 	}
 
-	void GraphicsPipelineVulkan::uploadShaderUBO(VkDevice logicDevice, VkPhysicalDevice physicalDevice) {
+	void GraphicsPipelineVulkan::uploadShaderUBO(VkDevice logicDevice, VkPhysicalDevice physicalDevice, TextureVulkan& texture) {
 		const size_t count = mSwapChain.getImageCount();
-		mUniformDescriptor.createBuffers(logicDevice, physicalDevice, count);
-		mUniformDescriptor.createDescriptorSets(logicDevice, count, mDescriptorPool);
-		mUniformDescriptor.updateDescriptorSets(logicDevice, count);
+		//mUniformDescriptor.createBuffers(logicDevice, physicalDevice, count);
+		//mUniformDescriptor.createDescriptorSets(logicDevice, count, mDescriptorPool);
+		//mUniformDescriptor.updateDescriptorSets(logicDevice, count);
+		mShaderDescriptor.createBuffers(logicDevice, physicalDevice, count);
+		mShaderDescriptor.createDescriptorSets(logicDevice, count, mDescriptorPool);
+		mShaderDescriptor.setTexture(1, texture.getImageView(), texture.getSampler());
+		mShaderDescriptor.updateDescriptorSets(logicDevice, count);
 	}
 
 	void GraphicsPipelineVulkan::createCommandBuffers(VkDevice logicDevice /*TEMP::*/, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indexCount/*::TEMP*/) {
@@ -86,7 +115,8 @@ namespace DOH {
 			vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, vertexBuffers, offsets);
 			vkCmdBindIndexBuffer(mCommandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-			mUniformDescriptor.bindDescriptorSets(mCommandBuffers[i], mGraphicsPipelineLayout, i);
+			//mUniformDescriptor.bindDescriptorSets(mCommandBuffers[i], mGraphicsPipelineLayout, i);
+			mShaderDescriptor.bindDescriptorSets(mCommandBuffers[i], mGraphicsPipelineLayout, i);
 
 			vkCmdDrawIndexed(
 				mCommandBuffers[i],
@@ -127,8 +157,8 @@ namespace DOH {
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-		auto bindDesc = getBindingDescription();
-		auto attribDescs = getAttributeDescriptions();
+		auto bindDesc = Vertex::getBindingDescription();
+		auto attribDescs = Vertex::getAttributeDescriptions();
 
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
 		vertexInputInfo.pVertexBindingDescriptions = &bindDesc;
@@ -193,8 +223,8 @@ namespace DOH {
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutCreateInfo.setLayoutCount = 1;
-		//pipelineLayoutCreateInfo.pSetLayouts = &mDescriptorSetLayout;
-		pipelineLayoutCreateInfo.pSetLayouts = &mUniformDescriptor.getDescriptorSetLayout();
+		//pipelineLayoutCreateInfo.pSetLayouts = &mUniformDescriptor.getDescriptorSetLayout();
+		pipelineLayoutCreateInfo.pSetLayouts = &mShaderDescriptor.getDescriptorSetLayout();
 
 		TRY(
 			vkCreatePipelineLayout(logicDevice, &pipelineLayoutCreateInfo, nullptr, &mGraphicsPipelineLayout) != VK_SUCCESS,
@@ -239,7 +269,7 @@ namespace DOH {
 	}
 
 	void GraphicsPipelineVulkan::close(VkDevice logicDevice) {
-		mUniformDescriptor.close(logicDevice); //adding in vkDescriptDescriptorSetLayout here, may need to add a "closeBuffers" func to separate from the time when closing descSetLayout
+		mShaderDescriptor.close(logicDevice); //adding in vkDescriptDescriptorSetLayout here, may need to add a "closeBuffers" func to separate from the time when closing descSetLayout
 
 		vkFreeCommandBuffers(logicDevice, mCommandPool, static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
 
@@ -249,7 +279,7 @@ namespace DOH {
 		mSwapChain.close(logicDevice);
 	}
 
-	void GraphicsPipelineVulkan::create(
+	GraphicsPipelineVulkan GraphicsPipelineVulkan::create(
 		VkDevice logicDevice,
 		SwapChainSupportDetails scsd,
 		VkSurfaceKHR surface,
@@ -259,16 +289,21 @@ namespace DOH {
 		std::string& vertShaderPath,
 		std::string& fragShaderPath,
 		VkCommandPool cmdPool,
-		VkDeviceSize uniformBufferSize,
-		GraphicsPipelineVulkan* dst
+		VkDeviceSize uniformBufferSize
 	) {
-		dst->mSwapChain = SwapChainVulkan::create(logicDevice, scsd, surface, indices, width, height);
-		dst->mRenderPass = RenderPassVulkan::create(logicDevice, dst->mSwapChain.getImageFormat());
-		dst->mVertShaderPath.assign(vertShaderPath);
-		dst->mFragShaderPath.assign(fragShaderPath);
-		dst->mCommandPool = cmdPool;
-		dst->createUniformBufferObject(logicDevice, uniformBufferSize);
-		dst->init(logicDevice);
+		SwapChainVulkan swapChain = SwapChainVulkan::create(logicDevice, scsd, surface, indices, width, height);
+		RenderPassVulkan renderPass = RenderPassVulkan::create(logicDevice, swapChain.getImageFormat());
+		GraphicsPipelineVulkan pipeline = GraphicsPipelineVulkan(
+			swapChain,
+			renderPass,
+			vertShaderPath,
+			fragShaderPath
+		);
+		pipeline.setCommandPool(cmdPool);
+		pipeline.createUniformBufferObject(logicDevice, uniformBufferSize);
+		pipeline.init(logicDevice);
+
+		return pipeline;
 	}
 
 	GraphicsPipelineVulkan GraphicsPipelineVulkan::createNonInit() {

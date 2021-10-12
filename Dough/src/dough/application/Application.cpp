@@ -2,12 +2,22 @@
 
 namespace DOH {
 
+	Application* Application::INSTANCE = nullptr;
+
 	Application::Application()
-		: mWindow(800, 600) 		{
+	:	mRunning(false)
+	{
+		
 	}
 
-	void Application::run() {
-		init();
+	Application::~Application() {
+		if (Application::isInstantiated()) {
+			delete this;
+		}
+	}
+
+	void Application::run(/*IAppLogic appLogic*/) {
+		init(/*appLogic*/);
 
 		mainLoop();
 
@@ -15,26 +25,49 @@ namespace DOH {
 	}
 
 	void Application::init() {
-		mWindow.init();
+		mWindow = std::make_unique<Window>(800, 600);
+		mWindow->init();
+
+		mRenderer = std::make_unique<RendererVulkan>();
+		mRenderer->init(mWindow->getWidth(), mWindow->getHeight());
 	}
 
 	void Application::mainLoop() {
-		while (!mWindow.shouldClose()) {
-			mWindow.pollEvents();
+		mRunning = true;
+
+		while (mRunning) {
+			mWindow->pollEvents();
 			update();
 			render();
 		}
 	}
 
 	void Application::update() {
-		
+		//mAppLogic->update(delta);
 	}
 
 	void Application::render() {
-		mWindow.drawFrame();
+		mRenderer->drawFrame();
 	}
 
 	void Application::close() {
-		mWindow.close();
+		mWindow->close();
+		mRenderer->close();
+	}
+
+	int Application::start(/*IAppLogic appLogic*/) {
+		INSTANCE = new Application();
+		
+		if (Application::isInstantiated()) {
+			try {
+				INSTANCE->run();
+				return EXIT_SUCCESS;
+			} catch (const std::exception& e) {
+				std::cerr << e.what() << std::endl;
+				return EXIT_FAILURE;
+			}
+		} else {
+			return EXIT_FAILURE;
+		}
 	}
 }

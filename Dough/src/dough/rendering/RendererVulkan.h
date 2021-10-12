@@ -1,8 +1,8 @@
 #pragma once
 
-#define GLFW_INCLUDE_VULKAN
+#define VK_USE_PLATFORM_WIN32_KHR
+#include <vulkan/vulkan_core.h>
 #define GLM_FORCE_RADIANS
-#include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
 #include <iostream>
@@ -34,15 +34,7 @@ namespace DOH {
 		//Move to context?
 		VkSurfaceKHR mSurface;
 
-		/* TODO::
-		Put RendererVulkan in to Application and have it's "output" be RenderingContext.
-		Including devices into the RendererVulkan class may help differentiate the intent
-			of each class, the renderer has top level control and should, in theory, work 
-			without a display (the surface).
-		Have the RendererVulkan class decide when to call drawFrame and have it tell the context
-			class do the actual drawing (or at least the abstracted function call)
-		*/
-		RenderingContextVulkan mRenderingContext;
+		std::unique_ptr<RenderingContextVulkan> mRenderingContext;
 
 #if defined (_DEBUG)
 		const bool mValidationLayersEnabled = true;
@@ -54,7 +46,7 @@ namespace DOH {
 
 		RendererVulkan();
 
-		void init(GLFWwindow* windowPtr, int width, int height);
+		void init(int width, int height);
 		void close();
 
 		bool isClosed();
@@ -64,6 +56,8 @@ namespace DOH {
 
 		void drawFrame();
 
+		inline RenderingContextVulkan& getContext() const { return *mRenderingContext; }
+
 		static uint32_t findPhysicalDeviceMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
 	private:
@@ -71,14 +65,10 @@ namespace DOH {
 		//-----Initialisation-----
 		void createVulkanInstance();
 		bool checkValidationLayerSupport();
-		std::vector<const char*> getRequiredExtensions();
 
 		//-----Debug Initialisation-----
 		void setupDebugMessenger();
 		void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-
-		//-----Window Specifics----- NOTE:: Need a better name/description for this section
-		void createSurface(GLFWwindow* windowPtr);
 
 		//-----Phyiscal and Logic Devices-----
 		void pickPhysicalDevice();

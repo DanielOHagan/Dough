@@ -1,14 +1,14 @@
 #include "dough/Window.h"
 
 #include "dough/Utils.h"
+#include "dough/application/Application.h"
 
 namespace DOH {
 
 	Window::Window(uint32_t width, uint32_t height)
 	:	mWidth(width),
 		mHeight(height),
-		mWindowPtr(nullptr),
-		mRenderer()
+		mWindowPtr(nullptr)
 	{
 		TRY(width < 0 || height < 0, "Window width and height must be greater than 0.");
 	}
@@ -21,26 +21,29 @@ namespace DOH {
 
 		mWindowPtr = glfwCreateWindow(mWidth, mHeight, "VulkanWindow", nullptr, nullptr);
 
-		TRY(mWindowPtr == nullptr, "Failed to create GLFW window.");
+		TRY(mWindowPtr == nullptr, "Failed to create GLFW window");
 
 		glfwSetWindowUserPointer(mWindowPtr, this);
 
-		mRenderer.init(mWindowPtr, mWidth, mHeight);
-
+		//Setup callbacks
 		glfwSetWindowSizeCallback(mWindowPtr, [](GLFWwindow* windowPtr, int width, int height) {
 			if (width > 0 && height > 0) {
 				auto window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(windowPtr));
 				window->mWidth = width;
 				window->mHeight = height;
 			}
-			});
+		});
 
 		glfwSetFramebufferSizeCallback(mWindowPtr, [](GLFWwindow* windowPtr, int width, int height) {
 			if (width > 0 && height > 0) {
 				auto window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(windowPtr));
-				window->mRenderer.resizeSwapChain(width, height);
+				Application::get().getRenderer().resizeSwapChain(width, height);
 			}
-			});
+		});
+
+		glfwSetWindowCloseCallback(mWindowPtr, [](GLFWwindow* windowPtr) {
+			Application::get().stop();
+		});
 	}
 
 	bool Window::shouldClose() const {
@@ -51,14 +54,35 @@ namespace DOH {
 		glfwPollEvents();
 	}
 
-	void Window::drawFrame() {
-		mRenderer.drawFrame();
+	VkSurfaceKHR Window::createVulkanSurface(VkInstance vulkanInstance) {
+		VkSurfaceKHR surface = VK_NULL_HANDLE;
+
+		TRY(
+			glfwCreateWindowSurface(vulkanInstance, mWindowPtr, nullptr, &surface) != VK_SUCCESS,
+			"Failed to create Surface."
+		);
+
+		return surface;
+	}
+
+	std::vector<const char*> Window::getRequiredExtensions(bool validationLayersEnabled) {
+		uint32_t glfwExtensionCount = 0;
+		const char** glfwExtensionNames;
+		glfwExtensionNames = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+		std::vector<const char*> extensionNames(glfwExtensionNames, glfwExtensionNames + glfwExtensionCount);
+
+		if (validationLayersEnabled) {
+			extensionNames.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+		}
+
+		return extensionNames;
 	}
 
 	void Window::close() {
-		if (!mRenderer.isClosed()) {
-			mRenderer.close();
-		}
+		//if (!mRenderer.isClosed()) {
+		//	mRenderer.close();
+		//}
 
 		glfwDestroyWindow(mWindowPtr);
 		glfwTerminate();

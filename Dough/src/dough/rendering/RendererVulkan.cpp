@@ -1,5 +1,6 @@
 #include "dough/rendering/RendererVulkan.h"
 
+#include "dough/application/Application.h"
 #include "dough/Utils.h"
 #include "dough/rendering/shader/ShaderVulkan.h"
 
@@ -40,38 +41,35 @@ namespace DOH {
 		mPhysicalDevice(VK_NULL_HANDLE),
 		mLogicDevice(VK_NULL_HANDLE),
 		mSurface(VK_NULL_HANDLE),
-		mDebugMessenger(nullptr),
-		mRenderingContext(VK_NULL_HANDLE, VK_NULL_HANDLE)
+		mDebugMessenger(nullptr)
 	{
 	}
 
-	void RendererVulkan::init(GLFWwindow* windowPtr, int width, int height) {
+	void RendererVulkan::init(int width, int height) {
 		createVulkanInstance();
 
 		setupDebugMessenger();
 
-		createSurface(windowPtr);
+		mSurface = Application::get().getWindow().createVulkanSurface(mInstance);
 
 		pickPhysicalDevice();
 		createLogicalDevice();
 
 		mQueueFamilyIndices = queryQueueFamilies(mPhysicalDevice);
-
-		mRenderingContext.setLogicDevice(mLogicDevice);
-		mRenderingContext.setPhysicalDevice(mPhysicalDevice);
-
 		SwapChainSupportDetails scSupport = SwapChainVulkan::querySwapChainSupport(mPhysicalDevice, mSurface);
-		mRenderingContext.init(scSupport, mSurface, mQueueFamilyIndices, width, height);
+
+		mRenderingContext = std::make_unique<RenderingContextVulkan>(mLogicDevice, mPhysicalDevice);
+		mRenderingContext->init(scSupport, mSurface, mQueueFamilyIndices, width, height);
 	}
 
 	void RendererVulkan::drawFrame() {
-		mRenderingContext.drawFrame();
+		mRenderingContext->drawFrame();
 	}
 
 	void RendererVulkan::close() {
 		vkDeviceWaitIdle(mLogicDevice);
 
-		mRenderingContext.close();
+		mRenderingContext->close();
 
 		vkDestroyDevice(mLogicDevice, nullptr);
 
@@ -89,7 +87,7 @@ namespace DOH {
 
 	void RendererVulkan::resizeSwapChain(int width, int height) {
 		SwapChainSupportDetails scSupport = SwapChainVulkan::querySwapChainSupport(mPhysicalDevice, mSurface);
-		mRenderingContext.resizeSwapChain(scSupport, mSurface, mQueueFamilyIndices, width, height);
+		mRenderingContext->resizeSwapChain(scSupport, mSurface, mQueueFamilyIndices, width, height);
 	}
 
 	void RendererVulkan::createVulkanInstance() {
@@ -110,7 +108,7 @@ namespace DOH {
 		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		createInfo.pApplicationInfo = &appInfo;
 
-		auto extensions = getRequiredExtensions();
+		auto extensions = Application::get().getWindow().getRequiredExtensions(mValidationLayersEnabled);
 		createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 		createInfo.ppEnabledExtensionNames = extensions.data();
 
@@ -157,20 +155,6 @@ namespace DOH {
 		return true;
 	}
 
-	std::vector<const char*> RendererVulkan::getRequiredExtensions() {
-		uint32_t glfwExtensionCount = 0;
-		const char** glfwExtensionNames;
-		glfwExtensionNames = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-		std::vector<const char*> extensionNames(glfwExtensionNames, glfwExtensionNames + glfwExtensionCount);
-
-		if (mValidationLayersEnabled) {
-			extensionNames.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-		}
-
-		return extensionNames;
-	}
-
 	void RendererVulkan::setupDebugMessenger() {
 		if (!mValidationLayersEnabled) {
 			return;
@@ -199,13 +183,6 @@ namespace DOH {
 			VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
 			VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 		createInfo.pfnUserCallback = debugCallback;
-	}
-
-	void RendererVulkan::createSurface(GLFWwindow* windowPtr) {
-		TRY(
-			glfwCreateWindowSurface(mInstance, windowPtr, nullptr, &mSurface) != VK_SUCCESS,
-			"Failed to create Surface."
-		);
 	}
 
 	void RendererVulkan::pickPhysicalDevice() {
@@ -238,7 +215,14 @@ namespace DOH {
 			swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
 		}
 
-		return indices.isComplete() && requiredExtensionsSupported && swapChainAdequate;
+		VkPhysicalDeviceFeatures supportedDeviceFeatures;
+		vkGetPhysicalDeviceFeatures(device, &supportedDeviceFeatures);
+
+		return 
+			indices.isComplete() &&
+			requiredExtensionsSupported &&
+			swapChainAdequate &&
+			supportedDeviceFeatures.samplerAnisotropy;
 	}
 
 	QueueFamilyIndices RendererVulkan::queryQueueFamilies(VkPhysicalDevice device) {
@@ -307,6 +291,7 @@ namespace DOH {
 		}
 
 		VkPhysicalDeviceFeatures deviceFeatures = {};
+		deviceFeatures.samplerAnisotropy = VK_TRUE;
 
 		VkDeviceCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -343,7 +328,8 @@ namespace DOH {
 			}
 		}
 
-		TRY(true, "Failed to find suitable memory type.");
+		//TRY(true, "Failed to find suitable memory type.");
+		THROW("Failed to find suitable memory type.");
 
 		return 0;
 	}

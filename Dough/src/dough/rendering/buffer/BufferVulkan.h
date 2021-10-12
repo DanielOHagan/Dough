@@ -9,6 +9,7 @@ namespace DOH {
 	protected:
 		VkBuffer mBuffer;
 		VkDeviceMemory mBufferMemory;
+		VkDeviceSize mSize;
 
 	public:
 		BufferVulkan();
@@ -16,10 +17,14 @@ namespace DOH {
 		void setData(VkDevice logicDevice, const void* data, size_t size);
 		void setData(VkDevice logicDevice, void* data, size_t size) { setData(logicDevice, (const void*) data, size); }
 
+		void copyToBuffer(BufferVulkan& destination);
+		void copyFromBuffer(BufferVulkan& source);
+
 		void close(VkDevice logicDevice);
 
 		VkBuffer getBuffer() const { return mBuffer; }
 		VkDeviceMemory getDeviceMemory() const { return mBufferMemory; }
+		inline size_t getSize() const { return mSize; }
 
 	protected:
 		void init(
@@ -98,5 +103,7 @@ namespace DOH {
 			VkBuffer dstBuffer,
 			VkDeviceSize size
 		);
+
+		static void copyBuffer(BufferVulkan& source, BufferVulkan& destination);
 	};
 }

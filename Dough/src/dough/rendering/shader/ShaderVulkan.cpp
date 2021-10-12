@@ -1,5 +1,7 @@
 #include "dough/rendering/shader/ShaderVulkan.h"
 
+#include "dough/ResourceHandler.h"
+
 namespace DOH {
 
 	const std::string& ShaderVulkan::NO_PATH = "notSet";
@@ -25,12 +27,11 @@ namespace DOH {
 			vkCreateShaderModule(logicDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS,
 			"Failed to create shader module."
 		);
-
 		return shaderModule;
 	}
 
 	ShaderVulkan ShaderVulkan::create(VkDevice logicDevice, EShaderType type, const std::string& filePath) {
-		std::vector<char> shaderByteCode = readFile(filePath);
+		std::vector<char> shaderByteCode = ResourceHandler::readFile(filePath);
 		return ShaderVulkan(type, ShaderVulkan::createShaderModule(logicDevice, shaderByteCode));
 	}
 }

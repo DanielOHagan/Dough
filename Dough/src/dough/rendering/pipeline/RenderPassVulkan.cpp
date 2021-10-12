@@ -1,4 +1,4 @@
-#include "dough/rendering/RenderPassVulkan.h"
+#include "dough/rendering/pipeline/RenderPassVulkan.h"
 
 namespace DOH {
 

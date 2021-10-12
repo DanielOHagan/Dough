@@ -1,4 +1,3 @@
-#include "dough/Utils.h"
 #include "dough/rendering/Config.h"
 
 namespace DOH {
@@ -41,14 +40,14 @@ namespace DOH {
 		void setResizable(bool resizable) { mResizable = resizable; }
 		bool isResizable() const { return mResizable; }
 
-		VkSwapchainKHR get() const { return mVkSwapChain; }
+		inline VkSwapchainKHR get() const { return mVkSwapChain; }
 		VkFramebuffer getFramebufferAt(size_t index) const { return mVkSwapChainFramebuffers.at(index); }
-		VkExtent2D getExtent() const { return mVkSwapChainExtent; }
-		VkFormat getImageFormat() const { return mVkSwapChainImageFormat; }
+		inline VkExtent2D getExtent() const { return mVkSwapChainExtent; }
+		inline VkFormat getImageFormat() const { return mVkSwapChainImageFormat; }
 
-		size_t getImageCount() const { return mVkSwapChainImages.size(); }
-		size_t getImageViewCount() const { return mVkSwapChainImageViews.size(); }
-		size_t getFramebufferCount() const { return mVkSwapChainFramebuffers.size(); }
+		inline size_t getImageCount() const { return mVkSwapChainImages.size(); }
+		inline size_t getImageViewCount() const { return mVkSwapChainImageViews.size(); }
+		inline size_t getFramebufferCount() const { return mVkSwapChainFramebuffers.size(); }
 
 		//-----Static Methods-----
 		static SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);

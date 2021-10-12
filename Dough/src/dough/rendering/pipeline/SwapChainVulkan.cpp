@@ -1,4 +1,4 @@
-#include "dough/rendering/SwapChainVulkan.h"
+#include "dough/application/Application.h"
 
 namespace DOH {
 
@@ -91,25 +91,7 @@ namespace DOH {
 		mVkSwapChainImageViews.resize(mVkSwapChainImages.size());
 
 		for (size_t i = 0; i < mVkSwapChainImages.size(); i++) {
-			VkImageViewCreateInfo createInfo = {};
-			createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			createInfo.image = mVkSwapChainImages[i];
-			createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			createInfo.format = mVkSwapChainImageFormat;
-			createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-			createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-			createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-			createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-			createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			createInfo.subresourceRange.baseMipLevel = 0;
-			createInfo.subresourceRange.levelCount = 1;
-			createInfo.subresourceRange.baseArrayLayer = 0;
-			createInfo.subresourceRange.layerCount = 1;
-
-			TRY(
-				vkCreateImageView(logicDevice, &createInfo, nullptr, &mVkSwapChainImageViews[i]) != VK_SUCCESS,
-				"Failed to create image view."
-			);
+			mVkSwapChainImageViews[i] = Application::get().getRenderer().getContext().createImageView(mVkSwapChainImages[i], mVkSwapChainImageFormat);
 		}
 	}
 

@@ -1,4 +1,6 @@
-#include "dough/rendering/DescriptorVulkan.h"
+#include "dough/rendering/pipeline/DescriptorVulkan.h"
+
+#include "dough/rendering/TextureVulkan.h"
 
 namespace DOH {
 
@@ -10,13 +12,13 @@ namespace DOH {
 
 	void DescriptorVulkan::createDescriptorSetLayout(
 		VkDevice logicDevice,
-		VkDescriptorSetLayoutBinding layoutBinding,
+		std::vector<VkDescriptorSetLayoutBinding>& layoutBinding,
 		uint32_t bindingCount
 	) {
 		VkDescriptorSetLayoutCreateInfo dslCreateInfo = {};
 		dslCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		dslCreateInfo.bindingCount = bindingCount;
-		dslCreateInfo.pBindings = &layoutBinding;
+		dslCreateInfo.pBindings = layoutBinding.data();
 
 		TRY(
 			vkCreateDescriptorSetLayout(logicDevice, &dslCreateInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS,
@@ -56,22 +58,55 @@ namespace DOH {
 	}
 
 	void DescriptorVulkan::updateDescriptorSets(VkDevice logicDevice, size_t count) {
+		const uint32_t preTextureWritesCount = 1;
+		const uint32_t writeCount = preTextureWritesCount + static_cast<uint32_t>(mTextureMap.size());
+
 		for (size_t i = 0; i < count; i++) {
+			std::vector<VkWriteDescriptorSet> descWrites{};
+			for (uint32_t i = 0; i < writeCount; i++) {
+				VkWriteDescriptorSet write{};
+				descWrites.push_back(write);
+			}
+
 			VkDescriptorBufferInfo bufferInfo = {};
 			bufferInfo.buffer = mBuffers[i].getBuffer();
 			bufferInfo.offset = 0;
 			bufferInfo.range = mBufferSize;
 
-			VkWriteDescriptorSet descWrite = {};
-			descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descWrite.dstSet = mDescriptorSets[i];
-			descWrite.dstBinding = 0;
-			descWrite.dstArrayElement = 0;
-			descWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descWrite.descriptorCount = 1;
-			descWrite.pBufferInfo = &bufferInfo;
+			uint32_t descWriteIndex = 0;
+			descWrites[descWriteIndex].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descWrites[descWriteIndex].dstSet = mDescriptorSets[i];
+			descWrites[descWriteIndex].dstBinding = 0;
+			descWrites[descWriteIndex].dstArrayElement = 0;
+			descWrites[descWriteIndex].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descWrites[descWriteIndex].descriptorCount = 1;
+			descWrites[descWriteIndex].pBufferInfo = &bufferInfo;
+			descWriteIndex++;
 
-			vkUpdateDescriptorSets(logicDevice, 1, &descWrite, 0, nullptr);
+			//Any attached Textures
+			for (const auto& [key, value] : mTextureMap) {
+				VkDescriptorImageInfo imageInfo{};
+				imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				imageInfo.imageView = value.first;
+				imageInfo.sampler = value.second;
+
+				descWrites[descWriteIndex].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				descWrites[descWriteIndex].dstSet = mDescriptorSets[i];
+				descWrites[descWriteIndex].dstBinding = key;
+				descWrites[descWriteIndex].dstArrayElement = 0;
+				descWrites[descWriteIndex].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				descWrites[descWriteIndex].descriptorCount = 1;
+				descWrites[descWriteIndex].pImageInfo = &imageInfo;
+				descWriteIndex++;
+			}
+
+			vkUpdateDescriptorSets(
+				logicDevice,
+				static_cast<uint32_t>(descWrites.size()),
+				descWrites.data(),
+				0,
+				nullptr
+			);
 		}
 	}
 
@@ -92,6 +127,11 @@ namespace DOH {
 		);
 	}
 
+	void DescriptorVulkan::setTexture(uint32_t binding, VkImageView imageView, VkSampler sampler) {
+		TextureDescriptorInfo info{imageView, sampler};
+		mTextureMap.emplace(binding, info);
+	}
+
 	void DescriptorVulkan::close(VkDevice logicDevice) {
 		for (BufferVulkan& buffers : mBuffers) {
 			buffers.close(logicDevice);
@@ -101,7 +141,6 @@ namespace DOH {
 	}
 
 	VkDescriptorSetLayoutBinding DescriptorVulkan::createLayoutBinding(
-		VkDevice logicDevice,
 		VkDescriptorType descriptorType,
 		VkShaderStageFlags stages,
 		uint32_t descriptorCount,
@@ -112,6 +151,7 @@ namespace DOH {
 		layoutBinding.descriptorType = descriptorType;
 		layoutBinding.descriptorCount = descriptorCount;
 		layoutBinding.stageFlags = stages;
+		layoutBinding.pImmutableSamplers = nullptr;
 
 		return layoutBinding;
 	}
