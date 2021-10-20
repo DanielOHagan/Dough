@@ -9,13 +9,13 @@ namespace DOH {
 	class Application {
 
 	private:
-		
+
 		static Application* INSTANCE;
 
 		std::unique_ptr<Window> mWindow;
 		std::unique_ptr<RendererVulkan> mRenderer;
 		bool mRunning;
-		
+
 	public:
 		Application(const Application& copy) = delete;
 		void operator=(const Application& assignment) = delete;

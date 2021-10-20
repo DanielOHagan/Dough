@@ -1,6 +1,7 @@
 #include "dough/rendering/shader/ShaderVulkan.h"
 
 #include "dough/ResourceHandler.h"
+#include "dough/Utils.h"
 
 namespace DOH {
 

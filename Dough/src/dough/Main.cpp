@@ -2,6 +2,7 @@
 
 int main() {
 
-	return DOH::Application::start(/* appLogic */);
+	int code = DOH::Application::start(/* appLogic */);
 
+	return code;
 }

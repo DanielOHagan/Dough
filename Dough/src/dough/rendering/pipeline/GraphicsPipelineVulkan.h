@@ -28,23 +28,14 @@ namespace DOH {
 
 		std::vector<VkCommandBuffer> mCommandBuffers;
 
-		DescriptorVulkan mShaderDescriptor;
-
+		std::unique_ptr<DescriptorVulkan> mShaderDescriptor;
 
 		std::string mVertShaderPath;
 		std::string mFragShaderPath;
 
 	public:
-		GraphicsPipelineVulkan();
-		GraphicsPipelineVulkan(
-			SwapChainVulkan& swapChain,
-			RenderPassVulkan renderPass,
-			std::string& mVertShaderPath,
-			std::string& mFragShaderPath
-		);
-
-		void createUniformBufferObject(VkDevice logicDevice, VkDeviceSize bufferSize);
-		void uploadShaderUBO(VkDevice logicDevice, VkPhysicalDevice physicalDevice, TextureVulkan& texture);
+		void createUniformObjects(VkDevice logicDevice, VkDeviceSize bufferSize, std::vector<TextureVulkan>& textures);
+		void uploadShaderUniforms(VkDevice logicDevice, VkPhysicalDevice physicalDevice);
 		void createCommandBuffers(VkDevice logicDevice /*TEMP::*/, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indexCount/*::TEMP*/);
 		void init(VkDevice logicDevice);
 		void bind(VkCommandBuffer cmdBuffer);
@@ -62,7 +53,7 @@ namespace DOH {
 		inline const VkCommandPool getCommandPool() const { return mCommandPool; }
 		inline void setDescriptorPool(VkDescriptorPool descPool) { mDescriptorPool = descPool; }
 		inline const VkDescriptorPool getDescriptorPool() const { return mDescriptorPool; }
-		inline DescriptorVulkan& getShaderDescriptor() { return /*mUniformDescriptor*/ mShaderDescriptor; }
+		inline DescriptorVulkan& getShaderDescriptor() const { return *mShaderDescriptor; }
 
 		inline VkPipeline get() const { return mGraphicsPipeline; }
 		inline VkPipelineLayout getPipelineLayout() const { return mGraphicsPipelineLayout; }
@@ -70,20 +61,26 @@ namespace DOH {
 		inline RenderPassVulkan getRenderPass() const { return mRenderPass; }
 		inline std::vector<VkCommandBuffer>& getCommandBuffers() { return mCommandBuffers; }
 
+	private:
+		GraphicsPipelineVulkan();
+		GraphicsPipelineVulkan(
+			SwapChainVulkan& swapChain,
+			RenderPassVulkan renderPass,
+			std::string& mVertShaderPath,
+			std::string& mFragShaderPath
+		);
+
 	public:
 		//TODO:: Uniform info including DescriptorSetLayout creation args, size, and more
-		
+
 		static GraphicsPipelineVulkan create(
 			VkDevice logicDevice,
-			SwapChainSupportDetails scsd,
-			VkSurfaceKHR surface,
-			QueueFamilyIndices& indices,
-			uint32_t width,
-			uint32_t height,
-			std::string& vertShaderPath,
-			std::string& fragShaderPath,
 			VkCommandPool cmdPool,
-			VkDeviceSize uniformBufferSize
+			SwapChainCreationInfo swapChainCreate,
+			size_t uboSize,
+			std::vector<TextureVulkan>& textures,
+			std::string& vertexShaderPath,
+			std::string& fragmentShaderPath
 		);
 
 		static GraphicsPipelineVulkan createNonInit();

@@ -10,14 +10,21 @@ namespace DOH {
 	const std::string vertShaderPath = "res/shaders/vert.spv";
 	const std::string fragShaderPath = "res/shaders/frag.spv";
 	const std::string testTexturePath = "res/images/testTexture.jpg";
+	const std::string testTexture2Path = "res/images/testTexture2.jpg";
 	const std::vector<Vertex> vertices {
-		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-		{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-		{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-		{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
+		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f}},
+		{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {0.0f}},
+		{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {0.0f}},
+		{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f}},
+
+		{{-0.25f, -0.25f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f}},
+		{{0.75f, -0.25f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f}},
+		{{0.75f, 0.75f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {1.0f}},
+		{{-0.25f, 0.75f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {1.0f}}
 	};
 	const std::vector<uint16_t> indices {
-		0, 1, 2, 2, 3, 0
+		0, 1, 2, 2, 3, 0,
+		4, 5, 6, 6, 7, 4
 	};
 	struct UniformBufferObject {
 		alignas(16) glm::mat4 model;
@@ -49,6 +56,7 @@ namespace DOH {
 
 		//TEMP::
 		std::unique_ptr<TextureVulkan> mTestTexture;
+		std::unique_ptr<TextureVulkan> mTestTexture2;
 
 		const int MAX_FRAMES_IN_FLIGHT = 2;
 		size_t mCurrentFrame;

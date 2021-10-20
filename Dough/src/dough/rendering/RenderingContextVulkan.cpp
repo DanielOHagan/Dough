@@ -32,17 +32,39 @@ namespace DOH {
 
 		createCommandPool(queueFamilyIndices);
 
+		//Load texture before pipeline creation
+		mTestTexture = std::make_unique<TextureVulkan>(TextureVulkan::create(
+			mLogicDevice,
+			mPhysicalDevice,
+			mCommandPool,
+			mGraphicsQueue,
+			(std::string&) testTexturePath
+		));
+		mTestTexture2 = std::make_unique<TextureVulkan>(TextureVulkan::create(
+			mLogicDevice,
+			mPhysicalDevice,
+			mCommandPool,
+			mGraphicsQueue,
+			(std::string&) testTexture2Path
+		));
+
+		//Create a vector of textures that are to be used in pipeline
+		//std::vector<TextureVulkan> textures = {*mTestTexture, *mTestTexture2};
+		std::vector<TextureVulkan> textures = {*mTestTexture};
 		mGraphicsPipeline = std::make_unique<GraphicsPipelineVulkan>(GraphicsPipelineVulkan::create(
 			mLogicDevice,
-			scSupport,
-			surface,
-			queueFamilyIndices,
-			width,
-			height,
-			(std::string&) vertShaderPath,
-			(std::string&) fragShaderPath,
 			mCommandPool,
-			sizeof(UniformBufferObject)
+			SwapChainCreationInfo(
+				scSupport,
+				surface,
+				queueFamilyIndices,
+				width,
+				height
+			),
+			sizeof(UniformBufferObject),
+			textures,
+			(std::string&) vertShaderPath,
+			(std::string&) fragShaderPath
 		));
 
 		mVertexBuffer = std::make_unique<BufferVulkan>(BufferVulkan::createStagedBuffer(
@@ -65,14 +87,6 @@ namespace DOH {
 			static_cast<uint32_t>(indices.size())
 		));
 
-		mTestTexture = std::make_unique<TextureVulkan>(TextureVulkan::create(
-			mLogicDevice,
-			mPhysicalDevice,
-			mCommandPool,
-			mGraphicsQueue,
-			(std::string&) testTexturePath
-		));
-
 		preparePipeline();
 
 		createSyncObjects();
@@ -89,6 +103,7 @@ namespace DOH {
 		mIndexBuffer->close(mLogicDevice);
 
 		mTestTexture->close(mLogicDevice);
+		mTestTexture2->close(mLogicDevice);
 		
 		mGraphicsPipeline->close(mLogicDevice);
 
@@ -107,18 +122,23 @@ namespace DOH {
 			vkDeviceWaitIdle(mLogicDevice);
 
 			mGraphicsPipeline->close(mLogicDevice);
-
+			
+			//std::vector<TextureVulkan> textures = {*mTestTexture, *mTestTexture2};
+			std::vector<TextureVulkan> textures = {*mTestTexture};
 			mGraphicsPipeline = std::make_unique<GraphicsPipelineVulkan>(GraphicsPipelineVulkan::create(
 				mLogicDevice,
-				scSupport,
-				surface,
-				queueFamilyIndices,
-				width,
-				height,
-				(std::string&) vertShaderPath,
-				(std::string&) fragShaderPath,
 				mCommandPool,
-				sizeof(UniformBufferObject)
+				SwapChainCreationInfo(
+					scSupport,
+					surface,
+					queueFamilyIndices,
+					width,
+					height
+				),
+				sizeof(UniformBufferObject),
+				textures,
+				(std::string&) vertShaderPath,
+				(std::string&) fragShaderPath
 			));
 
 			vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
@@ -196,11 +216,10 @@ namespace DOH {
 		static auto startTime = std::chrono::high_resolution_clock::now();
 
 		auto currentTime = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-		const float aspectRatio = static_cast<float>(
-			mGraphicsPipeline->getSwapChain().getExtent().width /
-			mGraphicsPipeline->getSwapChain().getExtent().height
-		);
+		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count() / 4; //Divide to slow rotation speed
+		const float aspectRatio = 
+			(float) mGraphicsPipeline->getSwapChain().getExtent().width /
+			mGraphicsPipeline->getSwapChain().getExtent().height;
 
 		UniformBufferObject ubo = {};
 		ubo.model = glm::rotate(
@@ -214,7 +233,7 @@ namespace DOH {
 			glm::vec3(0.0f, 0.0f, 1.0f)
 		);
 		ubo.proj = glm::perspective(
-			glm::radians(45.0f),
+			glm::radians(90.0f),
 			aspectRatio,
 			0.1f,
 			10.0f
@@ -245,11 +264,13 @@ namespace DOH {
 	void RenderingContextVulkan::createDescriptorPool() {
 		uint32_t imageCount = static_cast<uint32_t>(mGraphicsPipeline->getSwapChain().getImageCount());
 
-		std::array<VkDescriptorPoolSize, 2> poolSizes{};
+		std::array<VkDescriptorPoolSize, 3> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[0].descriptorCount = imageCount;
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		poolSizes[1].descriptorCount = imageCount;
+		poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		poolSizes[2].descriptorCount = imageCount;
 
 		VkDescriptorPoolCreateInfo poolCreateInfo = {};
 		poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -294,10 +315,14 @@ namespace DOH {
 		createDescriptorPool();
 
 		mGraphicsPipeline->setDescriptorPool(mDescriptorPool);
-		mGraphicsPipeline->uploadShaderUBO(mLogicDevice, mPhysicalDevice, *mTestTexture);
+		mGraphicsPipeline->uploadShaderUniforms(mLogicDevice, mPhysicalDevice);
 		
-
-		mGraphicsPipeline->createCommandBuffers(mLogicDevice, mVertexBuffer->getBuffer(), mIndexBuffer->getBuffer(), mIndexBuffer->getCount());
+		mGraphicsPipeline->createCommandBuffers(
+			mLogicDevice,
+			mVertexBuffer->getBuffer(),
+			mIndexBuffer->getBuffer(),
+			mIndexBuffer->getCount()
+		);
 	}
 
 	VkCommandBuffer RenderingContextVulkan::beginSingleTimeCommands() {
@@ -392,7 +417,7 @@ namespace DOH {
 		samplerCreate.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		samplerCreate.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		samplerCreate.anisotropyEnable = VK_TRUE;
-		samplerCreate.maxAnisotropy = mPhysicalDeviceProperties->limits.maxSamplerAnisotropy; //TODO:: Make this a variable instead of always max possible value device allows->>
+		samplerCreate.maxAnisotropy = mPhysicalDeviceProperties->limits.maxSamplerAnisotropy; //TODO:: Make this a variable instead of always max possible value device allows
 		samplerCreate.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
 		samplerCreate.unnormalizedCoordinates = VK_FALSE;
 		samplerCreate.compareEnable = VK_FALSE;

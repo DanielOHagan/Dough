@@ -12,7 +12,7 @@ namespace DOH {
 
 	Application::~Application() {
 		if (Application::isInstantiated()) {
-			delete this;
+			delete[] this;
 		}
 	}
 

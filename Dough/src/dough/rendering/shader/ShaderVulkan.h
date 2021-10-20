@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dough/Utils.h"
+#include "dough/rendering/Config.h"
 
 #include <vulkan/vulkan_core.h>
 

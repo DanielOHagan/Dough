@@ -80,10 +80,6 @@ namespace DOH {
 	}
 
 	void Window::close() {
-		//if (!mRenderer.isClosed()) {
-		//	mRenderer.close();
-		//}
-
 		glfwDestroyWindow(mWindowPtr);
 		glfwTerminate();
 	}

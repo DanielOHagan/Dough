@@ -1,4 +1,4 @@
-#include "dough/Utils.h"
+#include "dough/rendering/Config.h"
 
 namespace DOH {
 
