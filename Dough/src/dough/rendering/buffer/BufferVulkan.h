@@ -22,8 +22,8 @@ namespace DOH {
 
 		void close(VkDevice logicDevice);
 
-		VkBuffer getBuffer() const { return mBuffer; }
-		VkDeviceMemory getDeviceMemory() const { return mBufferMemory; }
+		inline VkBuffer getBuffer() const { return mBuffer; }
+		inline VkDeviceMemory getDeviceMemory() const { return mBufferMemory; }
 		inline size_t getSize() const { return mSize; }
 
 	protected:

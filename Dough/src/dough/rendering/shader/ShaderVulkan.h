@@ -35,6 +35,7 @@ namespace DOH {
 		EShaderType getShaderType() const { return mShaderType; }
 
 	public:
-		static ShaderVulkan create(VkDevice logicDevice, EShaderType type, const std::string& filePath);
+		static ShaderVulkan createShader(VkDevice logicDevice, EShaderType type, const std::string& filePath);
+
 	};
 }

@@ -31,7 +31,7 @@ namespace DOH {
 		return shaderModule;
 	}
 
-	ShaderVulkan ShaderVulkan::create(VkDevice logicDevice, EShaderType type, const std::string& filePath) {
+	ShaderVulkan ShaderVulkan::createShader(VkDevice logicDevice, EShaderType type, const std::string& filePath) {
 		std::vector<char> shaderByteCode = ResourceHandler::readFile(filePath);
 		return ShaderVulkan(type, ShaderVulkan::createShaderModule(logicDevice, shaderByteCode));
 	}

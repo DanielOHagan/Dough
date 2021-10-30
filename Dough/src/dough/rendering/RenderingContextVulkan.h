@@ -1,8 +1,7 @@
 #pragma once
 
 #include "dough/Utils.h"
-#include "dough/rendering/buffer/IndexBufferVulkan.h"
-#include "dough/rendering/TextureVulkan.h"
+#include "dough/rendering/ObjInit.h"
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 
 namespace DOH {
@@ -50,13 +49,10 @@ namespace DOH {
 		VkDescriptorPool mDescriptorPool;
 		VkCommandPool mCommandPool;
 
-		//TEMP:: For developing impl of VAO
-		std::unique_ptr<BufferVulkan> mVertexBuffer;
-		std::unique_ptr<IndexBufferVulkan> mIndexBuffer;
+		std::shared_ptr<VertexArrayVulkan> m_TestVAO_VertexArray;
 
-		//TEMP::
-		std::unique_ptr<TextureVulkan> mTestTexture;
-		std::unique_ptr<TextureVulkan> mTestTexture2;
+		std::shared_ptr<TextureVulkan> mTestTexture1;
+		std::shared_ptr<TextureVulkan> mTestTexture2;
 
 		const int MAX_FRAMES_IN_FLIGHT = 2;
 		size_t mCurrentFrame;

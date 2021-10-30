@@ -16,7 +16,6 @@ namespace DOH {
 		std::vector<VkDescriptorSet> mDescriptorSets;
 		std::vector<BufferVulkan> mBuffers;
 		
-		//TEMP::
 		std::map<uint32_t, TextureDescriptorInfo> mTextureMap;
 
 	public:
@@ -42,11 +41,13 @@ namespace DOH {
 		inline const VkDescriptorSetLayout& getDescriptorSetLayout() const { return mDescriptorSetLayout; }
 		inline std::vector<BufferVulkan>& getBuffers() { return mBuffers; }
 
+	public:
 		static VkDescriptorSetLayoutBinding createLayoutBinding(
 			VkDescriptorType descriptorType,
 			VkShaderStageFlags stages,
 			uint32_t descriptorCount,
 			uint32_t binding
 		);
+
 	};
 }

@@ -25,7 +25,7 @@ namespace DOH {
 		inline int getWidth() const { return mWidth; }
 		inline int getHeight() const { return mHeight; }
 		inline int getChannels() const { return mChannels; }
-		inline VkDeviceSize getSize() const { return mWidth * mHeight * 4; }
+		inline int getSize() const { return mWidth * mHeight * 4; }
 		inline VkImage getImage() const { return mImage; }
 		inline VkImageView getImageView() const { return mImageView; }
 		inline VkSampler getSampler() const { return mSampler; }
@@ -44,7 +44,7 @@ namespace DOH {
 		void createSampler();
 
 	public:
-		static TextureVulkan create(
+		static TextureVulkan createTexture(
 			VkDevice logicDevice,
 			VkPhysicalDevice physicalDevice,
 			VkCommandPool cmdPool,
@@ -73,5 +73,6 @@ namespace DOH {
 			VkImage& image,
 			VkDeviceMemory& imageMemory
 		);
+
 	};
 }

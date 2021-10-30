@@ -185,7 +185,7 @@ namespace DOH {
 		}
 	}
 
-	SwapChainVulkan SwapChainVulkan::create(
+	SwapChainVulkan SwapChainVulkan::createSwapChain(
 		VkDevice logicDevice,
 		SwapChainSupportDetails scsd,
 		VkSurfaceKHR surface,

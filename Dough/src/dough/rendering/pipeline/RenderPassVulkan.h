@@ -24,7 +24,7 @@ namespace DOH {
 		inline VkRenderPass get() const { return mRenderPass; }
 
 	public:
-		static RenderPassVulkan create(VkDevice logicDevice, VkFormat imageFormat);
+		static RenderPassVulkan createRenderPass(VkDevice logicDevice, VkFormat imageFormat);
 
 		static RenderPassVulkan createNonInit() { return RenderPassVulkan(); }
 	};

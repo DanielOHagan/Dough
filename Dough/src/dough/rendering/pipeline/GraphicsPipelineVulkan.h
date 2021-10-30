@@ -6,6 +6,7 @@
 #include "dough/rendering/pipeline/RenderPassVulkan.h"
 #include "dough/rendering/pipeline/DescriptorVulkan.h"
 #include "dough/rendering/TextureVulkan.h"
+#include "dough/rendering/buffer/VertexArrayVulkan.h"
 
 namespace DOH {
 
@@ -23,7 +24,6 @@ namespace DOH {
 		VkDescriptorPool mDescriptorPool;
 
 		SwapChainVulkan mSwapChain;
-		//std::unique_ptr<SwapChainVulkan> mSwapChain;
 		RenderPassVulkan mRenderPass;
 
 		std::vector<VkCommandBuffer> mCommandBuffers;
@@ -36,7 +36,8 @@ namespace DOH {
 	public:
 		void createUniformObjects(VkDevice logicDevice, VkDeviceSize bufferSize, std::vector<TextureVulkan>& textures);
 		void uploadShaderUniforms(VkDevice logicDevice, VkPhysicalDevice physicalDevice);
-		void createCommandBuffers(VkDevice logicDevice /*TEMP::*/, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indexCount/*::TEMP*/);
+		void createCommandBuffers(VkDevice logicDevice, VertexArrayVulkan& vertexArray);
+
 		void init(VkDevice logicDevice);
 		void bind(VkCommandBuffer cmdBuffer);
 		void beginRenderPass(size_t framebufferIndex, VkCommandBuffer cmdBuffer);
@@ -73,7 +74,7 @@ namespace DOH {
 	public:
 		//TODO:: Uniform info including DescriptorSetLayout creation args, size, and more
 
-		static GraphicsPipelineVulkan create(
+		static GraphicsPipelineVulkan createPipeline(
 			VkDevice logicDevice,
 			VkCommandPool cmdPool,
 			SwapChainCreationInfo swapChainCreate,

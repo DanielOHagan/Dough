@@ -38,7 +38,7 @@ namespace DOH {
 		mSampler = Application::get().getRenderer().getContext().createSampler();
 	}
 
-	TextureVulkan TextureVulkan::create(
+	TextureVulkan TextureVulkan::createTexture(
 		VkDevice logicDevice,
 		VkPhysicalDevice physicalDevice,
 		VkCommandPool cmdPool,

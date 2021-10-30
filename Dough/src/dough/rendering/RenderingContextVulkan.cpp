@@ -1,5 +1,6 @@
 #include "dough/rendering/RenderingContextVulkan.h"
 
+#include "dough/rendering/ObjInit.h"
 #include "dough/rendering/shader/ShaderVulkan.h"
 
 #include <chrono>
@@ -32,26 +33,25 @@ namespace DOH {
 
 		createCommandPool(queueFamilyIndices);
 
-		//Load texture before pipeline creation
-		mTestTexture = std::make_unique<TextureVulkan>(TextureVulkan::create(
+		mTestTexture1 = ObjInit::texture(
 			mLogicDevice,
 			mPhysicalDevice,
 			mCommandPool,
 			mGraphicsQueue,
 			(std::string&) testTexturePath
-		));
-		mTestTexture2 = std::make_unique<TextureVulkan>(TextureVulkan::create(
+		);
+		mTestTexture2 = ObjInit::texture(
 			mLogicDevice,
 			mPhysicalDevice,
 			mCommandPool,
 			mGraphicsQueue,
 			(std::string&) testTexture2Path
-		));
+		);
 
 		//Create a vector of textures that are to be used in pipeline
 		//std::vector<TextureVulkan> textures = {*mTestTexture, *mTestTexture2};
-		std::vector<TextureVulkan> textures = {*mTestTexture};
-		mGraphicsPipeline = std::make_unique<GraphicsPipelineVulkan>(GraphicsPipelineVulkan::create(
+		std::vector<TextureVulkan> textures = {*mTestTexture1};
+		mGraphicsPipeline = std::make_unique<GraphicsPipelineVulkan>(GraphicsPipelineVulkan::createPipeline(
 			mLogicDevice,
 			mCommandPool,
 			SwapChainCreationInfo(
@@ -67,7 +67,14 @@ namespace DOH {
 			(std::string&) fragShaderPath
 		));
 
-		mVertexBuffer = std::make_unique<BufferVulkan>(BufferVulkan::createStagedBuffer(
+		m_TestVAO_VertexArray = ObjInit::vertexArray();
+		std::shared_ptr<VertexBufferVulkan> testVAO_VertexBuffer = ObjInit::stagedVertexBuffer(
+			{
+				{EDataType::FLOAT2, "mVertPos"},
+				{EDataType::FLOAT3, "mColour"},
+				{EDataType::FLOAT2, "mTexCoord"},
+				{EDataType::FLOAT, "mTexIndex"}
+			},
 			mLogicDevice,
 			mPhysicalDevice,
 			mCommandPool,
@@ -76,8 +83,9 @@ namespace DOH {
 			sizeof(vertices[0]) * vertices.size(),
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-		));
-		mIndexBuffer = std::make_unique<IndexBufferVulkan>(IndexBufferVulkan::createStagedIndexBuffer(
+		);
+		m_TestVAO_VertexArray->addVertexBuffer(testVAO_VertexBuffer);
+		std::shared_ptr<IndexBufferVulkan> testVAO_IndexBuffer = ObjInit::stagedIndexBuffer(
 			mLogicDevice,
 			mPhysicalDevice,
 			mCommandPool,
@@ -85,7 +93,8 @@ namespace DOH {
 			indices.data(),
 			sizeof(indices[0]) * indices.size(),
 			static_cast<uint32_t>(indices.size())
-		));
+		);
+		m_TestVAO_VertexArray->setIndexBuffer(testVAO_IndexBuffer);
 
 		preparePipeline();
 
@@ -99,10 +108,9 @@ namespace DOH {
 			vkDestroyFence(mLogicDevice, mInFlightFences[i], nullptr);
 		}
 
-		mVertexBuffer->close(mLogicDevice);
-		mIndexBuffer->close(mLogicDevice);
+		m_TestVAO_VertexArray->close(mLogicDevice);
 
-		mTestTexture->close(mLogicDevice);
+		mTestTexture1->close(mLogicDevice);
 		mTestTexture2->close(mLogicDevice);
 		
 		mGraphicsPipeline->close(mLogicDevice);
@@ -124,8 +132,8 @@ namespace DOH {
 			mGraphicsPipeline->close(mLogicDevice);
 			
 			//std::vector<TextureVulkan> textures = {*mTestTexture, *mTestTexture2};
-			std::vector<TextureVulkan> textures = {*mTestTexture};
-			mGraphicsPipeline = std::make_unique<GraphicsPipelineVulkan>(GraphicsPipelineVulkan::create(
+			std::vector<TextureVulkan> textures = {*mTestTexture1};
+			mGraphicsPipeline = std::make_unique<GraphicsPipelineVulkan>(GraphicsPipelineVulkan::createPipeline(
 				mLogicDevice,
 				mCommandPool,
 				SwapChainCreationInfo(
@@ -264,13 +272,13 @@ namespace DOH {
 	void RenderingContextVulkan::createDescriptorPool() {
 		uint32_t imageCount = static_cast<uint32_t>(mGraphicsPipeline->getSwapChain().getImageCount());
 
-		std::array<VkDescriptorPoolSize, 3> poolSizes{};
+		std::array<VkDescriptorPoolSize, 2> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[0].descriptorCount = imageCount;
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		poolSizes[1].descriptorCount = imageCount;
-		poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[2].descriptorCount = imageCount;
+		//poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		//poolSizes[2].descriptorCount = imageCount;
 
 		VkDescriptorPoolCreateInfo poolCreateInfo = {};
 		poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -316,13 +324,8 @@ namespace DOH {
 
 		mGraphicsPipeline->setDescriptorPool(mDescriptorPool);
 		mGraphicsPipeline->uploadShaderUniforms(mLogicDevice, mPhysicalDevice);
-		
-		mGraphicsPipeline->createCommandBuffers(
-			mLogicDevice,
-			mVertexBuffer->getBuffer(),
-			mIndexBuffer->getBuffer(),
-			mIndexBuffer->getCount()
-		);
+
+		mGraphicsPipeline->createCommandBuffers(mLogicDevice, *m_TestVAO_VertexArray);
 	}
 
 	VkCommandBuffer RenderingContextVulkan::beginSingleTimeCommands() {

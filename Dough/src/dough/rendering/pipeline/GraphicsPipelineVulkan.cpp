@@ -83,14 +83,7 @@ namespace DOH {
 		mShaderDescriptor->updateDescriptorSets(logicDevice, count);
 	}
 
-	void GraphicsPipelineVulkan::createCommandBuffers(
-		VkDevice logicDevice,
-		/*TEMP::*/
-		VkBuffer vertexBuffer,
-		VkBuffer indexBuffer,
-		uint32_t indexCount
-		/*::TEMP*/
-	) {
+	void GraphicsPipelineVulkan::createCommandBuffers(VkDevice logicDevice, VertexArrayVulkan& vertexArray) {
 		mCommandBuffers.resize(mSwapChain.getFramebufferCount());
 
 		VkCommandBufferAllocateInfo cmdBuffAlloc = {};
@@ -117,18 +110,13 @@ namespace DOH {
 
 			bind(mCommandBuffers[i]);
 
-			//vao.bind(mCommandBuffers[i], mGraphicsPipelineLayout, &mDescriptorSets[i]);
-			//To define rest of this scope's logic
-			VkBuffer vertexBuffers[] = {vertexBuffer};
-			VkDeviceSize offsets[] = {0};
-			vkCmdBindVertexBuffers(mCommandBuffers[i], 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(mCommandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+			vertexArray.bind(mCommandBuffers[i]);
 
 			mShaderDescriptor->bindDescriptorSets(mCommandBuffers[i], mGraphicsPipelineLayout, i);
 
 			vkCmdDrawIndexed(
 				mCommandBuffers[i],
-				indexCount,
+				vertexArray.getIndexBuffer().getCount(),
 				1,
 				0,
 				0,
@@ -145,8 +133,8 @@ namespace DOH {
 	}
 
 	void GraphicsPipelineVulkan::init(VkDevice logicDevice) {
-		ShaderVulkan vertShader = ShaderVulkan::create(logicDevice, EShaderType::VERTEX, mVertShaderPath);
-		ShaderVulkan fragShader = ShaderVulkan::create(logicDevice, EShaderType::FRAGMENT, mFragShaderPath);
+		ShaderVulkan vertShader = ShaderVulkan::createShader(logicDevice, EShaderType::VERTEX, mVertShaderPath);
+		ShaderVulkan fragShader = ShaderVulkan::createShader(logicDevice, EShaderType::FRAGMENT, mFragShaderPath);
 
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
 		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -278,7 +266,12 @@ namespace DOH {
 	void GraphicsPipelineVulkan::close(VkDevice logicDevice) {
 		mShaderDescriptor->close(logicDevice); //adding in vkDescriptDescriptorSetLayout here, may need to add a "closeBuffers" func to separate from the time when closing descSetLayout
 
-		vkFreeCommandBuffers(logicDevice, mCommandPool, static_cast<uint32_t>(mCommandBuffers.size()), mCommandBuffers.data());
+		vkFreeCommandBuffers(
+			logicDevice,
+			mCommandPool,
+			static_cast<uint32_t>(mCommandBuffers.size()),
+			mCommandBuffers.data()
+		);
 
 		vkDestroyPipeline(logicDevice, mGraphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(logicDevice, mGraphicsPipelineLayout, nullptr);
@@ -286,7 +279,7 @@ namespace DOH {
 		mSwapChain.close(logicDevice);
 	}
 
-	GraphicsPipelineVulkan GraphicsPipelineVulkan::create(
+	GraphicsPipelineVulkan GraphicsPipelineVulkan::createPipeline(
 		VkDevice logicDevice,
 		VkCommandPool cmdPool,
 		SwapChainCreationInfo swapChainCreate,
@@ -295,7 +288,7 @@ namespace DOH {
 		std::string& vertexShaderPath,
 		std::string& fragmentShaderPath
 	) {
-		SwapChainVulkan swapChain = SwapChainVulkan::create(
+		SwapChainVulkan swapChain = SwapChainVulkan::createSwapChain(
 			logicDevice,
 			swapChainCreate.SupportDetails,
 			swapChainCreate.Surface,
@@ -303,7 +296,7 @@ namespace DOH {
 			swapChainCreate.Width,
 			swapChainCreate.Height
 		);
-		RenderPassVulkan renderPass = RenderPassVulkan::create(logicDevice, swapChain.getImageFormat());
+		RenderPassVulkan renderPass = RenderPassVulkan::createRenderPass(logicDevice, swapChain.getImageFormat());
 		GraphicsPipelineVulkan pipeline = GraphicsPipelineVulkan(
 			swapChain,
 			renderPass,

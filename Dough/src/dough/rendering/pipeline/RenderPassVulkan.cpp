@@ -69,9 +69,9 @@ namespace DOH {
 		vkDestroyRenderPass(logicDevice, mRenderPass, nullptr);
 	}
 
-	RenderPassVulkan RenderPassVulkan::create(VkDevice logicDevice, VkFormat imageFormat) {
-		RenderPassVulkan rp = RenderPassVulkan();
-		rp.init(logicDevice, imageFormat);
-		return rp;
+	RenderPassVulkan RenderPassVulkan::createRenderPass(VkDevice logicDevice, VkFormat imageFormat) {
+		RenderPassVulkan renderPass = RenderPassVulkan();
+		renderPass.init(logicDevice, imageFormat);
+		return renderPass;
 	}
 }

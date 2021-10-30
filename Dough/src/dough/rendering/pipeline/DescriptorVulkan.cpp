@@ -68,8 +68,8 @@ namespace DOH {
 		//		}
 		//TODO:: clean this up when adding texture arrays
 
-		const uint32_t preTextureWritesCount = 1;
-		const uint32_t writeCount = preTextureWritesCount + static_cast<uint32_t>(mTextureMap.size());
+		const uint32_t preTextureWritesCount = 1; //Count of uniform bindings before textures
+		const uint32_t writeCount = preTextureWritesCount + static_cast<uint32_t>(mTextureMap.size()); //Total number of uniform bindings
 
 		for (size_t i = 0; i < count; i++) {
 			std::vector<VkWriteDescriptorSet> descWrites{};
@@ -116,20 +116,8 @@ namespace DOH {
 				imageInfos[key].sampler = value.second;
 				descWrites[descWriteIndex].pImageInfo = &imageInfos[key];
 
-				//descWrites[descWriteIndex].pImageInfo = &imageInfo;
 				descWriteIndex++;
-			}
-
-			/*
-			TODO::
-			NOTE::
-			HELP::
-			Please...
-				For some reason, the descWrites[descWriteIndex].pImageInfo = &imageInfo; is assigning the value to both descWrites[1] and descWrites[2] on the second iteration.
-				Had to force a very horrible fix that isn't a fix, it just has two VkDescriptorImageInfo created before the loop.
-				See if I can fix.
-				Commented out code is ideal end product (with texture array in shader but that can come later)
-			*/
+			}	
 
 			vkUpdateDescriptorSets(
 				logicDevice,
