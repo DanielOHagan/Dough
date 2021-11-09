@@ -1,27 +1,26 @@
 #include "dough/rendering/TextureVulkan.h"
 
-#include "dough/ResourceHandler.h"
-#include "dough/rendering/buffer/BufferVulkan.h"
 #include "dough/application/Application.h"
+#include "dough/rendering/ObjInit.h"
 
 namespace DOH {
 
-	TextureVulkan::TextureVulkan(
-		int width,
-		int height,
-		int channels,
-		VkImage image,
-		VkDeviceMemory imageMemory,
-		VkImageView imageView
-	) : mWidth(width),
-		mHeight(height),
-		mChannels(channels),
-		mImage(image),
-		mImageMemory(imageMemory),
-		mImageView(imageView),
-		mSampler(VK_NULL_HANDLE)
-	{
-	}
+	//TextureVulkan::TextureVulkan(
+	//	int width,
+	//	int height,
+	//	int channels,
+	//	VkImage image,
+	//	VkDeviceMemory imageMemory,
+	//	VkImageView imageView
+	//) : mWidth(width),
+	//	mHeight(height),
+	//	mChannels(channels),
+	//	mImage(image),
+	//	mImageMemory(imageMemory),
+	//	mImageView(imageView),
+	//	mSampler(VK_NULL_HANDLE)
+	//{
+	//}
 
 	void TextureVulkan::close(VkDevice logicDevice) {
 		vkDestroySampler(logicDevice, mSampler, nullptr);
@@ -38,7 +37,7 @@ namespace DOH {
 		mSampler = Application::get().getRenderer().getContext().createSampler();
 	}
 
-	TextureVulkan TextureVulkan::createTexture(
+	TextureVulkan::TextureVulkan(
 		VkDevice logicDevice,
 		VkPhysicalDevice physicalDevice,
 		VkCommandPool cmdPool,
@@ -46,10 +45,14 @@ namespace DOH {
 		std::string& filePath
 	) {
 		TextureCreationData textureData = ResourceHandler::loadTexture(filePath.c_str());
+		
+		mWidth = textureData.width;
+		mHeight = textureData.height;
+		mChannels = textureData.channels;
 
 		VkDeviceSize imageSize = textureData.width * textureData.height * 4;
 
-		BufferVulkan imageStagingBuffer = BufferVulkan::createStagedBuffer(
+		std::shared_ptr<BufferVulkan> imageStagingBuffer = ObjInit::stagedBuffer(
 			logicDevice,
 			physicalDevice,
 			cmdPool,
@@ -62,54 +65,43 @@ namespace DOH {
 
 		ResourceHandler::freeImage(textureData.data);
 
-		TextureVulkan texture = TextureVulkan(
-			textureData.width,
-			textureData.height,
-			textureData.channels,
-			VK_NULL_HANDLE,
-			VK_NULL_HANDLE,
-			VK_NULL_HANDLE
-		);
-
 		TextureVulkan::createImage(
 			logicDevice,
 			physicalDevice,
-			static_cast<uint32_t>(textureData.width),
-			static_cast<uint32_t>(textureData.height),
+			static_cast<uint32_t>(mWidth),
+			static_cast<uint32_t>(mHeight),
 			VK_FORMAT_R8G8B8A8_SRGB,
 			VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			texture.mImage,
-			texture.mImageMemory
+			mImage,
+			mImageMemory
 		);
 
 		TextureVulkan::transitionImageLayout(
 			logicDevice,
-			texture.mImage,
+			mImage,
 			VK_FORMAT_R8G8B8A8_SRGB,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
 		);
 		Application::get().getRenderer().getContext().copyBufferToImage(
-			imageStagingBuffer.getBuffer(),
-			texture.mImage,
-			static_cast<uint32_t>(textureData.width),
-			static_cast<uint32_t>(textureData.height)
+			imageStagingBuffer->getBuffer(),
+			mImage,
+			static_cast<uint32_t>(mWidth),
+			static_cast<uint32_t>(mHeight)
 		);
 		TextureVulkan::transitionImageLayout(
 			logicDevice,
-			texture.mImage,
+			mImage,
 			VK_FORMAT_R8G8B8A8_SRGB,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 		);
-		texture.createImageView();
-		texture.createSampler();
+		createImageView();
+		createSampler();
 
-		imageStagingBuffer.close(logicDevice);
-
-		return texture;
+		imageStagingBuffer->close(logicDevice);
 	}
 
 	void TextureVulkan::createImage(

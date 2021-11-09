@@ -37,6 +37,7 @@ namespace DOH {
 		glfwSetFramebufferSizeCallback(mWindowPtr, [](GLFWwindow* windowPtr, int width, int height) {
 			if (width > 0 && height > 0) {
 				auto window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(windowPtr));
+				//TODO:: Window Event
 				Application::get().getRenderer().resizeSwapChain(width, height);
 			}
 		});

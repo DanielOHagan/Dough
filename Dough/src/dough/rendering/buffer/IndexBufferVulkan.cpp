@@ -2,30 +2,24 @@
 
 namespace DOH {
 
-	IndexBufferVulkan::IndexBufferVulkan(uint32_t count)
-	:	BufferVulkan(),
-		mCount(count)
-	{
-	}
-
-	IndexBufferVulkan IndexBufferVulkan::createIndexBuffer(
+	//Non-Staged
+	IndexBufferVulkan::IndexBufferVulkan(
 		VkDevice logicDevice,
 		VkPhysicalDevice physicalDevice,
 		VkDeviceSize size,
 		uint32_t count
-	) {
-		IndexBufferVulkan indexBuffer = IndexBufferVulkan(count);
-		indexBuffer.init(
+	) : BufferVulkan(
 			logicDevice,
 			physicalDevice,
 			size,
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-		);
-		return indexBuffer;
-	}
+		),
+		mCount(count)
+	{}
 
-	IndexBufferVulkan IndexBufferVulkan::createStagedIndexBuffer(
+	//Staged
+	IndexBufferVulkan::IndexBufferVulkan(
 		VkDevice logicDevice,
 		VkPhysicalDevice physicalDevice,
 		VkCommandPool cmdPool,
@@ -33,9 +27,7 @@ namespace DOH {
 		const void* data,
 		VkDeviceSize size,
 		uint32_t count
-	) {
-		IndexBufferVulkan indexBuffer = IndexBufferVulkan(count);
-		indexBuffer.initStaged(
+	) : BufferVulkan(
 			logicDevice,
 			physicalDevice,
 			cmdPool,
@@ -44,7 +36,7 @@ namespace DOH {
 			size,
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-		);
-		return indexBuffer;
-	}
+		),
+		mCount(count)
+	{}
 }

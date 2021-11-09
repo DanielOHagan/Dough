@@ -10,18 +10,10 @@ namespace DOH {
 		
 	}
 
-	Application::~Application() {
-		if (Application::isInstantiated()) {
-			delete[] this;
-		}
-	}
-
 	void Application::run(/*IAppLogic appLogic*/) {
 		init(/*appLogic*/);
 
 		mainLoop();
-
-		close();
 	}
 
 	void Application::init() {
@@ -53,6 +45,8 @@ namespace DOH {
 	void Application::close() {
 		mWindow->close();
 		mRenderer->close();
+
+		delete INSTANCE;
 	}
 
 	int Application::start(/*IAppLogic appLogic*/) {

@@ -4,13 +4,16 @@
 #include <optional>
 #include <array>
 #include <string>
+#include <map>
+#include <memory>
 
 #include <vulkan/vulkan_core.h>
 #include <glm/glm.hpp>
 
 namespace DOH {
 
-	using TextureDescriptorInfo = std::pair<VkImageView, VkSampler>;
+	using ValueUniformInfo = VkDeviceSize;
+	using TextureUniformInfo = std::pair<VkImageView, VkSampler>;
 
 	enum class EDataType {
 		NONE = 0,

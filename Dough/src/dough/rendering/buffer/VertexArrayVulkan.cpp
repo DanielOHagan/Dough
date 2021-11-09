@@ -11,7 +11,11 @@ namespace DOH {
 			vertexBuffers.push_back(vertexBuffer->getBuffer());
 			offsets.push_back(static_cast<VkDeviceSize>(vertexBuffer->getBufferLayout().getStride()));
 		}
-		vkCmdBindVertexBuffers(cmdBuffer, 0, static_cast<uint32_t>(vertexBuffers.size()), vertexBuffers.data(), offsets.data());
+		vkCmdBindVertexBuffers(
+			cmdBuffer,
+			0,
+			static_cast<uint32_t>(vertexBuffers.size()), vertexBuffers.data(), offsets.data()
+		);
 		vkCmdBindIndexBuffer(cmdBuffer, mIndexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT16);
 	}
 

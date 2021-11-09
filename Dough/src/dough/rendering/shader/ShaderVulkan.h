@@ -2,8 +2,6 @@
 
 #include "dough/rendering/Config.h"
 
-#include <vulkan/vulkan_core.h>
-
 namespace DOH {
 
 	enum class EShaderType {
@@ -18,24 +16,25 @@ namespace DOH {
 	private:
 		EShaderType mShaderType;
 		VkShaderModule mShaderModule;
+		std::string& mFilePath;
 
 	public:
-		static const std::string& NO_PATH;
+		ShaderVulkan() = delete;
+		ShaderVulkan(const ShaderVulkan& copy) = delete;
+		ShaderVulkan operator=(const ShaderVulkan& assignment) = delete;
 
-	private:
-		ShaderVulkan(EShaderType type, VkShaderModule shaderModule);
+		ShaderVulkan(EShaderType type, std::string& filePath);
 
-		static VkShaderModule createShaderModule(VkDevice logicDevice, const std::vector<char>& shaderByteCode);
-
-	public:
-
+		void loadModule(VkDevice logicDeivce);
+		void closeModule(VkDevice logicDevice);
 		void close(VkDevice logicDevice);
+
+		inline bool isLoaded() const { return mShaderModule != VK_NULL_HANDLE; }
 
 		VkShaderModule getShaderModule() const { return mShaderModule; }
 		EShaderType getShaderType() const { return mShaderType; }
 
-	public:
-		static ShaderVulkan createShader(VkDevice logicDevice, EShaderType type, const std::string& filePath);
-
+	private:
+		static VkShaderModule createShaderModule(VkDevice logicDevice, const std::vector<char>& shaderByteCode);
 	};
 }

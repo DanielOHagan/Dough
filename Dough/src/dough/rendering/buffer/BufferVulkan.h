@@ -12,7 +12,29 @@ namespace DOH {
 		VkDeviceSize mSize;
 
 	public:
-		BufferVulkan();
+		BufferVulkan() = delete;
+		BufferVulkan(const BufferVulkan& copy) = delete;
+		BufferVulkan operator=(const BufferVulkan& assignment) = delete;
+
+		//Non-Staged
+		BufferVulkan(
+			VkDevice logicDevice,
+			VkPhysicalDevice physicalDevice,
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
+			VkMemoryPropertyFlags props
+		);
+		//Staged
+		BufferVulkan(
+			VkDevice logicDevice,
+			VkPhysicalDevice physicalDevice,
+			VkCommandPool cmdPool,
+			VkQueue graphicsQueue,
+			const void* data,
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
+			VkMemoryPropertyFlags props
+		);
 
 		void setData(VkDevice logicDevice, const void* data, size_t size);
 		void setData(VkDevice logicDevice, void* data, size_t size) { setData(logicDevice, (const void*) data, size); }
@@ -46,55 +68,6 @@ namespace DOH {
 		);
 
 	public:
-		static BufferVulkan createBuffer(
-			VkDevice logicDevice,
-			VkPhysicalDevice physicalDevice,
-			VkDeviceSize size,
-			VkBufferUsageFlags usage,
-			VkMemoryPropertyFlags props
-		);
-
-		/**
-		* Create a buffer that uses a staging buffer to transfer
-		*  data to GPU memory.
-		* 
-		* VK_BUFFER_USAGE_TRANSFER_DST_BIT automatically added 
-		*  to usage param in method.
-		* 
-		*/
-		static BufferVulkan createStagedBuffer(
-			VkDevice logicDevice,
-			VkPhysicalDevice physicalDevice,
-			VkCommandPool cmdPool,
-			VkQueue graphicsQueue,
-			const void* data,
-			VkDeviceSize size,
-			VkBufferUsageFlags usage,
-			VkMemoryPropertyFlags props
-		);
-
-		static BufferVulkan createStagedBuffer(
-			VkDevice logicDevice,
-			VkPhysicalDevice physicalDevice,
-			VkCommandPool cmdPool,
-			VkQueue graphicsQueue,
-			void* data,
-			VkDeviceSize size,
-			VkBufferUsageFlags usage,
-			VkMemoryPropertyFlags props
-		) {
-			return createStagedBuffer(
-				logicDevice,
-				physicalDevice,
-				cmdPool,
-				graphicsQueue,
-				(const void*) data,
-				size,
-				usage,
-				props
-			);
-		}
-
 		static void copyBuffer(
 			VkDevice logicDevice,
 			VkCommandPool cmdPool,

@@ -23,6 +23,14 @@ namespace DOH {
 		void createImageViews(VkDevice logicDevice);
 
 	public:
+		SwapChainVulkan(
+			VkDevice logicDevice,
+			SwapChainSupportDetails scsd,
+			VkSurfaceKHR surface,
+			QueueFamilyIndices& indices,
+			uint32_t width,
+			uint32_t height
+		);
 
 		void init(
 			VkDevice logicDevice,
@@ -37,8 +45,8 @@ namespace DOH {
 		void createFramebuffers(VkDevice logicDevice, VkRenderPass renderPass);
 		void destroyFramebuffers(VkDevice logicDevice);
 
-		void setResizable(bool resizable) { mResizable = resizable; }
-		bool isResizable() const { return mResizable; }
+		inline void setResizable(bool resizable) { mResizable = resizable; }
+		inline bool isResizable() const { return mResizable; }
 
 		inline VkSwapchainKHR get() const { return mVkSwapChain; }
 		VkFramebuffer getFramebufferAt(size_t index) const { return mVkSwapChainFramebuffers.at(index); }
@@ -54,15 +62,5 @@ namespace DOH {
 		static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 		static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 		static VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height);
-
-		static SwapChainVulkan createSwapChain(
-			VkDevice logicDevice,
-			SwapChainSupportDetails scsd,
-			VkSurfaceKHR surface,
-			QueueFamilyIndices& indices,
-			uint32_t width,
-			uint32_t height
-		);
-		static SwapChainVulkan createNonInit();
 	};
 }

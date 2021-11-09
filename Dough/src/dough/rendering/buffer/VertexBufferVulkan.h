@@ -14,12 +14,22 @@ namespace DOH {
 		BufferLayout mBufferLayout;
 
 	public:
-		VertexBufferVulkan(const std::initializer_list<BufferElement>& elements);
+		VertexBufferVulkan() = delete;
+		VertexBufferVulkan(const VertexBufferVulkan& copy) = delete;
+		VertexBufferVulkan operator=(const VertexBufferVulkan& assignment) = delete;
 
-		inline BufferLayout getBufferLayout() const { return mBufferLayout; }
-		inline void setBufferLayout(const BufferLayout& bufferLayout) { mBufferLayout = bufferLayout; }
+		//Non-Staged
+		VertexBufferVulkan(
+			const std::initializer_list<BufferElement>& elements,
+			VkDevice logicDevice,
+			VkPhysicalDevice physicalDevice,
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
+			VkMemoryPropertyFlags props
+		);
 
-		static VertexBufferVulkan createStagedVertexBuffer(
+		//Staged
+		VertexBufferVulkan(
 			const std::initializer_list<BufferElement>& elements,
 			VkDevice logicDevice,
 			VkPhysicalDevice physicalDevice,
@@ -31,28 +41,7 @@ namespace DOH {
 			VkMemoryPropertyFlags props
 		);
 
-		static VertexBufferVulkan createStagedVertexBuffer(
-			const std::initializer_list<BufferElement>& elements,
-			VkDevice logicDevice,
-			VkPhysicalDevice physicalDevice,
-			VkCommandPool cmdPool,
-			VkQueue graphicsQueue,
-			void* data,
-			VkDeviceSize size,
-			VkBufferUsageFlags usage,
-			VkMemoryPropertyFlags props
-		) {
-			return createStagedVertexBuffer(
-				elements,
-				logicDevice,
-				physicalDevice,
-				cmdPool,
-				graphicsQueue,
-				(const void*) data,
-				size,
-				usage,
-				props
-			);
-		}
+		inline BufferLayout getBufferLayout() const { return mBufferLayout; }
+		inline void setBufferLayout(const BufferLayout& bufferLayout) { mBufferLayout = bufferLayout; }
 	};
 }

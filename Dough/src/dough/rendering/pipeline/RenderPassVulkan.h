@@ -17,6 +17,7 @@ namespace DOH {
 		void init(VkDevice logicDevice, VkFormat imageFormat);
 
 	public:
+		RenderPassVulkan(VkDevice logicDevice, VkFormat imageFormat);
 
 		void begin(VkFramebuffer framebuffer, VkExtent2D extent, VkCommandBuffer cmdBuffer);
 		void close(VkDevice logicDevice);
@@ -24,8 +25,6 @@ namespace DOH {
 		inline VkRenderPass get() const { return mRenderPass; }
 
 	public:
-		static RenderPassVulkan createRenderPass(VkDevice logicDevice, VkFormat imageFormat);
-
 		static RenderPassVulkan createNonInit() { return RenderPassVulkan(); }
 	};
 }

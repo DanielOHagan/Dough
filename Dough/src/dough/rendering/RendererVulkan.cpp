@@ -328,7 +328,6 @@ namespace DOH {
 			}
 		}
 
-		//TRY(true, "Failed to find suitable memory type.");
 		THROW("Failed to find suitable memory type.");
 
 		return 0;

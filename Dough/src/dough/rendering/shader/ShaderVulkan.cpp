@@ -5,16 +5,29 @@
 
 namespace DOH {
 
-	const std::string& ShaderVulkan::NO_PATH = "notSet";
-
-	ShaderVulkan::ShaderVulkan(EShaderType type, VkShaderModule shaderModule)
+	ShaderVulkan::ShaderVulkan(EShaderType type, std::string& filePath)
 	:	mShaderType(type),
-		mShaderModule(shaderModule)
-	{
+		mFilePath(filePath),
+		mShaderModule(VK_NULL_HANDLE)
+	{}
+
+	void ShaderVulkan::loadModule(VkDevice logicDevice) {
+		mShaderModule = ShaderVulkan::createShaderModule(logicDevice, ResourceHandler::readFile(mFilePath));
 	}
 
-	void ShaderVulkan::close(VkDevice logicDevice) {
+	void ShaderVulkan::closeModule(VkDevice logicDevice) {
 		vkDestroyShaderModule(logicDevice, mShaderModule, nullptr);
+
+		//TODO:: Test to see if vkDestroyShaderModule already sets this to VK_NULL_HANDLE
+		mShaderModule = VK_NULL_HANDLE;
+	}
+	
+	void ShaderVulkan::close(VkDevice logicDevice) {
+		if (isLoaded()) {
+			closeModule(logicDevice);
+		}
+
+		//TODO:: release anything else
 	}
 
 	VkShaderModule ShaderVulkan::createShaderModule(VkDevice logicDevice, const std::vector<char>& shaderByteCode) {
@@ -29,10 +42,5 @@ namespace DOH {
 			"Failed to create shader module."
 		);
 		return shaderModule;
-	}
-
-	ShaderVulkan ShaderVulkan::createShader(VkDevice logicDevice, EShaderType type, const std::string& filePath) {
-		std::vector<char> shaderByteCode = ResourceHandler::readFile(filePath);
-		return ShaderVulkan(type, ShaderVulkan::createShaderModule(logicDevice, shaderByteCode));
 	}
 }

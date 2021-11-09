@@ -38,34 +38,33 @@ namespace DOH {
 			mPhysicalDevice,
 			mCommandPool,
 			mGraphicsQueue,
-			(std::string&) testTexturePath
+			*testTexturePath
 		);
 		mTestTexture2 = ObjInit::texture(
 			mLogicDevice,
 			mPhysicalDevice,
 			mCommandPool,
 			mGraphicsQueue,
-			(std::string&) testTexture2Path
+			*testTexture2Path
 		);
 
+		mShaderProgram = ObjInit::shaderProgram(
+			ObjInit::shader(mLogicDevice, EShaderType::VERTEX, *vertShaderPath),
+			ObjInit::shader(mLogicDevice, EShaderType::FRAGMENT, *fragShaderPath)
+		);
+
+		ShaderUniformLayout& layout = mShaderProgram->getUniformLayout();
+		layout.setValue(0, sizeof(UniformBufferObject));
+		layout.setTexture(1, {mTestTexture1->getImageView(), mTestTexture1->getSampler()});
+
 		//Create a vector of textures that are to be used in pipeline
-		//std::vector<TextureVulkan> textures = {*mTestTexture, *mTestTexture2};
-		std::vector<TextureVulkan> textures = {*mTestTexture1};
-		mGraphicsPipeline = std::make_unique<GraphicsPipelineVulkan>(GraphicsPipelineVulkan::createPipeline(
+		SwapChainCreationInfo swapChainCreate = {scSupport, surface, queueFamilyIndices, width, height};
+		mGraphicsPipeline = ObjInit::graphicsPipeline(
 			mLogicDevice,
 			mCommandPool,
-			SwapChainCreationInfo(
-				scSupport,
-				surface,
-				queueFamilyIndices,
-				width,
-				height
-			),
-			sizeof(UniformBufferObject),
-			textures,
-			(std::string&) vertShaderPath,
-			(std::string&) fragShaderPath
-		));
+			swapChainCreate,
+			*mShaderProgram
+		);
 
 		m_TestVAO_VertexArray = ObjInit::vertexArray();
 		std::shared_ptr<VertexBufferVulkan> testVAO_VertexBuffer = ObjInit::stagedVertexBuffer(
@@ -112,6 +111,8 @@ namespace DOH {
 
 		mTestTexture1->close(mLogicDevice);
 		mTestTexture2->close(mLogicDevice);
+
+		mShaderProgram->close(mLogicDevice);
 		
 		mGraphicsPipeline->close(mLogicDevice);
 
@@ -131,23 +132,22 @@ namespace DOH {
 
 			mGraphicsPipeline->close(mLogicDevice);
 			
-			//std::vector<TextureVulkan> textures = {*mTestTexture, *mTestTexture2};
-			std::vector<TextureVulkan> textures = {*mTestTexture1};
-			mGraphicsPipeline = std::make_unique<GraphicsPipelineVulkan>(GraphicsPipelineVulkan::createPipeline(
+			/**
+			* !! IMPORTNANT !! 
+			*	I think a memory leak is happening during swap chain recreation.
+			* 
+			* Things to check:
+			*	ALL .close()
+			*	shader path strings
+			* 
+			*/
+			SwapChainCreationInfo swapChainCreate = {scSupport, surface, queueFamilyIndices, width, height};
+			mGraphicsPipeline = ObjInit::graphicsPipeline(
 				mLogicDevice,
 				mCommandPool,
-				SwapChainCreationInfo(
-					scSupport,
-					surface,
-					queueFamilyIndices,
-					width,
-					height
-				),
-				sizeof(UniformBufferObject),
-				textures,
-				(std::string&) vertShaderPath,
-				(std::string&) fragShaderPath
-			));
+				swapChainCreate,
+				*mShaderProgram
+			);
 
 			vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
 
@@ -250,7 +250,11 @@ namespace DOH {
 		//NOTE:: GLM was designed for OpenGL where the y clip coord is inverted. This fixes it for Vulkan:
 		ubo.proj[1][1] *= -1;
 
-		mGraphicsPipeline->getShaderDescriptor().getBuffers()[currentImage].setData(mLogicDevice, &ubo, sizeof(ubo));
+		//TODO:: make uniform assignment easier:
+		//	shaderDescriptor.setData(mLogicDevice, binding OR "uniformName", &ubo, sizeof(ubo));
+		const uint32_t uboBinding = 0;
+		mGraphicsPipeline->getShaderDescriptor().getBuffersFromBinding(uboBinding)[currentImage]->
+			setData(mLogicDevice, &ubo, sizeof(ubo));
 	}
 
 	void RenderingContextVulkan::createQueues(QueueFamilyIndices& queueFamilyIndices) {
@@ -277,8 +281,6 @@ namespace DOH {
 		poolSizes[0].descriptorCount = imageCount;
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		poolSizes[1].descriptorCount = imageCount;
-		//poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		//poolSizes[2].descriptorCount = imageCount;
 
 		VkDescriptorPoolCreateInfo poolCreateInfo = {};
 		poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;

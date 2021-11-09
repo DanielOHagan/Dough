@@ -2,12 +2,19 @@
 
 namespace DOH {
 
-	VertexBufferVulkan::VertexBufferVulkan(const std::initializer_list<BufferElement>& elements) 
-	:	BufferVulkan(),
+	VertexBufferVulkan::VertexBufferVulkan(
+		const std::initializer_list<BufferElement>& elements,
+		VkDevice logicDevice,
+		VkPhysicalDevice physicalDevice,
+		VkDeviceSize size,
+		VkBufferUsageFlags usage,
+		VkMemoryPropertyFlags props
+	) :	BufferVulkan(logicDevice, physicalDevice, size, usage, props),
 		mBufferLayout(elements)
 	{}
 
-	VertexBufferVulkan VertexBufferVulkan::createStagedVertexBuffer(
+	//Staged
+	VertexBufferVulkan::VertexBufferVulkan(
 		const std::initializer_list<BufferElement>& elements,
 		VkDevice logicDevice,
 		VkPhysicalDevice physicalDevice,
@@ -17,9 +24,9 @@ namespace DOH {
 		VkDeviceSize size,
 		VkBufferUsageFlags usage,
 		VkMemoryPropertyFlags props
-	) {
-		VertexBufferVulkan vBuffer = VertexBufferVulkan(elements);
-		vBuffer.initStaged(logicDevice, physicalDevice, cmdPool, graphicsQueue, data, size, usage, props);
-		return vBuffer;
+	) : BufferVulkan(logicDevice, physicalDevice, cmdPool, graphicsQueue, data, size, usage, props),
+		mBufferLayout(elements)
+	{
+		initStaged(logicDevice, physicalDevice, cmdPool, graphicsQueue, data, size, usage, props);
 	}
 }

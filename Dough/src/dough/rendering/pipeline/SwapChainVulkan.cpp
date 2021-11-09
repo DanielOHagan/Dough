@@ -11,6 +11,22 @@ namespace DOH {
 	{
 	}
 
+	SwapChainVulkan::SwapChainVulkan(
+		VkDevice logicDevice,
+		SwapChainSupportDetails scsd,
+		VkSurfaceKHR surface,
+		QueueFamilyIndices& indices,
+		uint32_t width,
+		uint32_t height
+	) : mSwapChainSupportDetails(scsd),
+		mVkSwapChain(VK_NULL_HANDLE),
+		mVkSwapChainImageFormat(VK_FORMAT_UNDEFINED),
+		mVkSwapChainExtent({}),
+		mResizable(true)
+	{
+		init(logicDevice, scsd, surface, indices, width, height);
+	}
+
 	void SwapChainVulkan::init(
 		VkDevice logicDevice,
 		SwapChainSupportDetails& swapChainSupportDetails,
@@ -185,20 +201,20 @@ namespace DOH {
 		}
 	}
 
-	SwapChainVulkan SwapChainVulkan::createSwapChain(
-		VkDevice logicDevice,
-		SwapChainSupportDetails scsd,
-		VkSurfaceKHR surface,
-		QueueFamilyIndices& indices,
-		uint32_t width,
-		uint32_t height
-	) {
-		SwapChainVulkan sc = SwapChainVulkan();
-		sc.init(logicDevice, scsd, surface, indices, width, height);
-		return sc;
-	}
+	//SwapChainVulkan SwapChainVulkan::createSwapChain(
+	//	VkDevice logicDevice,
+	//	SwapChainSupportDetails scsd,
+	//	VkSurfaceKHR surface,
+	//	QueueFamilyIndices& indices,
+	//	uint32_t width,
+	//	uint32_t height
+	//) {
+	//	SwapChainVulkan sc = SwapChainVulkan();
+	//	sc.init(logicDevice, scsd, surface, indices, width, height);
+	//	return sc;
+	//}
 	
-	SwapChainVulkan SwapChainVulkan::createNonInit() {
-		return SwapChainVulkan();
-	}
+	//SwapChainVulkan SwapChainVulkan::createNonInit() {
+	//	return SwapChainVulkan();
+	//}
 }

@@ -7,6 +7,12 @@ namespace DOH {
 	{
 	}
 
+	RenderPassVulkan::RenderPassVulkan(VkDevice logicDevice, VkFormat imageFormat)
+	:	mRenderPass(VK_NULL_HANDLE)
+	{
+		init(logicDevice, imageFormat);
+	}
+
 	void RenderPassVulkan::init(VkDevice logicDevice, VkFormat imageFormat) {
 		VkAttachmentDescription colourAttachment = {};
 		colourAttachment.format = imageFormat;
@@ -67,11 +73,5 @@ namespace DOH {
 
 	void RenderPassVulkan::close(VkDevice logicDevice) {
 		vkDestroyRenderPass(logicDevice, mRenderPass, nullptr);
-	}
-
-	RenderPassVulkan RenderPassVulkan::createRenderPass(VkDevice logicDevice, VkFormat imageFormat) {
-		RenderPassVulkan renderPass = RenderPassVulkan();
-		renderPass.init(logicDevice, imageFormat);
-		return renderPass;
 	}
 }

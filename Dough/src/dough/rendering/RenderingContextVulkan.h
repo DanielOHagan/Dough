@@ -1,15 +1,16 @@
 #pragma once
 
 #include "dough/Utils.h"
-#include "dough/rendering/ObjInit.h"
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 
 namespace DOH {
 
-	const std::string vertShaderPath = "res/shaders/vert.spv";
-	const std::string fragShaderPath = "res/shaders/frag.spv";
-	const std::string testTexturePath = "res/images/testTexture.jpg";
-	const std::string testTexture2Path = "res/images/testTexture2.jpg";
+	//TODO:: learn strings properly
+	const std::unique_ptr<std::string> vertShaderPath = std::make_unique<std::string>("res/shaders/vert.spv");
+	const std::unique_ptr<std::string> fragShaderPath = std::make_unique<std::string>("res/shaders/frag.spv");
+	const std::unique_ptr<std::string> testTexturePath = std::make_unique<std::string>("res/images/testTexture.jpg");
+	const std::unique_ptr<std::string> testTexture2Path = std::make_unique<std::string>("res/images/testTexture2.jpg");
+
 	const std::vector<Vertex> vertices {
 		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f}},
 		{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {0.0f}},
@@ -43,11 +44,13 @@ namespace DOH {
 		VkQueue mGraphicsQueue;
 		VkQueue mPresentQueue;
 
-		std::unique_ptr<GraphicsPipelineVulkan> mGraphicsPipeline;
+		std::shared_ptr<GraphicsPipelineVulkan> mGraphicsPipeline;
 
 		//Allocators
 		VkDescriptorPool mDescriptorPool;
 		VkCommandPool mCommandPool;
+
+		std::shared_ptr<ShaderProgramVulkan> mShaderProgram;
 
 		std::shared_ptr<VertexArrayVulkan> m_TestVAO_VertexArray;
 

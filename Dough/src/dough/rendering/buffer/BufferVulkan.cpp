@@ -5,11 +5,33 @@
 
 namespace DOH {
 
-	BufferVulkan::BufferVulkan()
-	:	mBuffer(VK_NULL_HANDLE),
+	BufferVulkan::BufferVulkan(
+		VkDevice logicDevice,
+		VkPhysicalDevice physicalDevice,
+		VkDeviceSize size,
+		VkBufferUsageFlags usage,
+		VkMemoryPropertyFlags props
+	) : mBuffer(VK_NULL_HANDLE),
 		mBufferMemory(VK_NULL_HANDLE),
-		mSize(0)
+		mSize(size)
 	{
+		init(logicDevice, physicalDevice, size, usage, props);
+	}
+
+	BufferVulkan::BufferVulkan(
+		VkDevice logicDevice,
+		VkPhysicalDevice physicalDevice,
+		VkCommandPool cmdPool,
+		VkQueue graphicsQueue,
+		const void* data,
+		VkDeviceSize size,
+		VkBufferUsageFlags usage,
+		VkMemoryPropertyFlags props
+	) : mBuffer(VK_NULL_HANDLE),
+		mBufferMemory(VK_NULL_HANDLE),
+		mSize(size)
+	{
+		initStaged(logicDevice, physicalDevice, cmdPool, graphicsQueue, data, size, usage, props);
 	}
 
 	void BufferVulkan::init(
@@ -67,7 +89,7 @@ namespace DOH {
 		//Add transfer destination bit to usage if not included already
 		usage = usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
-		BufferVulkan stagingBuffer = BufferVulkan::createBuffer(
+		BufferVulkan stagingBuffer = BufferVulkan(
 			logicDevice,
 			physicalDevice,
 			size,
@@ -95,39 +117,12 @@ namespace DOH {
 		vkUnmapMemory(logicDevice, mBufferMemory);
 	}
 
-	BufferVulkan BufferVulkan::createBuffer(
-		VkDevice logicDevice,
-		VkPhysicalDevice physicalDevice,
-		VkDeviceSize size,
-		VkBufferUsageFlags usage,
-		VkMemoryPropertyFlags props
-	) {
-		BufferVulkan buffer = BufferVulkan();
-		buffer.init(logicDevice, physicalDevice, size, usage, props);
-		return buffer;
-	}
-
 	void BufferVulkan::copyToBuffer(BufferVulkan& destination) {
 		BufferVulkan::copyBuffer(*this, destination);
 	}
 
 	void BufferVulkan::copyFromBuffer(BufferVulkan& source) {
 		BufferVulkan::copyBuffer(source, *this);
-	}
-
-	BufferVulkan BufferVulkan::createStagedBuffer(
-		VkDevice logicDevice,
-		VkPhysicalDevice physicalDevice,
-		VkCommandPool cmdPool,
-		VkQueue graphicsQueue,
-		const void* data,
-		VkDeviceSize size,
-		VkBufferUsageFlags usage,
-		VkMemoryPropertyFlags props
-	) {
-		BufferVulkan buffer = BufferVulkan();
-		buffer.initStaged(logicDevice, physicalDevice, cmdPool, graphicsQueue, data, size, usage, props);
-		return buffer;
 	}
 
 	void BufferVulkan::copyBuffer(

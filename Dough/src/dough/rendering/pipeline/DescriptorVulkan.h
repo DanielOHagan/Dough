@@ -1,45 +1,33 @@
 #pragma once
 
-#include <map>
-
-#include "dough/rendering/Config.h"
 #include "dough/rendering/buffer/BufferVulkan.h"
+#include "dough/rendering/shader/ShaderUniformLayout.h"
 
 namespace DOH {
 
 	class DescriptorVulkan {
 
 	private:
-
 		VkDescriptorSetLayout mDescriptorSetLayout;
-		VkDeviceSize mBufferSize;
-		std::vector<VkDescriptorSet> mDescriptorSets;
-		std::vector<BufferVulkan> mBuffers;
+		ShaderUniformLayout& mUniformLayout;
 		
-		std::map<uint32_t, TextureDescriptorInfo> mTextureMap;
-
+		std::vector<VkDescriptorSet> mDescriptorSets;
+		std::map<uint32_t, std::vector<std::shared_ptr<BufferVulkan>>> mValueBufferMap;
+		
 	public:
-		DescriptorVulkan(size_t bufferSize);
+		DescriptorVulkan(ShaderUniformLayout& uniformLayout);
 
-		void createDescriptorSetLayout(
-			VkDevice logicDevice,
-			std::vector<VkDescriptorSetLayoutBinding>& layoutBindings,
-			uint32_t bindingCount
-		);
-		void createBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice, size_t count);
+		void createDescriptorSetLayout(VkDevice logicDevice);
+		void createValueBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice, size_t count);
 		void createDescriptorSets(VkDevice logicDevice, size_t count, VkDescriptorPool descPool);
 
 		void updateDescriptorSets(VkDevice logicDevice, size_t count);
 		void bindDescriptorSets(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout, size_t descriptorSetIndex);
 
-		void setTexture(uint32_t binding, TextureDescriptorInfo texDescInfo);
-
 		void close(VkDevice logicDevice);
 
-		inline void setBufferSize(size_t size) { mBufferSize = size; }
-
 		inline const VkDescriptorSetLayout& getDescriptorSetLayout() const { return mDescriptorSetLayout; }
-		inline std::vector<BufferVulkan>& getBuffers() { return mBuffers; }
+		inline std::vector<std::shared_ptr<BufferVulkan>>& getBuffersFromBinding(uint32_t binding) { return mValueBufferMap.at(binding); }
 
 	public:
 		static VkDescriptorSetLayoutBinding createLayoutBinding(
@@ -48,6 +36,5 @@ namespace DOH {
 			uint32_t descriptorCount,
 			uint32_t binding
 		);
-
 	};
 }

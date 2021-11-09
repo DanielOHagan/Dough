@@ -10,20 +10,19 @@ namespace DOH {
 		uint32_t mCount;
 
 	public:
-		IndexBufferVulkan(uint32_t count = 0);
+		IndexBufferVulkan() = delete;
+		IndexBufferVulkan(const IndexBufferVulkan& copy) = delete;
+		IndexBufferVulkan operator=(const IndexBufferVulkan& assignment) = delete;
 
-		inline uint32_t getCount() const { return mCount; }
-
-	public:
-
-		static IndexBufferVulkan createIndexBuffer(
+		//Non-Staged
+		IndexBufferVulkan(
 			VkDevice logicDevice,
 			VkPhysicalDevice physicalDevice,
 			VkDeviceSize size,
 			uint32_t count
 		);
-
-		static IndexBufferVulkan createStagedIndexBuffer(
+		//Staged
+		IndexBufferVulkan(
 			VkDevice logicDevice,
 			VkPhysicalDevice physicalDevice,
 			VkCommandPool cmdPool,
@@ -32,5 +31,7 @@ namespace DOH {
 			VkDeviceSize size,
 			uint32_t count
 		);
+
+		inline uint32_t getCount() const { return mCount; }
 	};
 }

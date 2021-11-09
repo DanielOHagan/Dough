@@ -1,24 +1,21 @@
 #include "dough/rendering/pipeline/DescriptorVulkan.h"
 
-#include "dough/rendering/TextureVulkan.h"
+#include "dough/rendering/ObjInit.h"
 
 namespace DOH {
 
-	DescriptorVulkan::DescriptorVulkan(size_t bufferSize)
-	:	mBufferSize(bufferSize),
-		mDescriptorSetLayout(VK_NULL_HANDLE)
+	DescriptorVulkan::DescriptorVulkan(ShaderUniformLayout& uniformLayout)
+	:	mDescriptorSetLayout(VK_NULL_HANDLE),
+		mUniformLayout(uniformLayout)
 	{
+	
 	}
 
-	void DescriptorVulkan::createDescriptorSetLayout(
-		VkDevice logicDevice,
-		std::vector<VkDescriptorSetLayoutBinding>& layoutBindings,
-		uint32_t bindingCount
-	) {
+	void DescriptorVulkan::createDescriptorSetLayout(VkDevice logicDevice) {
 		VkDescriptorSetLayoutCreateInfo dslCreateInfo = {};
 		dslCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		dslCreateInfo.bindingCount = bindingCount;
-		dslCreateInfo.pBindings = layoutBindings.data();
+		dslCreateInfo.bindingCount = static_cast<uint32_t>(mUniformLayout.getDescriptorSetLayoutBindings().size());
+		dslCreateInfo.pBindings = mUniformLayout.getDescriptorSetLayoutBindings().data();
 
 		TRY(
 			vkCreateDescriptorSetLayout(logicDevice, &dslCreateInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS,
@@ -26,17 +23,21 @@ namespace DOH {
 		);
 	}
 
-	void DescriptorVulkan::createBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice, size_t count) {
-		mBuffers.resize(count);
+	void DescriptorVulkan::createValueBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice, size_t count) {
+		mValueBufferMap.clear();
 
-		for (size_t i = 0; i < count; i++) {
-			mBuffers[i] = BufferVulkan::createBuffer(
-				logicDevice,
-				physicalDevice,
-				mBufferSize,
-				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-			);
+		for (auto& [binding, value] : mUniformLayout.getValueUniformMap()) {
+			mValueBufferMap.emplace(binding, std::vector<std::shared_ptr<BufferVulkan>>(count));
+			
+			for (size_t i = 0; i < count; i++) {
+				mValueBufferMap[binding][i] = ObjInit::buffer(
+					logicDevice,
+					physicalDevice,
+					mUniformLayout.getValueUniformMap().at(binding),
+					VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+				);
+			}
 		}
 	}
 
@@ -58,27 +59,16 @@ namespace DOH {
 	}
 
 	void DescriptorVulkan::updateDescriptorSets(VkDevice logicDevice, size_t count) {
-		//TODO:: Could this be optimised by being created at pipeline creation and being re-used?
-		//		Maybe a struct like which is stored when this pipeline is in use:
-		//		struct DescriptorSets {
-		//			std::vector<VkWriteDescriptorSet> DescWrites{};
-		// 
-		//			std::vector<VkDescriptorImageInfo> ImageInfos{};
-		//			//... +Any Other inputs that require descriptors
-		//		}
-		//TODO:: clean this up when adding texture arrays
-
-		const uint32_t preTextureWritesCount = 1; //Count of uniform bindings before textures
-		const uint32_t writeCount = preTextureWritesCount + static_cast<uint32_t>(mTextureMap.size()); //Total number of uniform bindings
-
-		for (size_t i = 0; i < count; i++) {
+		const uint32_t preTextureWriteCount = static_cast<uint32_t>(mUniformLayout.getValueUniformMap().size());
+		for (size_t swapChainImageIndex = 0; swapChainImageIndex < count; swapChainImageIndex++) {
 			std::vector<VkWriteDescriptorSet> descWrites{};
 			std::vector<VkDescriptorImageInfo> imageInfos{};
-			for (uint32_t i = 0; i < writeCount; i++) {
+			for (uint32_t i = 0; i < mUniformLayout.getTotalUniformCount(); i++) {
 				VkWriteDescriptorSet write{};
 				descWrites.push_back(write);
 
-				if (i >= preTextureWritesCount) {
+				std::map<uint32_t, TextureUniformInfo>::iterator it = mUniformLayout.getTextureUniformMap().find(i);
+				if (it != mUniformLayout.getTextureUniformMap().end()) {
 					//TODO:: This assumes the textures are the only things for 'i' to cycle through to 'writeCount', 
 					//			will need to be changed when others are available
 					VkDescriptorImageInfo imgInfo{};
@@ -86,37 +76,36 @@ namespace DOH {
 				}
 			}
 
-			VkDescriptorBufferInfo bufferInfo = {};
-			bufferInfo.buffer = mBuffers[i].getBuffer();
-			bufferInfo.offset = 0;
-			bufferInfo.range = mBufferSize;
+			for (const auto& [key, value] : mUniformLayout.getValueUniformMap()) {
+				VkDescriptorBufferInfo bufferInfo = {};
+				bufferInfo.buffer = mValueBufferMap.at(key).at(swapChainImageIndex)->getBuffer();
+				bufferInfo.offset = 0;
+				bufferInfo.range = value;
 
-			uint32_t descWriteIndex = 0;
-			descWrites[descWriteIndex].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descWrites[descWriteIndex].dstSet = mDescriptorSets[i];
-			descWrites[descWriteIndex].dstBinding = descWriteIndex;
-			descWrites[descWriteIndex].dstArrayElement = 0;
-			descWrites[descWriteIndex].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descWrites[descWriteIndex].descriptorCount = 1;
-			descWrites[descWriteIndex].pBufferInfo = &bufferInfo;
-			descWriteIndex++;
+				descWrites[key].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				descWrites[key].dstSet = mDescriptorSets[swapChainImageIndex];
+				descWrites[key].dstBinding = key;
+				descWrites[key].dstArrayElement = 0;
+				descWrites[key].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				descWrites[key].descriptorCount = 1;
+				descWrites[key].pBufferInfo = &bufferInfo;
+			}
 
 			//Attached Textures
-			for (const auto& [key, value] : mTextureMap) {
-				descWrites[descWriteIndex].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				descWrites[descWriteIndex].dstSet = mDescriptorSets[i];
+			for (const auto& [key, value] : mUniformLayout.getTextureUniformMap()) {
+				const uint32_t imageKey = key > 0 ? key - preTextureWriteCount : 0;
+				descWrites[key].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				descWrites[key].dstSet = mDescriptorSets[swapChainImageIndex];
 				//descWrites[descWriteIndex].dstBinding = 1; //Sampler binding destination (NOTE:: it's 1 because the UBO is 0 and the sampler is set to "(binding = 1)" in frag shader)
 				//descWrites[descWriteIndex].dstArrayElement = key;
-				descWrites[descWriteIndex].dstBinding = descWriteIndex;
-				descWrites[descWriteIndex].dstArrayElement = 0;
-				descWrites[descWriteIndex].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				descWrites[descWriteIndex].descriptorCount = 1;
-				imageInfos[key].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				imageInfos[key].imageView = value.first;
-				imageInfos[key].sampler = value.second;
-				descWrites[descWriteIndex].pImageInfo = &imageInfos[key];
-
-				descWriteIndex++;
+				descWrites[key].dstBinding = key;
+				descWrites[key].dstArrayElement = 0;
+				descWrites[key].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				descWrites[key].descriptorCount = 1;
+				imageInfos[imageKey].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				imageInfos[imageKey].imageView = value.first;
+				imageInfos[imageKey].sampler = value.second;
+				descWrites[key].pImageInfo = &imageInfos[imageKey];
 			}	
 
 			vkUpdateDescriptorSets(
@@ -146,16 +135,12 @@ namespace DOH {
 		);
 	}
 
-	void DescriptorVulkan::setTexture(uint32_t binding, TextureDescriptorInfo texDescInfo) {
-		mTextureMap.emplace(binding, texDescInfo);
-	}
-
 	void DescriptorVulkan::close(VkDevice logicDevice) {
-		for (BufferVulkan& buffers : mBuffers) {
-			buffers.close(logicDevice);
+		for (auto& [binding, buffers] : mValueBufferMap) {
+			for (std::shared_ptr<BufferVulkan> buffer : buffers) {
+				buffer->close(logicDevice);
+			}
 		}
-
-		mTextureMap.clear();
 
 		vkDestroyDescriptorSetLayout(logicDevice, mDescriptorSetLayout, nullptr);
 	}

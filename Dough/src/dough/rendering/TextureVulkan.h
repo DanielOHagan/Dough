@@ -19,6 +19,17 @@ namespace DOH {
 		VkSampler mSampler;
 
 	public:
+		TextureVulkan() = delete;
+		TextureVulkan(const TextureVulkan& copy) = delete;
+		TextureVulkan operator=(const TextureVulkan& assignment) = delete;
+
+		TextureVulkan(
+			VkDevice logicDevice,
+			VkPhysicalDevice physicalDevice,
+			VkCommandPool cmdPool,
+			VkQueue graphicsQueue,
+			std::string& filePath
+		);
 
 		void close(VkDevice logicDevice);
 
@@ -31,36 +42,9 @@ namespace DOH {
 		inline VkSampler getSampler() const { return mSampler; }
 
 	private:
-		TextureVulkan(
-			int width,
-			int height,
-			int channels,
-			VkImage image,
-			VkDeviceMemory imageMemory,
-			VkImageView imageView
-		);
-
 		void createImageView();
 		void createSampler();
 
-	public:
-		static TextureVulkan createTexture(
-			VkDevice logicDevice,
-			VkPhysicalDevice physicalDevice,
-			VkCommandPool cmdPool,
-			VkQueue graphicsQueue,
-			std::string& filePath
-		);
-
-		static void transitionImageLayout(
-			VkDevice logicDevice,
-			VkImage image,
-			VkFormat format,
-			VkImageLayout oldLayout,
-			VkImageLayout newLayout
-		);
-
-	private:
 		static void createImage(
 			VkDevice logicDevice,
 			VkPhysicalDevice physicalDevice,
@@ -73,6 +57,13 @@ namespace DOH {
 			VkImage& image,
 			VkDeviceMemory& imageMemory
 		);
-
+	public:
+		static void transitionImageLayout(
+			VkDevice logicDevice,
+			VkImage image,
+			VkFormat format,
+			VkImageLayout oldLayout,
+			VkImageLayout newLayout
+		);
 	};
 }
