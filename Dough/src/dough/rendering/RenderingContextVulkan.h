@@ -67,6 +67,9 @@ namespace DOH {
 	public:
 		RenderingContextVulkan(VkDevice logicDevice, VkPhysicalDevice physicalDevice);
 
+		RenderingContextVulkan(const RenderingContextVulkan& copy) = delete;
+		RenderingContextVulkan operator=(const RenderingContextVulkan& assignment) = delete;
+
 		void init(
 			SwapChainSupportDetails& scSupport,
 			VkSurfaceKHR surface,

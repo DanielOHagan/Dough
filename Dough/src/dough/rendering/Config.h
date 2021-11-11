@@ -106,6 +106,7 @@ namespace DOH {
 		uint32_t Height;
 	};
 
+	//Vertex2D
 	struct Vertex {
 		glm::vec2 Pos;
 		glm::vec3 Colour;

@@ -11,7 +11,7 @@ namespace DOH {
 	class VertexBufferVulkan : public BufferVulkan {
 
 	private:
-		BufferLayout mBufferLayout;
+		std::unique_ptr<BufferLayout> mBufferLayout;
 
 	public:
 		VertexBufferVulkan() = delete;
@@ -41,7 +41,6 @@ namespace DOH {
 			VkMemoryPropertyFlags props
 		);
 
-		inline BufferLayout getBufferLayout() const { return mBufferLayout; }
-		inline void setBufferLayout(const BufferLayout& bufferLayout) { mBufferLayout = bufferLayout; }
+		inline BufferLayout& getBufferLayout() const { return *mBufferLayout; }
 	};
 }

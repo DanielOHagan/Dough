@@ -1,14 +1,14 @@
 #include "dough/rendering/pipeline/RenderPassVulkan.h"
 
+#include "dough/Utils.h"
+
 namespace DOH {
 
-	RenderPassVulkan::RenderPassVulkan()
-	:	mRenderPass(VK_NULL_HANDLE) 
-	{
-	}
-
-	RenderPassVulkan::RenderPassVulkan(VkDevice logicDevice, VkFormat imageFormat)
-	:	mRenderPass(VK_NULL_HANDLE)
+	RenderPassVulkan::RenderPassVulkan(
+		VkDevice logicDevice,
+		VkFormat imageFormat
+	) :	mRenderPass(VK_NULL_HANDLE),
+		mClearColour({ 0.264f, 0.328f, 0.484f, 1.0f })
 	{
 		init(logicDevice, imageFormat);
 	}
@@ -64,9 +64,8 @@ namespace DOH {
 		renderPassBegin.renderArea.offset = {0, 0};
 		renderPassBegin.renderArea.extent = extent;
 
-		VkClearValue clearColour = {0.0f, 0.0f, 0.0f, 1.0f};
 		renderPassBegin.clearValueCount = 1;
-		renderPassBegin.pClearValues = &clearColour;
+		renderPassBegin.pClearValues = &mClearColour;
 
 		vkCmdBeginRenderPass(cmdBuffer, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);
 	}

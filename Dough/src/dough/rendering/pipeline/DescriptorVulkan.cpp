@@ -135,12 +135,16 @@ namespace DOH {
 		);
 	}
 
-	void DescriptorVulkan::close(VkDevice logicDevice) {
+	void DescriptorVulkan::closeBuffers(VkDevice logicDevice) {
 		for (auto& [binding, buffers] : mValueBufferMap) {
 			for (std::shared_ptr<BufferVulkan> buffer : buffers) {
 				buffer->close(logicDevice);
 			}
 		}
+	}
+
+	void DescriptorVulkan::close(VkDevice logicDevice) {
+		closeBuffers(logicDevice);
 
 		vkDestroyDescriptorSetLayout(logicDevice, mDescriptorSetLayout, nullptr);
 	}

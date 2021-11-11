@@ -10,13 +10,15 @@ namespace DOH {
 	class Window {
 
 	private:
-
 		uint32_t mWidth;
 		uint32_t mHeight;
 		GLFWwindow* mWindowPtr;
 
 	public:
 		Window(uint32_t width, uint32_t height);
+
+		Window(const Window& copy) = delete;
+		Window operator=(const Window& assignment) = delete;
 
 		void init();
 		bool shouldClose() const;

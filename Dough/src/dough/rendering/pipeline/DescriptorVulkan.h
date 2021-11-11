@@ -17,6 +17,9 @@ namespace DOH {
 	public:
 		DescriptorVulkan(ShaderUniformLayout& uniformLayout);
 
+		DescriptorVulkan(const DescriptorVulkan& copy) = delete;
+		DescriptorVulkan operator=(const DescriptorVulkan& assignment) = delete;
+
 		void createDescriptorSetLayout(VkDevice logicDevice);
 		void createValueBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice, size_t count);
 		void createDescriptorSets(VkDevice logicDevice, size_t count, VkDescriptorPool descPool);
@@ -24,6 +27,7 @@ namespace DOH {
 		void updateDescriptorSets(VkDevice logicDevice, size_t count);
 		void bindDescriptorSets(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout, size_t descriptorSetIndex);
 
+		void closeBuffers(VkDevice logicDevice);
 		void close(VkDevice logicDevice);
 
 		inline const VkDescriptorSetLayout& getDescriptorSetLayout() const { return mDescriptorSetLayout; }

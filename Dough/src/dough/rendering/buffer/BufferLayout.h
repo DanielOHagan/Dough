@@ -11,14 +11,16 @@ namespace DOH {
 		uint32_t mStride;
 
 	public:
+		BufferLayout() = delete;
+		BufferLayout(const BufferLayout& copy) = delete;
+		BufferLayout operator=(const BufferLayout& assignment) = delete;
+
 		BufferLayout(const std::initializer_list<BufferElement>& elements);
 
-	private:
-		void calculateOffsetAndStride();
-
-	public:
 		inline std::vector<BufferElement> const getBufferElements() { return mBufferElements; }
 		inline uint32_t getStride() const { return mStride; }
 
+	private:
+		void calculateOffsetAndStride();
 	};
 }

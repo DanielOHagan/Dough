@@ -21,6 +21,11 @@ namespace DOH {
 		mFragmentShader->closeModule(logicDevice);
 	}
 
+	void ShaderProgramVulkan::closePipelineSpecificObjects(VkDevice logicDevice) {
+		closeModules(logicDevice);
+		mShaderDescriptor->close(logicDevice);
+	}
+
 	void ShaderProgramVulkan::close(VkDevice logicDevice) {
 		mShaderDescriptor->close(logicDevice);
 		mShaderUniformLayout->close();

@@ -14,13 +14,16 @@ namespace DOH {
 	public:
 		VertexArrayVulkan();
 
+		VertexArrayVulkan(const VertexArrayVulkan& copy) = delete;
+		VertexArrayVulkan operator=(const VertexArrayVulkan& assignment) = delete;
+
 		void bind(VkCommandBuffer cmdBuffer);
 
 		void addVertexBuffer(std::shared_ptr<VertexBufferVulkan> vertexBuffer);
 		void close(VkDevice logicDevice);
 
 		inline void setIndexBuffer(std::shared_ptr<IndexBufferVulkan> indexBuffer) { mIndexBuffer = indexBuffer; }
-		inline IndexBufferVulkan& getIndexBuffer() const { return *mIndexBuffer.get(); }
+		inline IndexBufferVulkan& getIndexBuffer() const { return *mIndexBuffer; }
 		inline std::vector<std::shared_ptr<VertexBufferVulkan>>& getVertexBuffers() { return mVertexBuffers; }
 
 	};

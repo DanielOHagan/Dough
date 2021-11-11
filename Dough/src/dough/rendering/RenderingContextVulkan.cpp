@@ -130,7 +130,9 @@ namespace DOH {
 		if (mGraphicsPipeline->getSwapChain().isResizable()) {
 			vkDeviceWaitIdle(mLogicDevice);
 
+			mShaderProgram->closePipelineSpecificObjects(mLogicDevice);
 			mGraphicsPipeline->close(mLogicDevice);
+			//mGraphicsPipeline.reset();
 			
 			/**
 			* !! IMPORTNANT !! 
@@ -276,6 +278,7 @@ namespace DOH {
 	void RenderingContextVulkan::createDescriptorPool() {
 		uint32_t imageCount = static_cast<uint32_t>(mGraphicsPipeline->getSwapChain().getImageCount());
 
+		//TODO:: mShaderProgram.getUniformLayout().asDescriptorPoolCreateInfo(imageCount); Or something similar, just make it dynamic to the layout required
 		std::array<VkDescriptorPoolSize, 2> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[0].descriptorCount = imageCount;

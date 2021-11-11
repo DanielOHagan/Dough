@@ -45,9 +45,6 @@ namespace DOH {
 	}
 
 	void GraphicsPipelineVulkan::createUniformObjects(VkDevice logicDevice) {
-		//TEMP:: NOTE:: This assumes ShaderUniformLayout has all infos mapped
-		//			e.g. uniformLayout.setTexture(textureBinding, {texture.getImageView(), texture.getSampler()});
-
 		ShaderUniformLayout& layout = mShaderProgram.getUniformLayout();
 
 		layout.initDescriptorSetLayoutBindings(layout.getTotalUniformCount());
@@ -136,7 +133,7 @@ namespace DOH {
 	void GraphicsPipelineVulkan::init(VkDevice logicDevice) {
 		mShaderProgram.loadModules(logicDevice);
 
-		TRY(!mShaderProgram.areShadersLoaded(), "Shader Modules not loaded")
+		TRY(!mShaderProgram.areShadersLoaded(), "Shader Modules not loaded");
 
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
 		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -265,10 +262,6 @@ namespace DOH {
 	}
 
 	void GraphicsPipelineVulkan::close(VkDevice logicDevice) {
-		//mShaderDescriptor->close(logicDevice); //adding in vkDescriptDescriptorSetLayout here, may need to add a "closeBuffers" func to separate from the time when closing descSetLayout
-		//mShaderProgram.close(logicDevice);
-		mShaderProgram.closeModules(logicDevice); //Only close modules here as Pipeline doesn't have ownership of program, only close the pipeline specific part of the program
-
 		vkFreeCommandBuffers(
 			logicDevice,
 			mCommandPool,

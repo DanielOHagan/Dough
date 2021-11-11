@@ -21,6 +21,7 @@ namespace DOH {
 
 	public:
 		ResourceHandler(const ResourceHandler& copy) = delete;
+		ResourceHandler operator=(const ResourceHandler& assignment) = delete;
 
 		static ResourceHandler& get() { return INSTANCE; }
 

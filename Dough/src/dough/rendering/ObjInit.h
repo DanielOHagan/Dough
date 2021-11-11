@@ -45,7 +45,14 @@ namespace DOH {
 			VkBufferUsageFlags usage,
 			VkMemoryPropertyFlags props
 		) {
-			return std::make_shared<VertexBufferVulkan>(elements, logicDevice, physicalDevice, size, usage, props);
+			return std::make_shared<VertexBufferVulkan>(
+				elements,
+				logicDevice,
+				physicalDevice,
+				size,
+				usage,
+				props
+			);
 		}
 		static std::shared_ptr<VertexBufferVulkan> stagedVertexBuffer(
 			const std::initializer_list<BufferElement>& elements,

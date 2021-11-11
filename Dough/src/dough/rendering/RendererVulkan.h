@@ -43,8 +43,9 @@ namespace DOH {
 #endif
 
 	public:
-
 		RendererVulkan();
+		RendererVulkan(const RendererVulkan& copy) = delete;
+		RendererVulkan operator=(const RendererVulkan& assignment) = delete;
 
 		void init(int width, int height);
 		void close();
@@ -61,7 +62,6 @@ namespace DOH {
 		static uint32_t findPhysicalDeviceMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
 	private:
-
 		//-----Initialisation-----
 		void createVulkanInstance();
 		bool checkValidationLayerSupport();

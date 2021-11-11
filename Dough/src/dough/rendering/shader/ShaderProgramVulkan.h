@@ -24,6 +24,7 @@ namespace DOH {
 
 		void loadModules(VkDevice logicDevice);
 		void closeModules(VkDevice logicDevice);
+		void closePipelineSpecificObjects(VkDevice logicDevice);
 		void close(VkDevice logicDevice);
 
 		inline DescriptorVulkan& getShaderDescriptor() const { return *mShaderDescriptor; }

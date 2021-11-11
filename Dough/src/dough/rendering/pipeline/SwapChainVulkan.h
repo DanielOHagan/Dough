@@ -31,6 +31,8 @@ namespace DOH {
 			uint32_t width,
 			uint32_t height
 		);
+		SwapChainVulkan(const SwapChainVulkan& copy) = delete;
+		SwapChainVulkan operator=(const SwapChainVulkan& assignment) = delete;
 
 		void init(
 			VkDevice logicDevice,
