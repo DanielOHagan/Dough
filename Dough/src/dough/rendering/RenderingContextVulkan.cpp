@@ -57,7 +57,6 @@ namespace DOH {
 		layout.setValue(0, sizeof(UniformBufferObject));
 		layout.setTexture(1, {mTestTexture1->getImageView(), mTestTexture1->getSampler()});
 
-		//Create a vector of textures that are to be used in pipeline
 		SwapChainCreationInfo swapChainCreate = {scSupport, surface, queueFamilyIndices, width, height};
 		mGraphicsPipeline = ObjInit::graphicsPipeline(
 			mLogicDevice,
@@ -65,6 +64,8 @@ namespace DOH {
 			swapChainCreate,
 			*mShaderProgram
 		);
+
+		TG_mOrthoCameraController = std::make_shared<TG::TG_OrthoCameraController>(mGraphicsPipeline->getSwapChain().getAspectRatio());
 
 		m_TestVAO_VertexArray = ObjInit::vertexArray();
 		std::shared_ptr<VertexBufferVulkan> testVAO_VertexBuffer = ObjInit::stagedVertexBuffer(
@@ -132,17 +133,7 @@ namespace DOH {
 
 			mShaderProgram->closePipelineSpecificObjects(mLogicDevice);
 			mGraphicsPipeline->close(mLogicDevice);
-			//mGraphicsPipeline.reset();
 			
-			/**
-			* !! IMPORTNANT !! 
-			*	I think a memory leak is happening during swap chain recreation.
-			* 
-			* Things to check:
-			*	ALL .close()
-			*	shader path strings
-			* 
-			*/
 			SwapChainCreationInfo swapChainCreate = {scSupport, surface, queueFamilyIndices, width, height};
 			mGraphicsPipeline = ObjInit::graphicsPipeline(
 				mLogicDevice,
@@ -154,10 +145,12 @@ namespace DOH {
 			vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
 
 			preparePipeline();
+
+			TG_mOrthoCameraController->onViewportResize(mGraphicsPipeline->getSwapChain().getAspectRatio());
 		}
 	}
 
-	void RenderingContextVulkan::drawFrame() {
+	void RenderingContextVulkan::drawFrame(/*ICamera& camera*/) {
 		//Wait for the fences on the GPU to flag as finished
 		vkWaitForFences(mLogicDevice, 1, &mInFlightFences[mCurrentFrame], VK_TRUE, UINT64_MAX);
 
@@ -173,7 +166,7 @@ namespace DOH {
 
 		//TODO:: Check result of vkAcquireNextImageKHR here
 
-		updateUniformBuffer(imageIndex);
+		updateUniformBuffer(imageIndex, TG_mOrthoCameraController->getCamera());
 
 		//Check if a previous frame is using this image (i.e. there is its fence to wait on)
 		if (mImageFencesInFlight[imageIndex] != VK_NULL_HANDLE) {
@@ -222,35 +215,23 @@ namespace DOH {
 		mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 	}
 
-	void RenderingContextVulkan::updateUniformBuffer(uint32_t currentImage) {
+	void RenderingContextVulkan::updateUniformBuffer(uint32_t currentImage, ICamera& camera) {
 		static auto startTime = std::chrono::high_resolution_clock::now();
 
 		auto currentTime = std::chrono::high_resolution_clock::now();
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count() / 4; //Divide to slow rotation speed
-		const float aspectRatio = 
-			(float) mGraphicsPipeline->getSwapChain().getExtent().width /
-			mGraphicsPipeline->getSwapChain().getExtent().height;
 
+		//TEMP::
+		//glm::vec3 translation{ 0.0000f, 0.0f, 0.0f };
+		//TG_mOrthoCameraController->translate(translation);
+		TG_mOrthoCameraController->zoom(-1.0f);
+		
+		TG_mOrthoCameraController->onUpdate(0.0f);
 		UniformBufferObject ubo = {};
-		ubo.model = glm::rotate(
-			glm::mat4(1.0f),
-			time * glm::radians(90.0f),
-			glm::vec3(0.0f, 0.0f, 1.0f)
-		);
-		ubo.view = glm::lookAt(
-			glm::vec3(2.0f, 2.0f, 2.0f),
-			glm::vec3(0.0f, 0.0f, 0.0f),
-			glm::vec3(0.0f, 0.0f, 1.0f)
-		);
-		ubo.proj = glm::perspective(
-			glm::radians(90.0f),
-			aspectRatio,
-			0.1f,
-			10.0f
-		);
+		ubo.projView = camera.getProjectionViewMatrix();
 
 		//NOTE:: GLM was designed for OpenGL where the y clip coord is inverted. This fixes it for Vulkan:
-		ubo.proj[1][1] *= -1;
+		//ubo.projView[1][1] *= -1;
 
 		//TODO:: make uniform assignment easier:
 		//	shaderDescriptor.setData(mLogicDevice, binding OR "uniformName", &ubo, sizeof(ubo));

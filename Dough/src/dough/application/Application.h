@@ -32,9 +32,6 @@ namespace DOH {
 		static int start();
 		static bool isInstantiated() { return INSTANCE != nullptr; };
 
-
-		static uint32_t resizeCount;
-
 	private:
 		Application();
 

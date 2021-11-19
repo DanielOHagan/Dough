@@ -42,8 +42,7 @@ namespace DOH {
 		mLogicDevice(VK_NULL_HANDLE),
 		mSurface(VK_NULL_HANDLE),
 		mDebugMessenger(nullptr)
-	{
-	}
+	{}
 
 	void RendererVulkan::init(int width, int height) {
 		createVulkanInstance();
@@ -88,8 +87,6 @@ namespace DOH {
 	void RendererVulkan::resizeSwapChain(int width, int height) {
 		SwapChainSupportDetails scSupport = SwapChainVulkan::querySwapChainSupport(mPhysicalDevice, mSurface);
 		mRenderingContext->resizeSwapChain(scSupport, mSurface, mQueueFamilyIndices, width, height);
-
-		Application::get().resizeCount++;
 	}
 
 	void RendererVulkan::createVulkanInstance() {

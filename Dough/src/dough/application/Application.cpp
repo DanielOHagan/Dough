@@ -4,14 +4,9 @@ namespace DOH {
 
 	Application* Application::INSTANCE = nullptr;
 
-	//TEMP::
-	uint32_t Application::resizeCount = 0;
-
 	Application::Application()
 	:	mRunning(false)
-	{
-		
-	}
+	{}
 
 	void Application::run(/*IAppLogic appLogic*/) {
 		init(/*appLogic*/);
@@ -20,7 +15,7 @@ namespace DOH {
 	}
 
 	void Application::init() {
-		mWindow = std::make_unique<Window>(800, 600);
+		mWindow = std::make_unique<Window>(1920, 1080);
 		mWindow->init();
 
 		mRenderer = std::make_unique<RendererVulkan>();
@@ -48,9 +43,6 @@ namespace DOH {
 	void Application::close() {
 		mWindow->close();
 		mRenderer->close();
-
-		//TEMP::
-		std::cout << "rc: " << resizeCount << std::endl;
 
 		delete INSTANCE;
 	}

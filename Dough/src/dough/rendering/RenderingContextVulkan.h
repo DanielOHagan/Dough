@@ -2,6 +2,7 @@
 
 #include "dough/Utils.h"
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
+#include "testGame/TG_OrthoCameraController.h"
 
 namespace DOH {
 
@@ -12,24 +13,27 @@ namespace DOH {
 	const std::unique_ptr<std::string> testTexture2Path = std::make_unique<std::string>("res/images/testTexture2.jpg");
 
 	const std::vector<Vertex> vertices {
-		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f}},
-		{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {0.0f}},
-		{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {0.0f}},
-		{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f}},
+		{{-0.5f, -0.5f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {1.0f}},
+		{{ 0.5f, -0.5f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {1.0f}},
+		{{ 0.5f,  0.5f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f}},
+		{{-0.5f,  0.5f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {1.0f}},
 
-		{{-0.25f, -0.25f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f}},
-		{{0.75f, -0.25f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f}},
-		{{0.75f, 0.75f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {1.0f}},
-		{{-0.25f, 0.75f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {1.0f}}
+		//{{-0.25f, -0.25f, 1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f}},
+		//{{0.75f, -0.25f, 1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f}},
+		//{{0.75f, 0.75f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {1.0f}},
+		//{{-0.25f, 0.75f, 1.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {1.0f}}
+
+		{{0.00f, 0.00f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f}},
+		{{1.00f, 0.00f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f}},
+		{{1.00f, 1.00f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, {0.0f}},
+		{{0.00f, 1.00f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f}}
 	};
 	const std::vector<uint16_t> indices {
 		0, 1, 2, 2, 3, 0,
 		4, 5, 6, 6, 7, 4
 	};
 	struct UniformBufferObject {
-		alignas(16) glm::mat4 model;
-		alignas(16) glm::mat4 view;
-		alignas(16) glm::mat4 proj;
+		alignas(16) glm::mat4 projView;
 	};
 
 	class RenderingContextVulkan {
@@ -50,12 +54,15 @@ namespace DOH {
 		VkDescriptorPool mDescriptorPool;
 		VkCommandPool mCommandPool;
 
+		//TEMP::---App specific objects
+		std::shared_ptr<TG::TG_OrthoCameraController> TG_mOrthoCameraController;
 		std::shared_ptr<ShaderProgramVulkan> mShaderProgram;
 
 		std::shared_ptr<VertexArrayVulkan> m_TestVAO_VertexArray;
 
 		std::shared_ptr<TextureVulkan> mTestTexture1;
 		std::shared_ptr<TextureVulkan> mTestTexture2;
+		//TEMP::---
 
 		const int MAX_FRAMES_IN_FLIGHT = 2;
 		size_t mCurrentFrame;
@@ -88,8 +95,8 @@ namespace DOH {
 			uint32_t height
 		);
 
-		void drawFrame();
-		void updateUniformBuffer(uint32_t currentImage);
+		void drawFrame(/*ICamera& camera*/);
+		void updateUniformBuffer(uint32_t currentImage, ICamera& camera);
 
 		VkCommandBuffer beginSingleTimeCommands();
 		void endSingleTimeCommands(VkCommandBuffer cmdBuffer);

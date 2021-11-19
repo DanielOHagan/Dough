@@ -49,6 +49,7 @@ namespace DOH {
 
 		inline void setResizable(bool resizable) { mResizable = resizable; }
 		inline bool isResizable() const { return mResizable; }
+		inline float getAspectRatio() const { return (float) mVkSwapChainExtent.width / mVkSwapChainExtent.height; }
 
 		inline VkSwapchainKHR get() const { return mVkSwapChain; }
 		VkFramebuffer getFramebufferAt(size_t index) const { return mVkSwapChainFramebuffers.at(index); }

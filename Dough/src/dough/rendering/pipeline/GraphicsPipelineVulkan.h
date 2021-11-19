@@ -1,7 +1,5 @@
 #pragma once
 
-//#include "dough/Utils.h"
-
 #include "dough/rendering/pipeline/SwapChainVulkan.h"
 #include "dough/rendering/pipeline/RenderPassVulkan.h"
 #include "dough/rendering/pipeline/DescriptorVulkan.h"

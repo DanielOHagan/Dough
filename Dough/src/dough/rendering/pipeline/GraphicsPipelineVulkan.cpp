@@ -167,7 +167,7 @@ namespace DOH {
 
 		VkViewport viewport = {};
 		viewport.x = 0.0f;
-		viewport.y = 0.0f;
+		viewport.y = 0;
 		viewport.width = (float) mSwapChain->getExtent().width;
 		viewport.height = (float) mSwapChain->getExtent().height;
 		viewport.minDepth = 0.0f;

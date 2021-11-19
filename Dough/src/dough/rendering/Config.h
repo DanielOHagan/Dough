@@ -8,6 +8,8 @@
 #include <memory>
 
 #include <vulkan/vulkan_core.h>
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_USE_RIGHT_HANDED
 #include <glm/glm.hpp>
 
 namespace DOH {
@@ -108,7 +110,7 @@ namespace DOH {
 
 	//Vertex2D
 	struct Vertex {
-		glm::vec2 Pos;
+		glm::vec3 Pos;
 		glm::vec3 Colour;
 		glm::vec2 TexCoord;
 		float TexIndex;
@@ -128,7 +130,7 @@ namespace DOH {
 
 			attribDesc[0].binding = 0;
 			attribDesc[0].location = 0;
-			attribDesc[0].format = VK_FORMAT_R32G32_SFLOAT;
+			attribDesc[0].format = VK_FORMAT_R32G32B32_SFLOAT;
 			attribDesc[0].offset = offsetof(Vertex, Pos);
 
 			attribDesc[1].binding = 0;
