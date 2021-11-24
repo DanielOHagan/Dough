@@ -31,6 +31,27 @@ namespace DOH {
 			);
 		}
 
+		static std::shared_ptr<SwapChainVulkan> swapChain(
+			VkDevice logicDevice,
+			SwapChainCreationInfo& swapChainCreate
+		) {
+			return std::make_shared<SwapChainVulkan>(
+				logicDevice,
+				swapChainCreate.SupportDetails,
+				swapChainCreate.Surface,
+				swapChainCreate.Indices,
+				swapChainCreate.Width,
+				swapChainCreate.Height
+			);
+		}
+
+		static std::shared_ptr<RenderPassVulkan> renderPass(
+			VkDevice logicDevice,
+			VkFormat imageFormat
+		) {
+			return std::make_shared<RenderPassVulkan>(logicDevice, imageFormat);
+		}
+
 
 		//-----VAO-----
 		static std::shared_ptr<VertexArrayVulkan> vertexArray() {

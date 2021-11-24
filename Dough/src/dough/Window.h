@@ -29,5 +29,8 @@ namespace DOH {
 
 		inline uint32_t getWidth() const { return mWidth; }
 		inline uint32_t getHeight() const { return mHeight; }
+
+	private:
+		void setUpCallbacks();
 	};
 }

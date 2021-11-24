@@ -2,6 +2,7 @@
 
 #include "dough/rendering/buffer/BufferVulkan.h"
 #include "dough/rendering/shader/ShaderVulkan.h"
+#include "dough/rendering/ObjInit.h"
 
 namespace DOH {
 
@@ -16,13 +17,12 @@ namespace DOH {
 		mShaderProgram(shaderProgram),
 		mCommandPool(VK_NULL_HANDLE),
 		mDescriptorPool(VK_NULL_HANDLE)
-	{
-	}
+	{}
 
 	GraphicsPipelineVulkan::GraphicsPipelineVulkan(
 		VkDevice logicDevice,
 		VkCommandPool cmdPool,
-		SwapChainCreationInfo swapChainCreate,
+		SwapChainCreationInfo& swapChainCreate,
 		ShaderProgramVulkan& shaderProgram
 	) : mGraphicsPipeline(VK_NULL_HANDLE),
 		mGraphicsPipelineLayout(VK_NULL_HANDLE),
@@ -30,15 +30,8 @@ namespace DOH {
 		mCommandPool(cmdPool),
 		mDescriptorPool(VK_NULL_HANDLE)
 	{
-		mSwapChain = std::make_shared<SwapChainVulkan>(
-			logicDevice,
-			swapChainCreate.SupportDetails,
-			swapChainCreate.Surface,
-			swapChainCreate.Indices,
-			swapChainCreate.Width,
-			swapChainCreate.Height
-		);
-		mRenderPass = std::make_shared<RenderPassVulkan>(logicDevice, mSwapChain->getImageFormat());
+		mSwapChain = ObjInit::swapChain(logicDevice, swapChainCreate);
+		mRenderPass = ObjInit::renderPass(logicDevice, mSwapChain->getImageFormat());
 
 		createUniformObjects(logicDevice);
 		init(logicDevice);

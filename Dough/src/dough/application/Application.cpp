@@ -18,6 +18,8 @@ namespace DOH {
 		mWindow = std::make_unique<Window>(1920, 1080);
 		mWindow->init();
 
+		Input::init();
+
 		mRenderer = std::make_unique<RendererVulkan>();
 		mRenderer->init(mWindow->getWidth(), mWindow->getHeight());
 	}
@@ -44,6 +46,8 @@ namespace DOH {
 		mWindow->close();
 		mRenderer->close();
 
+		Input::close();
+
 		delete INSTANCE;
 	}
 
@@ -62,6 +66,66 @@ namespace DOH {
 			}
 		} else {
 			return EXIT_FAILURE;
+		}
+	}
+
+	void Application::onWindowEvent(WindowEvent& windowEvent) {
+		switch (windowEvent.getType()) {
+			case EEventType::WINDOW_CLOSE:
+				stop();
+				return;
+			case EEventType::WINDOW_FOCUS_CHANGE:
+				//TODO:: mAppLoop->setFocused(focusChangeEvent.isFocused());
+				return;
+			case EEventType::WINDOW_RESIZE:
+				WindowResizeEvent& e = (WindowResizeEvent&) windowEvent;
+				mRenderer->resizeSwapChain(
+					e.getWidth(),
+					e.getHeight()
+				);
+				return;
+		}
+	}
+
+	void Application::onKeyEvent(KeyEvent& keyEvent) {
+		switch (keyEvent.getType()) {
+			case EEventType::KEY_DOWN:
+				Input::get().onKeyEvent(keyEvent.getKeyCode(), true);
+				return;
+
+			case EEventType::KEY_UP:
+				Input::get().onKeyEvent(keyEvent.getKeyCode(), false);
+				return;
+
+			default:
+				THROW("Unknown key event type");
+				return;
+			}
+	}
+
+	void Application::onMouseEvent(MouseEvent& mouseEvent) {
+		switch (mouseEvent.getType()) {
+			case EEventType::MOUSE_BUTTON_DOWN:
+				Input::get().onMouseButtonEvent(((MouseButtonEvent&)mouseEvent).getButton(), true);
+				return;
+
+			case EEventType::MOUSE_BUTTON_UP:
+				Input::get().onMouseButtonEvent(((MouseButtonEvent&)mouseEvent).getButton(), false);
+				return;
+			
+			case EEventType::MOUSE_MOVE: {
+				MouseMoveEvent& move = (MouseMoveEvent&)mouseEvent;
+				Input::get().onMouseMove(move.getPosX(), move.getPosY());
+				return;
+			}
+			
+			case EEventType::MOUSE_SCROLL:
+				//TODO:: Handle scroll
+				return;
+
+		default:
+			THROW("Unknown mouse event type");
+			return;
 		}
 	}
 }

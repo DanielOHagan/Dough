@@ -12,7 +12,7 @@ namespace TG {
 		mZoomSpeed(0.001f),
 		mZoomMax(2.00f),
 		mZoomMin(0.25f),
-		mTranslationSpeed(1.0f),
+		mTranslationSpeed(0.005f),
 		mCamera(std::make_shared<OrthographicCamera>(
 			-aspectRatio * mZoomLevel,
 			aspectRatio * mZoomLevel,

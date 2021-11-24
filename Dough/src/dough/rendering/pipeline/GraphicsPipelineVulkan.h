@@ -42,7 +42,7 @@ namespace DOH {
 		GraphicsPipelineVulkan(
 			VkDevice logicDevice,
 			VkCommandPool cmdPool,
-			SwapChainCreationInfo swapChainCreate,
+			SwapChainCreationInfo& swapChainCreate,
 			ShaderProgramVulkan& shaderProgram
 		);
 

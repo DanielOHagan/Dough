@@ -5,6 +5,10 @@
 #include "dough/Utils.h"
 #include "dough/Window.h"
 #include "dough/rendering/RendererVulkan.h"
+#include "dough/events/WindowEvent.h"
+#include "dough/events/KeyEvent.h"
+#include "dough/events/MouseEvent.h"
+#include "dough/input/Input.h"
 
 namespace DOH {
 
@@ -24,6 +28,10 @@ namespace DOH {
 
 		void run();
 		void stop() { mRunning = false; }
+
+		void onWindowEvent(WindowEvent& windowEvent);
+		void onKeyEvent(KeyEvent& keyEvent);
+		void onMouseEvent(MouseEvent& mouseEvent);
 
 		inline RendererVulkan& getRenderer() const { return *mRenderer; }
 		inline Window& getWindow() const { return *mWindow; }

@@ -2,6 +2,8 @@
 
 #include "dough/rendering/ObjInit.h"
 #include "dough/rendering/shader/ShaderVulkan.h"
+#include "dough/input/Input.h"
+#include "dough/input/InputCodes.h"
 
 #include <chrono>
 #include <glm/gtc/matrix_transform.hpp>
@@ -224,7 +226,29 @@ namespace DOH {
 		//TEMP::
 		//glm::vec3 translation{ 0.0000f, 0.0f, 0.0f };
 		//TG_mOrthoCameraController->translate(translation);
-		TG_mOrthoCameraController->zoom(-1.0f);
+		if (Input::isKeyPressed(DOH_KEY_X)) {
+			TG_mOrthoCameraController->zoom(-1.0f);
+		}
+		if (Input::isKeyPressed(DOH_KEY_Z)) {
+			TG_mOrthoCameraController->zoom(1.0f);
+		}
+
+		if (Input::isKeyPressed(DOH_KEY_A)) {
+			glm::vec3 translation{ -1.0f, 0.0f, 0.0f };
+			TG_mOrthoCameraController->translate(translation);
+		}
+		if (Input::isKeyPressed(DOH_KEY_D)) {
+			glm::vec3 translation{ 1.0f, 0.0f, 0.0f };
+			TG_mOrthoCameraController->translate(translation);
+		}
+		if (Input::isKeyPressed(DOH_KEY_W)) {
+			glm::vec3 translation{ 0.0f, 1.0f, 0.0f };
+			TG_mOrthoCameraController->translate(translation);
+		}
+		if (Input::isKeyPressed(DOH_KEY_S)) {
+			glm::vec3 translation{ 0.0f, -1.0f, 0.0f };
+			TG_mOrthoCameraController->translate(translation);
+		}
 		
 		TG_mOrthoCameraController->onUpdate(0.0f);
 		UniformBufferObject ubo = {};
