@@ -1,12 +1,11 @@
 #pragma once
 
 #include "dough/Utils.h"
-
-#include <vulkan/vulkan_core.h>
+#include "dough/rendering/IGPUResourceVulkan.h"
 
 namespace DOH {
 
-	class TextureVulkan {
+	class TextureVulkan : public IGPUResourceVulkan {
 
 	private:
 		int mWidth;
@@ -31,7 +30,7 @@ namespace DOH {
 			std::string& filePath
 		);
 
-		void close(VkDevice logicDevice);
+		virtual void close(VkDevice logicDevice) override;
 
 		inline int getWidth() const { return mWidth; }
 		inline int getHeight() const { return mHeight; }

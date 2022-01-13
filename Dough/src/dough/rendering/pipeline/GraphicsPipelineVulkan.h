@@ -27,6 +27,15 @@ namespace DOH {
 		ShaderProgramVulkan& mShaderProgram;
 
 		std::vector<VkCommandBuffer> mCommandBuffers;
+		std::vector<std::reference_wrapper<VertexArrayVulkan>> mVaoDrawList;
+
+		//Sync objects
+		const int MAX_FRAMES_IN_FLIGHT = 2;
+		size_t mCurrentFrame = 0;
+		std::vector<VkSemaphore> mImageAvailableSemaphores;
+		std::vector<VkSemaphore> mRenderFinishedSemaphores;
+		std::vector<VkFence> mFramesInFlightFences;
+		std::vector<VkFence> mImageFencesInFlight;
 
 
 	public:
@@ -46,11 +55,19 @@ namespace DOH {
 			ShaderProgramVulkan& shaderProgram
 		);
 
+		void init(VkDevice logicDevice);
 		void createUniformObjects(VkDevice logicDevice);
 		void uploadShaderUniforms(VkDevice logicDevice, VkPhysicalDevice physicalDevice);
-		void createCommandBuffers(VkDevice logicDevice, VertexArrayVulkan& vertexArray);
+		void createSyncObjects(VkDevice logicDevice);
+		void closeSyncObjects(VkDevice logicDevice);
 
-		void init(VkDevice logicDevice);
+		uint32_t aquireNextImageIndex(VkDevice logicDevice);
+		void present(VkDevice logicDevice, VkQueue graphicsQueue, VkQueue presentQueue, uint32_t imageIndex);
+
+		void createCommandBuffers(VkDevice logicDevice);
+		void recordDrawCommands(uint32_t imageIndex);
+		inline void addVaoToDraw(VertexArrayVulkan& vertexArray) { mVaoDrawList.push_back(vertexArray); }
+		inline void clearVaoToDraw() { mVaoDrawList.clear(); }
 		void bind(VkCommandBuffer cmdBuffer);
 		void beginRenderPass(size_t framebufferIndex, VkCommandBuffer cmdBuffer);
 		void endRenderPass(VkCommandBuffer cmdBuffer);
@@ -58,6 +75,7 @@ namespace DOH {
 		
 		//-----TEMP:: these "singleTime" methods should be asynchronous, see tutorial for better explanation and refresher on why these are being used.
 		//TODO:: Make buffer for these and flush it at the end instead of creating one and instantly using/binding it
+		//Maybe have a function in RenderingContext class that takes in a GraphicsPipeline to work on so it is pipeline agnostic
 		VkCommandBuffer beginSingleTimeCommands(VkDevice logicDevice);
 		void endSingleTimeCommands(VkDevice logicDevice, VkCommandBuffer cmdBuffer);
 
@@ -67,11 +85,10 @@ namespace DOH {
 		inline void setDescriptorPool(VkDescriptorPool descPool) { mDescriptorPool = descPool; }
 		inline const VkDescriptorPool getDescriptorPool() const { return mDescriptorPool; }
 		inline DescriptorVulkan& getShaderDescriptor() const { return mShaderProgram.getShaderDescriptor(); }
+		inline ShaderProgramVulkan& getShaderProgram() const { return mShaderProgram; }
 
 		inline VkPipeline get() const { return mGraphicsPipeline; }
-		inline VkPipelineLayout getPipelineLayout() const { return mGraphicsPipelineLayout; }
 		inline SwapChainVulkan& getSwapChain() const { return *mSwapChain; }
-		inline RenderPassVulkan& getRenderPass() const { return *mRenderPass; }
 		inline std::vector<VkCommandBuffer>& getCommandBuffers() { return mCommandBuffers; }
 	};
 }

@@ -6,7 +6,7 @@
 
 namespace DOH {
 
-	class ShaderProgramVulkan {
+	class ShaderProgramVulkan : public IGPUResourceVulkan {
 
 	private:
 		std::unique_ptr<ShaderUniformLayout> mShaderUniformLayout;
@@ -25,7 +25,7 @@ namespace DOH {
 		void loadModules(VkDevice logicDevice);
 		void closeModules(VkDevice logicDevice);
 		void closePipelineSpecificObjects(VkDevice logicDevice);
-		void close(VkDevice logicDevice);
+		virtual void close(VkDevice logicDevice) override;
 
 		inline DescriptorVulkan& getShaderDescriptor() const { return *mShaderDescriptor; }
 		inline ShaderUniformLayout& getUniformLayout() const { return *mShaderUniformLayout; }

@@ -58,6 +58,8 @@ namespace DOH {
 			mOffsetY(offsetY)
 		{}
 
+		inline float getOffsetX() const { return mOffsetX; }
+		inline float getOffsetY() const { return mOffsetY; }
 	};
 
 	class MouseMoveEvent : public MouseEvent {

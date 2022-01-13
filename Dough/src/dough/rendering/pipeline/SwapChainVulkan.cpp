@@ -2,15 +2,6 @@
 
 namespace DOH {
 
-	SwapChainVulkan::SwapChainVulkan()
-	:	mSwapChainSupportDetails(),
-		mVkSwapChain(VK_NULL_HANDLE),
-		mVkSwapChainImageFormat(VK_FORMAT_UNDEFINED),
-		mVkSwapChainExtent({}),
-		mResizable(true)
-	{
-	}
-
 	SwapChainVulkan::SwapChainVulkan(
 		VkDevice logicDevice,
 		SwapChainSupportDetails scsd,
@@ -25,6 +16,25 @@ namespace DOH {
 		mResizable(true)
 	{
 		init(logicDevice, scsd, surface, indices, width, height);
+	}
+
+	SwapChainVulkan::SwapChainVulkan(
+		VkDevice logicDevice,
+		SwapChainCreationInfo& creationInfo
+	) : mSwapChainSupportDetails(creationInfo.SupportDetails),
+		mVkSwapChain(VK_NULL_HANDLE),
+		mVkSwapChainImageFormat(VK_FORMAT_UNDEFINED),
+		mVkSwapChainExtent({}),
+		mResizable(true)
+	{
+		init(
+			logicDevice,
+			mSwapChainSupportDetails,
+			creationInfo.Surface,
+			creationInfo.Indices,
+			creationInfo.getWidth(),
+			creationInfo.getHeight()
+		);
 	}
 
 	void SwapChainVulkan::init(
@@ -200,21 +210,4 @@ namespace DOH {
 			return actualExtent;
 		}
 	}
-
-	//SwapChainVulkan SwapChainVulkan::createSwapChain(
-	//	VkDevice logicDevice,
-	//	SwapChainSupportDetails scsd,
-	//	VkSurfaceKHR surface,
-	//	QueueFamilyIndices& indices,
-	//	uint32_t width,
-	//	uint32_t height
-	//) {
-	//	SwapChainVulkan sc = SwapChainVulkan();
-	//	sc.init(logicDevice, scsd, surface, indices, width, height);
-	//	return sc;
-	//}
-	
-	//SwapChainVulkan SwapChainVulkan::createNonInit() {
-	//	return SwapChainVulkan();
-	//}
 }

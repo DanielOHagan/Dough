@@ -1,9 +1,6 @@
 #include "dough/rendering/RenderingContextVulkan.h"
 
 #include "dough/rendering/ObjInit.h"
-#include "dough/rendering/shader/ShaderVulkan.h"
-#include "dough/input/Input.h"
-#include "dough/input/InputCodes.h"
 
 #include <chrono>
 #include <glm/gtc/matrix_transform.hpp>
@@ -17,9 +14,8 @@ namespace DOH {
 		mPresentQueue(VK_NULL_HANDLE),
 		mDescriptorPool(VK_NULL_HANDLE),
 		mCommandPool(VK_NULL_HANDLE),
-		mCurrentFrame(0)
-	{
-	}
+		mUbo({ glm::mat4x4(1.0f) })
+	{}
 
 	void RenderingContextVulkan::init(
 		SwapChainSupportDetails& scSupport,
@@ -35,92 +31,27 @@ namespace DOH {
 
 		createCommandPool(queueFamilyIndices);
 
-		mTestTexture1 = ObjInit::texture(
-			mLogicDevice,
-			mPhysicalDevice,
-			mCommandPool,
-			mGraphicsQueue,
-			*testTexturePath
-		);
-		mTestTexture2 = ObjInit::texture(
-			mLogicDevice,
-			mPhysicalDevice,
-			mCommandPool,
-			mGraphicsQueue,
-			*testTexture2Path
-		);
-
-		mShaderProgram = ObjInit::shaderProgram(
-			ObjInit::shader(mLogicDevice, EShaderType::VERTEX, *vertShaderPath),
-			ObjInit::shader(mLogicDevice, EShaderType::FRAGMENT, *fragShaderPath)
-		);
-
-		ShaderUniformLayout& layout = mShaderProgram->getUniformLayout();
-		layout.setValue(0, sizeof(UniformBufferObject));
-		layout.setTexture(1, {mTestTexture1->getImageView(), mTestTexture1->getSampler()});
-
-		SwapChainCreationInfo swapChainCreate = {scSupport, surface, queueFamilyIndices, width, height};
-		mGraphicsPipeline = ObjInit::graphicsPipeline(
-			mLogicDevice,
-			mCommandPool,
-			swapChainCreate,
-			*mShaderProgram
-		);
-
-		TG_mOrthoCameraController = std::make_shared<TG::TG_OrthoCameraController>(mGraphicsPipeline->getSwapChain().getAspectRatio());
-
-		m_TestVAO_VertexArray = ObjInit::vertexArray();
-		std::shared_ptr<VertexBufferVulkan> testVAO_VertexBuffer = ObjInit::stagedVertexBuffer(
-			{
-				{EDataType::FLOAT2, "mVertPos"},
-				{EDataType::FLOAT3, "mColour"},
-				{EDataType::FLOAT2, "mTexCoord"},
-				{EDataType::FLOAT, "mTexIndex"}
-			},
-			mLogicDevice,
-			mPhysicalDevice,
-			mCommandPool,
-			mGraphicsQueue,
-			vertices.data(),
-			sizeof(vertices[0]) * vertices.size(),
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-		);
-		m_TestVAO_VertexArray->addVertexBuffer(testVAO_VertexBuffer);
-		std::shared_ptr<IndexBufferVulkan> testVAO_IndexBuffer = ObjInit::stagedIndexBuffer(
-			mLogicDevice,
-			mPhysicalDevice,
-			mCommandPool,
-			mGraphicsQueue,
-			indices.data(),
-			sizeof(indices[0]) * indices.size(),
-			static_cast<uint32_t>(indices.size())
-		);
-		m_TestVAO_VertexArray->setIndexBuffer(testVAO_IndexBuffer);
-
-		preparePipeline();
-
-		createSyncObjects();
+		mSwapChainCreationInfo = std::make_unique<SwapChainCreationInfo>(scSupport, surface, queueFamilyIndices);
 	}
 
 	void RenderingContextVulkan::close() {
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			vkDestroySemaphore(mLogicDevice, mImageAvailableSemaphores[i], nullptr);
-			vkDestroySemaphore(mLogicDevice, mRenderFinishedSemaphores[i], nullptr);
-			vkDestroyFence(mLogicDevice, mInFlightFences[i], nullptr);
+		//Remove any app resources added after last frame was presented
+		for (IGPUResourceVulkan& res : mToReleaseGpuResources) {
+			res.close(mLogicDevice);
 		}
 
-		m_TestVAO_VertexArray->close(mLogicDevice);
-
-		mTestTexture1->close(mLogicDevice);
-		mTestTexture2->close(mLogicDevice);
-
-		mShaderProgram->close(mLogicDevice);
-		
 		mGraphicsPipeline->close(mLogicDevice);
 
 		vkDestroyCommandPool(mLogicDevice, mCommandPool, nullptr);
 		vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
+	}
+
+	void RenderingContextVulkan::setupPipeline(ShaderProgramVulkan& shaderProgram) {
+		std::vector<VkDescriptorType> descTypes = std::move(shaderProgram.getUniformLayout().asDescriptorTypes());
+		createDescriptorPool(descTypes);
+
+		mGraphicsPipeline->setDescriptorPool(mDescriptorPool);
+		mGraphicsPipeline->uploadShaderUniforms(mLogicDevice, mPhysicalDevice);
 	}
 
 	void RenderingContextVulkan::resizeSwapChain(
@@ -133,135 +64,49 @@ namespace DOH {
 		if (mGraphicsPipeline->getSwapChain().isResizable()) {
 			vkDeviceWaitIdle(mLogicDevice);
 
-			mShaderProgram->closePipelineSpecificObjects(mLogicDevice);
+			ShaderProgramVulkan& shaderProgram = mGraphicsPipeline->getShaderProgram();
+			shaderProgram.closePipelineSpecificObjects(mLogicDevice);
+
 			mGraphicsPipeline->close(mLogicDevice);
 			
-			SwapChainCreationInfo swapChainCreate = {scSupport, surface, queueFamilyIndices, width, height};
-			mGraphicsPipeline = ObjInit::graphicsPipeline(
-				mLogicDevice,
-				mCommandPool,
-				swapChainCreate,
-				*mShaderProgram
-			);
+			mSwapChainCreationInfo->setWidth(width);
+			mSwapChainCreationInfo->setHeight(height);
+			mGraphicsPipeline = ObjInit::graphicsPipeline(*mSwapChainCreationInfo, shaderProgram);
 
 			vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
 
-			preparePipeline();
-
-			TG_mOrthoCameraController->onViewportResize(mGraphicsPipeline->getSwapChain().getAspectRatio());
+			setupPipeline(shaderProgram);
 		}
 	}
 
-	void RenderingContextVulkan::drawFrame(/*ICamera& camera*/) {
-		//Wait for the fences on the GPU to flag as finished
-		vkWaitForFences(mLogicDevice, 1, &mInFlightFences[mCurrentFrame], VK_TRUE, UINT64_MAX);
-
-		uint32_t imageIndex;
-		vkAcquireNextImageKHR(
-			mLogicDevice,
-			mGraphicsPipeline->getSwapChain().get(),
-			UINT64_MAX,
-			mImageAvailableSemaphores[mCurrentFrame],
-			VK_NULL_HANDLE,
-			&imageIndex
-		);
+	//Present rendered frame
+	void RenderingContextVulkan::drawFrame() {
+		uint32_t test_imageIndex = mGraphicsPipeline->aquireNextImageIndex(mLogicDevice);
+		mGraphicsPipeline->recordDrawCommands(test_imageIndex);
 
 		//TODO:: Check result of vkAcquireNextImageKHR here
 
-		updateUniformBuffer(imageIndex, TG_mOrthoCameraController->getCamera());
+		updateUniformBufferObject(test_imageIndex);
 
-		//Check if a previous frame is using this image (i.e. there is its fence to wait on)
-		if (mImageFencesInFlight[imageIndex] != VK_NULL_HANDLE) {
-			vkWaitForFences(mLogicDevice, 1, &mImageFencesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
+		mGraphicsPipeline->present(mLogicDevice, mGraphicsQueue, mPresentQueue, test_imageIndex);
+
+		mGraphicsPipeline->clearVaoToDraw();
+		
+		//TODO::Make this so it is only removing resources from frames that are NO LONGER in use
+		//Release GPU resources of no longer in use app data
+		for (IGPUResourceVulkan& res : mToReleaseGpuResources) {
+			res.close(mLogicDevice);
 		}
-
-		//Mark the image as now ben in use by this frame
-		mImageFencesInFlight[imageIndex] = mInFlightFences[mCurrentFrame];
-
-		VkSubmitInfo submitInfo = {};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-		VkSemaphore waitSemaphores[] = {mImageAvailableSemaphores[mCurrentFrame]};
-		VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = waitSemaphores;
-		submitInfo.pWaitDstStageMask = waitStages;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &mGraphicsPipeline->getCommandBuffers()[imageIndex];//&mCommandBuffers[imageIndex];
-
-		VkSemaphore signalSemaphores[] = {mRenderFinishedSemaphores[mCurrentFrame]};
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = signalSemaphores;
-
-		vkResetFences(mLogicDevice, 1, &mInFlightFences[mCurrentFrame]);
-
-		TRY(
-			vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, mInFlightFences[mCurrentFrame]) != VK_SUCCESS,
-			"Failed to submit Draw Command Buffer."
-		);
-
-		VkPresentInfoKHR present = {};
-		present.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-		present.waitSemaphoreCount = 1;
-		present.pWaitSemaphores = signalSemaphores;
-
-		VkSwapchainKHR swapChains[] = {mGraphicsPipeline->getSwapChain().get()};
-		present.swapchainCount = 1;
-		present.pSwapchains = swapChains;
-		present.pImageIndices = &imageIndex;
-
-		vkQueuePresentKHR(mPresentQueue, &present);
-
-		//TODO:: Check result of vkQueuePresentKHR here
-
-		mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+		mToReleaseGpuResources.clear();
 	}
 
-	void RenderingContextVulkan::updateUniformBuffer(uint32_t currentImage, ICamera& camera) {
-		static auto startTime = std::chrono::high_resolution_clock::now();
+	void RenderingContextVulkan::updateUniformBufferObject(uint32_t currentImage) {
 
-		auto currentTime = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count() / 4; //Divide to slow rotation speed
+		//NOTE:: Current the UBO only uses the camera's projection view matrix so updating here works,
 
-		//TEMP::
-		//glm::vec3 translation{ 0.0000f, 0.0f, 0.0f };
-		//TG_mOrthoCameraController->translate(translation);
-		if (Input::isKeyPressed(DOH_KEY_X)) {
-			TG_mOrthoCameraController->zoom(-1.0f);
-		}
-		if (Input::isKeyPressed(DOH_KEY_Z)) {
-			TG_mOrthoCameraController->zoom(1.0f);
-		}
-
-		if (Input::isKeyPressed(DOH_KEY_A)) {
-			glm::vec3 translation{ -1.0f, 0.0f, 0.0f };
-			TG_mOrthoCameraController->translate(translation);
-		}
-		if (Input::isKeyPressed(DOH_KEY_D)) {
-			glm::vec3 translation{ 1.0f, 0.0f, 0.0f };
-			TG_mOrthoCameraController->translate(translation);
-		}
-		if (Input::isKeyPressed(DOH_KEY_W)) {
-			glm::vec3 translation{ 0.0f, 1.0f, 0.0f };
-			TG_mOrthoCameraController->translate(translation);
-		}
-		if (Input::isKeyPressed(DOH_KEY_S)) {
-			glm::vec3 translation{ 0.0f, -1.0f, 0.0f };
-			TG_mOrthoCameraController->translate(translation);
-		}
-		
-		TG_mOrthoCameraController->onUpdate(0.0f);
-		UniformBufferObject ubo = {};
-		ubo.projView = camera.getProjectionViewMatrix();
-
-		//NOTE:: GLM was designed for OpenGL where the y clip coord is inverted. This fixes it for Vulkan:
-		//ubo.projView[1][1] *= -1;
-
-		//TODO:: make uniform assignment easier:
-		//	shaderDescriptor.setData(mLogicDevice, binding OR "uniformName", &ubo, sizeof(ubo));
 		const uint32_t uboBinding = 0;
 		mGraphicsPipeline->getShaderDescriptor().getBuffersFromBinding(uboBinding)[currentImage]->
-			setData(mLogicDevice, &ubo, sizeof(ubo));
+			setData(mLogicDevice, &mUbo.ProjectionViewMat, sizeof(mUbo.ProjectionViewMat));
 	}
 
 	void RenderingContextVulkan::createQueues(QueueFamilyIndices& queueFamilyIndices) {
@@ -273,6 +118,7 @@ namespace DOH {
 		VkCommandPoolCreateInfo cmdPoolCreateInfo = {};
 		cmdPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		cmdPoolCreateInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+		cmdPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 		TRY(
 			vkCreateCommandPool(mLogicDevice, &cmdPoolCreateInfo, nullptr, &mCommandPool) != VK_SUCCESS,
@@ -280,15 +126,13 @@ namespace DOH {
 		);
 	}
 
-	void RenderingContextVulkan::createDescriptorPool() {
+	void RenderingContextVulkan::createDescriptorPool(std::vector<VkDescriptorType>& descTypes) {
 		uint32_t imageCount = static_cast<uint32_t>(mGraphicsPipeline->getSwapChain().getImageCount());
 
-		//TODO:: mShaderProgram.getUniformLayout().asDescriptorPoolCreateInfo(imageCount); Or something similar, just make it dynamic to the layout required
-		std::array<VkDescriptorPoolSize, 2> poolSizes{};
-		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes[0].descriptorCount = imageCount;
-		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[1].descriptorCount = imageCount;
+		std::vector<VkDescriptorPoolSize> poolSizes;
+		for (VkDescriptorType descType : descTypes) {
+			poolSizes.push_back({ descType, imageCount });
+		}
 
 		VkDescriptorPoolCreateInfo poolCreateInfo = {};
 		poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -302,40 +146,13 @@ namespace DOH {
 		);
 	}
 
-	void RenderingContextVulkan::createSyncObjects() {
-		mImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-		mRenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-		mInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-		mImageFencesInFlight.resize(mGraphicsPipeline->getSwapChain().getImageCount(), VK_NULL_HANDLE);
-
-		VkSemaphoreCreateInfo semaphore = {};
-		semaphore.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-		VkFenceCreateInfo fence = {};
-		fence.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		fence.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			TRY(
-				vkCreateSemaphore(mLogicDevice, &semaphore, nullptr, &mImageAvailableSemaphores[i]) != VK_SUCCESS ||
-				vkCreateSemaphore(mLogicDevice, &semaphore, nullptr, &mRenderFinishedSemaphores[i]) != VK_SUCCESS,
-				"Failed to create Semaphores for a frame."
-			);
-
-			TRY(
-				vkCreateFence(mLogicDevice, &fence, nullptr, &mInFlightFences[i]) != VK_SUCCESS,
-				"Failed to create Fence."
-			);
-		}
+	void RenderingContextVulkan::openPipeline(ShaderProgramVulkan& shaderProgram) {
+		mGraphicsPipeline = ObjInit::graphicsPipeline(*mSwapChainCreationInfo, shaderProgram);
+		setupPipeline(shaderProgram);
 	}
 
-	void RenderingContextVulkan::preparePipeline() {
-		createDescriptorPool();
-
-		mGraphicsPipeline->setDescriptorPool(mDescriptorPool);
-		mGraphicsPipeline->uploadShaderUniforms(mLogicDevice, mPhysicalDevice);
-
-		mGraphicsPipeline->createCommandBuffers(mLogicDevice, *m_TestVAO_VertexArray);
+	void RenderingContextVulkan::addVaoToDraw(VertexArrayVulkan& vao) {
+		mGraphicsPipeline->addVaoToDraw(vao);
 	}
 
 	VkCommandBuffer RenderingContextVulkan::beginSingleTimeCommands() {
@@ -451,5 +268,86 @@ namespace DOH {
 	void RenderingContextVulkan::setPhysicalDevice(VkPhysicalDevice physicalDevice) {
 		mPhysicalDevice = physicalDevice;
 		vkGetPhysicalDeviceProperties(mPhysicalDevice, mPhysicalDeviceProperties.get());
+	}
+
+	std::shared_ptr<GraphicsPipelineVulkan> RenderingContextVulkan::createGraphicsPipeline(SwapChainCreationInfo& swapChainCreate, ShaderProgramVulkan& shaderProgram) {
+		return std::make_shared<GraphicsPipelineVulkan>(mLogicDevice, mCommandPool, swapChainCreate, shaderProgram);
+	}
+
+	std::shared_ptr<SwapChainVulkan> RenderingContextVulkan::createSwapChain(SwapChainCreationInfo& swapChainCreate) {
+		return std::make_shared<SwapChainVulkan>(mLogicDevice, swapChainCreate);
+	}
+
+	std::shared_ptr<RenderPassVulkan> RenderingContextVulkan::createRenderPass(VkFormat imageFormat) {
+		return std::make_shared<RenderPassVulkan>(mLogicDevice, imageFormat);
+	}
+
+	std::shared_ptr<VertexArrayVulkan> RenderingContextVulkan::createVertexArray() {
+		return std::make_shared<VertexArrayVulkan>();
+	}
+
+	std::shared_ptr<VertexBufferVulkan> RenderingContextVulkan::createVertexBuffer(
+		const std::initializer_list<BufferElement>& elements,
+		VkDeviceSize size,
+		VkBufferUsageFlags usage,
+		VkMemoryPropertyFlags props
+	) {
+		return std::make_shared<VertexBufferVulkan>(elements, mLogicDevice, mPhysicalDevice, size, usage, props);
+	}
+
+	std::shared_ptr<VertexBufferVulkan> RenderingContextVulkan::createStagedVertexBuffer(
+		const std::initializer_list<BufferElement>& elements,
+		void* data,
+		VkDeviceSize size,
+		VkBufferUsageFlags usage,
+		VkMemoryPropertyFlags props
+	) {
+		return std::make_shared<VertexBufferVulkan>(elements, mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, (const void*) data, size, usage, props);
+	}
+
+	std::shared_ptr<VertexBufferVulkan> RenderingContextVulkan::createStagedVertexBuffer(
+		const std::initializer_list<BufferElement>& elements,
+		const void* data,
+		VkDeviceSize size,
+		VkBufferUsageFlags usage,
+		VkMemoryPropertyFlags props
+	) {
+		return std::make_shared<VertexBufferVulkan>(elements, mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size, usage, props);
+	}
+
+	std::shared_ptr<IndexBufferVulkan> RenderingContextVulkan::createIndexBuffer(VkDeviceSize size, uint32_t count) {
+		return std::make_shared<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, size, count);
+	}
+
+	std::shared_ptr<IndexBufferVulkan> RenderingContextVulkan::createStagedIndexBuffer(void* data, VkDeviceSize size, uint32_t count) {
+		return std::make_shared<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, (const void*) data, size, count);
+	}
+
+	std::shared_ptr<IndexBufferVulkan> RenderingContextVulkan::createStagedIndexBuffer(const void* data, VkDeviceSize size, uint32_t count) {
+		return std::make_shared<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size, count);
+	}
+
+	std::shared_ptr<BufferVulkan> RenderingContextVulkan::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props) {
+		return std::make_shared<BufferVulkan>(mLogicDevice, mPhysicalDevice, size, usage, props);
+	}
+
+	std::shared_ptr<BufferVulkan> RenderingContextVulkan::createStagedBuffer(void* data, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props) {
+		return std::make_shared<BufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, (const void*) data, size, usage, props);
+	}
+
+	std::shared_ptr<BufferVulkan> RenderingContextVulkan::createStagedBuffer(const void* data, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props) {
+		return std::make_shared<BufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size, usage, props);
+	}
+
+	std::shared_ptr<ShaderProgramVulkan> RenderingContextVulkan::createShaderProgram(std::shared_ptr<ShaderVulkan> vertShader, std::shared_ptr<ShaderVulkan> fragShader) {
+		return std::make_shared<ShaderProgramVulkan>(vertShader, fragShader);
+	}
+
+	std::shared_ptr<ShaderVulkan> RenderingContextVulkan::createShader(EShaderType type, std::string& filePath) {
+		return std::make_shared<ShaderVulkan>(type, filePath);
+	}
+
+	std::shared_ptr<TextureVulkan> RenderingContextVulkan::createTexture(std::string& filePath) {
+		return std::make_shared<TextureVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, filePath);
 	}
 }

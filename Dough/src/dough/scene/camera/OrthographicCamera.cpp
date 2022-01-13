@@ -1,4 +1,4 @@
-#include "dough/rendering/camera/OrthographicCamera.h"
+#include "dough/scene/camera/OrthographicCamera.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 

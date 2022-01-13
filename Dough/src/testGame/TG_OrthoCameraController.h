@@ -1,7 +1,7 @@
 #pragma once
 
-#include "dough/rendering/camera/ICameraController.h"
-#include "dough/rendering/camera/OrthographicCamera.h"
+#include "dough/scene/camera/ICameraController.h"
+#include "dough/scene/camera/OrthographicCamera.h"
 
 using namespace DOH;
 
@@ -45,5 +45,8 @@ namespace TG {
 		inline float getZoomMin() const { return mZoomMin; }
 		inline void setZoomMin(float zoomMin) { mZoomMin = zoomMin; }
 
+	private:
+		//Convenience function
+		void updateMatrices();
 	};
 }

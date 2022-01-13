@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dough/rendering/camera/ICamera.h"
+#include "dough/scene/camera/ICamera.h"
 
 namespace DOH {
 

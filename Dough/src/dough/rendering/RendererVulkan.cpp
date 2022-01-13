@@ -80,8 +80,10 @@ namespace DOH {
 		vkDestroyInstance(mInstance, nullptr);
 	}
 
-	bool RendererVulkan::isClosed() {
-		return mInstance == VK_NULL_HANDLE;
+	void RendererVulkan::closeGpuResource(IGPUResourceVulkan& res) {
+		//Add to list of to close resources that are closed only after they are guaranteed not to be currently in use.
+		mRenderingContext->addResourceToCloseAfterUse(res);
+		//res.close(mLogicDevice);
 	}
 
 	void RendererVulkan::resizeSwapChain(int width, int height) {
@@ -188,9 +190,9 @@ namespace DOH {
 		uint32_t deviceCount = 0;
 		vkEnumeratePhysicalDevices(mInstance, &deviceCount, nullptr);
 
-		TRY(deviceCount == 0, "Failed to find GPUs with Vulkan support.")
+		TRY(deviceCount == 0, "Failed to find GPUs with Vulkan support.");
 
-			std::vector<VkPhysicalDevice> devices(deviceCount);
+		std::vector<VkPhysicalDevice> devices(deviceCount);
 		vkEnumeratePhysicalDevices(mInstance, &deviceCount, devices.data());
 
 		for (const auto& device : devices) {
@@ -330,5 +332,18 @@ namespace DOH {
 		THROW("Failed to find suitable memory type.");
 
 		return 0;
+	}
+
+	void RendererVulkan::beginScene(ICamera& camera) {
+		mRenderingContext->setUniformBufferObject(camera.getProjectionViewMatrix());
+	}
+
+	void RendererVulkan::endScene() {
+		//TODO:: once batch rendering is implemented this will use the VAOs in the "RendererStorage" to make draw commands,
+		//therefore, addVaoDrawCommands() will be redundant and should then be removed.
+	}
+
+	void RendererVulkan::temp_addVaoDrawCommands(VertexArrayVulkan& vao) {
+		mRenderingContext->addVaoToDraw(vao);
 	}
 }

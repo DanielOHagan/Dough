@@ -5,38 +5,6 @@
 
 namespace DOH {
 
-	//TextureVulkan::TextureVulkan(
-	//	int width,
-	//	int height,
-	//	int channels,
-	//	VkImage image,
-	//	VkDeviceMemory imageMemory,
-	//	VkImageView imageView
-	//) : mWidth(width),
-	//	mHeight(height),
-	//	mChannels(channels),
-	//	mImage(image),
-	//	mImageMemory(imageMemory),
-	//	mImageView(imageView),
-	//	mSampler(VK_NULL_HANDLE)
-	//{
-	//}
-
-	void TextureVulkan::close(VkDevice logicDevice) {
-		vkDestroySampler(logicDevice, mSampler, nullptr);
-		vkDestroyImageView(logicDevice, mImageView, nullptr);
-		vkDestroyImage(logicDevice, mImage, nullptr);
-		vkFreeMemory(logicDevice, mImageMemory, nullptr);
-	}
-
-	void TextureVulkan::createImageView() {
-		mImageView = Application::get().getRenderer().getContext().createImageView(mImage, VK_FORMAT_R8G8B8A8_SRGB);
-	}
-
-	void TextureVulkan::createSampler() {
-		mSampler = Application::get().getRenderer().getContext().createSampler();
-	}
-
 	TextureVulkan::TextureVulkan(
 		VkDevice logicDevice,
 		VkPhysicalDevice physicalDevice,
@@ -53,10 +21,6 @@ namespace DOH {
 		VkDeviceSize imageSize = textureData.width * textureData.height * 4;
 
 		std::shared_ptr<BufferVulkan> imageStagingBuffer = ObjInit::stagedBuffer(
-			logicDevice,
-			physicalDevice,
-			cmdPool,
-			graphicsQueue,
 			textureData.data,
 			imageSize,
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -102,6 +66,21 @@ namespace DOH {
 		createSampler();
 
 		imageStagingBuffer->close(logicDevice);
+	}
+
+	void TextureVulkan::close(VkDevice logicDevice) {
+		vkDestroySampler(logicDevice, mSampler, nullptr);
+		vkDestroyImageView(logicDevice, mImageView, nullptr);
+		vkDestroyImage(logicDevice, mImage, nullptr);
+		vkFreeMemory(logicDevice, mImageMemory, nullptr);
+	}
+
+	void TextureVulkan::createImageView() {
+		mImageView = Application::get().getRenderer().getContext().createImageView(mImage, VK_FORMAT_R8G8B8A8_SRGB);
+	}
+
+	void TextureVulkan::createSampler() {
+		mSampler = Application::get().getRenderer().getContext().createSampler();
 	}
 
 	void TextureVulkan::createImage(

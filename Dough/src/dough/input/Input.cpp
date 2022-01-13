@@ -26,7 +26,8 @@ namespace DOH {
 	};
 
 	Input::Input()
-	:	mMouseScreenPos(std::make_unique<glm::vec2>(0.0f, 0.0f))
+	:	mMouseScreenPos(std::make_unique<glm::vec2>(0.0f, 0.0f)),
+		mMouseScrollOffset(std::make_unique<glm::vec2>(0.0f, 0.0f))
 	{}
 
 	void Input::init() {
@@ -72,6 +73,12 @@ namespace DOH {
 		if (isMouseButtonInPossibleMap(button)) {
 			setMouseButtonPressedFlag(button, pressed);
 		}
+	}
+
+	void Input::resetCycleData() {
+		//Reset cycle specific data
+		mMouseScrollOffset->x = 0.0f;
+		mMouseScrollOffset->y = 0.0f;
 	}
 
 	void Input::setKeyPressedFlag(int keyCode, bool state) {

@@ -5,7 +5,7 @@
 
 namespace DOH {
 
-	class VertexArrayVulkan {
+	class VertexArrayVulkan : public IGPUResourceVulkan {
 
 	private:
 		std::vector<std::shared_ptr<VertexBufferVulkan>> mVertexBuffers;
@@ -20,7 +20,7 @@ namespace DOH {
 		void bind(VkCommandBuffer cmdBuffer);
 
 		void addVertexBuffer(std::shared_ptr<VertexBufferVulkan> vertexBuffer);
-		void close(VkDevice logicDevice);
+		virtual void close(VkDevice logicDevice) override;
 
 		inline void setIndexBuffer(std::shared_ptr<IndexBufferVulkan> indexBuffer) { mIndexBuffer = indexBuffer; }
 		inline IndexBufferVulkan& getIndexBuffer() const { return *mIndexBuffer; }

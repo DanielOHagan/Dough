@@ -1,10 +1,10 @@
 #pragma once
 
-#include <vulkan/vulkan_core.h>
+#include "dough/rendering/IGPUResourceVulkan.h"
 
 namespace DOH {
 
-	class BufferVulkan {
+	class BufferVulkan : public IGPUResourceVulkan {
 
 	protected:
 		VkBuffer mBuffer;
@@ -42,7 +42,7 @@ namespace DOH {
 		void copyToBuffer(BufferVulkan& destination);
 		void copyFromBuffer(BufferVulkan& source);
 
-		void close(VkDevice logicDevice);
+		virtual void close(VkDevice logicDevice) override;
 
 		inline VkBuffer getBuffer() const { return mBuffer; }
 		inline VkDeviceMemory getDeviceMemory() const { return mBufferMemory; }

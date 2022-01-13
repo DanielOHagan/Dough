@@ -8,8 +8,9 @@ namespace DOH {
 	:	mRunning(false)
 	{}
 
-	void Application::run(/*IAppLogic appLogic*/) {
-		init(/*appLogic*/);
+	void Application::run(std::shared_ptr<IApplicationLogic> appLogic) {
+		mAppLogic = appLogic;
+		init();
 
 		mainLoop();
 	}
@@ -22,6 +23,8 @@ namespace DOH {
 
 		mRenderer = std::make_unique<RendererVulkan>();
 		mRenderer->init(mWindow->getWidth(), mWindow->getHeight());
+
+		mAppLogic->init((float) mWindow->getWidth() / mWindow->getHeight());
 	}
 
 	void Application::mainLoop() {
@@ -31,11 +34,13 @@ namespace DOH {
 			mWindow->pollEvents();
 			update();
 			render();
+
+			Input::get().resetCycleData();
 		}
 	}
 
 	void Application::update() {
-		//mAppLogic->update(delta);
+		mAppLogic->update(0.0f);
 	}
 
 	void Application::render() {
@@ -44,6 +49,7 @@ namespace DOH {
 
 	void Application::close() {
 		mWindow->close();
+		mAppLogic->close();
 		mRenderer->close();
 
 		Input::close();
@@ -51,12 +57,12 @@ namespace DOH {
 		delete INSTANCE;
 	}
 
-	int Application::start(/*IAppLogic appLogic*/) {
+	int Application::start(std::shared_ptr<IApplicationLogic> appLogic) {
 		INSTANCE = new Application();
 		
 		if (Application::isInstantiated()) {
 			try {
-				INSTANCE->run();
+				INSTANCE->run(appLogic);
 				Application::get().close();
 				return EXIT_SUCCESS;
 			} catch (const std::exception& e) {
@@ -83,6 +89,7 @@ namespace DOH {
 					e.getWidth(),
 					e.getHeight()
 				);
+				mAppLogic->onResize((float) e.getWidth() / e.getHeight());
 				return;
 		}
 	}
@@ -106,22 +113,24 @@ namespace DOH {
 	void Application::onMouseEvent(MouseEvent& mouseEvent) {
 		switch (mouseEvent.getType()) {
 			case EEventType::MOUSE_BUTTON_DOWN:
-				Input::get().onMouseButtonEvent(((MouseButtonEvent&)mouseEvent).getButton(), true);
+				Input::get().onMouseButtonEvent(((MouseButtonEvent&) mouseEvent).getButton(), true);
 				return;
 
 			case EEventType::MOUSE_BUTTON_UP:
-				Input::get().onMouseButtonEvent(((MouseButtonEvent&)mouseEvent).getButton(), false);
+				Input::get().onMouseButtonEvent(((MouseButtonEvent&) mouseEvent).getButton(), false);
 				return;
 			
 			case EEventType::MOUSE_MOVE: {
-				MouseMoveEvent& move = (MouseMoveEvent&)mouseEvent;
+				MouseMoveEvent& move = (MouseMoveEvent&) mouseEvent;
 				Input::get().onMouseMove(move.getPosX(), move.getPosY());
 				return;
 			}
 			
-			case EEventType::MOUSE_SCROLL:
-				//TODO:: Handle scroll
+			case EEventType::MOUSE_SCROLL: {
+				MouseScrollEvent& scroll = (MouseScrollEvent&) mouseEvent;
+				Input::get().onMouseScroll(scroll.getOffsetX(), scroll.getOffsetY());
 				return;
+			}
 
 		default:
 			THROW("Unknown mouse event type");

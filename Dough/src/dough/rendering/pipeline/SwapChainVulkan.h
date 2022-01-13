@@ -17,11 +17,6 @@ namespace DOH {
 
 		bool mResizable;
 
-	private:
-		SwapChainVulkan();
-
-		void createImageViews(VkDevice logicDevice);
-
 	public:
 		SwapChainVulkan(
 			VkDevice logicDevice,
@@ -31,6 +26,7 @@ namespace DOH {
 			uint32_t width,
 			uint32_t height
 		);
+		SwapChainVulkan(VkDevice logicDevice, SwapChainCreationInfo& creationInfo);
 		SwapChainVulkan(const SwapChainVulkan& copy) = delete;
 		SwapChainVulkan operator=(const SwapChainVulkan& assignment) = delete;
 
@@ -65,5 +61,8 @@ namespace DOH {
 		static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 		static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 		static VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height);
+
+	private:
+		void createImageViews(VkDevice logicDevice);
 	};
 }

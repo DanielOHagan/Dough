@@ -53,4 +53,13 @@ namespace DOH {
 		clearDescriptorSetLayoutBindings();
 		clearUniforms();
 	}
+
+	std::vector<VkDescriptorType> ShaderUniformLayout::asDescriptorTypes() const {
+		std::vector<VkDescriptorType> descTypes{};
+		for (const VkDescriptorSetLayoutBinding& layoutBinding : mDescriptorSetLayoutBindings) {
+			descTypes.push_back(layoutBinding.descriptorType);
+		}
+
+		return descTypes;
+	}
 }

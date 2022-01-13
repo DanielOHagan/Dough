@@ -9,6 +9,7 @@
 #include "dough/events/KeyEvent.h"
 #include "dough/events/MouseEvent.h"
 #include "dough/input/Input.h"
+#include "dough/application/IApplicationLogic.h"
 
 namespace DOH {
 
@@ -20,13 +21,14 @@ namespace DOH {
 
 		std::unique_ptr<Window> mWindow;
 		std::unique_ptr<RendererVulkan> mRenderer;
+		std::shared_ptr<IApplicationLogic> mAppLogic;
 		bool mRunning;
 
 	public:
 		Application(const Application& copy) = delete;
 		void operator=(const Application& assignment) = delete;
 
-		void run();
+		void run(std::shared_ptr<IApplicationLogic> appLogic);
 		void stop() { mRunning = false; }
 
 		void onWindowEvent(WindowEvent& windowEvent);
@@ -37,7 +39,7 @@ namespace DOH {
 		inline Window& getWindow() const { return *mWindow; }
 
 		static Application& get() { return *INSTANCE; }
-		static int start();
+		static int start(std::shared_ptr<IApplicationLogic> appLogic);
 		static bool isInstantiated() { return INSTANCE != nullptr; };
 
 	private:

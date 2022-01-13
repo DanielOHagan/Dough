@@ -7,9 +7,7 @@ namespace DOH {
 	DescriptorVulkan::DescriptorVulkan(ShaderUniformLayout& uniformLayout)
 	:	mDescriptorSetLayout(VK_NULL_HANDLE),
 		mUniformLayout(uniformLayout)
-	{
-	
-	}
+	{}
 
 	void DescriptorVulkan::createDescriptorSetLayout(VkDevice logicDevice) {
 		VkDescriptorSetLayoutCreateInfo dslCreateInfo = {};
@@ -31,8 +29,6 @@ namespace DOH {
 			
 			for (size_t i = 0; i < count; i++) {
 				mValueBufferMap[binding][i] = ObjInit::buffer(
-					logicDevice,
-					physicalDevice,
 					mUniformLayout.getValueUniformMap().at(binding),
 					VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT

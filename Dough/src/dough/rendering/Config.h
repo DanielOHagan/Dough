@@ -91,21 +91,20 @@ namespace DOH {
 		SwapChainCreationInfo(
 			SwapChainSupportDetails supportDetails,
 			VkSurfaceKHR surface,
-			QueueFamilyIndices& indices,
-			uint32_t width,
-			uint32_t height
+			QueueFamilyIndices& indices
 		) :	SupportDetails(supportDetails),
 			Surface(surface),
-			Indices(indices),
-			Width(width),
-			Height(height)
+			Indices(indices)
 		{}
 
 		SwapChainSupportDetails SupportDetails;
 		VkSurfaceKHR Surface;
 		QueueFamilyIndices& Indices;
-		uint32_t Width;
-		uint32_t Height;
+
+		inline uint32_t getWidth() const { return SupportDetails.capabilities.currentExtent.width; }
+		inline void setWidth(uint32_t width) { SupportDetails.capabilities.currentExtent.width = width; }
+		inline uint32_t getHeight() const { return SupportDetails.capabilities.currentExtent.height; }
+		inline void setHeight(uint32_t height) {SupportDetails.capabilities.currentExtent.height = height;}
 	};
 
 	//Vertex2D

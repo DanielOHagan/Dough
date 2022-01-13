@@ -30,11 +30,13 @@ namespace DOH {
 		mCommandPool(cmdPool),
 		mDescriptorPool(VK_NULL_HANDLE)
 	{
-		mSwapChain = ObjInit::swapChain(logicDevice, swapChainCreate);
-		mRenderPass = ObjInit::renderPass(logicDevice, mSwapChain->getImageFormat());
+		mSwapChain = ObjInit::swapChain(swapChainCreate);
+		mRenderPass = ObjInit::renderPass(mSwapChain->getImageFormat());
 
 		createUniformObjects(logicDevice);
 		init(logicDevice);
+		createCommandBuffers(logicDevice);
+		createSyncObjects(logicDevice);
 	}
 
 	void GraphicsPipelineVulkan::createUniformObjects(VkDevice logicDevice) {
@@ -66,6 +68,105 @@ namespace DOH {
 		mShaderProgram.getShaderDescriptor().createDescriptorSetLayout(logicDevice);
 	}
 
+	void GraphicsPipelineVulkan::createSyncObjects(VkDevice logicDevice) {
+		mImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+		mRenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+		mFramesInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+		mImageFencesInFlight.resize(mSwapChain->getImageCount(), VK_NULL_HANDLE);
+
+		VkSemaphoreCreateInfo semaphore = {};
+		semaphore.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+		VkFenceCreateInfo fence = {};
+		fence.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fence.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+			TRY(
+				vkCreateSemaphore(logicDevice, &semaphore, nullptr, &mImageAvailableSemaphores[i]) != VK_SUCCESS ||
+				vkCreateSemaphore(logicDevice, &semaphore, nullptr, &mRenderFinishedSemaphores[i]) != VK_SUCCESS,
+				"Failed to create Semaphores for a frame."
+			);
+
+			TRY(
+				vkCreateFence(logicDevice, &fence, nullptr, &mFramesInFlightFences[i]) != VK_SUCCESS,
+				"Failed to create Fence."
+			);
+		}
+	}
+
+	void GraphicsPipelineVulkan::closeSyncObjects(VkDevice logicDevice) {
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+			vkDestroySemaphore(logicDevice, mImageAvailableSemaphores[i], nullptr);
+			vkDestroySemaphore(logicDevice, mRenderFinishedSemaphores[i], nullptr);
+			vkDestroyFence(logicDevice, mFramesInFlightFences[i], nullptr);
+		}
+	}
+
+	uint32_t GraphicsPipelineVulkan::aquireNextImageIndex(VkDevice logicDevice) {
+		vkWaitForFences(logicDevice, 1, &mFramesInFlightFences[mCurrentFrame], VK_TRUE, UINT64_MAX);
+		
+		uint32_t imageIndex;
+		vkAcquireNextImageKHR(
+			logicDevice,
+			mSwapChain->get(),
+			UINT64_MAX,
+			mImageAvailableSemaphores[mCurrentFrame],
+			VK_NULL_HANDLE,
+			&imageIndex
+		);
+
+		return imageIndex;
+	}
+
+	void GraphicsPipelineVulkan::present(VkDevice logicDevice, VkQueue graphicsQueue, VkQueue presentQueue, uint32_t imageIndex) {
+		if (mImageFencesInFlight[imageIndex] != VK_NULL_HANDLE) {
+			vkWaitForFences(logicDevice, 1, &mImageFencesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
+		}
+
+		//Mark the image as now being in use by this frame
+		mImageFencesInFlight[imageIndex] = mFramesInFlightFences[mCurrentFrame];
+
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+		VkSemaphore waitSemaphores[] = { mImageAvailableSemaphores[mCurrentFrame] };
+		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = waitSemaphores;
+		submitInfo.pWaitDstStageMask = waitStages;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &mCommandBuffers[imageIndex];
+
+		VkSemaphore signalSemaphores[] = { mRenderFinishedSemaphores[mCurrentFrame] };
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = signalSemaphores;
+
+		vkResetFences(logicDevice, 1, &mFramesInFlightFences[mCurrentFrame]);
+
+		TRY(
+			vkQueueSubmit(graphicsQueue, 1, &submitInfo, mFramesInFlightFences[mCurrentFrame]) != VK_SUCCESS,
+			"Failed to submit Draw Command Buffer."
+		);
+
+		VkPresentInfoKHR present = {};
+		present.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+		present.waitSemaphoreCount = 1;
+		present.pWaitSemaphores = signalSemaphores;
+
+		VkSwapchainKHR swapChains[] = { mSwapChain->get() };
+		present.swapchainCount = 1;
+		present.pSwapchains = swapChains;
+		present.pImageIndices = &imageIndex;
+
+		vkQueuePresentKHR(presentQueue, &present);
+
+		//TODO:: Check result of vkQueuePresentKHR here
+
+		mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+
+	}
+
 	void GraphicsPipelineVulkan::uploadShaderUniforms(VkDevice logicDevice, VkPhysicalDevice physicalDevice) {
 		const size_t count = mSwapChain->getImageCount();
 		DescriptorVulkan& desc = mShaderProgram.getShaderDescriptor();
@@ -74,53 +175,54 @@ namespace DOH {
 		desc.updateDescriptorSets(logicDevice, count);
 	}
 
-	void GraphicsPipelineVulkan::createCommandBuffers(VkDevice logicDevice, VertexArrayVulkan& vertexArray) {
+	void GraphicsPipelineVulkan::createCommandBuffers(VkDevice logicDevice) {
 		mCommandBuffers.resize(mSwapChain->getFramebufferCount());
 
 		VkCommandBufferAllocateInfo cmdBuffAlloc = {};
 		cmdBuffAlloc.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		cmdBuffAlloc.commandPool = mCommandPool;
 		cmdBuffAlloc.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		cmdBuffAlloc.commandBufferCount = (uint32_t) mCommandBuffers.size();
+		cmdBuffAlloc.commandBufferCount = (uint32_t)mCommandBuffers.size();
 
 		TRY(
 			vkAllocateCommandBuffers(logicDevice, &cmdBuffAlloc, mCommandBuffers.data()) != VK_SUCCESS,
 			"Failed to allocate Command Buffers."
 		);
+	}
 
-		for (size_t i = 0; i < mCommandBuffers.size(); i++) {
-			VkCommandBufferBeginInfo beginInfo = {};
-			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	void GraphicsPipelineVulkan::recordDrawCommands(uint32_t imageIndex) {
+		VkCommandBufferBeginInfo beginInfo = {};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-			TRY(
-				vkBeginCommandBuffer(mCommandBuffers[i], &beginInfo) != VK_SUCCESS,
-				"Failed to begin recording Command Buffer."
-			);
+		TRY(
+			vkBeginCommandBuffer(mCommandBuffers[imageIndex], &beginInfo) != VK_SUCCESS,
+			"Failed to begin recording Command Buffer."
+		);
 
-			beginRenderPass(i, mCommandBuffers[i]);
+		beginRenderPass(imageIndex, mCommandBuffers[imageIndex]);
 
-			bind(mCommandBuffers[i]);
+		bind(mCommandBuffers[imageIndex]);
 
-			vertexArray.bind(mCommandBuffers[i]);
-
-			mShaderProgram.getShaderDescriptor().bindDescriptorSets(mCommandBuffers[i], mGraphicsPipelineLayout, i);
+		for (VertexArrayVulkan& vao : mVaoDrawList) {
+			vao.bind(mCommandBuffers[imageIndex]);
+			mShaderProgram.getShaderDescriptor().bindDescriptorSets(mCommandBuffers[imageIndex], mGraphicsPipelineLayout, imageIndex);
 
 			vkCmdDrawIndexed(
-				mCommandBuffers[i],
-				vertexArray.getIndexBuffer().getCount(),
+				mCommandBuffers[imageIndex],
+				vao.getIndexBuffer().getCount(),
 				1,
 				0,
 				0,
 				0
 			);
-
-			endRenderPass(mCommandBuffers[i]);
-
-			TRY(
-				vkEndCommandBuffer(mCommandBuffers[i]) != VK_SUCCESS,
-				"Failed to record Command Buffer."
-			);
 		}
+
+		endRenderPass(mCommandBuffers[imageIndex]);
+
+		TRY(
+			vkEndCommandBuffer(mCommandBuffers[imageIndex]) != VK_SUCCESS,
+			"Failed to record Command Buffer."
+		);
 	}
 
 	void GraphicsPipelineVulkan::init(VkDevice logicDevice) {
@@ -255,6 +357,8 @@ namespace DOH {
 	}
 
 	void GraphicsPipelineVulkan::close(VkDevice logicDevice) {
+		closeSyncObjects(logicDevice);
+
 		vkFreeCommandBuffers(
 			logicDevice,
 			mCommandPool,

@@ -24,6 +24,7 @@ namespace DOH {
 		void clearDescriptorSetLayoutBindings();
 		void clearUniforms() const;
 		void close();
+		std::vector<VkDescriptorType> asDescriptorTypes() const;
 
 		inline const uint32_t getTotalUniformCount() const { return static_cast<uint32_t>(mValueUniformMap->size() + mTextureUniformMap->size()); }
 		inline std::vector<VkDescriptorSetLayoutBinding>& getDescriptorSetLayoutBindings() { return mDescriptorSetLayoutBindings; }

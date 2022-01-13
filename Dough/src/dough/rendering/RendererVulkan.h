@@ -49,13 +49,18 @@ namespace DOH {
 
 		void init(int width, int height);
 		void close();
+		void closeGpuResource(IGPUResourceVulkan& res);
 
-		bool isClosed();
+		inline bool isClosed() const { return mInstance == VK_NULL_HANDLE; }
 
-		//RenderingPipelineVulkan createRenderingPipeline(args);
 		void resizeSwapChain(int width, int height);
 
 		void drawFrame();
+
+		inline void openPipeline(ShaderProgramVulkan& shaderProgram) const { mRenderingContext->openPipeline(shaderProgram); }
+		void beginScene(ICamera& camera);
+		void endScene();
+		void temp_addVaoDrawCommands(VertexArrayVulkan& vao);
 
 		inline RenderingContextVulkan& getContext() const { return *mRenderingContext; }
 

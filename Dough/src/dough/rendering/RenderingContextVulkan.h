@@ -2,48 +2,24 @@
 
 #include "dough/Utils.h"
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
-#include "testGame/TG_OrthoCameraController.h"
+#include "dough/scene/camera/ICamera.h"
 
 namespace DOH {
-
-	//TODO:: learn strings properly
-	const std::unique_ptr<std::string> vertShaderPath = std::make_unique<std::string>("res/shaders/vert.spv");
-	const std::unique_ptr<std::string> fragShaderPath = std::make_unique<std::string>("res/shaders/frag.spv");
-	const std::unique_ptr<std::string> testTexturePath = std::make_unique<std::string>("res/images/testTexture.jpg");
-	const std::unique_ptr<std::string> testTexture2Path = std::make_unique<std::string>("res/images/testTexture2.jpg");
-
-	const std::vector<Vertex> vertices {
-		{{-0.5f, -0.5f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {1.0f}},
-		{{ 0.5f, -0.5f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {1.0f}},
-		{{ 0.5f,  0.5f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f}},
-		{{-0.5f,  0.5f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {1.0f}},
-
-		//{{-0.25f, -0.25f, 1.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f}},
-		//{{0.75f, -0.25f, 1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f}},
-		//{{0.75f, 0.75f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {1.0f}},
-		//{{-0.25f, 0.75f, 1.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {1.0f}}
-
-		{{0.00f, 0.00f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f}},
-		{{1.00f, 0.00f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f}},
-		{{1.00f, 1.00f, 1.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, {0.0f}},
-		{{0.00f, 1.00f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f}}
-	};
-	const std::vector<uint16_t> indices {
-		0, 1, 2, 2, 3, 0,
-		4, 5, 6, 6, 7, 4
-	};
-	struct UniformBufferObject {
-		alignas(16) glm::mat4 projView;
-	};
 
 	class RenderingContextVulkan {
 
 	private:
+
+		struct UniformBufferObject {
+			glm::mat4 ProjectionViewMat;
+		} mUbo;
 		
 		//Shared device handles for convenience
 		VkDevice mLogicDevice;
 		VkPhysicalDevice mPhysicalDevice;
+
 		std::unique_ptr<VkPhysicalDeviceProperties> mPhysicalDeviceProperties;
+		std::unique_ptr<SwapChainCreationInfo> mSwapChainCreationInfo;
 		
 		VkQueue mGraphicsQueue;
 		VkQueue mPresentQueue;
@@ -54,22 +30,7 @@ namespace DOH {
 		VkDescriptorPool mDescriptorPool;
 		VkCommandPool mCommandPool;
 
-		//TEMP::---App specific objects
-		std::shared_ptr<TG::TG_OrthoCameraController> TG_mOrthoCameraController;
-		std::shared_ptr<ShaderProgramVulkan> mShaderProgram;
-
-		std::shared_ptr<VertexArrayVulkan> m_TestVAO_VertexArray;
-
-		std::shared_ptr<TextureVulkan> mTestTexture1;
-		std::shared_ptr<TextureVulkan> mTestTexture2;
-		//TEMP::---
-
-		const int MAX_FRAMES_IN_FLIGHT = 2;
-		size_t mCurrentFrame;
-		std::vector<VkSemaphore> mImageAvailableSemaphores;
-		std::vector<VkSemaphore> mRenderFinishedSemaphores;
-		std::vector<VkFence> mInFlightFences;
-		std::vector<VkFence> mImageFencesInFlight;
+		std::vector<std::reference_wrapper<IGPUResourceVulkan>> mToReleaseGpuResources;
 
 	public:
 		RenderingContextVulkan(VkDevice logicDevice, VkPhysicalDevice physicalDevice);
@@ -81,11 +42,12 @@ namespace DOH {
 			SwapChainSupportDetails& scSupport,
 			VkSurfaceKHR surface,
 			QueueFamilyIndices& queueFamilyIndices,
-			uint32_t width = 100,
-			uint32_t height = 100
+			uint32_t width,
+			uint32_t height
 		);
-
 		void close();
+		void openPipeline(ShaderProgramVulkan& shaderProgram);
+		void setupPipeline(ShaderProgramVulkan& shaderProgram);
 
 		void resizeSwapChain(
 			SwapChainSupportDetails& scSupport,
@@ -95,9 +57,14 @@ namespace DOH {
 			uint32_t height
 		);
 
-		void drawFrame(/*ICamera& camera*/);
-		void updateUniformBuffer(uint32_t currentImage, ICamera& camera);
+		void drawFrame();
+		inline void setUniformBufferObject(glm::mat4& projView) { mUbo.ProjectionViewMat = projView; };
+		void updateUniformBufferObject(uint32_t currentImage);
+		void addVaoToDraw(VertexArrayVulkan& vao);
 
+		inline void addResourceToCloseAfterUse(IGPUResourceVulkan& res) { mToReleaseGpuResources.push_back(res); }
+
+		//TODO:: This
 		VkCommandBuffer beginSingleTimeCommands();
 		void endSingleTimeCommands(VkCommandBuffer cmdBuffer);
 
@@ -109,16 +76,52 @@ namespace DOH {
 		void setLogicDevice(VkDevice logicDevice) { mLogicDevice = logicDevice; }
 		void setPhysicalDevice(VkPhysicalDevice physicalDevice);
 
+		//-----Rendering Object Initialisation-----
+		//-----Pipeline-----
+		std::shared_ptr<GraphicsPipelineVulkan> createGraphicsPipeline(SwapChainCreationInfo& swapChainCreate, ShaderProgramVulkan& shaderProgram);
+		std::shared_ptr<SwapChainVulkan> createSwapChain(SwapChainCreationInfo& swapChainCreate);
+		std::shared_ptr<RenderPassVulkan> createRenderPass(VkFormat imageFormat);
+
+		//-----VAO & Buffers-----
+		std::shared_ptr<VertexArrayVulkan> createVertexArray();
+		std::shared_ptr<VertexBufferVulkan> createVertexBuffer(
+			const std::initializer_list<BufferElement>& elements,
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
+			VkMemoryPropertyFlags props
+		);
+		std::shared_ptr<VertexBufferVulkan> createStagedVertexBuffer(
+			const std::initializer_list<BufferElement>& elements,
+			void* data,
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
+			VkMemoryPropertyFlags props
+		);
+		std::shared_ptr<VertexBufferVulkan> createStagedVertexBuffer(
+			const std::initializer_list<BufferElement>& elements,
+			const void* data,
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
+			VkMemoryPropertyFlags props
+		);
+		std::shared_ptr<IndexBufferVulkan> createIndexBuffer(VkDeviceSize size, uint32_t count);
+		std::shared_ptr<IndexBufferVulkan> createStagedIndexBuffer(void* data, VkDeviceSize size, uint32_t count);
+		std::shared_ptr<IndexBufferVulkan> createStagedIndexBuffer(const void* data, VkDeviceSize size, uint32_t count);
+		std::shared_ptr<BufferVulkan> createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props);
+		std::shared_ptr<BufferVulkan> createStagedBuffer(void* data, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props);
+		std::shared_ptr<BufferVulkan> createStagedBuffer(const void* data, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props);
+
+		//-----Shader-----
+		std::shared_ptr<ShaderProgramVulkan> createShaderProgram(std::shared_ptr<ShaderVulkan> vertShader, std::shared_ptr<ShaderVulkan> fragShader);
+		std::shared_ptr<ShaderVulkan> createShader(EShaderType type, std::string& filePath);
+
+		//-----Texture-----
+		std::shared_ptr<TextureVulkan> createTexture(std::string& filePath);
+
 	private:
-
-		//NOTE:: Convenience function, used in initial creation of Pipeline and in resizing
-		void preparePipeline();
-
 		void createQueues(QueueFamilyIndices& queueFamilyIndices);
 
 		void createCommandPool(QueueFamilyIndices& queueFamilyIndices);
-		void createDescriptorPool();
-
-		void createSyncObjects();
+		void createDescriptorPool(std::vector<VkDescriptorType>& descTypes);
 	};
 }
