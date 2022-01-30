@@ -3,13 +3,14 @@
 #include "dough/Utils.h"
 #include "dough/rendering/ObjInit.h"
 #include "dough/application/Application.h"
+#include "dough/input/InputCodes.h"
 
 #define GET_RENDERER Application::get().getRenderer()
 
 namespace TG {
 
 	TG_AppLogic::TG_AppLogic()
-	:	IApplicationLogic() 
+	:	IApplicationLogic()
 	{}
 
 	void TG_AppLogic::init(float aspectRatio) {

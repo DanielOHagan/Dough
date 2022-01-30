@@ -11,7 +11,7 @@ namespace DOH {
 	private:
 		static std::unique_ptr<Input> INSTANCE;
 
-		static const std::array<int, 40> DEFAULT_KEY_CODES;
+		static const std::array<int, 44> DEFAULT_KEY_CODES;
 		static const std::array<int, 3> DEFAULT_MOUSE_BUTTON_CODES;
 
 		std::map<int, bool> mPressedKeysMap;
@@ -36,7 +36,7 @@ namespace DOH {
 		void onMouseButtonEvent(int button, bool pressed);
 		inline void onMouseMove(float x, float y) { mMouseScreenPos->x = x; mMouseScreenPos->y = y; };
 		inline void onMouseScroll(float offsetX, float offsetY) { mMouseScrollOffset->x = offsetX; mMouseScrollOffset->y = offsetY; };
-		void resetCycleData();
+		inline void resetCycleData() { mMouseScrollOffset->x = 0.0f; mMouseScrollOffset->y = 0.0f; };
 
 		static void init();
 		static void close();

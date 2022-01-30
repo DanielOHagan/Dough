@@ -79,7 +79,7 @@ namespace DOH {
 		}
 	}
 
-	//Present rendered frame
+	//Draw then Present rendered frame
 	void RenderingContextVulkan::drawFrame() {
 		uint32_t test_imageIndex = mGraphicsPipeline->aquireNextImageIndex(mLogicDevice);
 		mGraphicsPipeline->recordDrawCommands(test_imageIndex);

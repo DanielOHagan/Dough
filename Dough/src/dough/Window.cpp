@@ -90,7 +90,7 @@ namespace DOH {
 		glfwSetWindowFocusCallback(mWindowPtr, [](GLFWwindow* windowPtr, int focused) {
 			WindowFocusChangeEvent focusChangeEvent{
 				reinterpret_cast<Window&>(windowPtr),
-				focused == GLFW_FOCUSED
+				focused == GLFW_TRUE
 			};
 			Application::get().onWindowEvent(focusChangeEvent);
 		});

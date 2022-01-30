@@ -5,7 +5,7 @@ namespace DOH {
 
 	std::unique_ptr<Input> Input::INSTANCE = nullptr;
 
-	const std::array<int, 40> Input::DEFAULT_KEY_CODES = {
+	const std::array<int, 44> Input::DEFAULT_KEY_CODES = {
 		//Alphabet
 		DOH_KEY_A, DOH_KEY_B, DOH_KEY_C, DOH_KEY_D, DOH_KEY_E, DOH_KEY_F,
 		DOH_KEY_G, DOH_KEY_H, DOH_KEY_I, DOH_KEY_J, DOH_KEY_K, DOH_KEY_L,
@@ -19,6 +19,10 @@ namespace DOH {
 
 		//Functions
 		DOH_KEY_ESCAPE, DOH_KEY_SPACE, DOH_KEY_ENTER, DOH_KEY_LEFT_SHIFT
+
+		//TEMP DEBUG::
+		, DOH_KEY_KP_ADD, DOH_KEY_KP_SUBTRACT, DOH_KEY_KP_DIVIDE, DOH_KEY_KP_MULTIPLY
+
 	};
 
 	const std::array<int, 3> Input::DEFAULT_MOUSE_BUTTON_CODES = {
@@ -73,12 +77,6 @@ namespace DOH {
 		if (isMouseButtonInPossibleMap(button)) {
 			setMouseButtonPressedFlag(button, pressed);
 		}
-	}
-
-	void Input::resetCycleData() {
-		//Reset cycle specific data
-		mMouseScrollOffset->x = 0.0f;
-		mMouseScrollOffset->y = 0.0f;
 	}
 
 	void Input::setKeyPressedFlag(int keyCode, bool state) {

@@ -14,7 +14,7 @@ namespace TG {
 		mZoomSpeed(0.001f),
 		mZoomMax(2.00f),
 		mZoomMin(0.25f),
-		mTranslationSpeed(0.005f),
+		mTranslationSpeed(0.3f),
 		mCamera(std::make_shared<OrthographicCamera>(
 			-aspectRatio * mZoomLevel,
 			aspectRatio * mZoomLevel,
@@ -27,27 +27,23 @@ namespace TG {
 		//TODO::
 		//Handle Input
 		if (Input::isKeyPressed(DOH_KEY_X)) {
-			zoom(-1.0f);
+			zoom(-1.0f * delta);
 		}
 		if (Input::isKeyPressed(DOH_KEY_Z)) {
-			zoom(1.0f);
+			zoom(1.0f * delta);
 		}
 
 		if (Input::isKeyPressed(DOH_KEY_A)) {
-			glm::vec3 translation{ -1.0f, 0.0f, 0.0f };
-			translate(translation);
+			translateX(-1.0f * delta);
 		}
 		if (Input::isKeyPressed(DOH_KEY_D)) {
-			glm::vec3 translation{ 1.0f, 0.0f, 0.0f };
-			translate(translation);
+			translateX(1.0f * delta);
 		}
 		if (Input::isKeyPressed(DOH_KEY_W)) {
-			glm::vec3 translation{ 0.0f, 1.0f, 0.0f };
-			translate(translation);
+			translateY(1.0f * delta);
 		}
 		if (Input::isKeyPressed(DOH_KEY_S)) {
-			glm::vec3 translation{ 0.0f, -1.0f, 0.0f };
-			translate(translation);
+			translateY(-1.0f * delta);
 		}
 
 

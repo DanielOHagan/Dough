@@ -30,6 +30,9 @@ namespace TG {
 		inline virtual ICamera& getCamera() const override { return *mCamera; }
 
 		void translate(glm::vec3& translation);
+		inline void translateX(float translation) { mPosition.x += translation; }
+		inline void translateY(float translation) { mPosition.y += translation; }
+		inline void translateZ(float translation) { mPosition.z += translation; }
 		inline void setTranslationSpeed(float speed) { mTranslationSpeed = speed; };
 		inline float getTranslationSpeed() const { return mTranslationSpeed; };
 		inline void setPosition(glm::vec3& pos) { mPosition = pos; };

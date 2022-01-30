@@ -10,25 +10,32 @@
 #include "dough/events/MouseEvent.h"
 #include "dough/input/Input.h"
 #include "dough/application/IApplicationLogic.h"
+#include "dough/application/ApplicationLoop.h"
+#include "dough/time/IntervalTimer.h"
 
 namespace DOH {
 
 	class Application {
+
+		friend class ApplicationLoop;
 
 	private:
 
 		static Application* INSTANCE;
 
 		std::unique_ptr<Window> mWindow;
+		std::unique_ptr<ApplicationLoop> mAppLoop;
 		std::unique_ptr<RendererVulkan> mRenderer;
 		std::shared_ptr<IApplicationLogic> mAppLogic;
+		std::unique_ptr<IntervalTimer> mAppInfoTimer;
 		bool mRunning;
+		bool mFocused;
 
 	public:
 		Application(const Application& copy) = delete;
 		void operator=(const Application& assignment) = delete;
 
-		void run(std::shared_ptr<IApplicationLogic> appLogic);
+		void run();
 		void stop() { mRunning = false; }
 
 		void onWindowEvent(WindowEvent& windowEvent);
@@ -37,6 +44,8 @@ namespace DOH {
 
 		inline RendererVulkan& getRenderer() const { return *mRenderer; }
 		inline Window& getWindow() const { return *mWindow; }
+		inline bool isRunning() const { return mRunning; }
+		inline bool isFocused() const { return mFocused; }
 
 		static Application& get() { return *INSTANCE; }
 		static int start(std::shared_ptr<IApplicationLogic> appLogic);
@@ -45,9 +54,10 @@ namespace DOH {
 	private:
 		Application();
 
-		void init();
-		void mainLoop();
-		void update();
+		void init(std::shared_ptr<IApplicationLogic> appLogic);
+		//void mainLoop();
+		inline void pollEvents() const { mWindow->pollEvents(); }
+		void update(float delta);
 		void render();
 		void close();
 	};

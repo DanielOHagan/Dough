@@ -14,9 +14,10 @@
 int main() {
 
 	std::shared_ptr<DOH::IApplicationLogic> appLogic = std::make_shared<TG::TG_AppLogic>();
+
 	int code = DOH::Application::start(appLogic);
 
-	DEBUG_MEM_DUMP
+	DEBUG_MEM_DUMP;
 
 	return code;
 }
