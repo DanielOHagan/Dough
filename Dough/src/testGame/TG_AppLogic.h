@@ -1,7 +1,7 @@
 #pragma once
 
 #include "dough/application/IApplicationLogic.h"
-#include "dough/rendering/shader/ShaderProgramVulkan.h"
+#include "dough/rendering/pipeline/shader/ShaderProgramVulkan.h"
 #include "dough/rendering/buffer/VertexArrayVulkan.h"
 #include "dough/rendering/TextureVulkan.h"
 
@@ -14,16 +14,19 @@ namespace TG {
 	class TG_AppLogic : public IApplicationLogic {
 
 		//TODO:: learn strings properly
-		const std::unique_ptr<std::string> vertShaderPath = std::make_unique<std::string>("res/shaders/vert.spv");
-		const std::unique_ptr<std::string> fragShaderPath = std::make_unique<std::string>("res/shaders/frag.spv");
+		const std::unique_ptr<std::string> texturedShaderVertPath = std::make_unique<std::string>("res/shaders/spv/Textured.vert.spv");
+		const std::unique_ptr<std::string> texturedShaderFragPath = std::make_unique<std::string>("res/shaders/spv/Textured.frag.spv");
+		const std::unique_ptr<std::string> flatColourShaderVertPath = std::make_unique<std::string>("res/shaders/spv/FlatColour.vert.spv");
+		const std::unique_ptr<std::string> flatColourShaderFragPath = std::make_unique<std::string>("res/shaders/spv/FlatColour.frag.spv");
 		const std::unique_ptr<std::string> testTexturePath = std::make_unique<std::string>("res/images/testTexture.jpg");
 		const std::unique_ptr<std::string> testTexture2Path = std::make_unique<std::string>("res/images/testTexture2.jpg");
 
 		const std::vector<Vertex> vertices{
-			{{-0.5f, -0.5f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {1.0f}},
-			{{ 0.5f, -0.5f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {1.0f}},
-			{{ 0.5f,  0.5f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {1.0f}},
-			{{-0.5f,  0.5f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {1.0f}},
+			//	x		y		z		r		g		b		u		v		texIndex
+			{{	-0.5f,	-0.5f,	1.0f},	{0.0f,	1.0f,	0.0f},	{0.0f,	1.0f},	{1.0f}},
+			{{	 0.5f,	-0.5f,	1.0f},	{0.0f,	1.0f,	0.0f},	{1.0f,	1.0f},	{1.0f}},
+			{{	 0.5f,	0.5f,	1.0f},	{0.0f,	1.0f,	0.0f},	{1.0f,	0.0f},	{1.0f}},
+			{{	-0.5f,	0.5f,	1.0f},	{0.0f,	1.0f,	0.0f},	{0.0f,	0.0f},	{1.0f}},
 
 			{{0.00f, 0.00f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f}},
 			{{1.00f, 0.00f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f}},

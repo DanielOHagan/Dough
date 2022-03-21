@@ -2,6 +2,7 @@
 
 #include "dough/scene/camera/ICameraController.h"
 #include "dough/scene/camera/OrthographicCamera.h"
+#include "dough/Core.h"
 
 using namespace DOH;
 
@@ -51,5 +52,7 @@ namespace TG {
 	private:
 		//Convenience function
 		void updateMatrices();
+
+		void handleInput(float delta);
 	};
 }

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "dough/rendering/shader/ShaderVulkan.h"
-#include "dough/rendering/shader/ShaderUniformLayout.h"
+#include "dough/rendering/pipeline/shader/ShaderVulkan.h"
+#include "dough/rendering/pipeline/shader/ShaderUniformLayout.h"
 #include "dough/rendering/pipeline/DescriptorVulkan.h"
 
 namespace DOH {

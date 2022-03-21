@@ -22,6 +22,11 @@ namespace DOH {
 		static double getCurrentTimeMillis() { return (double) std::chrono::high_resolution_clock::now().time_since_epoch().count() / 1000000.0; }
 		static float getCurrentTimeSeconds() { return (float) (std::chrono::high_resolution_clock::now().time_since_epoch().count() / 1000000000.0); }
 
+		static float convertNanosToMinutes(long long nanos) { return (float)(nanos / (1000000000ll * 60)); }
+		static float convertMicrosToMinutes(long micros) { return (float)(micros / (1000000 * 60)); }
+		static float convertMillisToMinutes(double millis) { return (float)(millis / (1000 * 60)); }
+		static float convertSecondsToMinutes(float seconds) { return seconds / 60.0f; }
+
 		static float convertNanosToSeconds(long long nanos) { return (float)nanos / 1000000000; }
 		static float convertMicrosToSeconds(long micros) { return (float)micros / 1000000; }
 		static float convertMillisToSeconds(double millis) { return (float)millis / 1000; }

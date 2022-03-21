@@ -1,4 +1,4 @@
-#include "dough/rendering/shader/ShaderVulkan.h"
+#include "dough/rendering/pipeline/shader/ShaderVulkan.h"
 
 #include "dough/ResourceHandler.h"
 #include "dough/Utils.h"
@@ -37,8 +37,8 @@ namespace DOH {
 		createInfo.pCode = reinterpret_cast<const uint32_t*>(shaderByteCode.data());
 
 		VkShaderModule shaderModule;
-		TRY(
-			vkCreateShaderModule(logicDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS,
+		VK_TRY(
+			vkCreateShaderModule(logicDevice, &createInfo, nullptr, &shaderModule),
 			"Failed to create shader module."
 		);
 		return shaderModule;

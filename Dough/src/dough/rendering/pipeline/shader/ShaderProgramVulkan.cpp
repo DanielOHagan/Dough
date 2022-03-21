@@ -1,4 +1,4 @@
-#include "dough/rendering/shader/ShaderProgramVulkan.h"
+#include "dough/rendering/pipeline/shader/ShaderProgramVulkan.h"
 
 namespace DOH {
 

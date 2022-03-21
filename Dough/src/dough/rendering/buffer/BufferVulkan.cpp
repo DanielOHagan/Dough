@@ -117,12 +117,12 @@ namespace DOH {
 		vkUnmapMemory(logicDevice, mBufferMemory);
 	}
 
-	void BufferVulkan::copyToBuffer(BufferVulkan& destination) {
-		BufferVulkan::copyBuffer(*this, destination);
+	void BufferVulkan::copyToBuffer(BufferVulkan& destination, VkCommandBuffer cmd) {
+		BufferVulkan::copyBuffer(*this, destination, cmd);
 	}
 
-	void BufferVulkan::copyFromBuffer(BufferVulkan& source) {
-		BufferVulkan::copyBuffer(source, *this);
+	void BufferVulkan::copyFromBuffer(BufferVulkan& source, VkCommandBuffer cmd) {
+		BufferVulkan::copyBuffer(source, *this, cmd);
 	}
 
 	void BufferVulkan::copyBuffer(
@@ -166,13 +166,13 @@ namespace DOH {
 		vkFreeCommandBuffers(logicDevice, cmdPool, 1, &cmdBuffer);
 	}
 
-	void BufferVulkan::copyBuffer(BufferVulkan& source, BufferVulkan& destination) {
-		VkCommandBuffer cmdBuffer = Application::get().getRenderer().getContext().beginSingleTimeCommands();
-
+	void BufferVulkan::copyBuffer(BufferVulkan& source, BufferVulkan& destination, VkCommandBuffer cmd) {
 		VkBufferCopy copy{};
 		copy.size = source.getSize();
-		vkCmdCopyBuffer(cmdBuffer, source.getBuffer(), destination.getBuffer(), 1, &copy);
+		vkCmdCopyBuffer(cmd, source.getBuffer(), destination.getBuffer(), 1, &copy);
+	}
 
-		Application::get().getRenderer().getContext().endSingleTimeCommands(cmdBuffer);
+	void BufferVulkan::copyToImage(VkCommandBuffer cmd, VkImage dstImage, VkImageLayout dstImageLayout, VkBufferImageCopy& region) {
+		vkCmdCopyBufferToImage(cmd, mBuffer, dstImage, dstImageLayout, 1, &region);
 	}
 }

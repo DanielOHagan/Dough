@@ -1,5 +1,6 @@
 #include "dough/input/Input.h"
 #include "dough/input/InputCodes.h"
+#include "dough/Logging.h"
 
 namespace DOH {
 
@@ -90,10 +91,12 @@ namespace DOH {
 	bool Input::isKeyPressedImpl(int keyCode) {
 		if (isKeyCodeInPossibleMap(keyCode)) {
 			return mPressedKeysMap.at(keyCode);
+		} else {
+			LOG_WARN("Key not available: " << keyCode);
 		}
 
 		//TODO::
-		//LogWarning "isKeyPressedImpl asked of key not in possible key codes"
+		//Log string name of key along with code
 
 		return false;
 	}
@@ -101,10 +104,12 @@ namespace DOH {
 	bool Input::isMouseButtonPressedImpl(int button) {
 		if (isMouseButtonInPossibleMap(button)) {
 			return mPressedMouseButtonsMap.at(button);
+		} else {
+			LOG_WARN("Mouse button not available: " << button);
 		}
 
 		//TODO::
-		//LogWarning "isMouseButtonPressedImpl asked of button not in possible mouse button codes"
+		//Log string name of button along with code
 
 		return false;
 	}

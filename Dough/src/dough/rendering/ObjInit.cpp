@@ -8,18 +8,28 @@ namespace DOH {
 
 	//-----Pipeline-----
 	std::shared_ptr<GraphicsPipelineVulkan> ObjInit::graphicsPipeline(
-		SwapChainCreationInfo& swapChainCreate,
-		ShaderProgramVulkan& shaderProgram
+		VkExtent2D extent,
+		VkRenderPass renderPass,
+		ShaderProgramVulkan& shaderProgram,
+		VkVertexInputBindingDescription vertexInputBindingDesc,
+		std::vector<VkVertexInputAttributeDescription>& vertexAttributes
 	) {
-		return CONTEXT.createGraphicsPipeline(swapChainCreate, shaderProgram);
+		return CONTEXT.createGraphicsPipeline(extent, renderPass, shaderProgram, vertexInputBindingDesc, vertexAttributes);
 	}
 
+	//-----Context-----
 	std::shared_ptr<SwapChainVulkan> ObjInit::swapChain(SwapChainCreationInfo& swapChainCreate) {
 		return CONTEXT.createSwapChain(swapChainCreate);
 	}
 
-	std::shared_ptr<RenderPassVulkan> ObjInit::renderPass(VkFormat imageFormat) {
-		return CONTEXT.createRenderPass(imageFormat);
+	std::shared_ptr<RenderPassVulkan> ObjInit::renderPass(
+		VkFormat imageFormat,
+		bool hasPassBefore,
+		bool hasPassAfter,
+		bool enableClearColour,
+		VkClearValue clearColour
+	) {
+		return CONTEXT.createRenderPass(imageFormat, hasPassBefore, hasPassAfter, enableClearColour, clearColour);
 	}
 
 
@@ -121,4 +131,8 @@ namespace DOH {
 		return CONTEXT.createTexture(filePath);
 	}
 
+	//TODO::
+	//std::shared_ptr<TextureVulkan> ObjInit::texture(glm::vec4& colour) {
+	//	return CONTEXT.createTexture(colour);
+	//}
 }

@@ -1,5 +1,5 @@
 #include "dough/time/IntervalTimer.h"
-#include "dough/Utils.h"
+#include "dough/Logging.h"
 
 namespace DOH {
 
@@ -31,7 +31,7 @@ namespace DOH {
 		if (hasIntervalsRecorded()) {
 			LOGLN("Recorded intervals:");
 			for (auto& [recordTime, label] : getRecordedIntervalsMillis()) {
-				LOGLN("--" << label << " : " << recordTime << "ms");
+				LOGLN("--" << label << " : " << Time::convertMillisToSeconds(recordTime) << "s");
 			}
 		}
 	}

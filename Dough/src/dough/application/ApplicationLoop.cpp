@@ -1,4 +1,5 @@
 #include "dough/application/ApplicationLoop.h"
+#include "dough/Logging.h"
 
 #include <algorithm>
 
@@ -104,7 +105,7 @@ namespace DOH {
 	}
 
 	void ApplicationLoop::setTargetBackgroundFps(float targetBackgroundFps) {
-		mTargetBackgroundFps = std::min(targetBackgroundFps, MAX_TARGET_FPS);
+		mTargetBackgroundFps = std::clamp(targetBackgroundFps, MIN_TARGET_FPS, MAX_TARGET_FPS);
 
 		updateTargetFrameTime(mApplication.isFocused());
 	}
@@ -120,7 +121,7 @@ namespace DOH {
 	}
 
 	void ApplicationLoop::setTargetBackgroundUps(float targetBackgroundUps) {
-		mTargetBackgroundUps = std::min(targetBackgroundUps, MAX_TARGET_UPS);
+		mTargetBackgroundUps = std::clamp(targetBackgroundUps, std::max(mTargetBackgroundUps, MIN_TARGET_UPS), MAX_TARGET_UPS);
 
 		updateTargetUpdateTime(mApplication.isFocused());
 	}

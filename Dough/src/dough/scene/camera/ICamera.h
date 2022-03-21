@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dough/rendering/Config.h"
+#include "dough/Maths.h"
 
 namespace DOH {
 

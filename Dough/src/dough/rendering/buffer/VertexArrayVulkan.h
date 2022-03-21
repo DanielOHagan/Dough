@@ -25,6 +25,5 @@ namespace DOH {
 		inline void setIndexBuffer(std::shared_ptr<IndexBufferVulkan> indexBuffer) { mIndexBuffer = indexBuffer; }
 		inline IndexBufferVulkan& getIndexBuffer() const { return *mIndexBuffer; }
 		inline std::vector<std::shared_ptr<VertexBufferVulkan>>& getVertexBuffers() { return mVertexBuffers; }
-
 	};
 }

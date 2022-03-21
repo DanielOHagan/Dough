@@ -1,7 +1,7 @@
 #pragma once
 
 #include "dough/rendering/buffer/BufferVulkan.h"
-#include "dough/rendering/shader/ShaderUniformLayout.h"
+#include "dough/rendering/pipeline/shader/ShaderUniformLayout.h"
 
 namespace DOH {
 
@@ -13,7 +13,7 @@ namespace DOH {
 		
 		std::vector<VkDescriptorSet> mDescriptorSets;
 		std::map<uint32_t, std::vector<std::shared_ptr<BufferVulkan>>> mValueBufferMap;
-		
+
 	public:
 		DescriptorVulkan(ShaderUniformLayout& uniformLayout);
 

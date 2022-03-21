@@ -5,6 +5,8 @@
 #include "dough/application/Application.h"
 #include "dough/input/InputCodes.h"
 
+#include "dough/Logging.h"
+
 #define GET_RENDERER Application::get().getRenderer()
 
 namespace TG {
@@ -20,11 +22,13 @@ namespace TG {
 		mShaderProgram = ObjInit::shaderProgram(
 			ObjInit::shader(
 				EShaderType::VERTEX,
-				*vertShaderPath
+				*texturedShaderVertPath
+				//*flatColourShaderVertPath
 			),
 			ObjInit::shader(
 				EShaderType::FRAGMENT,
-				*fragShaderPath
+				*texturedShaderFragPath
+				//*flatColourShaderFragPath
 			)
 		);
 
@@ -37,7 +41,8 @@ namespace TG {
 		m_TestVAO_VertexArray = ObjInit::vertexArray();
 		std::shared_ptr<VertexBufferVulkan> testVAO_VertexBuffer = ObjInit::stagedVertexBuffer(
 			{
-				{EDataType::FLOAT2, "mVertPos"},
+				//{EDataType::FLOAT2, "mVertPos"},
+				{EDataType::FLOAT3, "mVertPos"},
 				{EDataType::FLOAT3, "mColour"},
 				{EDataType::FLOAT2, "mTexCoord"},
 				{EDataType::FLOAT, "mTexIndex"}
@@ -55,7 +60,7 @@ namespace TG {
 		);
 		m_TestVAO_VertexArray->setIndexBuffer(testVAO_IndexBuffer);
 
-		GET_RENDERER.openPipeline(*mShaderProgram);
+		GET_RENDERER.preparePipeline(*mShaderProgram);
 	}
 
 	void TG_AppLogic::update(float delta) {

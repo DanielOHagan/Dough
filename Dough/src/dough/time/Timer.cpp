@@ -1,5 +1,5 @@
 #include "dough/time/Timer.h"
-#include "dough/Utils.h"
+#include "dough/Logging.h"
 
 namespace DOH {
 	

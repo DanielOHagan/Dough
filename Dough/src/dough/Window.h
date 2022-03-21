@@ -29,6 +29,7 @@ namespace DOH {
 
 		inline uint32_t getWidth() const { return mWidth; }
 		inline uint32_t getHeight() const { return mHeight; }
+		inline GLFWwindow* getNativeWindow() const { return mWindowPtr; }
 
 	private:
 		void setUpCallbacks();

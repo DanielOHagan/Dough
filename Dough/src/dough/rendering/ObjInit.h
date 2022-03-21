@@ -2,7 +2,7 @@
 
 #include "dough/Utils.h"
 #include "dough/ResourceHandler.h"
-#include "dough/rendering/shader/ShaderVulkan.h"
+#include "dough/rendering/pipeline/shader/ShaderVulkan.h"
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 
 namespace DOH {
@@ -18,15 +18,25 @@ namespace DOH {
 
 		//-----Pipeline-----
 		static std::shared_ptr<GraphicsPipelineVulkan> graphicsPipeline(
-			SwapChainCreationInfo& swapChainCreate,
-			ShaderProgramVulkan& shaderProgram
+			VkExtent2D extent,
+			VkRenderPass renderPass,
+			ShaderProgramVulkan& shaderProgram,
+			VkVertexInputBindingDescription vertexInputBindingDesc,
+			std::vector<VkVertexInputAttributeDescription>& vertexAttributes
 		);
 
+		//-----Context-----
 		static std::shared_ptr<SwapChainVulkan> swapChain(
 			SwapChainCreationInfo& swapChainCreate
 		);
 
-		static std::shared_ptr<RenderPassVulkan> renderPass(VkFormat imageFormat);
+		static std::shared_ptr<RenderPassVulkan> renderPass(
+			VkFormat imageFormat,
+			bool hasPassBefore,
+			bool hasPassAfter,
+			bool enableClearColour,
+			VkClearValue clearColour = { 0.264f, 0.328f, 0.484f, 1.0f }
+		);
 
 
 		//-----VAO-----
@@ -100,6 +110,7 @@ namespace DOH {
 
 		//-----Texture-----
 		static std::shared_ptr<TextureVulkan> texture(std::string& filePath);
+		//TODO:: static std::shared_ptr<TextureVulkan> texture(glm::vec4& colour);
 
 	};
 }

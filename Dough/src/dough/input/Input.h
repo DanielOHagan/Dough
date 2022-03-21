@@ -64,5 +64,9 @@ namespace DOH {
 		inline static bool isMouseButtonPressed(int button) { return INSTANCE->isMouseButtonPressedImpl(button); };
 		inline static bool isMouseScrollingUp() { return INSTANCE->isMouseScrollingUpImpl(); }
 		inline static bool isMouseScrollingDown() { return INSTANCE->isMouseScrollingDownImpl(); }
+
+		//TODO::
+		//static std::string getKeyName(int keyCode);
+		//static std::string getMouseButtonName(int button);
 	};
 }

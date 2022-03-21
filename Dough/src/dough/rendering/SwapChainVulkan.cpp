@@ -1,4 +1,6 @@
 #include "dough/application/Application.h"
+#include "dough/rendering/ObjInit.h"
+#include "dough/Logging.h"
 
 namespace DOH {
 
@@ -10,9 +12,9 @@ namespace DOH {
 		uint32_t width,
 		uint32_t height
 	) : mSwapChainSupportDetails(scsd),
-		mVkSwapChain(VK_NULL_HANDLE),
-		mVkSwapChainImageFormat(VK_FORMAT_UNDEFINED),
-		mVkSwapChainExtent({}),
+		mSwapChain(VK_NULL_HANDLE),
+		mImageFormat(VK_FORMAT_UNDEFINED),
+		mExtent({}),
 		mResizable(true)
 	{
 		init(logicDevice, scsd, surface, indices, width, height);
@@ -22,9 +24,9 @@ namespace DOH {
 		VkDevice logicDevice,
 		SwapChainCreationInfo& creationInfo
 	) : mSwapChainSupportDetails(creationInfo.SupportDetails),
-		mVkSwapChain(VK_NULL_HANDLE),
-		mVkSwapChainImageFormat(VK_FORMAT_UNDEFINED),
-		mVkSwapChainExtent({}),
+		mSwapChain(VK_NULL_HANDLE),
+		mImageFormat(VK_FORMAT_UNDEFINED),
+		mExtent({}),
 		mResizable(true)
 	{
 		init(
@@ -86,68 +88,153 @@ namespace DOH {
 		createInfo.clipped = VK_TRUE;
 		createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-		TRY(
-			vkCreateSwapchainKHR(logicDevice, &createInfo, nullptr, &mVkSwapChain) != VK_SUCCESS,
+		VK_TRY(
+			vkCreateSwapchainKHR(logicDevice, &createInfo, nullptr, &mSwapChain),
 			"Failed to create swap chain."
 		);
 
 		//Query image count in swap chain (we have defined a min image count but not a max and Vulkan might not always use the same amount),
 		// then resize images vector and store inside.
-		vkGetSwapchainImagesKHR(logicDevice, mVkSwapChain, &imageCount, nullptr);
-		mVkSwapChainImages.resize(imageCount);
-		vkGetSwapchainImagesKHR(logicDevice, mVkSwapChain, &imageCount, mVkSwapChainImages.data());
+		vkGetSwapchainImagesKHR(logicDevice, mSwapChain, &imageCount, nullptr);
+		mImages.resize(imageCount);
+		vkGetSwapchainImagesKHR(logicDevice, mSwapChain, &imageCount, mImages.data());
 
 		//Store swap chain info for later.
-		mVkSwapChainImageFormat = surfaceFormat.format;
-		mVkSwapChainExtent = extent;
+		mImageFormat = surfaceFormat.format;
+		mExtent = extent;
 
 		createImageViews(logicDevice);
+
+		mSceneRenderPass = ObjInit::renderPass(mImageFormat, false, true, true);
+		mAppUiRenderPass = ObjInit::renderPass(mImageFormat, true, false, false, {1, 0, 0});
+
+		createFrameBuffers(logicDevice);
 	}
 
 	void SwapChainVulkan::close(VkDevice logicDevice) {
-		destroyFramebuffers(logicDevice);
+		mSceneRenderPass->close(logicDevice);
+		mAppUiRenderPass->close(logicDevice);
 
-		for (auto imageView : mVkSwapChainImageViews) {
+		destroyFrameBuffers(logicDevice);
+
+		for (auto imageView : mImageViews) {
 			vkDestroyImageView(logicDevice, imageView, nullptr);
 		}
-		vkDestroySwapchainKHR(logicDevice, mVkSwapChain, nullptr);
+		vkDestroySwapchainKHR(logicDevice, mSwapChain, nullptr);
 	}
 
 	void SwapChainVulkan::createImageViews(VkDevice logicDevice) {
-		mVkSwapChainImageViews.resize(mVkSwapChainImages.size());
+		mImageViews.resize(mImages.size());
 
-		for (size_t i = 0; i < mVkSwapChainImages.size(); i++) {
-			mVkSwapChainImageViews[i] = Application::get().getRenderer().getContext().createImageView(mVkSwapChainImages[i], mVkSwapChainImageFormat);
+		for (size_t i = 0; i < mImages.size(); i++) {
+			mImageViews[i] = Application::get().getRenderer().getContext().createImageView(mImages[i], mImageFormat);
 		}
 	}
 
-	void SwapChainVulkan::createFramebuffers(VkDevice logicDevice, VkRenderPass renderPass) {
-		mVkSwapChainFramebuffers.resize(mVkSwapChainImageViews.size());
+	void SwapChainVulkan::createFrameBuffers(VkDevice logicDevice) {
+		const size_t imageCount = getImageCount();
+		mSceneFrameBuffers.resize(imageCount);
+		mAppUiFrameBuffers.resize(imageCount);
 
-		for (size_t i = 0; i < mVkSwapChainImageViews.size(); i++) {
-			VkImageView attachments[] = {
-				mVkSwapChainImageViews[i]
-			};
+		for (size_t i = 0; i < imageCount; i++) {
+			VkImageView sceneAttachments[] = { mImageViews[i] };
+			
+			VkFramebufferCreateInfo sceneFrameBufferInfo = {};
+			sceneFrameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			sceneFrameBufferInfo.renderPass = mSceneRenderPass->get();
+			sceneFrameBufferInfo.attachmentCount = 1;
+			sceneFrameBufferInfo.pAttachments = sceneAttachments;
+			sceneFrameBufferInfo.width = mExtent.width;
+			sceneFrameBufferInfo.height = mExtent.height;
+			sceneFrameBufferInfo.layers = 1;
+			
+			VK_TRY(
+				vkCreateFramebuffer(logicDevice, &sceneFrameBufferInfo, nullptr, &mSceneFrameBuffers[i]),
+				"Failed to create Scene FrameBuffer."
+			);
 
-			VkFramebufferCreateInfo framebufferInfo = {};
-			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			framebufferInfo.renderPass = renderPass;
-			framebufferInfo.attachmentCount = 1;
-			framebufferInfo.pAttachments = attachments;
-			framebufferInfo.width = mVkSwapChainExtent.width;
-			framebufferInfo.height = mVkSwapChainExtent.height;
-			framebufferInfo.layers = 1;
-
-			TRY(
-				vkCreateFramebuffer(logicDevice, &framebufferInfo, nullptr, &mVkSwapChainFramebuffers[i]) != VK_SUCCESS,
-				"Failed to create Framebuffer."
+			VkImageView appUiAttachments[] = { mImageViews[i] };
+			
+			VkFramebufferCreateInfo appUiFrameBufferInfo = {};
+			appUiFrameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			appUiFrameBufferInfo.renderPass = mAppUiRenderPass->get();
+			appUiFrameBufferInfo.attachmentCount = 1;
+			appUiFrameBufferInfo.pAttachments = appUiAttachments;
+			appUiFrameBufferInfo.width = mExtent.width;
+			appUiFrameBufferInfo.height = mExtent.height;
+			appUiFrameBufferInfo.layers = 1;
+			
+			VK_TRY(
+				vkCreateFramebuffer(logicDevice, &appUiFrameBufferInfo, nullptr, &mAppUiFrameBuffers[i]),
+				"Failed to create App Ui FrameBuffer."
 			);
 		}
 	}
 
-	void SwapChainVulkan::destroyFramebuffers(VkDevice logicDevice) {
-		for (auto framebuffer : mVkSwapChainFramebuffers) {
-			vkDestroyFramebuffer(logicDevice, framebuffer, nullptr);
+	void SwapChainVulkan::destroyFrameBuffers(VkDevice logicDevice) {
+		for (VkFramebuffer frameBuffer : mSceneFrameBuffers) {
+			vkDestroyFramebuffer(logicDevice, frameBuffer, nullptr);
+		}
+
+		for (VkFramebuffer frameBuffer : mAppUiFrameBuffers) {
+			vkDestroyFramebuffer(logicDevice, frameBuffer, nullptr);
+		}
+	}
+	
+	void SwapChainVulkan::beginRenderPass(RenderPassType type, size_t frameBufferIndex, VkCommandBuffer cmd) {
+		switch (type) {
+			case RenderPassType::SCENE:
+				mSceneRenderPass->begin(mSceneFrameBuffers[frameBufferIndex], mExtent, cmd);
+				break;
+			case RenderPassType::APP_UI:
+				mAppUiRenderPass->begin(mAppUiFrameBuffers[frameBufferIndex], mExtent, cmd);
+				break;
+			default:
+				LOG_ERR("Unknown render pass type");
+				break;
+		}
+	}
+
+	void SwapChainVulkan::endRenderPass(VkCommandBuffer cmd) {
+		vkCmdEndRenderPass(cmd);
+	}
+
+	uint32_t SwapChainVulkan::aquireNextImageIndex(
+		VkDevice logicDevice,
+		VkFence frameInFlightFence,
+		VkSemaphore imageAvailableSemaphore
+	) {
+		vkWaitForFences(logicDevice, 1, &frameInFlightFence, VK_TRUE, UINT64_MAX);
+
+		uint32_t imageIndex;
+		vkAcquireNextImageKHR(
+			logicDevice,
+			mSwapChain,
+			UINT64_MAX,
+			imageAvailableSemaphore,
+			VK_NULL_HANDLE,
+			&imageIndex
+		);
+
+		return imageIndex;
+	}
+
+	RenderPassVulkan& SwapChainVulkan::getRenderPass(RenderPassType type) const {
+		switch (type) {
+			case RenderPassType::SCENE:
+				if (mSceneRenderPass == nullptr) {
+					THROW("Scene render pass is null");
+				}
+				return *mSceneRenderPass;
+			case RenderPassType::APP_UI:
+				if (mAppUiRenderPass == nullptr) {
+					THROW("App UI render pass is null");
+				}
+				return *mAppUiRenderPass;
+
+			default:
+				LOG_ERR("Unknown Render Pass Type");
+				break;
 		}
 	}
 

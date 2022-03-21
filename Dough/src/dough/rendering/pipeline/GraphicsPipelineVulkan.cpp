@@ -1,42 +1,34 @@
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 
 #include "dough/rendering/buffer/BufferVulkan.h"
-#include "dough/rendering/shader/ShaderVulkan.h"
+#include "dough/rendering/pipeline/shader/ShaderVulkan.h"
 #include "dough/rendering/ObjInit.h"
+#include "dough/Logging.h"
 
 namespace DOH {
 
-	GraphicsPipelineVulkan::GraphicsPipelineVulkan(
-		std::shared_ptr<SwapChainVulkan> swapChain,
-		std::shared_ptr<RenderPassVulkan> renderPass,
-		ShaderProgramVulkan& shaderProgram
-	) : mGraphicsPipeline(VK_NULL_HANDLE),
+	GraphicsPipelineVulkan::GraphicsPipelineVulkan(ShaderProgramVulkan& shaderProgram)
+	:	mGraphicsPipeline(VK_NULL_HANDLE),
 		mGraphicsPipelineLayout(VK_NULL_HANDLE),
-		mSwapChain(swapChain),
-		mRenderPass(renderPass),
 		mShaderProgram(shaderProgram),
-		mCommandPool(VK_NULL_HANDLE),
 		mDescriptorPool(VK_NULL_HANDLE)
 	{}
 
 	GraphicsPipelineVulkan::GraphicsPipelineVulkan(
 		VkDevice logicDevice,
 		VkCommandPool cmdPool,
-		SwapChainCreationInfo& swapChainCreate,
-		ShaderProgramVulkan& shaderProgram
+		VkExtent2D extent,
+		VkRenderPass renderPass,
+		ShaderProgramVulkan& shaderProgram,
+		VkVertexInputBindingDescription vertexInputBindingDesc,
+		std::vector<VkVertexInputAttributeDescription>& vertexAttributes
 	) : mGraphicsPipeline(VK_NULL_HANDLE),
 		mGraphicsPipelineLayout(VK_NULL_HANDLE),
 		mShaderProgram(shaderProgram),
-		mCommandPool(cmdPool),
 		mDescriptorPool(VK_NULL_HANDLE)
 	{
-		mSwapChain = ObjInit::swapChain(swapChainCreate);
-		mRenderPass = ObjInit::renderPass(mSwapChain->getImageFormat());
-
 		createUniformObjects(logicDevice);
-		init(logicDevice);
-		createCommandBuffers(logicDevice);
-		createSyncObjects(logicDevice);
+		init(logicDevice, vertexInputBindingDesc, vertexAttributes, extent, renderPass);
 	}
 
 	void GraphicsPipelineVulkan::createUniformObjects(VkDevice logicDevice) {
@@ -54,7 +46,7 @@ namespace DOH {
 				binding
 			);
 		}
-		
+
 		//Create textures' layout binding
 		for (const auto& [binding, value] : layout.getTextureUniformMap()) {
 			layout.getDescriptorSetLayoutBindings()[binding] = DescriptorVulkan::createLayoutBinding(
@@ -68,147 +60,24 @@ namespace DOH {
 		mShaderProgram.getShaderDescriptor().createDescriptorSetLayout(logicDevice);
 	}
 
-	void GraphicsPipelineVulkan::createSyncObjects(VkDevice logicDevice) {
-		mImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-		mRenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-		mFramesInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-		mImageFencesInFlight.resize(mSwapChain->getImageCount(), VK_NULL_HANDLE);
-
-		VkSemaphoreCreateInfo semaphore = {};
-		semaphore.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-		VkFenceCreateInfo fence = {};
-		fence.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		fence.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			TRY(
-				vkCreateSemaphore(logicDevice, &semaphore, nullptr, &mImageAvailableSemaphores[i]) != VK_SUCCESS ||
-				vkCreateSemaphore(logicDevice, &semaphore, nullptr, &mRenderFinishedSemaphores[i]) != VK_SUCCESS,
-				"Failed to create Semaphores for a frame."
-			);
-
-			TRY(
-				vkCreateFence(logicDevice, &fence, nullptr, &mFramesInFlightFences[i]) != VK_SUCCESS,
-				"Failed to create Fence."
-			);
-		}
-	}
-
-	void GraphicsPipelineVulkan::closeSyncObjects(VkDevice logicDevice) {
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-			vkDestroySemaphore(logicDevice, mImageAvailableSemaphores[i], nullptr);
-			vkDestroySemaphore(logicDevice, mRenderFinishedSemaphores[i], nullptr);
-			vkDestroyFence(logicDevice, mFramesInFlightFences[i], nullptr);
-		}
-	}
-
-	uint32_t GraphicsPipelineVulkan::aquireNextImageIndex(VkDevice logicDevice) {
-		vkWaitForFences(logicDevice, 1, &mFramesInFlightFences[mCurrentFrame], VK_TRUE, UINT64_MAX);
-		
-		uint32_t imageIndex;
-		vkAcquireNextImageKHR(
-			logicDevice,
-			mSwapChain->get(),
-			UINT64_MAX,
-			mImageAvailableSemaphores[mCurrentFrame],
-			VK_NULL_HANDLE,
-			&imageIndex
-		);
-
-		return imageIndex;
-	}
-
-	void GraphicsPipelineVulkan::present(VkDevice logicDevice, VkQueue graphicsQueue, VkQueue presentQueue, uint32_t imageIndex) {
-		if (mImageFencesInFlight[imageIndex] != VK_NULL_HANDLE) {
-			vkWaitForFences(logicDevice, 1, &mImageFencesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
-		}
-
-		//Mark the image as now being in use by this frame
-		mImageFencesInFlight[imageIndex] = mFramesInFlightFences[mCurrentFrame];
-
-		VkSubmitInfo submitInfo = {};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-		VkSemaphore waitSemaphores[] = { mImageAvailableSemaphores[mCurrentFrame] };
-		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = waitSemaphores;
-		submitInfo.pWaitDstStageMask = waitStages;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &mCommandBuffers[imageIndex];
-
-		VkSemaphore signalSemaphores[] = { mRenderFinishedSemaphores[mCurrentFrame] };
-		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = signalSemaphores;
-
-		vkResetFences(logicDevice, 1, &mFramesInFlightFences[mCurrentFrame]);
-
-		TRY(
-			vkQueueSubmit(graphicsQueue, 1, &submitInfo, mFramesInFlightFences[mCurrentFrame]) != VK_SUCCESS,
-			"Failed to submit Draw Command Buffer."
-		);
-
-		VkPresentInfoKHR present = {};
-		present.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-		present.waitSemaphoreCount = 1;
-		present.pWaitSemaphores = signalSemaphores;
-
-		VkSwapchainKHR swapChains[] = { mSwapChain->get() };
-		present.swapchainCount = 1;
-		present.pSwapchains = swapChains;
-		present.pImageIndices = &imageIndex;
-
-		vkQueuePresentKHR(presentQueue, &present);
-
-		//TODO:: Check result of vkQueuePresentKHR here
-
-		mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-
-	}
-
-	void GraphicsPipelineVulkan::uploadShaderUniforms(VkDevice logicDevice, VkPhysicalDevice physicalDevice) {
-		const size_t count = mSwapChain->getImageCount();
+	void GraphicsPipelineVulkan::uploadShaderUniforms(VkDevice logicDevice, VkPhysicalDevice physicalDevice, uint32_t imageCount) {
 		DescriptorVulkan& desc = mShaderProgram.getShaderDescriptor();
-		desc.createValueBuffers(logicDevice, physicalDevice, count);
-		desc.createDescriptorSets(logicDevice, count, mDescriptorPool);
-		desc.updateDescriptorSets(logicDevice, count);
+		desc.createValueBuffers(logicDevice, physicalDevice, imageCount);
+		desc.createDescriptorSets(logicDevice, imageCount, mDescriptorPool);
+		desc.updateDescriptorSets(logicDevice, imageCount);
 	}
 
-	void GraphicsPipelineVulkan::createCommandBuffers(VkDevice logicDevice) {
-		mCommandBuffers.resize(mSwapChain->getFramebufferCount());
-
-		VkCommandBufferAllocateInfo cmdBuffAlloc = {};
-		cmdBuffAlloc.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		cmdBuffAlloc.commandPool = mCommandPool;
-		cmdBuffAlloc.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		cmdBuffAlloc.commandBufferCount = (uint32_t)mCommandBuffers.size();
-
-		TRY(
-			vkAllocateCommandBuffers(logicDevice, &cmdBuffAlloc, mCommandBuffers.data()) != VK_SUCCESS,
-			"Failed to allocate Command Buffers."
-		);
-	}
-
-	void GraphicsPipelineVulkan::recordDrawCommands(uint32_t imageIndex) {
-		VkCommandBufferBeginInfo beginInfo = {};
-		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-		TRY(
-			vkBeginCommandBuffer(mCommandBuffers[imageIndex], &beginInfo) != VK_SUCCESS,
-			"Failed to begin recording Command Buffer."
-		);
-
-		beginRenderPass(imageIndex, mCommandBuffers[imageIndex]);
-
-		bind(mCommandBuffers[imageIndex]);
+	void GraphicsPipelineVulkan::recordDrawCommands(uint32_t imageIndex, VkCommandBuffer cmd) {
+		bind(cmd);
 
 		for (VertexArrayVulkan& vao : mVaoDrawList) {
-			vao.bind(mCommandBuffers[imageIndex]);
-			mShaderProgram.getShaderDescriptor().bindDescriptorSets(mCommandBuffers[imageIndex], mGraphicsPipelineLayout, imageIndex);
+			vao.bind(cmd);
+			if (mShaderProgram.getUniformLayout().hasUniforms()) {
+				mShaderProgram.getShaderDescriptor().bindDescriptorSets(cmd, mGraphicsPipelineLayout, imageIndex);
+			}
 
 			vkCmdDrawIndexed(
-				mCommandBuffers[imageIndex],
+				cmd,
 				vao.getIndexBuffer().getCount(),
 				1,
 				0,
@@ -216,16 +85,15 @@ namespace DOH {
 				0
 			);
 		}
-
-		endRenderPass(mCommandBuffers[imageIndex]);
-
-		TRY(
-			vkEndCommandBuffer(mCommandBuffers[imageIndex]) != VK_SUCCESS,
-			"Failed to record Command Buffer."
-		);
 	}
 
-	void GraphicsPipelineVulkan::init(VkDevice logicDevice) {
+	void GraphicsPipelineVulkan::init(
+		VkDevice logicDevice,
+		VkVertexInputBindingDescription bindingDesc,
+		std::vector<VkVertexInputAttributeDescription>& vertexAttributes,
+		VkExtent2D extent,
+		VkRenderPass renderPass
+	) {
 		mShaderProgram.loadModules(logicDevice);
 
 		TRY(!mShaderProgram.areShadersLoaded(), "Shader Modules not loaded");
@@ -247,13 +115,10 @@ namespace DOH {
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-		VkVertexInputBindingDescription bindDesc = Vertex::getBindingDescription();
-		auto attribDescs = Vertex::getAttributeDescriptions();
-
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
-		vertexInputInfo.pVertexBindingDescriptions = &bindDesc;
-		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribDescs.size());
-		vertexInputInfo.pVertexAttributeDescriptions = attribDescs.data();
+		vertexInputInfo.pVertexBindingDescriptions = &bindingDesc;
+		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttributes.size());
+		vertexInputInfo.pVertexAttributeDescriptions = vertexAttributes.data();
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -263,14 +128,14 @@ namespace DOH {
 		VkViewport viewport = {};
 		viewport.x = 0.0f;
 		viewport.y = 0;
-		viewport.width = (float) mSwapChain->getExtent().width;
-		viewport.height = (float) mSwapChain->getExtent().height;
+		viewport.width = (float) extent.width;
+		viewport.height = (float) extent.height;
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 
 		VkRect2D scissorRectangle = {};
 		scissorRectangle.offset = {0, 0};
-		scissorRectangle.extent = mSwapChain->getExtent();
+		scissorRectangle.extent = extent;
 
 		VkPipelineViewportStateCreateInfo viewportState = {};
 		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -300,7 +165,13 @@ namespace DOH {
 			VK_COLOR_COMPONENT_G_BIT |
 			VK_COLOR_COMPONENT_B_BIT |
 			VK_COLOR_COMPONENT_A_BIT;
-		colourBlendAttachment.blendEnable = VK_FALSE;
+		colourBlendAttachment.blendEnable = VK_TRUE;
+		colourBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		colourBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		colourBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+		colourBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		colourBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		colourBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
 		VkPipelineColorBlendStateCreateInfo colourBlending = {};
 		colourBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -314,9 +185,12 @@ namespace DOH {
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutCreateInfo.setLayoutCount = 1;
 		pipelineLayoutCreateInfo.pSetLayouts = &mShaderProgram.getShaderDescriptor().getDescriptorSetLayout();
+		pipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(mShaderProgram.getUniformLayout().getPushConstantRanges().size());
+		pipelineLayoutCreateInfo.pPushConstantRanges = mShaderProgram.getUniformLayout().hasPushConstant() ?
+			mShaderProgram.getUniformLayout().getPushConstantRanges().data() : nullptr;
 
-		TRY(
-			vkCreatePipelineLayout(logicDevice, &pipelineLayoutCreateInfo, nullptr, &mGraphicsPipelineLayout) != VK_SUCCESS,
+		VK_TRY(
+			vkCreatePipelineLayout(logicDevice, &pipelineLayoutCreateInfo, nullptr, &mGraphicsPipelineLayout),
 			"Failed to create Pipeline Layout."
 		);
 
@@ -331,44 +205,23 @@ namespace DOH {
 		pipelineCreateInfo.pMultisampleState = &multisampling;
 		pipelineCreateInfo.pColorBlendState = &colourBlending;
 		pipelineCreateInfo.layout = mGraphicsPipelineLayout;
-		pipelineCreateInfo.renderPass = mRenderPass->get();
+		pipelineCreateInfo.renderPass = renderPass;
 		pipelineCreateInfo.subpass = 0;
 
-		TRY(
-			vkCreateGraphicsPipelines(logicDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &mGraphicsPipeline) != VK_SUCCESS,
+		VK_TRY(
+			vkCreateGraphicsPipelines(logicDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &mGraphicsPipeline),
 			"Failed to create Graphics Pipeline."
 		);
 
 		mShaderProgram.closeModules(logicDevice);
-
-		mSwapChain->createFramebuffers(logicDevice, mRenderPass->get());
 	}
 
 	void GraphicsPipelineVulkan::bind(VkCommandBuffer cmdBuffer) {
 		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline);
 	}
 
-	void GraphicsPipelineVulkan::beginRenderPass(size_t framebufferIndex, VkCommandBuffer cmdBuffer) {
-		mRenderPass->begin(mSwapChain->getFramebufferAt(framebufferIndex), mSwapChain->getExtent(), cmdBuffer);
-	}
-
-	void GraphicsPipelineVulkan::endRenderPass(VkCommandBuffer cmdBuffer) {
-		vkCmdEndRenderPass(cmdBuffer);
-	}
-
 	void GraphicsPipelineVulkan::close(VkDevice logicDevice) {
-		closeSyncObjects(logicDevice);
-
-		vkFreeCommandBuffers(
-			logicDevice,
-			mCommandPool,
-			static_cast<uint32_t>(mCommandBuffers.size()),
-			mCommandBuffers.data()
-		);
-
 		vkDestroyPipeline(logicDevice, mGraphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(logicDevice, mGraphicsPipelineLayout, nullptr);
-		mRenderPass->close(logicDevice);
-		mSwapChain->close(logicDevice);
 	}
 }

@@ -15,8 +15,8 @@ namespace DOH {
 		dslCreateInfo.bindingCount = static_cast<uint32_t>(mUniformLayout.getDescriptorSetLayoutBindings().size());
 		dslCreateInfo.pBindings = mUniformLayout.getDescriptorSetLayoutBindings().data();
 
-		TRY(
-			vkCreateDescriptorSetLayout(logicDevice, &dslCreateInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS,
+		VK_TRY(
+			vkCreateDescriptorSetLayout(logicDevice, &dslCreateInfo, nullptr, &mDescriptorSetLayout),
 			"Failed to create descriptor set layout."
 		);
 	}
@@ -48,8 +48,8 @@ namespace DOH {
 
 		mDescriptorSets.resize(count);
 
-		TRY(
-			vkAllocateDescriptorSets(logicDevice, &allocation, mDescriptorSets.data()) != VK_SUCCESS,
+		VK_TRY(
+			vkAllocateDescriptorSets(logicDevice, &allocation, mDescriptorSets.data()),
 			"Failed to allocate descriptor sets."
 		);
 	}
@@ -102,7 +102,7 @@ namespace DOH {
 				imageInfos[imageKey].imageView = value.first;
 				imageInfos[imageKey].sampler = value.second;
 				descWrites[key].pImageInfo = &imageInfos[imageKey];
-			}	
+			}
 
 			vkUpdateDescriptorSets(
 				logicDevice,

@@ -39,8 +39,9 @@ namespace DOH {
 		void setData(VkDevice logicDevice, const void* data, size_t size);
 		void setData(VkDevice logicDevice, void* data, size_t size) { setData(logicDevice, (const void*) data, size); }
 
-		void copyToBuffer(BufferVulkan& destination);
-		void copyFromBuffer(BufferVulkan& source);
+		void copyToBuffer(BufferVulkan& destination, VkCommandBuffer cmd);
+		void copyFromBuffer(BufferVulkan& source, VkCommandBuffer cmd);
+		void copyToImage(VkCommandBuffer cmd, VkImage dstImage, VkImageLayout dstImageLayout, VkBufferImageCopy& region);
 
 		virtual void close(VkDevice logicDevice) override;
 
@@ -77,6 +78,6 @@ namespace DOH {
 			VkDeviceSize size
 		);
 
-		static void copyBuffer(BufferVulkan& source, BufferVulkan& destination);
+		static void copyBuffer(BufferVulkan& source, BufferVulkan& destination, VkCommandBuffer cmd);
 	};
 }

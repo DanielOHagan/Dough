@@ -1,4 +1,5 @@
 #include "dough/application/Application.h"
+#include "dough/Logging.h"
 
 namespace DOH {
 
@@ -39,42 +40,18 @@ namespace DOH {
 		mAppInfoTimer->recordInterval("AppLogic.init() start");
 		mAppLogic->init((float) mWindow->getWidth() / mWindow->getHeight());
 		mAppInfoTimer->recordInterval("AppLogic.init() end");
+
+		mRenderer->setupPostAppLogicInit();
+		if (!mRenderer->isReady()) {
+			LOG_ERR("Renderer is not ready, forcing stop");
+			THROW("Thrown: Renderer not ready");
+		}
+
 		mAppInfoTimer->recordInterval("Applicaiton.init() end");
 	}
 
 	void Application::update(float delta) {
-		//TEMP DEBUG::
-		//If keypad + then... else if keypad -
-		if (Input::isKeyPressed(334)) {
-			float targetFps = mAppLoop->getTargetFps();
-			targetFps++;
-			mAppLoop->setTargetFps(targetFps);
-			LOGLN("Target FPS: " << targetFps);
-		}
-		else if (Input::isKeyPressed(333)) {
-			float targetFps = mAppLoop->getTargetFps();
-			targetFps--;
-			if (targetFps < 2) targetFps = 2;
-			mAppLoop->setTargetFps(targetFps);
-			LOGLN("Target FPS: " << targetFps);
-		}
-		//If keypad / then... else if keypad *
-		if (Input::isKeyPressed(331)) {
-			float targetUps = mAppLoop->getTargetUps();
-			targetUps++;
-			mAppLoop->setTargetUps(targetUps);
-			LOGLN("Target UPS: " << targetUps);
-		}
-		else if (Input::isKeyPressed(332)) {
-			float targetUps = mAppLoop->getTargetUps();
-			targetUps--;
-			if (targetUps < 2) targetUps = 2;
-			mAppLoop->setTargetUps(targetUps);
-			LOGLN("Target UPS: " << targetUps);
-		}
-
 		mAppLogic->update(delta);
-
 		Input::get().resetCycleData();
 	}
 
@@ -107,8 +84,9 @@ namespace DOH {
 				INSTANCE->close();
 				return EXIT_SUCCESS;
 			} catch (const std::exception& e) {
+				//TODO:: Fix situation where if exception thrown during close() then close() will have been called twice.
 				INSTANCE->close();
-				std::cerr << e.what() << std::endl;
+				LOG_ERR(e.what());
 				return EXIT_FAILURE;
 			}
 		} else {
@@ -128,7 +106,7 @@ namespace DOH {
 				return;
 			case EEventType::WINDOW_RESIZE:
 				WindowResizeEvent& e = (WindowResizeEvent&) windowEvent;
-				mRenderer->resizeSwapChain(
+				mRenderer->onResize(
 					e.getWidth(),
 					e.getHeight()
 				);
@@ -142,27 +120,6 @@ namespace DOH {
 		switch (keyEvent.getType()) {
 			case EEventType::KEY_DOWN:
 				Input::get().onKeyEvent(keyEvent.getKeyCode(), true);
-
-				//k
-				if (Input::isKeyPressed(75)) {
-					LOGLN_BLACK("Black");
-					LOGLN_RED("Red");
-					LOGLN_GREEN("Green");
-					LOGLN_YELLOW("Yellow");
-					LOGLN_BLUE("Blue");
-					LOGLN_MAGENTA("Magenta");
-					LOGLN_CYAN("Cyan");
-					LOGLN_WHITE("White");
-					LOGLN_BRIGHT_BLACK("Bright Black");
-					LOGLN_BRIGHT_RED("Bright Red");
-					LOGLN_BRIGHT_GREEN("Bright Green");
-					LOGLN_BRIGHT_YELLOW("Bright Yellow");
-					LOGLN_BRIGHT_BLUE("Bright Blue");
-					LOGLN_BRIGHT_MAGENTA("Bright Magenta");
-					LOGLN_BRIGHT_CYAN("Bright Cyan");
-					LOGLN_BRIGHT_WHITE("Bright White");
-				}
-
 				return;
 
 			case EEventType::KEY_UP:
@@ -170,7 +127,7 @@ namespace DOH {
 				return;
 
 			default:
-				THROW("Unknown key event type");
+				LOG_WARN("Unknown key event type");
 				return;
 		}
 	}
@@ -198,7 +155,7 @@ namespace DOH {
 			}
 
 		default:
-			THROW("Unknown mouse event type");
+			LOG_WARN("Unknown mouse event type");
 			return;
 		}
 	}

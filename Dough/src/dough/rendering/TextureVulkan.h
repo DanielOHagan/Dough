@@ -30,6 +30,15 @@ namespace DOH {
 			std::string& filePath
 		);
 
+		//TODO::
+		//TextureVulkan(
+		//	VkDevice logicDevice,
+		//	VkPhysicalDevice physicalDevice,
+		//	VkCommandPool cmdPool,
+		//	VkQueue graphicsQueue,
+		//	glm::vec4& colour
+		//);
+
 		virtual void close(VkDevice logicDevice) override;
 
 		inline int getWidth() const { return mWidth; }
@@ -57,12 +66,12 @@ namespace DOH {
 			VkDeviceMemory& imageMemory
 		);
 	public:
-		static void transitionImageLayout(
-			VkDevice logicDevice,
-			VkImage image,
-			VkFormat format,
-			VkImageLayout oldLayout,
-			VkImageLayout newLayout
-		);
+		//static void transitionImageLayout(
+		//	VkDevice logicDevice,
+		//	VkImage image,
+		//	VkFormat format,
+		//	VkImageLayout oldLayout,
+		//	VkImageLayout newLayout
+		//);
 	};
 }

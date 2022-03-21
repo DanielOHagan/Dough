@@ -1,21 +1,15 @@
 #pragma once
 
-#include <vector>
-#include <optional>
-#include <array>
-#include <string>
-#include <map>
-#include <memory>
+#include "dough/Core.h"
+#include "dough/Maths.h"
 
 #include <vulkan/vulkan_core.h>
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_FORCE_USE_RIGHT_HANDED
-#include <glm/glm.hpp>
 
 namespace DOH {
 
 	using ValueUniformInfo = VkDeviceSize;
 	using TextureUniformInfo = std::pair<VkImageView, VkSampler>;
+	using PushConstantInfo = VkPushConstantRange;
 
 	enum class EDataType {
 		NONE = 0,
@@ -107,7 +101,7 @@ namespace DOH {
 		inline void setHeight(uint32_t height) {SupportDetails.capabilities.currentExtent.height = height;}
 	};
 
-	//Vertex2D
+	//Vertex3D
 	struct Vertex {
 		glm::vec3 Pos;
 		glm::vec3 Colour;
@@ -124,28 +118,37 @@ namespace DOH {
 			return bindDesc;
 		}
 
-		static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
-			std::array<VkVertexInputAttributeDescription, 4> attribDesc = {};
+		static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
+			std::vector<VkVertexInputAttributeDescription> attribDesc = {};
 
-			attribDesc[0].binding = 0;
-			attribDesc[0].location = 0;
-			attribDesc[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-			attribDesc[0].offset = offsetof(Vertex, Pos);
+			attribDesc.push_back({0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, Pos)});
+			attribDesc.push_back({1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, Colour)});
+			attribDesc.push_back({2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, TexCoord)});
+			attribDesc.push_back({3, 0, VK_FORMAT_R32_SFLOAT, offsetof(Vertex, TexIndex)});
 
-			attribDesc[1].binding = 0;
-			attribDesc[1].location = 1;
-			attribDesc[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-			attribDesc[1].offset = offsetof(Vertex, Colour);
+			return attribDesc;
+		}
+	};
 
-			attribDesc[2].binding = 0;
-			attribDesc[2].location = 2;
-			attribDesc[2].format = VK_FORMAT_R32G32_SFLOAT;
-			attribDesc[2].offset = offsetof(Vertex, TexCoord);
+	struct VertexUi2D {
+		glm::vec3 Pos;
+		glm::vec3 Colour;
 
-			attribDesc[3].binding = 0;
-			attribDesc[3].location = 3;
-			attribDesc[3].format = VK_FORMAT_R32_SFLOAT;
-			attribDesc[3].offset = offsetof(Vertex, TexIndex);
+		static VkVertexInputBindingDescription getBindingDescription() {
+			VkVertexInputBindingDescription bindDesc = {};
+
+			bindDesc.binding = 0;
+			bindDesc.stride = sizeof(Vertex);
+			bindDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+			return bindDesc;
+		}
+
+		static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
+			std::vector<VkVertexInputAttributeDescription> attribDesc = {};
+
+			attribDesc.push_back({ 0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, Pos) });
+			attribDesc.push_back({ 1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, Colour) });
 
 			return attribDesc;
 		}

@@ -2,6 +2,8 @@
 #include "dough/input/Input.h"
 #include "dough/input/InputCodes.h"
 
+#include <algorithm>
+
 using namespace DOH;
 
 namespace TG {
@@ -11,7 +13,7 @@ namespace TG {
 		mAspectRatio(aspectRatio),
 		mRotation(0.0f),
 		mZoomLevel(1.0f),
-		mZoomSpeed(0.001f),
+		mZoomSpeed(0.1f),
 		mZoomMax(2.00f),
 		mZoomMin(0.25f),
 		mTranslationSpeed(0.3f),
@@ -24,8 +26,40 @@ namespace TG {
 	{}
 
 	void TG_OrthoCameraController::onUpdate(float delta) {
-		//TODO::
-		//Handle Input
+		handleInput(delta);
+
+		//Update camera matrices
+		updateMatrices();
+	}
+
+	void TG_OrthoCameraController::onViewportResize(float aspectRatio) {
+		mAspectRatio = aspectRatio;
+	}
+
+	void TG_OrthoCameraController::translate(glm::vec3& translation) {
+		mPosition.x += translation.x * mTranslationSpeed;
+		mPosition.y += translation.y * mTranslationSpeed;
+		mPosition.z += translation.z * mTranslationSpeed;
+	}
+
+	void TG_OrthoCameraController::zoom(float zoomAmount) {
+		mZoomLevel -= zoomAmount * mZoomSpeed;
+
+		mZoomLevel = std::clamp(mZoomLevel, mZoomMin, mZoomMax);
+	}
+
+	void TG_OrthoCameraController::updateMatrices() {
+		mCamera->setProjection(
+			-mAspectRatio * mZoomLevel,
+			mAspectRatio * mZoomLevel,
+			-mZoomLevel,
+			mZoomLevel
+		);
+		mCamera->setView(mPosition, mRotation);
+		mCamera->updateProjectionViewMatrix();
+	}
+
+	void TG_OrthoCameraController::handleInput(float delta) {
 		if (Input::isKeyPressed(DOH_KEY_X)) {
 			zoom(-1.0f * delta);
 		}
@@ -45,38 +79,5 @@ namespace TG {
 		if (Input::isKeyPressed(DOH_KEY_S)) {
 			translateY(-1.0f * delta);
 		}
-
-
-
-		//Update camera matrices
-		updateMatrices();
-	}
-
-	void TG_OrthoCameraController::onViewportResize(float aspectRatio) {
-		mAspectRatio = aspectRatio;
-	}
-
-	void TG_OrthoCameraController::translate(glm::vec3& translation) {
-		mPosition.x += translation.x * mTranslationSpeed;
-		mPosition.y += translation.y * mTranslationSpeed;
-		mPosition.z += translation.z * mTranslationSpeed;
-	}
-
-	void TG_OrthoCameraController::zoom(float zoomAmount) {
-		mZoomLevel -= zoomAmount * mZoomSpeed;
-
-		if (mZoomLevel > mZoomMax) mZoomLevel = mZoomMax;
-		else if (mZoomLevel < mZoomMin) mZoomLevel = mZoomMin;
-	}
-
-	void TG_OrthoCameraController::updateMatrices() {
-		mCamera->setProjection(
-			-mAspectRatio * mZoomLevel,
-			mAspectRatio * mZoomLevel,
-			-mZoomLevel,
-			mZoomLevel
-		);
-		mCamera->setView(mPosition, mRotation);
-		mCamera->updateProjectionViewMatrix();
 	}
 }

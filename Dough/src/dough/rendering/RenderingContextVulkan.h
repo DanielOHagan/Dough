@@ -23,14 +23,43 @@ namespace DOH {
 		
 		VkQueue mGraphicsQueue;
 		VkQueue mPresentQueue;
+		std::vector<VkCommandBuffer> mCommandBuffers;
 
-		std::shared_ptr<GraphicsPipelineVulkan> mGraphicsPipeline;
+		std::shared_ptr<SwapChainVulkan> mSwapChain;
+		std::shared_ptr<GraphicsPipelineVulkan> mSceneGraphicsPipeline;
+		std::shared_ptr<GraphicsPipelineVulkan> mAppUiGraphicsPipeline;
+		
+		//TEMP::
+		std::shared_ptr<ShaderProgramVulkan> mAppUiShaderProgram;
+		std::shared_ptr<VertexArrayVulkan> mAppUiVao;
+		std::unique_ptr<std::string> mAppUiShaderVertPath = std::make_unique<std::string>("res/shaders/spv/SimpleUi.vert.spv");
+		std::unique_ptr<std::string> mAppUiShaderFragPath = std::make_unique<std::string>("res/shaders/spv/SimpleUi.frag.spv");
+		const std::vector<Vertex> mAppUiVertices {
+			//	x		y		z		r		g		b
+			{{	-1.0f,	-0.90f,	0.0f},	{0.0f,	1.0f,	0.0f}}, //bot-left
+			{{	-0.75f,	-0.90f,	0.0f},	{0.0f,	0.5f,	0.5f}}, //bot-right
+			{{	-0.75f,	-0.65f,	0.0f},	{0.0f,	0.0f,	1.0f}}, //top-right
+			{{	-1.0f,	-0.65f,	0.0f},	{0.0f,	0.5f,	0.5f}}  //top-left
+		};
+		const std::vector<uint16_t> mAppUiIndices {
+			0, 1, 2, 2, 3, 0
+		};
 
-		//Allocators
+		//NOTE:: in OpenGL space because glm
+		glm::mat4x4 mAppUiProjection;
+
 		VkDescriptorPool mDescriptorPool;
 		VkCommandPool mCommandPool;
 
 		std::vector<std::reference_wrapper<IGPUResourceVulkan>> mToReleaseGpuResources;
+
+		//Sync objects
+		const int MAX_FRAMES_IN_FLIGHT = 2;
+		size_t mCurrentFrame = 0;
+		std::vector<VkSemaphore> mImageAvailableSemaphores;
+		std::vector<VkSemaphore> mRenderFinishedSemaphores;
+		std::vector<VkFence> mFramesInFlightFences;
+		std::vector<VkFence> mImageFencesInFlight;
 
 	public:
 		RenderingContextVulkan(VkDevice logicDevice, VkPhysicalDevice physicalDevice);
@@ -46,8 +75,12 @@ namespace DOH {
 			uint32_t height
 		);
 		void close();
-		void openPipeline(ShaderProgramVulkan& shaderProgram);
-		void setupPipeline(ShaderProgramVulkan& shaderProgram);
+		void setupPostAppLogicInit();
+		void prepareScenePipeline(ShaderProgramVulkan& shaderProgram, bool createUniformObjects = false);
+		//TODO:: Currently not taking in shader program as it is using a pre-determined shader program, custom input will be supported later
+		void prepareAppUiPipeline(bool createUniformObjects = false);
+		void createPipelineUniformObjects(GraphicsPipelineVulkan& pipeline);
+		bool isReady() const;
 
 		void resizeSwapChain(
 			SwapChainSupportDetails& scSupport,
@@ -56,31 +89,62 @@ namespace DOH {
 			uint32_t width,
 			uint32_t height
 		);
+		void updateUiProjectionMatrix(float aspectRatio);
 
 		void drawFrame();
-		inline void setUniformBufferObject(glm::mat4& projView) { mUbo.ProjectionViewMat = projView; };
+		inline void setUniformBufferObject(ICamera& camera) { mUbo.ProjectionViewMat = camera.getProjectionViewMatrix(); }
 		void updateUniformBufferObject(uint32_t currentImage);
 		void addVaoToDraw(VertexArrayVulkan& vao);
 
 		inline void addResourceToCloseAfterUse(IGPUResourceVulkan& res) { mToReleaseGpuResources.push_back(res); }
 
-		//TODO:: This
+		//TODO:: Prefer a grouping commands together then flushing rather than only single commands
+		
+		//	Creates a command buffer and begins it, the caller MUST call endSingleTimeCommands at some point,
+		//	at which point the queue waits upon its exectuion
 		VkCommandBuffer beginSingleTimeCommands();
 		void endSingleTimeCommands(VkCommandBuffer cmdBuffer);
 
+		//Convenience functions
+		//Usage param is optional
+		void beginCommandBuffer(VkCommandBuffer cmd, VkCommandBufferUsageFlags usage = 0);
+		void endCommandBuffer(VkCommandBuffer cmd);
+
+		//TODO:: These functions call begin and end single time commands individually
 		void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+		void transitionImageLayout(
+			VkDevice logicDevice,
+			VkImage image,
+			VkImageLayout oldLayout,
+			VkImageLayout newLayout,
+			VkImageAspectFlags aspectFlags
+		);
 
 		VkImageView createImageView(VkImage image, VkFormat format);
 		VkSampler createSampler();
 
-		void setLogicDevice(VkDevice logicDevice) { mLogicDevice = logicDevice; }
+		inline void setLogicDevice(VkDevice logicDevice) { mLogicDevice = logicDevice; }
 		void setPhysicalDevice(VkPhysicalDevice physicalDevice);
 
 		//-----Rendering Object Initialisation-----
 		//-----Pipeline-----
-		std::shared_ptr<GraphicsPipelineVulkan> createGraphicsPipeline(SwapChainCreationInfo& swapChainCreate, ShaderProgramVulkan& shaderProgram);
+		std::shared_ptr<GraphicsPipelineVulkan> createGraphicsPipeline(
+			VkExtent2D extent,
+			VkRenderPass renderPass,
+			ShaderProgramVulkan& shaderProgram,
+			VkVertexInputBindingDescription vertexInputBindingDesc,
+			std::vector<VkVertexInputAttributeDescription>& vertexAttributes
+		);
+
+		//-----Context-----
 		std::shared_ptr<SwapChainVulkan> createSwapChain(SwapChainCreationInfo& swapChainCreate);
-		std::shared_ptr<RenderPassVulkan> createRenderPass(VkFormat imageFormat);
+		std::shared_ptr<RenderPassVulkan> createRenderPass(
+			VkFormat imageFormat,
+			bool hasPassBefore,
+			bool hasPassAfter,
+			bool enableClearColour,
+			VkClearValue clearColour
+		);
 
 		//-----VAO & Buffers-----
 		std::shared_ptr<VertexArrayVulkan> createVertexArray();
@@ -117,11 +181,15 @@ namespace DOH {
 
 		//-----Texture-----
 		std::shared_ptr<TextureVulkan> createTexture(std::string& filePath);
+		//TODO:: std::shared_ptr<TextureVulkan> createTexture(glm::vec4& colour);
 
 	private:
 		void createQueues(QueueFamilyIndices& queueFamilyIndices);
-
 		void createCommandPool(QueueFamilyIndices& queueFamilyIndices);
+		void createCommandBuffers();
 		void createDescriptorPool(std::vector<VkDescriptorType>& descTypes);
+		void createSyncObjects();
+		void closeSyncObjects();
+		void present(uint32_t imageIndex, VkCommandBuffer cmd);
 	};
 }

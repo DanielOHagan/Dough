@@ -6,23 +6,24 @@ namespace DOH {
 
 	RenderPassVulkan::RenderPassVulkan(
 		VkDevice logicDevice,
-		VkFormat imageFormat
+		VkFormat imageFormat,
+		bool hasPassBefore,
+		bool hasPassAfter,
+		bool enableClearColour,
+		VkClearValue clearColour
 	) :	mRenderPass(VK_NULL_HANDLE),
-		mClearColour({ 0.264f, 0.328f, 0.484f, 1.0f })
+		mClearColour(clearColour),
+		mClearCount(0)
 	{
-		init(logicDevice, imageFormat);
-	}
-
-	void RenderPassVulkan::init(VkDevice logicDevice, VkFormat imageFormat) {
 		VkAttachmentDescription colourAttachment = {};
 		colourAttachment.format = imageFormat;
 		colourAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		colourAttachment.loadOp = enableClearColour ? VK_ATTACHMENT_LOAD_OP_CLEAR : hasPassBefore ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		colourAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		colourAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		colourAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		colourAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		colourAttachment.initialLayout = hasPassBefore ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
+		colourAttachment.finalLayout = hasPassAfter ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 		VkAttachmentReference colourAttachmentRef = {};
 		colourAttachmentRef.attachment = 0;
@@ -39,7 +40,7 @@ namespace DOH {
 		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		dependency.srcAccessMask = 0;
 		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
 		VkRenderPassCreateInfo renderPass = {};
 		renderPass.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -50,8 +51,12 @@ namespace DOH {
 		renderPass.dependencyCount = 1;
 		renderPass.pDependencies = &dependency;
 
-		TRY(
-			vkCreateRenderPass(logicDevice, &renderPass, nullptr, &mRenderPass) != VK_SUCCESS,
+		if (enableClearColour) {
+			mClearCount++;
+		}
+
+		VK_TRY(
+			vkCreateRenderPass(logicDevice, &renderPass, nullptr, &mRenderPass),
 			"Failed to create Render Pass."
 		);
 	}
@@ -64,7 +69,7 @@ namespace DOH {
 		renderPassBegin.renderArea.offset = {0, 0};
 		renderPassBegin.renderArea.extent = extent;
 
-		renderPassBegin.clearValueCount = 1;
+		renderPassBegin.clearValueCount = mClearCount;
 		renderPassBegin.pClearValues = &mClearColour;
 
 		vkCmdBeginRenderPass(cmdBuffer, &renderPassBegin, VK_SUBPASS_CONTENTS_INLINE);

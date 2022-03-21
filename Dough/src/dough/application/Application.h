@@ -55,7 +55,6 @@ namespace DOH {
 		Application();
 
 		void init(std::shared_ptr<IApplicationLogic> appLogic);
-		//void mainLoop();
 		inline void pollEvents() const { mWindow->pollEvents(); }
 		void update(float delta);
 		void render();

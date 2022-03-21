@@ -2,7 +2,8 @@
 
 #include "dough/application/Application.h"
 #include "dough/Utils.h"
-#include "dough/rendering/shader/ShaderVulkan.h"
+#include "dough/rendering/pipeline/shader/ShaderVulkan.h"
+#include "dough/Logging.h"
 
 #include <set>
 #include <string>
@@ -44,6 +45,19 @@ namespace DOH {
 		mDebugMessenger(nullptr)
 	{}
 
+	bool RendererVulkan::isReady() const {
+		if (isClosed()) {
+			LOG_ERR("Renderer Vulkan instance is closed on ready check");
+			return false;
+		}
+		if (!mRenderingContext->isReady()) {
+			LOG_ERR("Rendering context not ready");
+			return false;
+		}
+
+		return true;
+	}
+
 	void RendererVulkan::init(int width, int height) {
 		createVulkanInstance();
 
@@ -83,12 +97,12 @@ namespace DOH {
 	void RendererVulkan::closeGpuResource(IGPUResourceVulkan& res) {
 		//Add to list of to close resources that are closed only after they are guaranteed not to be currently in use.
 		mRenderingContext->addResourceToCloseAfterUse(res);
-		//res.close(mLogicDevice);
 	}
 
-	void RendererVulkan::resizeSwapChain(int width, int height) {
+	void RendererVulkan::onResize(int width, int height) {
 		SwapChainSupportDetails scSupport = SwapChainVulkan::querySwapChainSupport(mPhysicalDevice, mSurface);
 		mRenderingContext->resizeSwapChain(scSupport, mSurface, mQueueFamilyIndices, width, height);
+		mRenderingContext->updateUiProjectionMatrix((float) width / height);
 	}
 
 	void RendererVulkan::createVulkanInstance() {
@@ -309,7 +323,7 @@ namespace DOH {
 			createInfo.enabledLayerCount = 0;
 		}
 
-		TRY(
+		VK_TRY(
 			vkCreateDevice(mPhysicalDevice, &createInfo, nullptr, &mLogicDevice),
 			"Failed to create logical device."
 		);
@@ -335,7 +349,7 @@ namespace DOH {
 	}
 
 	void RendererVulkan::beginScene(ICamera& camera) {
-		mRenderingContext->setUniformBufferObject(camera.getProjectionViewMatrix());
+		mRenderingContext->setUniformBufferObject(camera);
 	}
 
 	void RendererVulkan::endScene() {

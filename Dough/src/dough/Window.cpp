@@ -1,6 +1,6 @@
 #include "dough/Window.h"
 
-#include "dough/Utils.h"
+#include "dough/Logging.h"
 #include "dough/application/Application.h"
 
 namespace DOH {
@@ -39,8 +39,8 @@ namespace DOH {
 	VkSurfaceKHR Window::createVulkanSurface(VkInstance vulkanInstance) {
 		VkSurfaceKHR surface = VK_NULL_HANDLE;
 
-		TRY(
-			glfwCreateWindowSurface(vulkanInstance, mWindowPtr, nullptr, &surface) != VK_SUCCESS,
+		VK_TRY(
+			glfwCreateWindowSurface(vulkanInstance, mWindowPtr, nullptr, &surface),
 			"Failed to create Surface."
 		);
 
@@ -119,7 +119,7 @@ namespace DOH {
 				}
 
 				default: {
-					THROW("Unknown action type");
+					LOG_WARN("Unknown action type: " << action);
 					return;
 				}
 			}
@@ -144,7 +144,7 @@ namespace DOH {
 				}
 
 				default: {
-					THROW("Unknown mouse button action");
+					LOG_WARN("Unknown mouse button action: " << action);
 					return;
 				}
 			}

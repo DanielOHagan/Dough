@@ -1,4 +1,5 @@
 #include "dough/rendering/Config.h"
+#include "dough/rendering/pipeline/RenderPassVulkan.h"
 
 namespace DOH {
 
@@ -8,16 +9,24 @@ namespace DOH {
 
 		SwapChainSupportDetails mSwapChainSupportDetails;
 
-		VkSwapchainKHR mVkSwapChain;
-		std::vector<VkImage> mVkSwapChainImages;
-		VkFormat mVkSwapChainImageFormat;
-		VkExtent2D mVkSwapChainExtent;
-		std::vector<VkImageView> mVkSwapChainImageViews;
-		std::vector<VkFramebuffer> mVkSwapChainFramebuffers;
+		VkSwapchainKHR mSwapChain;
+		std::vector<VkImage> mImages;
+		VkFormat mImageFormat;
+		VkExtent2D mExtent;
+		std::vector<VkImageView> mImageViews;
+		std::shared_ptr<RenderPassVulkan> mSceneRenderPass;
+		std::vector<VkFramebuffer> mSceneFrameBuffers;
+		std::shared_ptr<RenderPassVulkan> mAppUiRenderPass;
+		std::vector<VkFramebuffer> mAppUiFrameBuffers;
 
 		bool mResizable;
 
 	public:
+		enum class RenderPassType {
+			SCENE,
+			APP_UI
+		};
+
 		SwapChainVulkan(
 			VkDevice logicDevice,
 			SwapChainSupportDetails scsd,
@@ -40,21 +49,27 @@ namespace DOH {
 		);
 		void close(VkDevice logicDevice);
 
-		void createFramebuffers(VkDevice logicDevice, VkRenderPass renderPass);
-		void destroyFramebuffers(VkDevice logicDevice);
+		void createFrameBuffers(VkDevice logicDevice);
+		void destroyFrameBuffers(VkDevice logicDevice);
+		uint32_t aquireNextImageIndex(
+			VkDevice logicDevice,
+			VkFence frameInFlightFence,
+			VkSemaphore imageAvailableSemaphore
+		);
+		void beginRenderPass(RenderPassType type, size_t frameBufferIndex, VkCommandBuffer cmd);
+		void endRenderPass(VkCommandBuffer cmd);
 
 		inline void setResizable(bool resizable) { mResizable = resizable; }
 		inline bool isResizable() const { return mResizable; }
-		inline float getAspectRatio() const { return (float) mVkSwapChainExtent.width / mVkSwapChainExtent.height; }
+		inline float getAspectRatio() const { return (float) mExtent.width / mExtent.height; }
 
-		inline VkSwapchainKHR get() const { return mVkSwapChain; }
-		VkFramebuffer getFramebufferAt(size_t index) const { return mVkSwapChainFramebuffers.at(index); }
-		inline VkExtent2D getExtent() const { return mVkSwapChainExtent; }
-		inline VkFormat getImageFormat() const { return mVkSwapChainImageFormat; }
-
-		inline size_t getImageCount() const { return mVkSwapChainImages.size(); }
-		inline size_t getImageViewCount() const { return mVkSwapChainImageViews.size(); }
-		inline size_t getFramebufferCount() const { return mVkSwapChainFramebuffers.size(); }
+		inline VkSwapchainKHR get() const { return mSwapChain; }
+		inline VkExtent2D getExtent() const { return mExtent; }
+		inline VkFormat getImageFormat() const { return mImageFormat; }
+		inline size_t getImageCount() const { return mImages.size(); }
+		inline size_t getImageViewCount() const { return mImageViews.size(); }
+		inline size_t getFrameBufferCount() const { return mSceneFrameBuffers.size() + mAppUiFrameBuffers.size(); }
+		RenderPassVulkan& getRenderPass(RenderPassType type) const;
 
 		//-----Static Methods-----
 		static SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
