@@ -21,6 +21,8 @@ namespace TG {
 		const std::unique_ptr<std::string> testTexturePath = std::make_unique<std::string>("res/images/testTexture.jpg");
 		const std::unique_ptr<std::string> testTexture2Path = std::make_unique<std::string>("res/images/testTexture2.jpg");
 
+		glm::vec4 mQuadColour = { 1.0f, 0.0f, 1.0f, 1.0f };
+
 		const std::vector<Vertex> vertices{
 			//	x		y		z		r		g		b		u		v		texIndex
 			{{	-0.5f,	-0.5f,	1.0f},	{0.0f,	1.0f,	0.0f},	{0.0f,	1.0f},	{1.0f}},
@@ -56,6 +58,7 @@ namespace TG {
 
 		virtual void init(float aspectRatio) override;
 		virtual void update(float delta) override;
+		virtual void imGuiRender() override;
 		virtual void close() override;
 
 		virtual void onResize(float aspectRatio) override;

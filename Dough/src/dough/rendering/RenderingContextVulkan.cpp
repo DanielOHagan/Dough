@@ -1,5 +1,5 @@
 #include "dough/rendering/RenderingContextVulkan.h"
-
+#include "dough/rendering/RendererVulkan.h"
 #include "dough/rendering/ObjInit.h"
 #include "dough/Logging.h"
 
@@ -53,8 +53,8 @@ namespace DOH {
 		SwapChainSupportDetails& scSupport,
 		VkSurfaceKHR surface,
 		QueueFamilyIndices& queueFamilyIndices,
-		uint32_t width,
-		uint32_t height
+		Window& window,
+		VkInstance vulkanInstance
 	) {
 		mPhysicalDeviceProperties = std::make_unique<VkPhysicalDeviceProperties>();
 		vkGetPhysicalDeviceProperties(mPhysicalDevice, mPhysicalDeviceProperties.get());
@@ -95,6 +95,21 @@ namespace DOH {
 		);
 		mAppUiVao->setIndexBuffer(appUiIb);
 
+		mImGuiWrapper = std::make_unique<ImGuiWrapper>();
+		ImGuiInitInfo imGuiInitInfo = {};
+		imGuiInitInfo.ImageCount = static_cast<uint32_t>(mSwapChain->getImageCount());
+		imGuiInitInfo.MinImageCount = 2;
+		imGuiInitInfo.LogicDevice = mLogicDevice;
+		imGuiInitInfo.PhysicalDevice = mPhysicalDevice;
+		imGuiInitInfo.Queue = mGraphicsQueue;
+		imGuiInitInfo.QueueFamily = VK_QUEUE_GRAPHICS_BIT;
+		imGuiInitInfo.UiRenderPass = mSwapChain->getRenderPass(SwapChainVulkan::RenderPassType::APP_UI).get();
+		imGuiInitInfo.VulkanInstance = vulkanInstance;
+
+		mImGuiWrapper->init(window, imGuiInitInfo);
+		mImGuiWrapper->uploadFonts(*this);
+		//mImGuiWrapper->newFrame();
+
 		prepareAppUiPipeline(false);
 	}
 
@@ -110,6 +125,8 @@ namespace DOH {
 			static_cast<uint32_t>(mCommandBuffers.size()),
 			mCommandBuffers.data()
 		);
+
+		mImGuiWrapper->close(mLogicDevice);
 
 		closeSyncObjects();
 		mSwapChain->close(mLogicDevice);
@@ -209,6 +226,7 @@ namespace DOH {
 		mSwapChain->beginRenderPass(SwapChainVulkan::RenderPassType::APP_UI, imageIndex, cmd);
 		mAppUiGraphicsPipeline->addVaoToDraw(*mAppUiVao);
 		mAppUiGraphicsPipeline->recordDrawCommands(imageIndex, cmd);
+		mImGuiWrapper->render(cmd);
 		mSwapChain->endRenderPass(cmd);
 
 		//Clear each frame
@@ -514,7 +532,6 @@ namespace DOH {
 
 	//TODO:: contains a single time command that executes on function end
 	void RenderingContextVulkan::transitionImageLayout(
-		VkDevice logicDevice,
 		VkImage image,
 		VkImageLayout oldLayout,
 		VkImageLayout newLayout,
@@ -620,6 +637,71 @@ namespace DOH {
 	void RenderingContextVulkan::setPhysicalDevice(VkPhysicalDevice physicalDevice) {
 		mPhysicalDevice = physicalDevice;
 		vkGetPhysicalDeviceProperties(mPhysicalDevice, mPhysicalDeviceProperties.get());
+	}
+
+	VkImage RenderingContextVulkan::createImage(
+		VkDevice logicDevice,
+		VkPhysicalDevice physicalDevice,
+		uint32_t width,
+		uint32_t height,
+		VkFormat format,
+		VkImageTiling tiling,
+		VkImageUsageFlags usage
+	) {
+		VkImageCreateInfo imageCreateInfo = {};
+		imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+		imageCreateInfo.extent.width = width;
+		imageCreateInfo.extent.height = height;
+		imageCreateInfo.extent.depth = 1;
+		imageCreateInfo.mipLevels = 1;
+		imageCreateInfo.arrayLayers = 1;
+		imageCreateInfo.format = format;
+		imageCreateInfo.tiling = tiling;
+		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		imageCreateInfo.usage = usage;
+		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		imageCreateInfo.flags = 0; //Optional
+
+		VkImage image;
+		VK_TRY(
+			vkCreateImage(logicDevice, &imageCreateInfo, nullptr, &image),
+			"Failed to create image"
+		);
+		return image;
+	}
+
+	VkDeviceMemory RenderingContextVulkan::createImageMemory(
+		VkDevice logicDevice,
+		VkPhysicalDevice physicalDevice,
+		VkImage image,
+		VkMemoryPropertyFlags props
+	) {
+		VkDeviceMemory imageMemory;
+		VkMemoryRequirements memRequirements;
+		vkGetImageMemoryRequirements(logicDevice, image, &memRequirements);
+
+		VkMemoryAllocateInfo allocation{};
+		allocation.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		allocation.allocationSize = memRequirements.size;
+		allocation.memoryTypeIndex = RendererVulkan::findPhysicalDeviceMemoryType(
+			physicalDevice,
+			memRequirements.memoryTypeBits,
+			props
+		);
+
+		VK_TRY(
+			vkAllocateMemory(logicDevice, &allocation, nullptr, &imageMemory),
+			"Failed to allocate image memory"
+		);
+
+		VK_TRY(
+			vkBindImageMemory(logicDevice, image, imageMemory, 0),
+			"Failed to bind image memory"
+		);
+
+		return imageMemory;
 	}
 
 	std::shared_ptr<GraphicsPipelineVulkan> RenderingContextVulkan::createGraphicsPipeline(

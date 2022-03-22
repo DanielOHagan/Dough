@@ -29,21 +29,18 @@ namespace DOH {
 
 		ResourceHandler::freeImage(textureData.data);
 
-		TextureVulkan::createImage(
+		mImage = RenderingContextVulkan::createImage(
 			logicDevice,
 			physicalDevice,
 			static_cast<uint32_t>(mWidth),
 			static_cast<uint32_t>(mHeight),
 			VK_FORMAT_R8G8B8A8_SRGB,
 			VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			mImage,
-			mImageMemory
+			VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
 		);
+		mImageMemory = RenderingContextVulkan::createImageMemory(logicDevice, physicalDevice, mImage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 		Application::get().getRenderer().getContext().transitionImageLayout(
-			logicDevice,
 			mImage,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -56,7 +53,6 @@ namespace DOH {
 			static_cast<uint32_t>(mHeight)
 		);
 		Application::get().getRenderer().getContext().transitionImageLayout(
-			logicDevice,
 			mImage,
 			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -94,58 +90,58 @@ namespace DOH {
 		mSampler = Application::get().getRenderer().getContext().createSampler();
 	}
 
-	void TextureVulkan::createImage(
-		VkDevice logicDevice,
-		VkPhysicalDevice physicalDevice,
-		uint32_t width,
-		uint32_t height,
-		VkFormat format,
-		VkImageTiling tiling,
-		VkImageUsageFlags usage,
-		VkMemoryPropertyFlags properties,
-		VkImage& image,
-		VkDeviceMemory& imageMemory
-	) {
-		VkImageCreateInfo imageCreateInfo{};
-		imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageCreateInfo.extent.width = width;
-		imageCreateInfo.extent.height = height;
-		imageCreateInfo.extent.depth = 1;
-		imageCreateInfo.mipLevels = 1;
-		imageCreateInfo.arrayLayers = 1;
-		imageCreateInfo.format = format;
-		imageCreateInfo.tiling = tiling;
-		imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageCreateInfo.usage = usage;
-		imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-		imageCreateInfo.flags = 0; //Optional
-
-		TRY(
-			vkCreateImage(logicDevice, &imageCreateInfo, nullptr, &image) != VK_SUCCESS,
-			"Failed to create image"
-		);
-
-		VkMemoryRequirements memRequirements;
-		vkGetImageMemoryRequirements(logicDevice, image, &memRequirements);
-
-		VkMemoryAllocateInfo allocation{};
-		allocation.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-		allocation.allocationSize = memRequirements.size;
-		allocation.memoryTypeIndex = RendererVulkan::findPhysicalDeviceMemoryType(
-			physicalDevice,
-			memRequirements.memoryTypeBits,
-			properties
-		);
-
-		TRY(
-			vkAllocateMemory(logicDevice, &allocation, nullptr, &imageMemory) != VK_SUCCESS,
-			"Failed to allocate image memory"
-		);
-
-		vkBindImageMemory(logicDevice, image, imageMemory, 0);
-	}
+	//void TextureVulkan::createImage(
+	//	VkDevice logicDevice,
+	//	VkPhysicalDevice physicalDevice,
+	//	uint32_t width,
+	//	uint32_t height,
+	//	VkFormat format,
+	//	VkImageTiling tiling,
+	//	VkImageUsageFlags usage,
+	//	VkMemoryPropertyFlags properties,
+	//	VkImage& image,
+	//	VkDeviceMemory& imageMemory
+	//) {
+	//	VkImageCreateInfo imageCreateInfo = {};
+	//	imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	//	imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+	//	imageCreateInfo.extent.width = width;
+	//	imageCreateInfo.extent.height = height;
+	//	imageCreateInfo.extent.depth = 1;
+	//	imageCreateInfo.mipLevels = 1;
+	//	imageCreateInfo.arrayLayers = 1;
+	//	imageCreateInfo.format = format;
+	//	imageCreateInfo.tiling = tiling;
+	//	imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	//	imageCreateInfo.usage = usage;
+	//	imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	//	imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+	//	imageCreateInfo.flags = 0; //Optional
+	//
+	//	VK_TRY(
+	//		vkCreateImage(logicDevice, &imageCreateInfo, nullptr, &image),
+	//		"Failed to create image"
+	//	);
+	//
+	//	VkMemoryRequirements memRequirements;
+	//	vkGetImageMemoryRequirements(logicDevice, image, &memRequirements);
+	//
+	//	VkMemoryAllocateInfo allocation{};
+	//	allocation.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	//	allocation.allocationSize = memRequirements.size;
+	//	allocation.memoryTypeIndex = RendererVulkan::findPhysicalDeviceMemoryType(
+	//		physicalDevice,
+	//		memRequirements.memoryTypeBits,
+	//		properties
+	//	);
+	//
+	//	VK_TRY(
+	//		vkAllocateMemory(logicDevice, &allocation, nullptr, &imageMemory),
+	//		"Failed to allocate image memory"
+	//	);
+	//
+	//	vkBindImageMemory(logicDevice, image, imageMemory, 0);
+	//}
 
 	//void TextureVulkan::transitionImageLayout(
 	//	VkDevice logicDevice,

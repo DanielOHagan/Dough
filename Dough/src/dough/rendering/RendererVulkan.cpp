@@ -58,7 +58,7 @@ namespace DOH {
 		return true;
 	}
 
-	void RendererVulkan::init(int width, int height) {
+	void RendererVulkan::init(Window& window) {
 		createVulkanInstance();
 
 		setupDebugMessenger();
@@ -72,7 +72,7 @@ namespace DOH {
 		SwapChainSupportDetails scSupport = SwapChainVulkan::querySwapChainSupport(mPhysicalDevice, mSurface);
 
 		mRenderingContext = std::make_unique<RenderingContextVulkan>(mLogicDevice, mPhysicalDevice);
-		mRenderingContext->init(scSupport, mSurface, mQueueFamilyIndices, width, height);
+		mRenderingContext->init(scSupport, mSurface, mQueueFamilyIndices, window, mInstance);
 	}
 
 	void RendererVulkan::drawFrame() {

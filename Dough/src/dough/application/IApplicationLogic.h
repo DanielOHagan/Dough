@@ -13,6 +13,9 @@ namespace DOH {
 
 		virtual void init(float aspectRatio) = 0;
 		virtual void update(float delta) = 0;
+		//NOTE:: Might not need a "uiUpdate" as it can be branched off in update so the app can decide
+		//virtual void uiUpdate(float delta) = 0;
+		virtual void imGuiRender() = 0;
 		virtual void close() = 0;
 
 		virtual void onResize(float aspectRatio) = 0;

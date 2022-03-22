@@ -41,4 +41,9 @@ namespace DOH {
 		),
 		mBufferLayout(std::make_unique<BufferLayout>(elements))
 	{}
+
+	void VertexBufferVulkan::close(VkDevice logicDevice) {
+		BufferVulkan::close(logicDevice);
+		mBufferLayout.reset();
+	}
 }

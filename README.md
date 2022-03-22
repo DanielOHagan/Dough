@@ -8,4 +8,5 @@ A small number of features from C\+\+17 are used so that version will be require
 - [Vulkan](https://www.lunarg.com/vulkan-sdk/)
 - [GLFW](https://www.glfw.org/)
 - [GLM](https://github.com/g-truc/glm)
+- [STB](https://github.com/nothings/stb)
 - [ImGui](https://github.com/ocornut/imgui)

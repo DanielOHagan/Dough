@@ -12,6 +12,8 @@ namespace DOH {
 		VkDeviceSize mSize;
 
 	public:
+		static const BufferVulkan* EMPTY_BUFFER;
+
 		BufferVulkan() = delete;
 		BufferVulkan(const BufferVulkan& copy) = delete;
 		BufferVulkan operator=(const BufferVulkan& assignment) = delete;
@@ -38,11 +40,41 @@ namespace DOH {
 
 		void setData(VkDevice logicDevice, const void* data, size_t size);
 		void setData(VkDevice logicDevice, void* data, size_t size) { setData(logicDevice, (const void*) data, size); }
+		void clearBuffer(VkDevice logicDevice);
 
 		void copyToBuffer(BufferVulkan& destination, VkCommandBuffer cmd);
 		void copyFromBuffer(BufferVulkan& source, VkCommandBuffer cmd);
 		void copyToImage(VkCommandBuffer cmd, VkImage dstImage, VkImageLayout dstImageLayout, VkBufferImageCopy& region);
 
+		void resizeBuffer(
+			VkDevice logicDevice,
+			VkPhysicalDevice physicalDevice,
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
+			VkMemoryPropertyFlags props
+		);
+		void resizeBufferStaged(
+			VkDevice logicDevice,
+			VkPhysicalDevice physicalDevice,
+			VkCommandPool cmdPool,
+			VkQueue graphicsQueue,
+			const void* data,
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
+			VkMemoryPropertyFlags props
+		);
+		inline void resizeBufferStaged(
+			VkDevice logicDevice,
+			VkPhysicalDevice physicalDevice,
+			VkCommandPool cmdPool,
+			VkQueue graphicsQueue,
+			void* data,
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
+			VkMemoryPropertyFlags props
+		) {
+			resizeBufferStaged(logicDevice, physicalDevice, cmdPool, graphicsQueue, (const void*)data, size, usage, props);
+		}
 		virtual void close(VkDevice logicDevice) override;
 
 		inline VkBuffer getBuffer() const { return mBuffer; }

@@ -53,18 +53,18 @@ namespace DOH {
 		void createImageView();
 		void createSampler();
 
-		static void createImage(
-			VkDevice logicDevice,
-			VkPhysicalDevice physicalDevice,
-			uint32_t width,
-			uint32_t height,
-			VkFormat format,
-			VkImageTiling tiling,
-			VkImageUsageFlags usage,
-			VkMemoryPropertyFlags properties,
-			VkImage& image,
-			VkDeviceMemory& imageMemory
-		);
+		//static void createImage(
+		//	VkDevice logicDevice,
+		//	VkPhysicalDevice physicalDevice,
+		//	uint32_t width,
+		//	uint32_t height,
+		//	VkFormat format,
+		//	VkImageTiling tiling,
+		//	VkImageUsageFlags usage,
+		//	VkMemoryPropertyFlags properties,
+		//	VkImage& image,
+		//	VkDeviceMemory& imageMemory
+		//);
 	public:
 		//static void transitionImageLayout(
 		//	VkDevice logicDevice,

@@ -34,7 +34,7 @@ namespace DOH {
 
 		mRenderer = std::make_unique<RendererVulkan>();
 		mAppInfoTimer->recordInterval("Renderer.init() start");
-		mRenderer->init(mWindow->getWidth(), mWindow->getHeight());
+		mRenderer->init(*mWindow);
 		mAppInfoTimer->recordInterval("Renderer.init() end");
 
 		mAppInfoTimer->recordInterval("AppLogic.init() start");
@@ -53,9 +53,13 @@ namespace DOH {
 	void Application::update(float delta) {
 		mAppLogic->update(delta);
 		Input::get().resetCycleData();
+		//mAppLogic->uiUpdate(delta);
 	}
 
 	void Application::render() {
+		mRenderer->getContext().getImGuiWrapper().newFrame();
+		mAppLogic->imGuiRender();
+		mRenderer->getContext().getImGuiWrapper().endFrame();
 		mRenderer->drawFrame();
 	}
 

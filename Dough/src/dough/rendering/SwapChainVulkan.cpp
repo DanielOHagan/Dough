@@ -106,7 +106,7 @@ namespace DOH {
 		createImageViews(logicDevice);
 
 		mSceneRenderPass = ObjInit::renderPass(mImageFormat, false, true, true);
-		mAppUiRenderPass = ObjInit::renderPass(mImageFormat, true, false, false, {1, 0, 0});
+		mAppUiRenderPass = ObjInit::renderPass(mImageFormat, true, false , false, { 1, 0, 0 });
 
 		createFrameBuffers(logicDevice);
 	}
@@ -138,7 +138,6 @@ namespace DOH {
 
 		for (size_t i = 0; i < imageCount; i++) {
 			VkImageView sceneAttachments[] = { mImageViews[i] };
-			
 			VkFramebufferCreateInfo sceneFrameBufferInfo = {};
 			sceneFrameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			sceneFrameBufferInfo.renderPass = mSceneRenderPass->get();
@@ -154,7 +153,6 @@ namespace DOH {
 			);
 
 			VkImageView appUiAttachments[] = { mImageViews[i] };
-			
 			VkFramebufferCreateInfo appUiFrameBufferInfo = {};
 			appUiFrameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			appUiFrameBufferInfo.renderPass = mAppUiRenderPass->get();
@@ -231,11 +229,9 @@ namespace DOH {
 					THROW("App UI render pass is null");
 				}
 				return *mAppUiRenderPass;
-
-			default:
-				LOG_ERR("Unknown Render Pass Type");
-				break;
 		}
+
+		THROW("Unknown render pass type");
 	}
 
 	SwapChainSupportDetails SwapChainVulkan::querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface) {

@@ -41,6 +41,11 @@ namespace DOH {
 			VkMemoryPropertyFlags props
 		);
 
+		/** 
+		* Close Vertex Buffer including Layout
+		*/
+		void close(VkDevice logicDevice) override;
+
 		inline BufferLayout& getBufferLayout() const { return *mBufferLayout; }
 	};
 }

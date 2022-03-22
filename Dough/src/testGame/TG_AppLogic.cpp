@@ -4,8 +4,9 @@
 #include "dough/rendering/ObjInit.h"
 #include "dough/application/Application.h"
 #include "dough/input/InputCodes.h"
-
 #include "dough/Logging.h"
+
+#include <imgui.h>
 
 #define GET_RENDERER Application::get().getRenderer()
 
@@ -71,6 +72,16 @@ namespace TG {
 		renderer.beginScene(TG_mOrthoCameraController->getCamera());
 		renderer.temp_addVaoDrawCommands(*m_TestVAO_VertexArray);
 		renderer.endScene();
+
+		//LOGLN("Quad Colour: r: " << mQuadColour.x << " g: " << mQuadColour.y << " b: " << mQuadColour.z << " a: " << mQuadColour.w);
+	}
+
+	void TG_AppLogic::imGuiRender() {
+		ImGui::ShowDemoWindow();
+
+		ImGui::Begin("Colour Picker");
+		ImGui::ColorPicker4("Colour Picker For big quad", &mQuadColour.x);
+		ImGui::End();
 	}
 
 	void TG_AppLogic::close() {

@@ -3,6 +3,7 @@
 #include "dough/Utils.h"
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 #include "dough/scene/camera/ICamera.h"
+#include "dough/ImGuiWrapper.h"
 
 namespace DOH {
 
@@ -26,8 +27,11 @@ namespace DOH {
 		std::vector<VkCommandBuffer> mCommandBuffers;
 
 		std::shared_ptr<SwapChainVulkan> mSwapChain;
+
 		std::shared_ptr<GraphicsPipelineVulkan> mSceneGraphicsPipeline;
 		std::shared_ptr<GraphicsPipelineVulkan> mAppUiGraphicsPipeline;
+		
+		std::unique_ptr<ImGuiWrapper> mImGuiWrapper;
 		
 		//TEMP::
 		std::shared_ptr<ShaderProgramVulkan> mAppUiShaderProgram;
@@ -71,8 +75,8 @@ namespace DOH {
 			SwapChainSupportDetails& scSupport,
 			VkSurfaceKHR surface,
 			QueueFamilyIndices& queueFamilyIndices,
-			uint32_t width,
-			uint32_t height
+			Window& window,
+			VkInstance vulkanInstance
 		);
 		void close();
 		void setupPostAppLogicInit();
@@ -113,18 +117,44 @@ namespace DOH {
 		//TODO:: These functions call begin and end single time commands individually
 		void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 		void transitionImageLayout(
-			VkDevice logicDevice,
 			VkImage image,
 			VkImageLayout oldLayout,
 			VkImageLayout newLayout,
 			VkImageAspectFlags aspectFlags
 		);
-
+		inline VkImage createImage(
+			uint32_t width,
+			uint32_t height,
+			VkFormat format,
+			VkImageTiling tiling,
+			VkImageUsageFlags usage
+		) {
+			return createImage(mLogicDevice, mPhysicalDevice, width, height, format, tiling, usage);
+		};
+		inline VkDeviceMemory createImageMemory(VkImage image, VkMemoryPropertyFlags props) {
+			return createImageMemory(mLogicDevice, mPhysicalDevice, image, props);
+		};
 		VkImageView createImageView(VkImage image, VkFormat format);
 		VkSampler createSampler();
-
+		inline ImGuiWrapper& getImGuiWrapper() const { return *mImGuiWrapper; }
 		inline void setLogicDevice(VkDevice logicDevice) { mLogicDevice = logicDevice; }
 		void setPhysicalDevice(VkPhysicalDevice physicalDevice);
+
+		static VkImage createImage(
+			VkDevice logicDevice,
+			VkPhysicalDevice physicalDevice,
+			uint32_t width,
+			uint32_t height,
+			VkFormat format,
+			VkImageTiling tiling,
+			VkImageUsageFlags usage
+		);
+		static VkDeviceMemory createImageMemory(
+			VkDevice logicDevice,
+			VkPhysicalDevice physicalDevice,
+			VkImage image,
+			VkMemoryPropertyFlags props
+		);
 
 		//-----Rendering Object Initialisation-----
 		//-----Pipeline-----

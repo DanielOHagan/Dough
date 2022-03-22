@@ -47,7 +47,7 @@ namespace DOH {
 		RendererVulkan(const RendererVulkan& copy) = delete;
 		RendererVulkan operator=(const RendererVulkan& assignment) = delete;
 
-		void init(int width, int height);
+		void init(Window& window);
 		void close();
 		void closeGpuResource(IGPUResourceVulkan& res);
 

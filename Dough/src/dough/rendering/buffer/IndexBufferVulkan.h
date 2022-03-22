@@ -33,5 +33,6 @@ namespace DOH {
 		);
 
 		inline uint32_t getCount() const { return mCount; }
+		inline void setCount(uint32_t count) { mCount = count; }
 	};
 }

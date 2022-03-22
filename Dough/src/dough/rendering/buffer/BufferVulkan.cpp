@@ -5,6 +5,9 @@
 
 namespace DOH {
 
+	const BufferVulkan* BufferVulkan::EMPTY_BUFFER = nullptr;
+
+	//Non-staged
 	BufferVulkan::BufferVulkan(
 		VkDevice logicDevice,
 		VkPhysicalDevice physicalDevice,
@@ -15,9 +18,12 @@ namespace DOH {
 		mBufferMemory(VK_NULL_HANDLE),
 		mSize(size)
 	{
-		init(logicDevice, physicalDevice, size, usage, props);
+		if (size > 0) {
+			init(logicDevice, physicalDevice, size, usage, props);
+		}
 	}
 
+	//Staged
 	BufferVulkan::BufferVulkan(
 		VkDevice logicDevice,
 		VkPhysicalDevice physicalDevice,
@@ -31,7 +37,9 @@ namespace DOH {
 		mBufferMemory(VK_NULL_HANDLE),
 		mSize(size)
 	{
-		initStaged(logicDevice, physicalDevice, cmdPool, graphicsQueue, data, size, usage, props);
+		if (size > 0) {
+			initStaged(logicDevice, physicalDevice, cmdPool, graphicsQueue, data, size, usage, props);
+		}
 	}
 
 	void BufferVulkan::init(
@@ -49,8 +57,8 @@ namespace DOH {
 		bufferCreateInfo.usage = usage;
 		bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-		TRY(
-			vkCreateBuffer(logicDevice, &bufferCreateInfo, nullptr, &mBuffer) != VK_SUCCESS,
+		VK_TRY(
+			vkCreateBuffer(logicDevice, &bufferCreateInfo, nullptr, &mBuffer),
 			"Failed to create Vertex Buffer."
 		);
 
@@ -66,8 +74,8 @@ namespace DOH {
 			props
 		);
 
-		TRY(
-			vkAllocateMemory(logicDevice, &allocation, nullptr, &mBufferMemory) != VK_SUCCESS,
+		VK_TRY(
+			vkAllocateMemory(logicDevice, &allocation, nullptr, &mBufferMemory),
 			"Failed to allocate buffer memory."
 		);
 
@@ -104,9 +112,33 @@ namespace DOH {
 		stagingBuffer.close(logicDevice);
 	}
 
+	void BufferVulkan::resizeBuffer(
+		VkDevice logicDevice,
+		VkPhysicalDevice physicalDevice,
+		VkDeviceSize size,
+		VkBufferUsageFlags usage,
+		VkMemoryPropertyFlags props
+	) {
+		clearBuffer(logicDevice);
+		init(logicDevice, physicalDevice, size, usage, props);
+	}
+
+	void BufferVulkan::resizeBufferStaged(
+		VkDevice logicDevice,
+		VkPhysicalDevice physicalDevice,
+		VkCommandPool cmdPool,
+		VkQueue graphicsQueue,
+		const void* data,
+		VkDeviceSize size,
+		VkBufferUsageFlags usage,
+		VkMemoryPropertyFlags props
+	) {
+		clearBuffer(logicDevice);
+		initStaged(logicDevice, physicalDevice, cmdPool, graphicsQueue, data, size, usage, props);
+	}
+
 	void BufferVulkan::close(VkDevice logicDevice) {
-		vkDestroyBuffer(logicDevice, mBuffer, nullptr);
-		vkFreeMemory(logicDevice, mBufferMemory, nullptr);
+		clearBuffer(logicDevice);
 	}
 
 	void BufferVulkan::setData(VkDevice logicDevice, const void* data, size_t size) {
@@ -115,6 +147,11 @@ namespace DOH {
 		vkMapMemory(logicDevice, mBufferMemory, 0, size, 0, &mappedData);
 		memcpy(mappedData, data, size);
 		vkUnmapMemory(logicDevice, mBufferMemory);
+	}
+
+	void BufferVulkan::clearBuffer(VkDevice logicDevice) {
+		vkDestroyBuffer(logicDevice, mBuffer, nullptr);
+		vkFreeMemory(logicDevice, mBufferMemory, nullptr);
 	}
 
 	void BufferVulkan::copyToBuffer(BufferVulkan& destination, VkCommandBuffer cmd) {
