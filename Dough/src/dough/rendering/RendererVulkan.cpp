@@ -102,7 +102,7 @@ namespace DOH {
 	void RendererVulkan::onResize(int width, int height) {
 		SwapChainSupportDetails scSupport = SwapChainVulkan::querySwapChainSupport(mPhysicalDevice, mSurface);
 		mRenderingContext->resizeSwapChain(scSupport, mSurface, mQueueFamilyIndices, width, height);
-		mRenderingContext->updateUiProjectionMatrix((float) width / height);
+		//mRenderingContext->updateUiProjectionMatrix((float) width / height);
 	}
 
 	void RendererVulkan::createVulkanInstance() {
@@ -349,7 +349,7 @@ namespace DOH {
 	}
 
 	void RendererVulkan::beginScene(ICamera& camera) {
-		mRenderingContext->setUniformBufferObject(camera);
+		mRenderingContext->setSceneUniformBufferObject(camera);
 	}
 
 	void RendererVulkan::endScene() {
@@ -357,7 +357,16 @@ namespace DOH {
 		//therefore, addVaoDrawCommands() will be redundant and should then be removed.
 	}
 
-	void RendererVulkan::temp_addVaoDrawCommands(VertexArrayVulkan& vao) {
-		mRenderingContext->addVaoToDraw(vao);
+	void RendererVulkan::beginUi(glm::mat4x4& proj) {
+		mRenderingContext->setUiProjection(proj);
 	}
+
+	void RendererVulkan::endUi() {
+		//TODO:: once batch rendering is implemented this will use the VAOs in the "RendererStorage" to make draw commands,
+		//therefore, addVaoDrawCommands() will be redundant and should then be removed.
+	}
+
+	//void RendererVulkan::addVaoToSceneDrawList(VertexArrayVulkan& vao) {
+	//	mRenderingContext->addVaoToSceneDrawList(vao);
+	//}
 }

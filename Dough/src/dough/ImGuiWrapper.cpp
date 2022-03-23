@@ -10,7 +10,6 @@ namespace DOH {
 	void ImGuiWrapper::init(Window& window, ImGuiInitInfo& imGuiInit) {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
-		//ImGuiIO& io = ImGui::GetIO();
 
 		ImGui::StyleColorsDark();
 

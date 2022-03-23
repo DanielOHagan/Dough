@@ -208,13 +208,10 @@ namespace DOH {
 		pipelineCreateInfo.renderPass = renderPass;
 		pipelineCreateInfo.subpass = 0;
 
-		VkResult res = vkCreateGraphicsPipelines(logicDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &mGraphicsPipeline);
-		VK_TRY(res, "Failed to create Graphics Pipeline.");
-
-		//VK_TRY(
-		//	vkCreateGraphicsPipelines(logicDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &mGraphicsPipeline),
-		//	"Failed to create Graphics Pipeline."
-		//);
+		VK_TRY(
+			vkCreateGraphicsPipelines(logicDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &mGraphicsPipeline),
+			"Failed to create Graphics Pipeline."
+		);
 
 		mShaderProgram.closeModules(logicDevice);
 	}

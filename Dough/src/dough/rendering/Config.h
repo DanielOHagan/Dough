@@ -101,8 +101,8 @@ namespace DOH {
 		inline void setHeight(uint32_t height) {SupportDetails.capabilities.currentExtent.height = height;}
 	};
 
-	//Vertex3D
-	struct Vertex {
+	//Scene Vertex3D
+	struct Vertex3D {
 		glm::vec3 Pos;
 		glm::vec3 Colour;
 		glm::vec2 TexCoord;
@@ -112,7 +112,7 @@ namespace DOH {
 			VkVertexInputBindingDescription bindDesc = {};
 
 			bindDesc.binding = 0;
-			bindDesc.stride = sizeof(Vertex);
+			bindDesc.stride = sizeof(Vertex3D);
 			bindDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 			return bindDesc;
@@ -121,24 +121,25 @@ namespace DOH {
 		static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
 			std::vector<VkVertexInputAttributeDescription> attribDesc = {};
 
-			attribDesc.push_back({0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, Pos)});
-			attribDesc.push_back({1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, Colour)});
-			attribDesc.push_back({2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, TexCoord)});
-			attribDesc.push_back({3, 0, VK_FORMAT_R32_SFLOAT, offsetof(Vertex, TexIndex)});
+			attribDesc.push_back({0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex3D, Pos)});
+			attribDesc.push_back({1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex3D, Colour)});
+			attribDesc.push_back({2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex3D, TexCoord)});
+			attribDesc.push_back({3, 0, VK_FORMAT_R32_SFLOAT, offsetof(Vertex3D, TexIndex)});
 
 			return attribDesc;
 		}
 	};
 
+	//Ui Vertex2D
 	struct VertexUi2D {
-		glm::vec3 Pos;
+		glm::vec2 Pos;
 		glm::vec3 Colour;
 
 		static VkVertexInputBindingDescription getBindingDescription() {
 			VkVertexInputBindingDescription bindDesc = {};
 
 			bindDesc.binding = 0;
-			bindDesc.stride = sizeof(Vertex);
+			bindDesc.stride = sizeof(VertexUi2D);
 			bindDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 			return bindDesc;
@@ -147,8 +148,8 @@ namespace DOH {
 		static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
 			std::vector<VkVertexInputAttributeDescription> attribDesc = {};
 
-			attribDesc.push_back({ 0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, Pos) });
-			attribDesc.push_back({ 1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, Colour) });
+			attribDesc.push_back({ 0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(VertexUi2D, Pos) });
+			attribDesc.push_back({ 1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(VertexUi2D, Colour) });
 
 			return attribDesc;
 		}

@@ -15,14 +15,9 @@ namespace DOH {
 		mPresentQueue(VK_NULL_HANDLE),
 		mDescriptorPool(VK_NULL_HANDLE),
 		mCommandPool(VK_NULL_HANDLE),
-		mUbo({ glm::mat4x4(1.0f) }),
-		
-		//TEMP:: Hard coded values until custom UI pipeline is available
-		mAppUiProjection(glm::ortho(-1920.0f / 1080.0f, 1920.0f / 1080.0f, -1.0f, 1.0f, -1.0f, 1.0f))
-	{
-		//Invert z clip
-		mAppUiProjection[1][1] *= -1;
-	}
+		mSceneUbo({ glm::mat4x4(1.0f) }),
+		mAppUiProjection(1.0f)
+	{}
 
 	bool RenderingContextVulkan::isReady() const {
 		if (mSceneGraphicsPipeline == nullptr) {
@@ -69,32 +64,6 @@ namespace DOH {
 		createCommandBuffers();
 		createSyncObjects();
 
-		//TODO:: allow for custom UI pipeline & shader
-		mAppUiShaderProgram = ObjInit::shaderProgram(
-			ObjInit::shader(EShaderType::VERTEX, *mAppUiShaderVertPath),
-			ObjInit::shader(EShaderType::FRAGMENT, *mAppUiShaderFragPath)
-		);
-		mAppUiShaderProgram->getUniformLayout().setValue(0, sizeof(UniformBufferObject));
-
-		mAppUiVao = ObjInit::vertexArray();
-		std::shared_ptr<VertexBufferVulkan> appUiVb = ObjInit::stagedVertexBuffer(
-			{
-				{EDataType::FLOAT3, "mVertPos"},
-				{EDataType::FLOAT3, "mColour"}
-			},
-			mAppUiVertices.data(),
-			sizeof(mAppUiVertices[0]) * mAppUiVertices.size(),
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-		);
-		mAppUiVao->addVertexBuffer(appUiVb);
-		std::shared_ptr<IndexBufferVulkan> appUiIb = ObjInit::stagedIndexBuffer(
-			mAppUiIndices.data(),
-			sizeof(mAppUiIndices[0]) * mAppUiIndices.size(),
-			static_cast<uint32_t>(mAppUiIndices.size())
-		);
-		mAppUiVao->setIndexBuffer(appUiIb);
-
 		mImGuiWrapper = std::make_unique<ImGuiWrapper>();
 		ImGuiInitInfo imGuiInitInfo = {};
 		imGuiInitInfo.ImageCount = static_cast<uint32_t>(mSwapChain->getImageCount());
@@ -108,9 +77,6 @@ namespace DOH {
 
 		mImGuiWrapper->init(window, imGuiInitInfo);
 		mImGuiWrapper->uploadFonts(*this);
-		//mImGuiWrapper->newFrame();
-
-		prepareAppUiPipeline(false);
 	}
 
 	void RenderingContextVulkan::close() {
@@ -131,10 +97,7 @@ namespace DOH {
 		closeSyncObjects();
 		mSwapChain->close(mLogicDevice);
 		mSceneGraphicsPipeline->close(mLogicDevice);
-
-		mAppUiShaderProgram->close(mLogicDevice);
 		mAppUiGraphicsPipeline->close(mLogicDevice);
-		mAppUiVao->close(mLogicDevice);
 
 		vkDestroyCommandPool(mLogicDevice, mCommandPool, nullptr);
 		vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
@@ -154,11 +117,6 @@ namespace DOH {
 		createDescriptorPool(descTypes);
 		createPipelineUniformObjects(*mSceneGraphicsPipeline);
 		createPipelineUniformObjects(*mAppUiGraphicsPipeline);
-	}
-
-	void RenderingContextVulkan::updateUiProjectionMatrix(float aspectRatio) {
-		mAppUiProjection = glm::ortho(-aspectRatio, aspectRatio, -1.0f, 1.0f, -1.0f, 1.0f);
-		mAppUiProjection[1][1] *= -1;
 	}
 
 	void RenderingContextVulkan::resizeSwapChain(
@@ -200,7 +158,7 @@ namespace DOH {
 			createDescriptorPool(descTypes);
 
 			prepareScenePipeline(sceneShaderProgram, true);
-			prepareAppUiPipeline(true);
+			prepareAppUiPipeline(appUiShaderProgram, true);
 		}
 	}
 
@@ -215,16 +173,18 @@ namespace DOH {
 		VkCommandBuffer cmd = mCommandBuffers[imageIndex];
 		beginCommandBuffer(cmd);
 		
+		updateUniformBufferObject(imageIndex);
+
 		//Draw scene
 		mSwapChain->beginRenderPass(SwapChainVulkan::RenderPassType::SCENE, imageIndex, cmd);
 		mSceneGraphicsPipeline->recordDrawCommands(imageIndex, cmd);
 		mSwapChain->endRenderPass(cmd);
 
-		updateUniformBufferObject(imageIndex);
+		//updateUniformBufferObject(imageIndex);
+		updateUiProjectionMatrix(imageIndex);
 
 		//Draw Application UI
 		mSwapChain->beginRenderPass(SwapChainVulkan::RenderPassType::APP_UI, imageIndex, cmd);
-		mAppUiGraphicsPipeline->addVaoToDraw(*mAppUiVao);
 		mAppUiGraphicsPipeline->recordDrawCommands(imageIndex, cmd);
 		mImGuiWrapper->render(cmd);
 		mSwapChain->endRenderPass(cmd);
@@ -294,13 +254,18 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::updateUniformBufferObject(uint32_t currentImage) {
-
 		//NOTE:: Current the UBO only uses the camera's projection view matrix so updating here works,
 		const uint32_t uboBinding = 0;
 		mSceneGraphicsPipeline->getShaderDescriptor().getBuffersFromBinding(uboBinding)[currentImage]->
-			setData(mLogicDevice, &mUbo.ProjectionViewMat, sizeof(mUbo.ProjectionViewMat));
+			setData(mLogicDevice, &mSceneUbo.ProjectionViewMat, sizeof(mSceneUbo.ProjectionViewMat));
 
-		mAppUiShaderProgram->getShaderDescriptor().getBuffersFromBinding(0)[currentImage]
+		//mAppUiGraphicsPipeline->getShaderDescriptor().getBuffersFromBinding(uboBinding)[currentImage]
+		//	->setData(mLogicDevice, &mAppUiProjection, sizeof(glm::mat4x4));
+	}
+
+	void RenderingContextVulkan::updateUiProjectionMatrix(uint32_t currentImage) {
+		const uint32_t projBinding = 0;
+		mAppUiGraphicsPipeline->getShaderDescriptor().getBuffersFromBinding(projBinding)[currentImage]
 			->setData(mLogicDevice, &mAppUiProjection, sizeof(glm::mat4x4));
 	}
 
@@ -397,13 +362,14 @@ namespace DOH {
 
 	//TODO:: Make Vertex input more dynamic and allow application to set it
 	void RenderingContextVulkan::prepareScenePipeline(ShaderProgramVulkan& shaderProgram, bool createUniformObjects) {
-		std::vector<VkVertexInputAttributeDescription> attribDesc = Vertex::getAttributeDescriptions();
+		//TODO:: VAO input MUST still match Vertex3D, maybe some kind of T::getXXX, GraphicsPipeline<T>, pass in struct or shaderProgram.getXXX
+		std::vector<VkVertexInputAttributeDescription> attribDesc = Vertex3D::getAttributeDescriptions();
 		mSceneGraphicsPipeline = ObjInit::graphicsPipeline(
 			mSwapChain->getExtent(),
 			mSwapChain->getRenderPass(SwapChainVulkan::RenderPassType::SCENE).get(),
 			shaderProgram,
-			Vertex::getBindingDescription(), //TODO:: shaderProgram.getBindingDescription();
-			attribDesc //TODO:: shaderProgram.getAttributeDescription()
+			Vertex3D::getBindingDescription(),
+			attribDesc
 		);
 
 		if (createUniformObjects) {
@@ -411,12 +377,15 @@ namespace DOH {
 		}
 	}
 
-	void RenderingContextVulkan::prepareAppUiPipeline(bool createUniformObjects) {
+	void RenderingContextVulkan::prepareAppUiPipeline(ShaderProgramVulkan& shaderProgram, bool createUniformObjects) {
+		//TODO:: VAO input MUST still match VertexUi2D,
+		//		maybe GraphicsPipeline<T> && VAO<T> so the T's can be compared at draw time for compatability,
+		//		T::getXXX, pass in struct or shaderProgram.getXXX
 		std::vector<VkVertexInputAttributeDescription> attribDesc = std::move(VertexUi2D::getAttributeDescriptions());
 		mAppUiGraphicsPipeline = ObjInit::graphicsPipeline(
 			mSwapChain->getExtent(),
 			mSwapChain->getRenderPass(SwapChainVulkan::RenderPassType::APP_UI).get(),
-			*mAppUiShaderProgram,
+			shaderProgram,
 			VertexUi2D::getBindingDescription(),
 			attribDesc
 		);
@@ -439,10 +408,6 @@ namespace DOH {
 		}
 	}
 
-	void RenderingContextVulkan::addVaoToDraw(VertexArrayVulkan& vao) {
-		mSceneGraphicsPipeline->addVaoToDraw(vao);
-	}
-
 	VkCommandBuffer RenderingContextVulkan::beginSingleTimeCommands() {
 		VkCommandBufferAllocateInfo allocation{};
 		allocation.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -455,9 +420,7 @@ namespace DOH {
 			vkAllocateCommandBuffers(mLogicDevice, &allocation, &cmdBuffer),
 			"Failed to allocate single time command buffer"
 		);
-
 		beginCommandBuffer(cmdBuffer, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-
 		return cmdBuffer;
 	}
 

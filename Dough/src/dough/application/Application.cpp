@@ -53,7 +53,6 @@ namespace DOH {
 	void Application::update(float delta) {
 		mAppLogic->update(delta);
 		Input::get().resetCycleData();
-		//mAppLogic->uiUpdate(delta);
 	}
 
 	void Application::render() {

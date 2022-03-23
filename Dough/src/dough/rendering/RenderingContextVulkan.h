@@ -13,7 +13,7 @@ namespace DOH {
 
 		struct UniformBufferObject {
 			glm::mat4 ProjectionViewMat;
-		} mUbo;
+		} mSceneUbo;
 		
 		//Shared device handles for convenience
 		VkDevice mLogicDevice;
@@ -32,22 +32,6 @@ namespace DOH {
 		std::shared_ptr<GraphicsPipelineVulkan> mAppUiGraphicsPipeline;
 		
 		std::unique_ptr<ImGuiWrapper> mImGuiWrapper;
-		
-		//TEMP::
-		std::shared_ptr<ShaderProgramVulkan> mAppUiShaderProgram;
-		std::shared_ptr<VertexArrayVulkan> mAppUiVao;
-		std::unique_ptr<std::string> mAppUiShaderVertPath = std::make_unique<std::string>("res/shaders/spv/SimpleUi.vert.spv");
-		std::unique_ptr<std::string> mAppUiShaderFragPath = std::make_unique<std::string>("res/shaders/spv/SimpleUi.frag.spv");
-		const std::vector<Vertex> mAppUiVertices {
-			//	x		y		z		r		g		b
-			{{	-1.0f,	-0.90f,	0.0f},	{0.0f,	1.0f,	0.0f}}, //bot-left
-			{{	-0.75f,	-0.90f,	0.0f},	{0.0f,	0.5f,	0.5f}}, //bot-right
-			{{	-0.75f,	-0.65f,	0.0f},	{0.0f,	0.0f,	1.0f}}, //top-right
-			{{	-1.0f,	-0.65f,	0.0f},	{0.0f,	0.5f,	0.5f}}  //top-left
-		};
-		const std::vector<uint16_t> mAppUiIndices {
-			0, 1, 2, 2, 3, 0
-		};
 
 		//NOTE:: in OpenGL space because glm
 		glm::mat4x4 mAppUiProjection;
@@ -81,8 +65,7 @@ namespace DOH {
 		void close();
 		void setupPostAppLogicInit();
 		void prepareScenePipeline(ShaderProgramVulkan& shaderProgram, bool createUniformObjects = false);
-		//TODO:: Currently not taking in shader program as it is using a pre-determined shader program, custom input will be supported later
-		void prepareAppUiPipeline(bool createUniformObjects = false);
+		void prepareAppUiPipeline(ShaderProgramVulkan& shaderProgram, bool createUniformObjects = false);
 		void createPipelineUniformObjects(GraphicsPipelineVulkan& pipeline);
 		bool isReady() const;
 
@@ -93,16 +76,16 @@ namespace DOH {
 			uint32_t width,
 			uint32_t height
 		);
-		void updateUiProjectionMatrix(float aspectRatio);
 
 		void drawFrame();
-		inline void setUniformBufferObject(ICamera& camera) { mUbo.ProjectionViewMat = camera.getProjectionViewMatrix(); }
-		void updateUniformBufferObject(uint32_t currentImage);
-		void addVaoToDraw(VertexArrayVulkan& vao);
+		inline void setSceneUniformBufferObject(ICamera& camera) { mSceneUbo.ProjectionViewMat = camera.getProjectionViewMatrix(); }
+		inline void setUiProjection(glm::mat4x4& proj) { mAppUiProjection = proj; }
+		inline void addVaoToSceneDrawList(VertexArrayVulkan& vao) const { mSceneGraphicsPipeline->addVaoToDraw(vao); }
+		inline void addVaoToUiDrawList(VertexArrayVulkan& vao) const { mAppUiGraphicsPipeline->addVaoToDraw(vao); }
 
 		inline void addResourceToCloseAfterUse(IGPUResourceVulkan& res) { mToReleaseGpuResources.push_back(res); }
 
-		//TODO:: Prefer a grouping commands together then flushing rather than only single commands
+		//TODO:: Prefer grouping commands together then flushing rather than only single commands
 		
 		//	Creates a command buffer and begins it, the caller MUST call endSingleTimeCommands at some point,
 		//	at which point the queue waits upon its exectuion
@@ -220,6 +203,8 @@ namespace DOH {
 		void createDescriptorPool(std::vector<VkDescriptorType>& descTypes);
 		void createSyncObjects();
 		void closeSyncObjects();
+		void updateUniformBufferObject(uint32_t currentImage);
+		void updateUiProjectionMatrix(uint32_t currentImage);
 		void present(uint32_t imageIndex, VkCommandBuffer cmd);
 	};
 }

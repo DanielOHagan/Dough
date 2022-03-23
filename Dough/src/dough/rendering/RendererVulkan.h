@@ -59,10 +59,12 @@ namespace DOH {
 		void drawFrame();
 
 		inline void setupPostAppLogicInit() const { mRenderingContext->setupPostAppLogicInit(); }
-		inline void preparePipeline(ShaderProgramVulkan& shaderProgram) const { mRenderingContext->prepareScenePipeline(shaderProgram, false); }
+		inline void prepareScenePipeline(ShaderProgramVulkan& shaderProgram) const { mRenderingContext->prepareScenePipeline(shaderProgram, false); }
+		inline void prepareUiPipeline(ShaderProgramVulkan& shaderProgram) const { mRenderingContext->prepareAppUiPipeline(shaderProgram, false); }
 		void beginScene(ICamera& camera);
 		void endScene();
-		void temp_addVaoDrawCommands(VertexArrayVulkan& vao);
+		void beginUi(glm::mat4x4& proj);
+		void endUi();
 
 		inline RenderingContextVulkan& getContext() const { return *mRenderingContext; }
 
