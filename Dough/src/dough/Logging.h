@@ -11,6 +11,7 @@
 #include <iostream>
 #define LOG(message) { std::cout << message;}
 #define LOGLN(message) { std::cout << message << std::endl; }
+#define LNLOG(message) {std::cout << std::endl << message;}
 #define LOG_ENDL { std::cout << std::endl; }
 
 #if defined (_DEBUG)
@@ -52,22 +53,22 @@
 	#define LOG_BRIGHT_CYAN(message)	LOG(TEXT_BRIGHT_CYAN(message))
 	#define LOG_BRIGHT_WHITE(message)	LOG(TEXT_BRIGHT_WHITE(message))
 	
-	#define LOGLN_BLACK(message)			LOG(TEXT_BLACK(message))
-	#define LOGLN_RED(message)				LOG(TEXT_RED(message))
-	#define LOGLN_GREEN(message)			LOG(TEXT_GREEN(message))
-	#define LOGLN_YELLOW(message)			LOG(TEXT_YELLOW(message))
-	#define LOGLN_BLUE(message)				LOG(TEXT_BLUE(message))
-	#define LOGLN_MAGENTA(message)			LOG(TEXT_MAGENTA(message))
-	#define LOGLN_CYAN(message)				LOG(TEXT_CYAN(message))
-	#define LOGLN_WHITE(message)			LOG(TEXT_WHITE(message))
-	#define LOGLN_BRIGHT_BLACK(message)		LOG(TEXT_BRIGHT_BLACK(message))
-	#define LOGLN_BRIGHT_RED(message)		LOG(TEXT_BRIGHT_RED(message))
-	#define LOGLN_BRIGHT_GREEN(message)		LOG(TEXT_BRIGHT_GREEN(message))
-	#define LOGLN_BRIGHT_YELLOW(message)	LOG(TEXT_BRIGHT_YELLOW(message))
-	#define LOGLN_BRIGHT_BLUE(message)		LOG(TEXT_BRIGHT_BLUE(message))
-	#define LOGLN_BRIGHT_MAGENTA(message)	LOG(TEXT_BRIGHT_MAGENTA(message))
-	#define LOGLN_BRIGHT_CYAN(message)		LOG(TEXT_BRIGHT_CYAN(message))
-	#define LOGLN_BRIGHT_WHITE(message)		LOG(TEXT_BRIGHT_WHITE(message))
+	#define LOGLN_BLACK(message)			LOGLN(TEXT_BLACK(message))
+	#define LOGLN_RED(message)				LOGLN(TEXT_RED(message))
+	#define LOGLN_GREEN(message)			LOGLN(TEXT_GREEN(message))
+	#define LOGLN_YELLOW(message)			LOGLN(TEXT_YELLOW(message))
+	#define LOGLN_BLUE(message)				LOGLN(TEXT_BLUE(message))
+	#define LOGLN_MAGENTA(message)			LOGLN(TEXT_MAGENTA(message))
+	#define LOGLN_CYAN(message)				LOGLN(TEXT_CYAN(message))
+	#define LOGLN_WHITE(message)			LOGLN(TEXT_WHITE(message))
+	#define LOGLN_BRIGHT_BLACK(message)		LOGLN(TEXT_BRIGHT_BLACK(message))
+	#define LOGLN_BRIGHT_RED(message)		LOGLN(TEXT_BRIGHT_RED(message))
+	#define LOGLN_BRIGHT_GREEN(message)		LOGLN(TEXT_BRIGHT_GREEN(message))
+	#define LOGLN_BRIGHT_YELLOW(message)	LOGLN(TEXT_BRIGHT_YELLOW(message))
+	#define LOGLN_BRIGHT_BLUE(message)		LOGLN(TEXT_BRIGHT_BLUE(message))
+	#define LOGLN_BRIGHT_MAGENTA(message)	LOGLN(TEXT_BRIGHT_MAGENTA(message))
+	#define LOGLN_BRIGHT_CYAN(message)		LOGLN(TEXT_BRIGHT_CYAN(message))
+	#define LOGLN_BRIGHT_WHITE(message)		LOGLN(TEXT_BRIGHT_WHITE(message))
 #else
 	#define TEXT_UNDERLINE(message)			message
 	#define TEXT_BLACK(message)				message

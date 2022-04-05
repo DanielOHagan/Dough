@@ -1,6 +1,7 @@
 #include "dough/ImGuiWrapper.h"
 #include "dough/Utils.h"
 #include "dough/rendering/RenderingContextVulkan.h"
+#include "dough/Window.h"
 
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_vulkan.h>
@@ -10,10 +11,7 @@ namespace DOH {
 	void ImGuiWrapper::init(Window& window, ImGuiInitInfo& imGuiInit) {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
-
 		ImGui::StyleColorsDark();
-
-		ImGui_ImplGlfw_InitForVulkan(window.getNativeWindow(), true);
 
 		ImGui_ImplVulkan_InitInfo initInfo = {};
 		initInfo.Instance = imGuiInit.VulkanInstance;
@@ -26,7 +24,6 @@ namespace DOH {
 		initInfo.MinImageCount = imGuiInit.MinImageCount;
 		initInfo.ImageCount = imGuiInit.ImageCount;
 		initInfo.CheckVkResultFn = nullptr;
-
 
 		VkDescriptorPoolSize pool_sizes[] =
 		{
@@ -57,16 +54,23 @@ namespace DOH {
 
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-
+		
+		ImGui_ImplGlfw_InitForVulkan(window.getNativeWindow(), true);
 		ImGui_ImplVulkan_Init(&initInfo, imGuiInit.UiRenderPass);
+
+		mUsingGpuResource = true;
 	}
 
 	void ImGuiWrapper::close(VkDevice logicDevice) {
-		ImGui_ImplVulkan_Shutdown();
-		ImGui_ImplGlfw_Shutdown();
-		ImGui::DestroyContext();
+		if (isUsingGpuResource()) {
+			ImGui_ImplVulkan_Shutdown();
+			ImGui_ImplGlfw_Shutdown();
+			ImGui::DestroyContext();
 
-		vkDestroyDescriptorPool(logicDevice, mDescriptorPool, nullptr);
+			vkDestroyDescriptorPool(logicDevice, mDescriptorPool, nullptr);
+
+			mUsingGpuResource = false;
+		}
 	}
 
 	void ImGuiWrapper::uploadFonts(RenderingContextVulkan& context) {
@@ -88,7 +92,12 @@ namespace DOH {
 	}
 
 	void ImGuiWrapper::render(VkCommandBuffer cmd) {
+		ImGuiIO& io = ImGui::GetIO();
 		ImGui::Render();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
+	}
+
+	void ImGuiWrapper::onWindowResize(int width, int height) const {
+		ImGui::GetIO().DisplaySize = ImVec2((float) width, (float)height);
 	}
 }

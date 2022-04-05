@@ -37,13 +37,6 @@ namespace DOH {
 			std::vector<VkVertexInputAttributeDescription>& vertexAttributes
 		);
 
-		void init(
-			VkDevice logicDevice,
-			VkVertexInputBindingDescription bindingDesc,
-			std::vector<VkVertexInputAttributeDescription>& vertexAttributes,
-			VkExtent2D extent,
-			VkRenderPass renderPass
-		);
 		void createUniformObjects(VkDevice logicDevice);
 		void uploadShaderUniforms(VkDevice logicDevice, VkPhysicalDevice physicalDevice, uint32_t imageCount);
 		void recordDrawCommands(uint32_t imageIndex, VkCommandBuffer cmd);
@@ -59,5 +52,14 @@ namespace DOH {
 		inline ShaderProgramVulkan& getShaderProgram() const { return mShaderProgram; }
 
 		inline VkPipeline get() const { return mGraphicsPipeline; }
+
+	private:
+		void init(
+			VkDevice logicDevice,
+			VkVertexInputBindingDescription bindingDesc,
+			std::vector<VkVertexInputAttributeDescription>& vertexAttributes,
+			VkExtent2D extent,
+			VkRenderPass renderPass
+		);
 	};
 }

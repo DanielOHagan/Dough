@@ -1,40 +1,40 @@
 #pragma once
 
-#include "dough/scene/geometry/AGeometry2D.h"
-#include "dough/rendering/TextureVulkan.h"
-
-#include <optional>
+#include "dough/scene/geometry/AGeometry.h"
+//#include "dough/rendering/TextureVulkan.h"
 
 namespace DOH {
 
-	class Quad : public AGeometry2D {
+	class Quad : public AGeometry {
 
 	private:
 		//TODO:: Material member to handle texture or solid/pattern/gradient/vertex colour
-		std::unique_ptr<glm::vec4> mColour;
-		std::optional<TextureVulkan&> mOptionalTexture;
+		glm::vec4 mColour;
+		//std::optional<TextureVulkan> mOptionalTexture;
+		//TextureVulkan& mTexture;
+		//std::array<float, 8> mTextureCoords; //Interlaced ordering
+
 
 	public:
+		Quad()
+		:	AGeometry({ 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, 0.0f),
+			mColour(1.0f, 0.0f, 1.0f, 1.0f)
+		{}
 		Quad(
-			glm::vec3& pos,
-			glm::vec2& size,
-			glm::vec4& colour,
-			std::shared_ptr<TextureVulkan> texture,
+			glm::vec3 pos,
+			glm::vec2 size,
+			glm::vec4 colour,
+			//TextureVulkan& texture = Renderer2dStorageVulkan::getWhiteTexture(),
 			float rotationRads = 0.0f
-		) :	AGeometry2D(pos, size, rotationRads),
-			mColour(std::make_unique<glm::vec4>(colour)),
-			mOptionalTexture({})
-		{
-			if (texture != nullptr) {
-				mOptionalTexture.emplace(texture);
-			}
-		}
+		) : AGeometry(pos, size, rotationRads),
+			mColour(colour)
+		{}
 
-		inline glm::vec4& getColour() const { return *mColour; }
-		inline void setColour(glm::vec4& colour) { mColour->x = colour.x; mColour->y = colour.y; mColour->z = colour.z; mColour->w = colour.w; }
-		inline void setColour(float r, float g, float b, float a) { mColour->x = r; mColour->y = g; mColour->z = b; mColour->w = a; }
-		inline bool hasTexture() const { return mOptionalTexture.has_value(); }
-		inline std::optional<TextureVulkan> getTexture() const { mOptionalTexture.value(); }
-		inline void setTexture(TextureVulkan& texture) { mOptionalTexture.emplace(texture); }
+		inline glm::vec4 getColour() const { return mColour; }
+		inline void setColour(glm::vec4 colour) { mColour = colour; }
+		inline void setColour(float r, float g, float b, float a) { mColour.x = r; mColour.y = g; mColour.z = b; mColour.w = a; }
+		//inline bool isUsingTexture() const { return mTexture.getId() == Renderer2dStorageVulkan::getWhiteTexture().getId(); }
+		//inline TextureVulkan& getTexture() const { mOptionalTexture.value(); }
+		//inline void setTexture(TextureVulkan& texture) { mTexture = texture; }
 	};
 }

@@ -26,7 +26,7 @@ namespace DOH {
 	class DataType {
 
 	public:
-		static uint32_t getComponentCount(EDataType dataType) {
+		constexpr static uint32_t getComponentCount(EDataType dataType) {
 			switch (dataType) {
 				case EDataType::FLOAT: return 1;
 				case EDataType::FLOAT2: return 2;
@@ -47,7 +47,7 @@ namespace DOH {
 			}
 		}
 
-		static size_t getDataTypeSize(EDataType dataType) {
+		constexpr static uint32_t getDataTypeSize(EDataType dataType) {
 			switch (dataType) {
 				case EDataType::FLOAT: return 4;
 				case EDataType::FLOAT2: return 4 * 2;

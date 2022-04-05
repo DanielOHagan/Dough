@@ -25,19 +25,18 @@ namespace DOH {
 		TextureVulkan(
 			VkDevice logicDevice,
 			VkPhysicalDevice physicalDevice,
-			VkCommandPool cmdPool,
-			VkQueue graphicsQueue,
-			std::string& filePath
+			const std::string& filePath
 		);
 
-		//TODO::
-		//TextureVulkan(
-		//	VkDevice logicDevice,
-		//	VkPhysicalDevice physicalDevice,
-		//	VkCommandPool cmdPool,
-		//	VkQueue graphicsQueue,
-		//	glm::vec4& colour
-		//);
+		TextureVulkan(
+			VkDevice logicDevice,
+			VkPhysicalDevice physicalDevice,
+			float r,
+			float g,
+			float b,
+			float a,
+			bool colourRgbaNormalised = false
+		);
 
 		virtual void close(VkDevice logicDevice) override;
 

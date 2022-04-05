@@ -105,12 +105,12 @@ namespace DOH {
 			std::shared_ptr<ShaderVulkan> vertShader,
 			std::shared_ptr<ShaderVulkan> fragShader
 		);
-		static std::shared_ptr<ShaderVulkan> shader(EShaderType type, std::string& filePath);
+		static std::shared_ptr<ShaderVulkan> shader(EShaderType type, const std::string& filePath);
 
 
 		//-----Texture-----
-		static std::shared_ptr<TextureVulkan> texture(std::string& filePath);
-		//TODO:: static std::shared_ptr<TextureVulkan> texture(glm::vec4& colour);
+		static std::shared_ptr<TextureVulkan> texture(const std::string& filePath);
+		static std::shared_ptr<TextureVulkan> texture(float r, float g, float b, float a, bool colourRgbaNormalised);
 
 	};
 }

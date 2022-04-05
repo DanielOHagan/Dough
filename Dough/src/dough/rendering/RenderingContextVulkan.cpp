@@ -1,10 +1,17 @@
 #include "dough/rendering/RenderingContextVulkan.h"
 #include "dough/rendering/RendererVulkan.h"
+#include "dough/rendering/renderer2d/Renderer2dVulkan.h"
 #include "dough/rendering/ObjInit.h"
 #include "dough/Logging.h"
 
 #include <chrono>
 #include <glm/gtc/matrix_transform.hpp>
+
+#define CLOSE_NOT_NULL(objPtr) if (objPtr != nullptr) {objPtr->close(mLogicDevice);}
+#define NOT_NULL_CHECK(objPtr) if (objPtr == nullptr) {\
+	LOG_ERR(VAR_NAME(objPtr) << " null on ready check");\
+	return false;\
+}
 
 namespace DOH {
 
@@ -20,26 +27,11 @@ namespace DOH {
 	{}
 
 	bool RenderingContextVulkan::isReady() const {
-		if (mSceneGraphicsPipeline == nullptr) {
-			LOG_ERR(VAR_NAME(mSceneGraphicsPipeline) << " null on ready check");
-			return false;
-		}
-		if (mAppUiGraphicsPipeline == nullptr) {
-			LOG_ERR(VAR_NAME(mAppUiGraphicsPipeline) << " null on ready check");
-			return false;
-		}
-		if (mPhysicalDeviceProperties == nullptr) {
-			LOG_ERR(VAR_NAME(mPhysicalDeviceProperties) << " null on ready check");
-			return false;
-		}
-		if (mSwapChainCreationInfo == nullptr) {
-			LOG_ERR(VAR_NAME(mPhysicalDeviceProperties) << " null on ready check");
-			return false;
-		}
-		if (mSwapChain == nullptr) {
-			LOG_ERR(VAR_NAME(mSwapChain) << " null on ready check");
-			return false;
-		}
+		NOT_NULL_CHECK(mSceneGraphicsPipeline);
+		NOT_NULL_CHECK(mAppUiGraphicsPipeline);
+		NOT_NULL_CHECK(mPhysicalDeviceProperties);
+		NOT_NULL_CHECK(mSwapChainCreationInfo);
+		NOT_NULL_CHECK(mSwapChain);
 
 		return true;
 	}
@@ -64,6 +56,9 @@ namespace DOH {
 		createCommandBuffers();
 		createSyncObjects();
 
+		mRenderer2d = std::make_unique<Renderer2dVulkan>(*this);
+		mRenderer2d->init(mLogicDevice);
+
 		mImGuiWrapper = std::make_unique<ImGuiWrapper>();
 		ImGuiInitInfo imGuiInitInfo = {};
 		imGuiInitInfo.ImageCount = static_cast<uint32_t>(mSwapChain->getImageCount());
@@ -72,7 +67,7 @@ namespace DOH {
 		imGuiInitInfo.PhysicalDevice = mPhysicalDevice;
 		imGuiInitInfo.Queue = mGraphicsQueue;
 		imGuiInitInfo.QueueFamily = VK_QUEUE_GRAPHICS_BIT;
-		imGuiInitInfo.UiRenderPass = mSwapChain->getRenderPass(SwapChainVulkan::RenderPassType::APP_UI).get();
+		imGuiInitInfo.UiRenderPass = mSwapChain->getRenderPass(SwapChainVulkan::ERenderPassType::APP_UI).get();
 		imGuiInitInfo.VulkanInstance = vulkanInstance;
 
 		mImGuiWrapper->init(window, imGuiInitInfo);
@@ -80,10 +75,7 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::close() {
-		//Remove any app resources added after last frame was presented
-		for (IGPUResourceVulkan& res : mToReleaseGpuResources) {
-			res.close(mLogicDevice);
-		}
+		releaseGpuResources();
 
 		vkFreeCommandBuffers(
 			mLogicDevice,
@@ -92,31 +84,40 @@ namespace DOH {
 			mCommandBuffers.data()
 		);
 
-		mImGuiWrapper->close(mLogicDevice);
+		CLOSE_NOT_NULL(mRenderer2d);
+		CLOSE_NOT_NULL(mImGuiWrapper);
 
 		closeSyncObjects();
-		mSwapChain->close(mLogicDevice);
-		mSceneGraphicsPipeline->close(mLogicDevice);
-		mAppUiGraphicsPipeline->close(mLogicDevice);
+
+		CLOSE_NOT_NULL(mSwapChain);
+		CLOSE_NOT_NULL(mSceneGraphicsPipeline);
+		CLOSE_NOT_NULL(mAppUiGraphicsPipeline);
 
 		vkDestroyCommandPool(mLogicDevice, mCommandPool, nullptr);
 		vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
+	}
+
+	void RenderingContextVulkan::releaseGpuResources() {
+		for (std::shared_ptr<IGPUResourceVulkan> res : mToReleaseGpuResources) {
+			res->close(mLogicDevice);
+		}
+		mToReleaseGpuResources.clear();
 	}
 
 	/**
 	* Prepare renderer for work after App has defined a scene and UI pipeline
 	*/
 	void RenderingContextVulkan::setupPostAppLogicInit() {
-		std::vector<VkDescriptorType> descTypes;
-		for (VkDescriptorType descType : mSceneGraphicsPipeline->getShaderProgram().getUniformLayout().asDescriptorTypes()) {
+		std::vector<DescriptorTypeInfo> descTypes;
+		for (DescriptorTypeInfo& descType : mSceneGraphicsPipeline->getShaderProgram().getUniformLayout().asDescriptorTypes()) {
 			descTypes.push_back(descType);
 		}
-		for (VkDescriptorType descType : mAppUiGraphicsPipeline->getShaderProgram().getUniformLayout().asDescriptorTypes()) {
+		for (DescriptorTypeInfo& descType : mAppUiGraphicsPipeline->getShaderProgram().getUniformLayout().asDescriptorTypes()) {
 			descTypes.push_back(descType);
 		}
-		createDescriptorPool(descTypes);
-		createPipelineUniformObjects(*mSceneGraphicsPipeline);
-		createPipelineUniformObjects(*mAppUiGraphicsPipeline);
+		mDescriptorPool = createDescriptorPool(descTypes, 2);
+		createPipelineUniformObjects(*mSceneGraphicsPipeline, mDescriptorPool);
+		createPipelineUniformObjects(*mAppUiGraphicsPipeline, mDescriptorPool);
 	}
 
 	void RenderingContextVulkan::resizeSwapChain(
@@ -130,35 +131,40 @@ namespace DOH {
 			VK_TRY(
 				vkDeviceWaitIdle(mLogicDevice),
 				"Device failed to wait idle for swap chain recreation"
-			)
+			);
 
+			//Close unusable objects
 			ShaderProgramVulkan& sceneShaderProgram = mSceneGraphicsPipeline->getShaderProgram();
 			sceneShaderProgram.closePipelineSpecificObjects(mLogicDevice);
-			
-			mSceneGraphicsPipeline->close(mLogicDevice);
-			mAppUiGraphicsPipeline->close(mLogicDevice);
-			mSwapChain->close(mLogicDevice);
-
 			ShaderProgramVulkan& appUiShaderProgram = mAppUiGraphicsPipeline->getShaderProgram();
 			appUiShaderProgram.closePipelineSpecificObjects(mLogicDevice);
+			
+			CLOSE_NOT_NULL(mSceneGraphicsPipeline)
+			CLOSE_NOT_NULL(mAppUiGraphicsPipeline);
+			CLOSE_NOT_NULL(mSwapChain);
 
 			vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
 
+			mRenderer2d->closeSwapChainSpecificObjects(mLogicDevice);
+
+			//Recreate objects
 			mSwapChainCreationInfo->setWidth(width);
 			mSwapChainCreationInfo->setHeight(height);
 			mSwapChain = ObjInit::swapChain(*mSwapChainCreationInfo);
 
-			std::vector<VkDescriptorType> descTypes;
-			for (auto& descType : sceneShaderProgram.getUniformLayout().asDescriptorTypes()) {
+			std::vector<DescriptorTypeInfo> descTypes;
+			for (DescriptorTypeInfo& descType : sceneShaderProgram.getUniformLayout().asDescriptorTypes()) {
 				descTypes.push_back(descType);
 			}
-			for (auto& descType : appUiShaderProgram.getUniformLayout().asDescriptorTypes()) {
+			for (DescriptorTypeInfo& descType : appUiShaderProgram.getUniformLayout().asDescriptorTypes()) {
 				descTypes.push_back(descType);
 			}
-			createDescriptorPool(descTypes);
+			mDescriptorPool = createDescriptorPool(descTypes, 2);
 
 			prepareScenePipeline(sceneShaderProgram, true);
 			prepareAppUiPipeline(appUiShaderProgram, true);
+
+			mRenderer2d->recreateSwapChainSpecificObjects(*mSwapChain);
 		}
 	}
 
@@ -169,25 +175,27 @@ namespace DOH {
 			mFramesInFlightFences[mCurrentFrame],
 			mImageAvailableSemaphores[mCurrentFrame]
 		);
-
+		
 		VkCommandBuffer cmd = mCommandBuffers[imageIndex];
 		beginCommandBuffer(cmd);
 		
-		updateUniformBufferObject(imageIndex);
-
-		//Draw scene
-		mSwapChain->beginRenderPass(SwapChainVulkan::RenderPassType::SCENE, imageIndex, cmd);
-		mSceneGraphicsPipeline->recordDrawCommands(imageIndex, cmd);
-		mSwapChain->endRenderPass(cmd);
-
-		//updateUniformBufferObject(imageIndex);
+		updateSceneUbo(imageIndex);
+		mRenderer2d->updateSceneUniformData(mLogicDevice, imageIndex, mSceneUbo.ProjectionViewMat);
 		updateUiProjectionMatrix(imageIndex);
 
+		//TODO:: mRenderer2d->uploadSceneData();
+		//TODO:: mRenderer2d->uploadUiData();
+
+		//TODO:: draw___(mSwapChain->getRenderPass(SwapChainVulkan::ERenderPassType::SCENE, imageIndex, cmd);
+		//TODO:: draw___(mSwapChain->getRenderPass(SwapChainVulkan::ERenderPassType::UI, imageIndex, cmd);
+		//TODO:: draw___(mSwapChain->getRenderPass(SwapChainVulkan::ERenderPassType::IMGUI / DEBUG, imageIndex, cmd);
+
+		//Draw scene
+		drawScene(imageIndex, cmd);
+
 		//Draw Application UI
-		mSwapChain->beginRenderPass(SwapChainVulkan::RenderPassType::APP_UI, imageIndex, cmd);
-		mAppUiGraphicsPipeline->recordDrawCommands(imageIndex, cmd);
-		mImGuiWrapper->render(cmd);
-		mSwapChain->endRenderPass(cmd);
+		drawUi(imageIndex, cmd);
+
 
 		//Clear each frame
 		mSceneGraphicsPipeline->clearVaoToDraw();
@@ -197,12 +205,28 @@ namespace DOH {
 
 		present(imageIndex, cmd);
 
-		//TODO::Make this so it is only removing resources from frames that are NO LONGER in use
-		//Release GPU resources of no longer in use app data
-		for (IGPUResourceVulkan& res : mToReleaseGpuResources) {
-			res.close(mLogicDevice);
+		releaseGpuResources();
+	}
+
+	void RenderingContextVulkan::drawScene(uint32_t imageIndex, VkCommandBuffer cmd) {
+		mSwapChain->beginRenderPass(SwapChainVulkan::ERenderPassType::SCENE, imageIndex, cmd);
+		mSceneGraphicsPipeline->bind(cmd);
+		mSceneGraphicsPipeline->recordDrawCommands(imageIndex, cmd);
+		if (mRenderSceneBatch) {
+			mRenderer2d->flush/*Scene*/(mLogicDevice, imageIndex, cmd);
 		}
-		mToReleaseGpuResources.clear();
+		mSwapChain->endRenderPass(cmd);
+	}
+
+	void RenderingContextVulkan::drawUi(uint32_t imageIndex, VkCommandBuffer cmd) {
+		mSwapChain->beginRenderPass(SwapChainVulkan::ERenderPassType::APP_UI, imageIndex, cmd);
+		mAppUiGraphicsPipeline->bind(cmd);
+		mAppUiGraphicsPipeline->recordDrawCommands(imageIndex, cmd);
+		if (mRenderUiBatch) {
+			//Renderer2d::get().flushUi();
+		}
+		mImGuiWrapper->render(cmd);
+		mSwapChain->endRenderPass(cmd);
 	}
 
 	void RenderingContextVulkan::present(uint32_t imageIndex, VkCommandBuffer cmd) {
@@ -245,22 +269,19 @@ namespace DOH {
 		present.pSwapchains = swapChains;
 		present.pImageIndices = &imageIndex;
 
-		vkQueuePresentKHR(mPresentQueue, &present);
-
-		//TODO:: Check result of vkQueuePresentKHR here
+		VK_TRY(
+			vkQueuePresentKHR(mPresentQueue, &present),
+			"Failed to present"
+		);
 
 		mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-
 	}
 
-	void RenderingContextVulkan::updateUniformBufferObject(uint32_t currentImage) {
+	void RenderingContextVulkan::updateSceneUbo(uint32_t currentImage) {
 		//NOTE:: Current the UBO only uses the camera's projection view matrix so updating here works,
 		const uint32_t uboBinding = 0;
 		mSceneGraphicsPipeline->getShaderDescriptor().getBuffersFromBinding(uboBinding)[currentImage]->
 			setData(mLogicDevice, &mSceneUbo.ProjectionViewMat, sizeof(mSceneUbo.ProjectionViewMat));
-
-		//mAppUiGraphicsPipeline->getShaderDescriptor().getBuffersFromBinding(uboBinding)[currentImage]
-		//	->setData(mLogicDevice, &mAppUiProjection, sizeof(glm::mat4x4));
 	}
 
 	void RenderingContextVulkan::updateUiProjectionMatrix(uint32_t currentImage) {
@@ -301,26 +322,30 @@ namespace DOH {
 		);
 	}
 
-	void RenderingContextVulkan::createDescriptorPool(std::vector<VkDescriptorType>& descTypes) {
+	VkDescriptorPool RenderingContextVulkan::createDescriptorPool(std::vector<DescriptorTypeInfo>& descTypes, uint32_t pipelineCount) {
+		VkDescriptorPool descPool;
+
 		uint32_t imageCount = static_cast<uint32_t>(mSwapChain->getImageCount());
 
 		std::vector<VkDescriptorPoolSize> poolSizes;
-		for (VkDescriptorType descType : descTypes) {
-			poolSizes.push_back({ descType, imageCount });
+		uint32_t poolSizeCount = 0;
+		for (DescriptorTypeInfo& descType : descTypes) {
+			poolSizes.push_back({ descType.first, descType.second * imageCount });
+			poolSizeCount++;
 		}
-
-		const uint32_t poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 
 		VkDescriptorPoolCreateInfo poolCreateInfo = {};
 		poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		poolCreateInfo.poolSizeCount = poolSizeCount;
 		poolCreateInfo.pPoolSizes = poolSizes.data();
-		poolCreateInfo.maxSets = imageCount * poolSizeCount;
+		poolCreateInfo.maxSets = imageCount * pipelineCount;
 
 		VK_TRY(
-			vkCreateDescriptorPool(mLogicDevice, &poolCreateInfo, nullptr, &mDescriptorPool),
+			vkCreateDescriptorPool(mLogicDevice, &poolCreateInfo, nullptr, &descPool),
 			"Failed to create descriptor pool."
 		);
+
+		return descPool;
 	}
 
 	void RenderingContextVulkan::createSyncObjects() {
@@ -360,44 +385,41 @@ namespace DOH {
 		}
 	}
 
-	//TODO:: Make Vertex input more dynamic and allow application to set it
 	void RenderingContextVulkan::prepareScenePipeline(ShaderProgramVulkan& shaderProgram, bool createUniformObjects) {
-		//TODO:: VAO input MUST still match Vertex3D, maybe some kind of T::getXXX, GraphicsPipeline<T>, pass in struct or shaderProgram.getXXX
-		std::vector<VkVertexInputAttributeDescription> attribDesc = Vertex3D::getAttributeDescriptions();
+		const uint32_t binding = 0;
+		std::vector<VkVertexInputAttributeDescription> attribDesc = std::move(Vertex3dTextured::asAttributeDescriptions(binding));
 		mSceneGraphicsPipeline = ObjInit::graphicsPipeline(
 			mSwapChain->getExtent(),
-			mSwapChain->getRenderPass(SwapChainVulkan::RenderPassType::SCENE).get(),
+			mSwapChain->getRenderPass(SwapChainVulkan::ERenderPassType::SCENE).get(),
 			shaderProgram,
-			Vertex3D::getBindingDescription(),
+			createBindingDescription(binding, sizeof(Vertex3dTextured), VK_VERTEX_INPUT_RATE_VERTEX),
 			attribDesc
 		);
 
 		if (createUniformObjects) {
-			createPipelineUniformObjects(*mSceneGraphicsPipeline);
+			createPipelineUniformObjects(*mSceneGraphicsPipeline, mDescriptorPool);
 		}
 	}
 
 	void RenderingContextVulkan::prepareAppUiPipeline(ShaderProgramVulkan& shaderProgram, bool createUniformObjects) {
-		//TODO:: VAO input MUST still match VertexUi2D,
-		//		maybe GraphicsPipeline<T> && VAO<T> so the T's can be compared at draw time for compatability,
-		//		T::getXXX, pass in struct or shaderProgram.getXXX
-		std::vector<VkVertexInputAttributeDescription> attribDesc = std::move(VertexUi2D::getAttributeDescriptions());
+		const uint32_t binding = 0;
+		std::vector<VkVertexInputAttributeDescription> attribDesc = std::move(Vertex2d::asAttributeDescriptions(binding));
 		mAppUiGraphicsPipeline = ObjInit::graphicsPipeline(
 			mSwapChain->getExtent(),
-			mSwapChain->getRenderPass(SwapChainVulkan::RenderPassType::APP_UI).get(),
+			mSwapChain->getRenderPass(SwapChainVulkan::ERenderPassType::APP_UI).get(),
 			shaderProgram,
-			VertexUi2D::getBindingDescription(),
+			createBindingDescription(binding, sizeof(Vertex2d), VK_VERTEX_INPUT_RATE_VERTEX),
 			attribDesc
 		);
 
 		if (createUniformObjects) {
-			createPipelineUniformObjects(*mAppUiGraphicsPipeline);
+			createPipelineUniformObjects(*mAppUiGraphicsPipeline, mDescriptorPool);
 		}
 	}
 
-	void RenderingContextVulkan::createPipelineUniformObjects(GraphicsPipelineVulkan& pipeline) {
+	void RenderingContextVulkan::createPipelineUniformObjects(GraphicsPipelineVulkan& pipeline, VkDescriptorPool descPool) {
 		if (pipeline.getShaderProgram().getUniformLayout().hasUniforms()) {
-			pipeline.setDescriptorPool(mDescriptorPool);
+			pipeline.setDescriptorPool(descPool);
 			pipeline.uploadShaderUniforms(
 				mLogicDevice,
 				mPhysicalDevice,
@@ -406,6 +428,23 @@ namespace DOH {
 		} else {
 			LOG_WARN("Tried to create uniform objects for pipeline without uniforms");
 		}
+	}
+
+	void RenderingContextVulkan::preparePipeline(
+		std::shared_ptr<GraphicsPipelineVulkan> graphicsPipeline,
+		ShaderProgramVulkan& shaderProgram,
+		VkRenderPass renderPass,
+		std::vector<VkVertexInputAttributeDescription>& attribDesc,
+		uint32_t vertexStride
+	) {
+		const uint32_t binding = 0;
+		graphicsPipeline = ObjInit::graphicsPipeline(
+			mSwapChain->getExtent(),
+			renderPass,
+			shaderProgram,
+			createBindingDescription(binding, vertexStride, VK_VERTEX_INPUT_RATE_VERTEX),
+			attribDesc
+		);
 	}
 
 	VkCommandBuffer RenderingContextVulkan::beginSingleTimeCommands() {
@@ -726,7 +765,7 @@ namespace DOH {
 		VkBufferUsageFlags usage,
 		VkMemoryPropertyFlags props
 	) {
-		return std::make_shared<VertexBufferVulkan>(elements, mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, (const void*) data, size, usage, props);
+		return std::make_shared<VertexBufferVulkan>(elements, mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, (const void*)data, size, usage, props);
 	}
 
 	std::shared_ptr<VertexBufferVulkan> RenderingContextVulkan::createStagedVertexBuffer(
@@ -767,11 +806,15 @@ namespace DOH {
 		return std::make_shared<ShaderProgramVulkan>(vertShader, fragShader);
 	}
 
-	std::shared_ptr<ShaderVulkan> RenderingContextVulkan::createShader(EShaderType type, std::string& filePath) {
+	std::shared_ptr<ShaderVulkan> RenderingContextVulkan::createShader(EShaderType type, const std::string& filePath) {
 		return std::make_shared<ShaderVulkan>(type, filePath);
 	}
 
-	std::shared_ptr<TextureVulkan> RenderingContextVulkan::createTexture(std::string& filePath) {
-		return std::make_shared<TextureVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, filePath);
+	std::shared_ptr<TextureVulkan> RenderingContextVulkan::createTexture(const std::string& filePath) {
+		return std::make_shared<TextureVulkan>(mLogicDevice, mPhysicalDevice, filePath);
+	}
+
+	std::shared_ptr<TextureVulkan> RenderingContextVulkan::createTexture(float r, float g, float b, float a, bool colourRgbaNormalised) {
+		return std::make_shared<TextureVulkan>(mLogicDevice, mPhysicalDevice, r, g, b, a, colourRgbaNormalised);
 	}
 }

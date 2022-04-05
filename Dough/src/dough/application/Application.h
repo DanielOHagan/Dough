@@ -20,7 +20,6 @@ namespace DOH {
 		friend class ApplicationLoop;
 
 	private:
-
 		static Application* INSTANCE;
 
 		std::unique_ptr<Window> mWindow;
@@ -34,6 +33,7 @@ namespace DOH {
 	public:
 		Application(const Application& copy) = delete;
 		void operator=(const Application& assignment) = delete;
+		static Application& get() { return *INSTANCE; }
 
 		void run();
 		void stop() { mRunning = false; }
@@ -44,10 +44,11 @@ namespace DOH {
 
 		inline RendererVulkan& getRenderer() const { return *mRenderer; }
 		inline Window& getWindow() const { return *mWindow; }
+		inline ApplicationLoop& getLoop() const { return *mAppLoop; }
+		inline IntervalTimer& getAppInfoTimer() const { return *mAppInfoTimer; }
 		inline bool isRunning() const { return mRunning; }
 		inline bool isFocused() const { return mFocused; }
 
-		static Application& get() { return *INSTANCE; }
 		static int start(std::shared_ptr<IApplicationLogic> appLogic);
 		static bool isInstantiated() { return INSTANCE != nullptr; };
 

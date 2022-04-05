@@ -4,6 +4,7 @@
 #include "dough/Utils.h"
 #include "dough/rendering/pipeline/shader/ShaderVulkan.h"
 #include "dough/Logging.h"
+#include "dough/rendering/renderer2d/Renderer2dVulkan.h"
 
 #include <set>
 #include <string>
@@ -94,15 +95,15 @@ namespace DOH {
 		vkDestroyInstance(mInstance, nullptr);
 	}
 
-	void RendererVulkan::closeGpuResource(IGPUResourceVulkan& res) {
-		//Add to list of to close resources that are closed only after they are guaranteed not to be currently in use.
-		mRenderingContext->addResourceToCloseAfterUse(res);
+	void RendererVulkan::closeGpuResource(std::shared_ptr<IGPUResourceVulkan> res) {
+		if (res != nullptr) {
+			mRenderingContext->addResourceToCloseAfterUse(res);
+		}
 	}
 
 	void RendererVulkan::onResize(int width, int height) {
 		SwapChainSupportDetails scSupport = SwapChainVulkan::querySwapChainSupport(mPhysicalDevice, mSurface);
-		mRenderingContext->resizeSwapChain(scSupport, mSurface, mQueueFamilyIndices, width, height);
-		//mRenderingContext->updateUiProjectionMatrix((float) width / height);
+		mRenderingContext->onResize(scSupport, mSurface, mQueueFamilyIndices, width, height);
 	}
 
 	void RendererVulkan::createVulkanInstance() {
@@ -113,7 +114,7 @@ namespace DOH {
 
 		VkApplicationInfo appInfo = {};
 		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-		appInfo.pApplicationName = "Hello Triangle";
+		appInfo.pApplicationName = "Dough Test Application";
 		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 		appInfo.pEngineName = "Dough";
 		appInfo.engineVersion = VK_MAKE_VERSION(0, 0, 1);
@@ -365,8 +366,4 @@ namespace DOH {
 		//TODO:: once batch rendering is implemented this will use the VAOs in the "RendererStorage" to make draw commands,
 		//therefore, addVaoDrawCommands() will be redundant and should then be removed.
 	}
-
-	//void RendererVulkan::addVaoToSceneDrawList(VertexArrayVulkan& vao) {
-	//	mRenderingContext->addVaoToSceneDrawList(vao);
-	//}
 }

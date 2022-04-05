@@ -1,11 +1,13 @@
 #include "dough/rendering/pipeline/shader/ShaderUniformLayout.h"
 #include "dough/Utils.h"
+#include "dough/Logging.h"
 
 namespace DOH {
 
 	ShaderUniformLayout::ShaderUniformLayout()
 	:	mValueUniformMap(std::make_unique<std::map<uint32_t, ValueUniformInfo>>()),
 		mTextureUniformMap(std::make_unique<std::map<uint32_t, TextureUniformInfo>>()),
+		mTextureArrayUniformMap(std::make_unique<std::map<uint32_t, TextureArrayUniformInfo>>()),
 		mHasUniforms(false)
 	{}
 
@@ -27,6 +29,11 @@ namespace DOH {
 			return false;
 		}
 
+		std::map<uint32_t, TextureArrayUniformInfo>::iterator textureArrIt = mTextureArrayUniformMap->find(binding);
+		if (textureArrIt != mTextureArrayUniformMap->end()) {
+			return false;
+		}
+
 		return true;
 	}
 
@@ -44,11 +51,33 @@ namespace DOH {
 		}
 	}
 
+	void ShaderUniformLayout::setTextureArray(
+		uint32_t binding,
+		TextureArrayUniformInfo texArrayInfo,
+		uint32_t countToFill,
+		TextureUniformInfo fillTexture
+	) {
+		//If binding available, assign texArray, if texArray doesn't have enough textures to match countToFill then fill remaining
+		//array indexes with fillTexture
+		if (isBindingAvailable(binding)) {
+			if (texArrayInfo.Count < countToFill) {
+				for (uint32_t i = texArrayInfo.Count; i < countToFill; i++) {
+					texArrayInfo.TextureUniforms.push_back({ fillTexture.first, fillTexture.second });
+				}
+				texArrayInfo.Count = countToFill;
+			}
+			mTextureArrayUniformMap->emplace(binding, texArrayInfo);
+			mHasUniforms = true;
+		} else {
+			LOG_WARN("Binding: " << binding << " not available for texture array");
+		}
+	}
+
 	void ShaderUniformLayout::addPushConstant(VkShaderStageFlags shaderStages, uint32_t size) {
 		//TODO:: Only the 128 bits guaranteed by Vulkan are supported right now, set a limit based off device capabilities
 		uint32_t offset = getPushConstantOffset();
 		TRY(offset + size > 128, "Currently only 128bit push constants are supported");
-		
+
 		VkPushConstantRange pushConstant = {};
 		pushConstant.stageFlags = shaderStages;
 		pushConstant.size = size;
@@ -73,10 +102,10 @@ namespace DOH {
 		clearUniforms();
 	}
 
-	std::vector<VkDescriptorType> ShaderUniformLayout::asDescriptorTypes() const {
-		std::vector<VkDescriptorType> descTypes = {};
+	std::vector<DescriptorTypeInfo> ShaderUniformLayout::asDescriptorTypes() const {
+		std::vector<DescriptorTypeInfo> descTypes = {};
 		for (const VkDescriptorSetLayoutBinding& layoutBinding : mDescriptorSetLayoutBindings) {
-			descTypes.push_back(layoutBinding.descriptorType);
+			descTypes.push_back({ layoutBinding.descriptorType, layoutBinding.descriptorCount});
 		}
 
 		return descTypes;
@@ -89,5 +118,16 @@ namespace DOH {
 		}
 
 		return size;
+	}
+
+	const uint32_t ShaderUniformLayout::getTotalTextureCountInTextureArrayMap() const {
+		uint32_t count = 0;
+
+		std::map<uint32_t, TextureArrayUniformInfo>::iterator textureArrIt;
+		for (textureArrIt = mTextureArrayUniformMap->begin(); textureArrIt != mTextureArrayUniformMap->end(); textureArrIt++) {
+			count += textureArrIt->second.Count;
+		}
+
+		return count;
 	}
 }

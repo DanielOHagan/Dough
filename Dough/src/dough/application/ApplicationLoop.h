@@ -5,8 +5,6 @@
 
 namespace DOH {
 
-	//TODO:: Having a higher FPS causes the display to "flash", maybe I should force the UPS to always be equal-to/higher than FPS
-
 	class ApplicationLoop {
 
 	public:
@@ -57,11 +55,11 @@ namespace DOH {
 		void run();
 
 		inline void onFocusChange(bool focused) { updateTargetFrameTime(focused); updateTargetUpdateTime(focused); }
-		inline void updateTargetFrameTime(bool focused) { mTargetFrameTimeSpan = 1000.0 / (focused ? mTargetFps : mTargetBackgroundFps); }
-		inline void updateTargetUpdateTime(bool focused) { mTargetUpdateTimeSpan = 1000.0 / (focused ? mTargetUps : mTargetBackgroundUps); }
+		inline void updateTargetFrameTime(bool focused) { mTargetFrameTimeSpan = 1000.0 / (focused ? mTargetFps : mRunInBackground ? mTargetFps : mTargetBackgroundFps); }
+		inline void updateTargetUpdateTime(bool focused) { mTargetUpdateTimeSpan = 1000.0 / (focused ? mTargetUps : mRunInBackground ? mTargetUps : mTargetBackgroundUps); }
 
 		inline bool isRunningInBackground() const { return mRunInBackground; }
-		inline void setRunInBackground(bool renerInBackground) { mRunInBackground = renerInBackground; }
+		inline void setRunInBackground(bool renderInBackground) { mRunInBackground = renderInBackground; }
 		
 		inline float getTargetFps() const { return mTargetFps; }
 		void setTargetFps(float targetFps, bool includeTargetBackgroundFps = false);

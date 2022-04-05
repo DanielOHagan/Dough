@@ -19,11 +19,14 @@ namespace DOH {
 			vkCreateDescriptorSetLayout(logicDevice, &dslCreateInfo, nullptr, &mDescriptorSetLayout),
 			"Failed to create descriptor set layout."
 		);
+
+		mUsingGpuResource = true;
 	}
 
 	void DescriptorVulkan::createValueBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice, size_t count) {
 		mValueBufferMap.clear();
 
+		bool bufferCreated = false;
 		for (auto& [binding, value] : mUniformLayout.getValueUniformMap()) {
 			mValueBufferMap.emplace(binding, std::vector<std::shared_ptr<BufferVulkan>>(count));
 			
@@ -34,74 +37,111 @@ namespace DOH {
 					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 				);
 			}
+
+			bufferCreated = true;
+		}
+
+		if (bufferCreated) {
+			mUsingGpuResource = true;
 		}
 	}
 
-	void DescriptorVulkan::createDescriptorSets(VkDevice logicDevice, size_t count, VkDescriptorPool descPool) {
-		std::vector<VkDescriptorSetLayout> layouts(count, mDescriptorSetLayout);
+	void DescriptorVulkan::createDescriptorSets(VkDevice logicDevice, size_t descSetCount, VkDescriptorPool descPool) {
+		std::vector<VkDescriptorSetLayout> layouts(descSetCount, mDescriptorSetLayout);
 
 		VkDescriptorSetAllocateInfo allocation = {};
 		allocation.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocation.descriptorPool = descPool;
-		allocation.descriptorSetCount = static_cast<uint32_t>(count);
+		allocation.descriptorSetCount = static_cast<uint32_t>(descSetCount);
 		allocation.pSetLayouts = layouts.data();
 
-		mDescriptorSets.resize(count);
+		mDescriptorSets.resize(descSetCount);
 
 		VK_TRY(
 			vkAllocateDescriptorSets(logicDevice, &allocation, mDescriptorSets.data()),
 			"Failed to allocate descriptor sets."
 		);
+
+		mUsingGpuResource = true;
 	}
 
-	void DescriptorVulkan::updateDescriptorSets(VkDevice logicDevice, size_t count) {
-		const uint32_t preTextureWriteCount = static_cast<uint32_t>(mUniformLayout.getValueUniformMap().size());
-		for (size_t swapChainImageIndex = 0; swapChainImageIndex < count; swapChainImageIndex++) {
-			std::vector<VkWriteDescriptorSet> descWrites{};
-			std::vector<VkDescriptorImageInfo> imageInfos{};
-			for (uint32_t i = 0; i < mUniformLayout.getTotalUniformCount(); i++) {
-				VkWriteDescriptorSet write{};
-				descWrites.push_back(write);
+	void DescriptorVulkan::updateDescriptorSets(VkDevice logicDevice, size_t imageCount) {
+		for (size_t swapChainImageIndex = 0; swapChainImageIndex < imageCount; swapChainImageIndex++) {
+			std::vector<VkWriteDescriptorSet> descWrites(mUniformLayout.getTotalUniformCount());
+			std::vector<VkDescriptorImageInfo> imageInfos(mUniformLayout.getTotalTextureCount());
 
-				std::map<uint32_t, TextureUniformInfo>::iterator it = mUniformLayout.getTextureUniformMap().find(i);
-				if (it != mUniformLayout.getTextureUniformMap().end()) {
-					//TODO:: This assumes the textures are the only things for 'i' to cycle through to 'writeCount', 
-					//			will need to be changed when others are available
-					VkDescriptorImageInfo imgInfo{};
-					imageInfos.push_back(imgInfo);
-				}
-			}
+			uint32_t writeIndex = 0;
+			uint32_t imageIndex = 0;
 
-			for (const auto& [key, value] : mUniformLayout.getValueUniformMap()) {
+			//Attached values
+			for (const auto& [binding, value] : mUniformLayout.getValueUniformMap()) {
+				VkWriteDescriptorSet write = {};
 				VkDescriptorBufferInfo bufferInfo = {};
-				bufferInfo.buffer = mValueBufferMap.at(key).at(swapChainImageIndex)->getBuffer();
+				bufferInfo.buffer = mValueBufferMap.at(binding).at(swapChainImageIndex)->getBuffer();
 				bufferInfo.offset = 0;
 				bufferInfo.range = value;
 
-				descWrites[key].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				descWrites[key].dstSet = mDescriptorSets[swapChainImageIndex];
-				descWrites[key].dstBinding = key;
-				descWrites[key].dstArrayElement = 0;
-				descWrites[key].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				descWrites[key].descriptorCount = 1;
-				descWrites[key].pBufferInfo = &bufferInfo;
+				write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				write.dstSet = mDescriptorSets[swapChainImageIndex];
+				write.dstBinding = binding;
+				write.dstArrayElement = 0;
+				write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				write.descriptorCount = 1;
+				write.pBufferInfo = &bufferInfo;
+
+				descWrites[writeIndex] = write;
+				writeIndex++;
 			}
 
-			//Attached Textures
-			for (const auto& [key, value] : mUniformLayout.getTextureUniformMap()) {
-				const uint32_t imageKey = key > 0 ? key - preTextureWriteCount : 0;
-				descWrites[key].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				descWrites[key].dstSet = mDescriptorSets[swapChainImageIndex];
-				//descWrites[descWriteIndex].dstBinding = 1; //Sampler binding destination (NOTE:: it's 1 because the UBO is 0 and the sampler is set to "(binding = 1)" in frag shader)
-				//descWrites[descWriteIndex].dstArrayElement = key;
-				descWrites[key].dstBinding = key;
-				descWrites[key].dstArrayElement = 0;
-				descWrites[key].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				descWrites[key].descriptorCount = 1;
-				imageInfos[imageKey].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				imageInfos[imageKey].imageView = value.first;
-				imageInfos[imageKey].sampler = value.second;
-				descWrites[key].pImageInfo = &imageInfos[imageKey];
+			//Attached single textures
+			for (const auto& [binding, texture] : mUniformLayout.getTextureUniformMap()) {
+				VkWriteDescriptorSet write = {};
+				VkDescriptorImageInfo imageInfo = {};
+
+				imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				imageInfo.imageView = texture.first;
+				imageInfo.sampler = texture.second;
+
+				imageInfos[imageIndex] = imageInfo;
+
+				write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				write.dstSet = mDescriptorSets[swapChainImageIndex];
+				write.dstBinding = binding;
+				write.dstArrayElement = 0;
+				write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				write.descriptorCount = 1;
+				write.pImageInfo = &imageInfos[imageIndex];
+
+				descWrites[writeIndex] = write;
+
+				writeIndex++;
+				imageIndex++;
+			}
+
+			//Attached texture arrays
+			for (const auto& [binding, texArray] : mUniformLayout.getTextureArrayUniformMap()) {
+				VkWriteDescriptorSet write = {};
+
+				const uint32_t arrayImagesStart = imageIndex;
+				for (const TextureUniformInfo& info : texArray.TextureUniforms) {
+					VkDescriptorImageInfo imageInfo = {};
+					imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					imageInfo.imageView = info.first;
+					imageInfo.sampler = info.second;
+					imageInfos[imageIndex] = imageInfo;
+					imageIndex++;
+				}
+
+				write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				write.dstSet = mDescriptorSets[swapChainImageIndex];
+				write.dstBinding = binding;
+				write.dstArrayElement = 0;
+				write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				write.descriptorCount = texArray.Count;
+				write.pImageInfo = &imageInfos[arrayImagesStart];
+
+				descWrites[writeIndex] = write;
+				writeIndex++;
 			}
 
 			vkUpdateDescriptorSets(
@@ -143,6 +183,8 @@ namespace DOH {
 		closeBuffers(logicDevice);
 
 		vkDestroyDescriptorSetLayout(logicDevice, mDescriptorSetLayout, nullptr);
+
+		mUsingGpuResource = false;
 	}
 
 	VkDescriptorSetLayoutBinding DescriptorVulkan::createLayoutBinding(

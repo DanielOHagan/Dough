@@ -22,7 +22,7 @@ namespace DOH {
 		bool mResizable;
 
 	public:
-		enum class RenderPassType {
+		enum class ERenderPassType {
 			SCENE,
 			APP_UI
 		};
@@ -56,7 +56,7 @@ namespace DOH {
 			VkFence frameInFlightFence,
 			VkSemaphore imageAvailableSemaphore
 		);
-		void beginRenderPass(RenderPassType type, size_t frameBufferIndex, VkCommandBuffer cmd);
+		void beginRenderPass(ERenderPassType type, size_t frameBufferIndex, VkCommandBuffer cmd);
 		void endRenderPass(VkCommandBuffer cmd);
 
 		inline void setResizable(bool resizable) { mResizable = resizable; }
@@ -69,7 +69,7 @@ namespace DOH {
 		inline size_t getImageCount() const { return mImages.size(); }
 		inline size_t getImageViewCount() const { return mImageViews.size(); }
 		inline size_t getFrameBufferCount() const { return mSceneFrameBuffers.size() + mAppUiFrameBuffers.size(); }
-		RenderPassVulkan& getRenderPass(RenderPassType type) const;
+		RenderPassVulkan& getRenderPass(ERenderPassType type) const;
 
 		//-----Static Methods-----
 		static SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);

@@ -50,29 +50,30 @@ namespace DOH {
 
 			const double currentTimePoint = Time::getCurrentTimeMillis();
 			double deltaCycleTimeSpan = currentTimePoint - mLastCycleTimePoint;
-			
+
 			mDeltaUpdateTimeSpan += deltaCycleTimeSpan;
 			mDeltaRenderTimeSpan += deltaCycleTimeSpan;
 			mPerSecondCountersTimeSpan += deltaCycleTimeSpan;
-			
+
 			if (mPerSecondCountersTimeSpan > 1000.0) {
 				mPreviousFps = mFps;
 				mFps = 0.0f;
 				mPreviousUps = mUps;
 				mUps = 0.0f;
 			
-				LOGLN(
-					"FPS: " << mPreviousFps << " Target: " <<
-					((mApplication.isFocused() || mRunInBackground) ? mTargetFps : mTargetBackgroundFps)
+				const bool noLimitFps = mApplication.isFocused() || mRunInBackground;
+				LOG(
+					"FPS: " << mPreviousFps << " (" <<
+					(noLimitFps ? mTargetFps : mTargetBackgroundFps) << ")"
 				);
 				LOGLN(
-					"UPS: " << mPreviousUps << " Target: " <<
-					((mApplication.isFocused() || mRunInBackground) ? mTargetUps : mTargetBackgroundUps)
+					"\tUPS: " << mPreviousUps << " (" <<
+					(noLimitFps ? mTargetUps : mTargetBackgroundUps) << ")"
 				);
-			
+
 				mPerSecondCountersTimeSpan = 0.0;
 			}
-			
+
 			if (!(mDeltaUpdateTimeSpan < mTargetUpdateTimeSpan)) {
 				mApplication.update(Time::convertMillisToSeconds(mDeltaUpdateTimeSpan));
 				
@@ -80,7 +81,7 @@ namespace DOH {
 				mDeltaUpdateTimeSpan = 0.0;
 				mLastUpdateTimePoint = currentTimePoint;
 			}
-			
+
 			if (!(mDeltaRenderTimeSpan < mTargetFrameTimeSpan)) {
 				mApplication.render();
 			
@@ -88,8 +89,7 @@ namespace DOH {
 				mDeltaRenderTimeSpan = 0.0;
 				mLastRenderTimePoint = currentTimePoint;
 			}
-			
-			
+
 			mLastCycleTimePoint = currentTimePoint;
 		}
 	}

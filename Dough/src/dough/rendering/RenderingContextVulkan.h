@@ -4,6 +4,7 @@
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 #include "dough/scene/camera/ICamera.h"
 #include "dough/ImGuiWrapper.h"
+#include "dough/rendering/renderer2d/Renderer2dVulkan.h"
 
 namespace DOH {
 
@@ -31,15 +32,21 @@ namespace DOH {
 		std::shared_ptr<GraphicsPipelineVulkan> mSceneGraphicsPipeline;
 		std::shared_ptr<GraphicsPipelineVulkan> mAppUiGraphicsPipeline;
 		
+		std::unique_ptr<Renderer2dVulkan> mRenderer2d;
 		std::unique_ptr<ImGuiWrapper> mImGuiWrapper;
 
 		//NOTE:: in OpenGL space because glm
 		glm::mat4x4 mAppUiProjection;
 
+		//Used by Scene and UI pipelines
+		//TODO:: when fully transitioned to batch renderer, move this to a renderer3d or something
+		//	as 2d rendering should thereby be done solely by batch rendering (except maybe some debug things)
 		VkDescriptorPool mDescriptorPool;
+
+
 		VkCommandPool mCommandPool;
 
-		std::vector<std::reference_wrapper<IGPUResourceVulkan>> mToReleaseGpuResources;
+		std::vector<std::shared_ptr<IGPUResourceVulkan>> mToReleaseGpuResources;
 
 		//Sync objects
 		const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -66,16 +73,27 @@ namespace DOH {
 		void setupPostAppLogicInit();
 		void prepareScenePipeline(ShaderProgramVulkan& shaderProgram, bool createUniformObjects = false);
 		void prepareAppUiPipeline(ShaderProgramVulkan& shaderProgram, bool createUniformObjects = false);
-		void createPipelineUniformObjects(GraphicsPipelineVulkan& pipeline);
+		void preparePipeline(
+			std::shared_ptr<GraphicsPipelineVulkan> graphicsPipeline,
+			ShaderProgramVulkan& shaderProgram,
+			VkRenderPass renderPass,
+			std::vector<VkVertexInputAttributeDescription>& attribDesc,
+			uint32_t vertexStride
+		);
+		void createPipelineUniformObjects(GraphicsPipelineVulkan& pipeline, VkDescriptorPool descPool);
+		VkDescriptorPool createDescriptorPool(std::vector<DescriptorTypeInfo>& descTypes, uint32_t pipelineCount);
 		bool isReady() const;
 
-		void resizeSwapChain(
+		inline void onResize(
 			SwapChainSupportDetails& scSupport,
 			VkSurfaceKHR surface,
 			QueueFamilyIndices& queueFamilyIndices,
-			uint32_t width,
-			uint32_t height
-		);
+			int width,
+			int height
+		) {
+			resizeSwapChain(scSupport, surface, queueFamilyIndices, width, height);
+			mImGuiWrapper->onWindowResize(width, height);
+		};
 
 		void drawFrame();
 		inline void setSceneUniformBufferObject(ICamera& camera) { mSceneUbo.ProjectionViewMat = camera.getProjectionViewMatrix(); }
@@ -83,7 +101,8 @@ namespace DOH {
 		inline void addVaoToSceneDrawList(VertexArrayVulkan& vao) const { mSceneGraphicsPipeline->addVaoToDraw(vao); }
 		inline void addVaoToUiDrawList(VertexArrayVulkan& vao) const { mAppUiGraphicsPipeline->addVaoToDraw(vao); }
 
-		inline void addResourceToCloseAfterUse(IGPUResourceVulkan& res) { mToReleaseGpuResources.push_back(res); }
+		inline void addResourceToCloseAfterUse(std::shared_ptr<IGPUResourceVulkan> res) { mToReleaseGpuResources.push_back(res); }
+		void releaseGpuResources();
 
 		//TODO:: Prefer grouping commands together then flushing rather than only single commands
 		
@@ -119,7 +138,10 @@ namespace DOH {
 		};
 		VkImageView createImageView(VkImage image, VkFormat format);
 		VkSampler createSampler();
+
 		inline ImGuiWrapper& getImGuiWrapper() const { return *mImGuiWrapper; }
+		inline SwapChainVulkan& getSwapChain() const { return *mSwapChain; }
+		inline Renderer2dVulkan& getRenderer2d() const { return *mRenderer2d; }
 		inline void setLogicDevice(VkDevice logicDevice) { mLogicDevice = logicDevice; }
 		void setPhysicalDevice(VkPhysicalDevice physicalDevice);
 
@@ -139,7 +161,10 @@ namespace DOH {
 			VkMemoryPropertyFlags props
 		);
 
-		//-----Rendering Object Initialisation-----
+		//-----DEBUG----- (TEMP)
+		bool mRenderSceneBatch = true;
+		bool mRenderUiBatch = true;
+
 		//-----Pipeline-----
 		std::shared_ptr<GraphicsPipelineVulkan> createGraphicsPipeline(
 			VkExtent2D extent,
@@ -190,21 +215,29 @@ namespace DOH {
 
 		//-----Shader-----
 		std::shared_ptr<ShaderProgramVulkan> createShaderProgram(std::shared_ptr<ShaderVulkan> vertShader, std::shared_ptr<ShaderVulkan> fragShader);
-		std::shared_ptr<ShaderVulkan> createShader(EShaderType type, std::string& filePath);
+		std::shared_ptr<ShaderVulkan> createShader(EShaderType type, const std::string& filePath);
 
 		//-----Texture-----
-		std::shared_ptr<TextureVulkan> createTexture(std::string& filePath);
-		//TODO:: std::shared_ptr<TextureVulkan> createTexture(glm::vec4& colour);
+		std::shared_ptr<TextureVulkan> createTexture(const std::string& filePath);
+		std::shared_ptr<TextureVulkan> createTexture(float r, float g, float b, float a, bool colourRgbaNormalised);
 
 	private:
 		void createQueues(QueueFamilyIndices& queueFamilyIndices);
 		void createCommandPool(QueueFamilyIndices& queueFamilyIndices);
 		void createCommandBuffers();
-		void createDescriptorPool(std::vector<VkDescriptorType>& descTypes);
 		void createSyncObjects();
 		void closeSyncObjects();
-		void updateUniformBufferObject(uint32_t currentImage);
+		void resizeSwapChain(
+			SwapChainSupportDetails& scSupport,
+			VkSurfaceKHR surface,
+			QueueFamilyIndices& queueFamilyIndices,
+			uint32_t width,
+			uint32_t height
+		);
+		void updateSceneUbo(uint32_t currentImage);
 		void updateUiProjectionMatrix(uint32_t currentImage);
+		void drawScene(uint32_t imageIndex, VkCommandBuffer cmd);
+		void drawUi(uint32_t imageIndex, VkCommandBuffer cmd);
 		void present(uint32_t imageIndex, VkCommandBuffer cmd);
 	};
 }

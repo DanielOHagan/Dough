@@ -3,7 +3,7 @@
 
 layout (binding = 1) uniform sampler2D texSampler;
 
-layout (location = 0) in vec3 vFragColour;
+layout (location = 0) in vec4 vFragColour;
 layout (location = 1) in vec2 vTexCoord;
 layout (location = 2) in float vTexIndex;
 
@@ -16,6 +16,6 @@ void main() {
 	if (vTexIndex == 1.0) {
 		outColour = texture(texSampler, vTexCoord);
 	} else {
-		outColour = vec4(vFragColour, 1.0);
+		outColour = vFragColour;
 	}
 }

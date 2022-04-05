@@ -3,6 +3,7 @@
 #include "dough/rendering/pipeline/shader/ShaderVulkan.h"
 #include "dough/rendering/pipeline/shader/ShaderUniformLayout.h"
 #include "dough/rendering/pipeline/DescriptorVulkan.h"
+#include "dough/rendering/buffer/BufferLayout.h"
 
 namespace DOH {
 
@@ -20,7 +21,10 @@ namespace DOH {
 		ShaderProgramVulkan(const ShaderProgramVulkan& copy) = delete;
 		ShaderProgramVulkan operator=(const ShaderProgramVulkan& assignment) = delete;
 		
-		ShaderProgramVulkan(std::shared_ptr<ShaderVulkan> vertShader, std::shared_ptr<ShaderVulkan> fragShader);
+		ShaderProgramVulkan(
+			std::shared_ptr<ShaderVulkan> vertShader,
+			std::shared_ptr<ShaderVulkan> fragShader
+		);
 
 		void loadModules(VkDevice logicDevice);
 		void closeModules(VkDevice logicDevice);
@@ -31,6 +35,6 @@ namespace DOH {
 		inline ShaderUniformLayout& getUniformLayout() const { return *mShaderUniformLayout; }
 		inline ShaderVulkan& getVertexShader() const { return *mVertexShader; }
 		inline ShaderVulkan& getFragmentShader() const { return *mFragmentShader; }
-		inline bool areShadersLoaded() const { return mVertexShader->isLoaded() && mFragmentShader->isLoaded(); }
+		inline bool areShadersLoaded() const { return mVertexShader->isUsingGpuResource() && mFragmentShader->isUsingGpuResource(); }
 	};
 }

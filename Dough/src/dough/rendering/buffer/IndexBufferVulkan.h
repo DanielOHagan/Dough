@@ -7,6 +7,7 @@ namespace DOH {
 	class IndexBufferVulkan : public BufferVulkan {
 
 	private:
+		//The number of indices to draw, by default is set to the number of indices
 		uint32_t mCount;
 
 	public:

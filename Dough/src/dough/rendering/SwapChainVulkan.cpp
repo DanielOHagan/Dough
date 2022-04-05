@@ -179,12 +179,12 @@ namespace DOH {
 		}
 	}
 	
-	void SwapChainVulkan::beginRenderPass(RenderPassType type, size_t frameBufferIndex, VkCommandBuffer cmd) {
+	void SwapChainVulkan::beginRenderPass(ERenderPassType type, size_t frameBufferIndex, VkCommandBuffer cmd) {
 		switch (type) {
-			case RenderPassType::SCENE:
+			case ERenderPassType::SCENE:
 				mSceneRenderPass->begin(mSceneFrameBuffers[frameBufferIndex], mExtent, cmd);
 				break;
-			case RenderPassType::APP_UI:
+			case ERenderPassType::APP_UI:
 				mAppUiRenderPass->begin(mAppUiFrameBuffers[frameBufferIndex], mExtent, cmd);
 				break;
 			default:
@@ -217,14 +217,14 @@ namespace DOH {
 		return imageIndex;
 	}
 
-	RenderPassVulkan& SwapChainVulkan::getRenderPass(RenderPassType type) const {
+	RenderPassVulkan& SwapChainVulkan::getRenderPass(ERenderPassType type) const {
 		switch (type) {
-			case RenderPassType::SCENE:
+			case ERenderPassType::SCENE:
 				if (mSceneRenderPass == nullptr) {
 					THROW("Scene render pass is null");
 				}
 				return *mSceneRenderPass;
-			case RenderPassType::APP_UI:
+			case ERenderPassType::APP_UI:
 				if (mAppUiRenderPass == nullptr) {
 					THROW("App UI render pass is null");
 				}

@@ -5,7 +5,7 @@
 
 namespace DOH {
 
-	ShaderVulkan::ShaderVulkan(EShaderType type, std::string& filePath)
+	ShaderVulkan::ShaderVulkan(EShaderType type, const std::string& filePath)
 	:	mShaderType(type),
 		mFilePath(filePath),
 		mShaderModule(VK_NULL_HANDLE)
@@ -13,21 +13,18 @@ namespace DOH {
 
 	void ShaderVulkan::loadModule(VkDevice logicDevice) {
 		mShaderModule = ShaderVulkan::createShaderModule(logicDevice, ResourceHandler::readFile(mFilePath));
+		mUsingGpuResource = true;
 	}
 
 	void ShaderVulkan::closeModule(VkDevice logicDevice) {
-		vkDestroyShaderModule(logicDevice, mShaderModule, nullptr);
-
-		//TODO:: Test to see if vkDestroyShaderModule already sets this to VK_NULL_HANDLE
-		mShaderModule = VK_NULL_HANDLE;
+		if (isUsingGpuResource()) {
+			vkDestroyShaderModule(logicDevice, mShaderModule, nullptr);
+			mUsingGpuResource = false;
+		}
 	}
 	
 	void ShaderVulkan::close(VkDevice logicDevice) {
-		if (isLoaded()) {
-			closeModule(logicDevice);
-		}
-
-		//TODO:: release anything else
+		closeModule(logicDevice);
 	}
 
 	VkShaderModule ShaderVulkan::createShaderModule(VkDevice logicDevice, const std::vector<char>& shaderByteCode) {

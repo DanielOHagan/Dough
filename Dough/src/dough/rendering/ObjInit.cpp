@@ -121,18 +121,17 @@ namespace DOH {
 	) {
 		return CONTEXT.createShaderProgram(vertShader, fragShader);
 	}
-	std::shared_ptr<ShaderVulkan> ObjInit::shader(EShaderType type, std::string& filePath) {
+	std::shared_ptr<ShaderVulkan> ObjInit::shader(EShaderType type, const std::string& filePath) {
 		return CONTEXT.createShader(type, filePath);
 	}
 
 
 	//-----Texture-----
-	std::shared_ptr<TextureVulkan> ObjInit::texture(std::string& filePath) {
+	std::shared_ptr<TextureVulkan> ObjInit::texture(const std::string& filePath) {
 		return CONTEXT.createTexture(filePath);
 	}
 
-	//TODO::
-	//std::shared_ptr<TextureVulkan> ObjInit::texture(glm::vec4& colour) {
-	//	return CONTEXT.createTexture(colour);
-	//}
+	std::shared_ptr<TextureVulkan> ObjInit::texture(float r, float g, float b, float a, bool colourRgbaNormalised) {
+		return CONTEXT.createTexture(r, g, b, a, colourRgbaNormalised);
+	}
 }

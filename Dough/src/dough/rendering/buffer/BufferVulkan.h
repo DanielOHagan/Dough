@@ -12,11 +12,12 @@ namespace DOH {
 		VkDeviceSize mSize;
 
 	public:
-		static const BufferVulkan* EMPTY_BUFFER;
 
 		BufferVulkan() = delete;
 		BufferVulkan(const BufferVulkan& copy) = delete;
 		BufferVulkan operator=(const BufferVulkan& assignment) = delete;
+
+		~BufferVulkan();
 
 		//Non-Staged
 		BufferVulkan(

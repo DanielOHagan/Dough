@@ -2,8 +2,10 @@
 
 #include <stdexcept>
 #include <fstream>
+#include <typeinfo>
 
 #define VAR_NAME(var) #var
+#define VAR_SAME_TYPE(var1, var2) typeid(var1) == typeid(var2)
 
 #define THROW(message) throw std::runtime_error(message)
 #define TRY(result, message) {if (result) THROW(message);}

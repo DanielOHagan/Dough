@@ -31,62 +31,6 @@ namespace DOH {
 		init(logicDevice, vertexInputBindingDesc, vertexAttributes, extent, renderPass);
 	}
 
-	void GraphicsPipelineVulkan::createUniformObjects(VkDevice logicDevice) {
-		ShaderUniformLayout& layout = mShaderProgram.getUniformLayout();
-
-		layout.initDescriptorSetLayoutBindings(layout.getTotalUniformCount());
-		std::vector<VkDescriptorSetLayoutBinding>::iterator layoutBindingIter = layout.getDescriptorSetLayoutBindings().begin();
-
-		//Create values' layout binding
-		for (const auto& [binding, value] : layout.getValueUniformMap()) {
-			layout.getDescriptorSetLayoutBindings()[binding] = DescriptorVulkan::createLayoutBinding(
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				VK_SHADER_STAGE_VERTEX_BIT,
-				1,
-				binding
-			);
-		}
-
-		//Create textures' layout binding
-		for (const auto& [binding, value] : layout.getTextureUniformMap()) {
-			layout.getDescriptorSetLayoutBindings()[binding] = DescriptorVulkan::createLayoutBinding(
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				VK_SHADER_STAGE_FRAGMENT_BIT,
-				1,
-				binding
-			);
-		}
-
-		mShaderProgram.getShaderDescriptor().createDescriptorSetLayout(logicDevice);
-	}
-
-	void GraphicsPipelineVulkan::uploadShaderUniforms(VkDevice logicDevice, VkPhysicalDevice physicalDevice, uint32_t imageCount) {
-		DescriptorVulkan& desc = mShaderProgram.getShaderDescriptor();
-		desc.createValueBuffers(logicDevice, physicalDevice, imageCount);
-		desc.createDescriptorSets(logicDevice, imageCount, mDescriptorPool);
-		desc.updateDescriptorSets(logicDevice, imageCount);
-	}
-
-	void GraphicsPipelineVulkan::recordDrawCommands(uint32_t imageIndex, VkCommandBuffer cmd) {
-		bind(cmd);
-
-		for (VertexArrayVulkan& vao : mVaoDrawList) {
-			vao.bind(cmd);
-			if (mShaderProgram.getUniformLayout().hasUniforms()) {
-				mShaderProgram.getShaderDescriptor().bindDescriptorSets(cmd, mGraphicsPipelineLayout, imageIndex);
-			}
-
-			vkCmdDrawIndexed(
-				cmd,
-				vao.getIndexBuffer().getCount(),
-				1,
-				0,
-				0,
-				0
-			);
-		}
-	}
-
 	void GraphicsPipelineVulkan::init(
 		VkDevice logicDevice,
 		VkVertexInputBindingDescription bindingDesc,
@@ -110,7 +54,7 @@ namespace DOH {
 		fragShaderStageInfo.module = mShaderProgram.getFragmentShader().getShaderModule();
 		fragShaderStageInfo.pName = "main";
 
-		VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+		VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -128,13 +72,13 @@ namespace DOH {
 		VkViewport viewport = {};
 		viewport.x = 0.0f;
 		viewport.y = 0;
-		viewport.width = (float) extent.width;
-		viewport.height = (float) extent.height;
+		viewport.width = (float)extent.width;
+		viewport.height = (float)extent.height;
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 
 		VkRect2D scissorRectangle = {};
-		scissorRectangle.offset = {0, 0};
+		scissorRectangle.offset = { 0, 0 };
 		scissorRectangle.extent = extent;
 
 		VkPipelineViewportStateCreateInfo viewportState = {};
@@ -216,12 +160,75 @@ namespace DOH {
 		mShaderProgram.closeModules(logicDevice);
 	}
 
-	void GraphicsPipelineVulkan::bind(VkCommandBuffer cmdBuffer) {
-		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline);
-	}
-
 	void GraphicsPipelineVulkan::close(VkDevice logicDevice) {
 		vkDestroyPipeline(logicDevice, mGraphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(logicDevice, mGraphicsPipelineLayout, nullptr);
+	}
+
+	void GraphicsPipelineVulkan::createUniformObjects(VkDevice logicDevice) {
+		ShaderUniformLayout& layout = mShaderProgram.getUniformLayout();
+
+		layout.initDescriptorSetLayoutBindings(layout.getTotalUniformCount());
+		std::vector<VkDescriptorSetLayoutBinding>::iterator layoutBindingIter = layout.getDescriptorSetLayoutBindings().begin();
+		//Create values' layout binding
+		for (const auto& [binding, value] : layout.getValueUniformMap()) {
+			layout.getDescriptorSetLayoutBindings()[binding] = DescriptorVulkan::createLayoutBinding(
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				VK_SHADER_STAGE_VERTEX_BIT,
+				1,
+				binding
+			);
+		}
+
+		//Create textures' layout binding
+		for (const auto& [binding, value] : layout.getTextureUniformMap()) {
+			layout.getDescriptorSetLayoutBindings()[binding] = DescriptorVulkan::createLayoutBinding(
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				VK_SHADER_STAGE_FRAGMENT_BIT,
+				1,
+				binding
+			);
+		}
+
+		//Create texture arrays' layout binding
+		for (const auto& [binding, value] : layout.getTextureArrayUniformMap()) {
+			layout.getDescriptorSetLayoutBindings()[binding] = DescriptorVulkan::createLayoutBinding(
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				VK_SHADER_STAGE_FRAGMENT_BIT,
+				value.Count,
+				binding
+			);
+		}
+
+		mShaderProgram.getShaderDescriptor().createDescriptorSetLayout(logicDevice);
+	}
+
+	void GraphicsPipelineVulkan::uploadShaderUniforms(VkDevice logicDevice, VkPhysicalDevice physicalDevice, uint32_t imageCount) {
+		DescriptorVulkan& desc = mShaderProgram.getShaderDescriptor();
+		desc.createValueBuffers(logicDevice, physicalDevice, imageCount);
+		desc.createDescriptorSets(logicDevice, imageCount, mDescriptorPool);
+		desc.updateDescriptorSets(logicDevice, imageCount);
+	}
+
+	void GraphicsPipelineVulkan::recordDrawCommands(uint32_t imageIndex, VkCommandBuffer cmd) {
+		for (VertexArrayVulkan& vao : mVaoDrawList) {
+			vao.bind(cmd);
+			if (mShaderProgram.getUniformLayout().hasUniforms()) {
+				mShaderProgram.getShaderDescriptor().bindDescriptorSets(cmd, mGraphicsPipelineLayout, imageIndex);
+			}
+
+			vkCmdDrawIndexed(
+				cmd,
+				vao.getIndexBuffer().getCount(),
+				1,
+				0,
+				0,
+				0
+			);
+		}
+	}
+
+	void GraphicsPipelineVulkan::bind(VkCommandBuffer cmdBuffer) {
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline);
 	}
 }

@@ -3,6 +3,7 @@
 #include "dough/Maths.h"
 #include "dough/Core.h"
 #include "dough/Window.h"
+#include "dough/rendering/IGPUResourceVulkan.h"
 
 namespace DOH {
 
@@ -19,18 +20,9 @@ namespace DOH {
 		VkRenderPass UiRenderPass;
 	};
 
-	class ImGuiWrapper {
+	class ImGuiWrapper : public IGPUResourceVulkan {
 	
 	private:
-		struct PushConstantBlock {
-			glm::vec2 Scale;
-			glm::vec2 Translate;
-		} mPushConstantBlock;
-
-		std::unique_ptr<std::string> mImGuiShaderVertPath = std::make_unique<std::string>("res/shaders/spv/ImGui.vert.spv");
-		std::unique_ptr<std::string> mImGuiShaderFragPath = std::make_unique<std::string>("res/shaders/spv/ImGui.frag.spv");
-
-		//VkCommandPool mCommandPool = VK_NULL_HANDLE;
 		VkDescriptorPool mDescriptorPool = VK_NULL_HANDLE;
 
 	public:
@@ -44,7 +36,6 @@ namespace DOH {
 		void newFrame();
 		void endFrame();
 		void render(VkCommandBuffer cmd);
-
-		inline const PushConstantBlock& getPushConstantBlock() const { return mPushConstantBlock; }
+		void onWindowResize(int width, int height) const;
 	};
 }

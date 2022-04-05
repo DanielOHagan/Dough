@@ -1,5 +1,6 @@
 #pragma once
 
+#include "dough/Core.h"
 #include "dough/rendering/buffer/BufferElement.h"
 
 namespace DOH {

@@ -5,7 +5,7 @@
 
 namespace DOH {
 
-	class DescriptorVulkan {
+	class DescriptorVulkan : public IGPUResourceVulkan {
 
 	private:
 		VkDescriptorSetLayout mDescriptorSetLayout;
@@ -24,7 +24,7 @@ namespace DOH {
 		void createValueBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice, size_t count);
 		void createDescriptorSets(VkDevice logicDevice, size_t count, VkDescriptorPool descPool);
 
-		void updateDescriptorSets(VkDevice logicDevice, size_t count);
+		void updateDescriptorSets(VkDevice logicDevice, size_t imageCount);
 		void bindDescriptorSets(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout, size_t descriptorSetIndex);
 
 		void closeBuffers(VkDevice logicDevice);

@@ -34,9 +34,10 @@ namespace TG {
 		inline void translateX(float translation) { mPosition.x += translation; }
 		inline void translateY(float translation) { mPosition.y += translation; }
 		inline void translateZ(float translation) { mPosition.z += translation; }
+		inline void translateXY(float x, float y) { mPosition.x += x; mPosition.y += y; };
 		inline void setTranslationSpeed(float speed) { mTranslationSpeed = speed; };
 		inline float getTranslationSpeed() const { return mTranslationSpeed; };
-		inline void setPosition(glm::vec3& pos) { mPosition = pos; };
+		inline void setPosition(glm::vec3 pos) { mPosition = pos; }
 		inline const glm::vec3& getPosition() const { return mPosition; };
 
 		void zoom(float zoomAmount);

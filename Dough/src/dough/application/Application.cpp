@@ -64,8 +64,8 @@ namespace DOH {
 
 	void Application::close() {
 		mAppInfoTimer->recordInterval("Closing start");
-		mWindow->close();
 		mAppLogic->close();
+		mWindow->close();
 		mRenderer->close();
 
 		Input::close();
@@ -79,22 +79,27 @@ namespace DOH {
 
 	int Application::start(std::shared_ptr<IApplicationLogic> appLogic) {
 		INSTANCE = new Application();
+		int returnCode = 0;
 		
 		if (Application::isInstantiated()) {
 			try {
 				INSTANCE->init(appLogic);
 				INSTANCE->run();
-				INSTANCE->close();
-				return EXIT_SUCCESS;
+				returnCode = EXIT_SUCCESS;
 			} catch (const std::exception& e) {
-				//TODO:: Fix situation where if exception thrown during close() then close() will have been called twice.
-				INSTANCE->close();
+				LOG_RED("Fatal error: ");
 				LOG_ERR(e.what());
-				return EXIT_FAILURE;
+				LOG_ENDL;
+				returnCode = EXIT_FAILURE;
 			}
+
+			INSTANCE->close();
+
 		} else {
-			return EXIT_FAILURE;
+			returnCode = EXIT_FAILURE;
 		}
+
+		return returnCode;
 	}
 
 	void Application::onWindowEvent(WindowEvent& windowEvent) {

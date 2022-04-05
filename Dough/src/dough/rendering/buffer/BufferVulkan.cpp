@@ -5,7 +5,13 @@
 
 namespace DOH {
 
-	const BufferVulkan* BufferVulkan::EMPTY_BUFFER = nullptr;
+	BufferVulkan::~BufferVulkan() {
+		//GPU resources MUST be released separately from destructor
+		if (isUsingGpuResource()) {
+			int breakPointChance = 0;
+			//THROW("Buffer GPU resource NOT released before destructor was called");
+		}
+	}
 
 	//Non-staged
 	BufferVulkan::BufferVulkan(
@@ -80,6 +86,8 @@ namespace DOH {
 		);
 
 		vkBindBufferMemory(logicDevice, mBuffer, mBufferMemory, 0);
+
+		mUsingGpuResource = true;
 	}
 
 	void BufferVulkan::initStaged(
@@ -138,13 +146,16 @@ namespace DOH {
 	}
 
 	void BufferVulkan::close(VkDevice logicDevice) {
-		clearBuffer(logicDevice);
+		if (isUsingGpuResource()) {
+			clearBuffer(logicDevice);
+		}
 	}
 
 	void BufferVulkan::setData(VkDevice logicDevice, const void* data, size_t size) {
 		mSize = size;
 		void* mappedData;
 		vkMapMemory(logicDevice, mBufferMemory, 0, size, 0, &mappedData);
+
 		memcpy(mappedData, data, size);
 		vkUnmapMemory(logicDevice, mBufferMemory);
 	}
@@ -152,6 +163,8 @@ namespace DOH {
 	void BufferVulkan::clearBuffer(VkDevice logicDevice) {
 		vkDestroyBuffer(logicDevice, mBuffer, nullptr);
 		vkFreeMemory(logicDevice, mBufferMemory, nullptr);
+
+		mUsingGpuResource = false;
 	}
 
 	void BufferVulkan::copyToBuffer(BufferVulkan& destination, VkCommandBuffer cmd) {
@@ -162,6 +175,7 @@ namespace DOH {
 		BufferVulkan::copyBuffer(source, *this, cmd);
 	}
 
+	//TODO:: This is blocking
 	void BufferVulkan::copyBuffer(
 		VkDevice logicDevice,
 		VkCommandPool cmdPool,
