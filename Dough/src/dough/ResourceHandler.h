@@ -14,7 +14,11 @@ namespace DOH {
 		static ResourceHandler INSTANCE;
 
 	private:
-		ResourceHandler() {};
+		ResourceHandler()
+		:	mNextAvailableTextureId(0)
+		{}
+
+		uint32_t mNextAvailableTextureId;
 
 		TextureCreationData loadTextureImpl(const char* filepath);
 		void freeImageImpl(void* imageData);
@@ -29,5 +33,6 @@ namespace DOH {
 		static TextureCreationData loadTexture(const char* filepath);
 		static void freeImage(void* imageData);
 		static std::vector<char> readFile(const std::string& filename);
+		static uint32_t getNextUniqueTextureId();
 	};
 }

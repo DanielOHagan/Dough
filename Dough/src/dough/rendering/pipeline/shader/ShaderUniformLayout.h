@@ -6,8 +6,6 @@ namespace DOH {
 
 	class ShaderUniformLayout {
 
-		//TODO:: Add limit to texture array size based off device limitations and batch sizing
-
 	private:
 		std::vector<VkDescriptorSetLayoutBinding> mDescriptorSetLayoutBindings;
 

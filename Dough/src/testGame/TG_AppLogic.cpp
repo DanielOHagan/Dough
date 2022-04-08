@@ -32,6 +32,10 @@ namespace TG {
 		if (mImGuiSettings.mRenderScene) {
 			renderer.getContext().addVaoToSceneDrawList(*mSceneVertexArray);
 		}
+
+		if (mImGuiSettings.mRenderBatchQuadScene) {
+			renderer.getContext().getRenderer2d().drawQuadArrayScene(mTestGrid);
+		}
 		renderer.endScene();
 
 		renderer.beginUi(mUiProjMat);
@@ -80,13 +84,51 @@ namespace TG {
 		if (ImGui::CollapsingHeader("Rendering")) {
 			ImGui::Checkbox("Render Scene", &mImGuiSettings.mRenderScene);
 			ImGui::Checkbox("Render UI", &mImGuiSettings.mRenderUi);
-			mImGuiSettings.mRenderBatchQuadScene = ImGui::Checkbox("Render Batch Quad Scene", &renderer.getContext().mRenderSceneBatch);
-			mImGuiSettings.mRenderBatchQuadUi = ImGui::Checkbox("Render Batch Quad UI", &renderer.getContext().mRenderUiBatch);
+			ImGui::Checkbox("Render Batch Quad Scene", &mImGuiSettings.mRenderBatchQuadScene);
+			ImGui::Checkbox("Render Batch Quad UI", &mImGuiSettings.mRenderBatchQuadUi);
 			//TODO:: ImGui::Checkbox("Render Wireframes", &mRenderWireframes);
 
 			mImGuiSettings.mRenderingCollapseMenuOpen = true;
 		} else {
 			mImGuiSettings.mRenderingCollapseMenuOpen = false;
+		}
+
+		ImGui::SetNextItemOpen(mImGuiSettings.mSceneDataCollapseMenuOpen);
+		if (ImGui::CollapsingHeader("Quad Test Grid")) {
+			ImGui::Text("Test Grid Quad Count: %i", mTestGridSize[0] * mTestGridSize[1]);
+			int tempTestGridSize[2] = { mTestGridSize[0], mTestGridSize[1] };
+			ImGui::InputInt2("Test Grid Size", tempTestGridSize);
+			if (tempTestGridSize[0] > 0 && tempTestGridSize[1] > 0) {
+				int tempGridQuadCount = tempTestGridSize[0] * tempTestGridSize[1];
+				if (tempGridQuadCount <= mTestGridMaxQuadCount) {
+					mTestGridSize[0] = tempTestGridSize[0];
+					mTestGridSize[1] = tempTestGridSize[1];
+				} else {
+					LOG_WARN(
+						"New grid size of " << tempTestGridSize[0] << "x" << tempTestGridSize[1] <<
+						" (" << tempTestGridSize[0] * tempTestGridSize[1] <<
+						") is too large, max quad count is " << mTestGridMaxQuadCount
+					);
+				}
+			}
+
+			ImGui::DragFloat2("Test Grid Quad Size", mTestGridQuadSize, 0.001f, 0.01f, 0.5f);
+			ImGui::DragFloat2("Test Grid Quad Gap Size", mTestGridQuadGapSize, 0.001f, 0.01f, 0.5f);
+			//ImGui::DragFloat2("Test Grid Origin Pos", );
+			//ImGui::Text("UI Quad Count: %i", renderer.getContext().getRenderer2d().getStorage().getUiQuadCount());
+
+			//TOOD:: maybe have radio buttons for RenderStaticGrid or RenderDynamicGrid,
+			//	static being the default values and dynamic being from the variables determined by ths menu
+			// Maybe have the dynamic settings hidden unless dynamic is selected
+
+			if (ImGui::Button("Reset Grid")) {
+				//TODO:: Set values to default
+				LOG_WARN("'Reset Grid' button not implemented yet");
+			}
+
+			mImGuiSettings.mSceneDataCollapseMenuOpen = true;
+		} else {
+			mImGuiSettings.mSceneDataCollapseMenuOpen = false;
 		}
 
 		//TODO:: Use different formats, currently looks bad
@@ -110,12 +152,6 @@ namespace TG {
 			mImGuiSettings.mCameraCollapseMenuOpen = true;
 		} else {
 			mImGuiSettings.mCameraCollapseMenuOpen = false;
-		}
-
-		ImGui::SetNextItemOpen(mImGuiSettings.mSceneDataCollapseMenuOpen);
-		if (ImGui::CollapsingHeader("Scene Data")) {
-			ImGui::Text("Scene Quad Count: %i", renderer.getContext().getRenderer2d().getStorage().getSceneQuadCount());
-			//ImGui::Text("UI Quad Count: %i", renderer.getContext().getRenderer2d().getStorage().getUiQuadCount());
 		}
 
 
@@ -184,6 +220,29 @@ namespace TG {
 		GET_RENDERER.prepareScenePipeline(*mSceneShaderProgram);
 
 		TG_mOrthoCameraController = std::make_shared<TG::TG_OrthoCameraController>(aspectRatio);
+
+		populateTestGrid(mTestGridSize[0], mTestGridSize[0]);
+	}
+
+	void TG_AppLogic::populateTestGrid(int width, int height) {
+		for (float x = 0.0f; x < width; x++) {
+			for (float y = 0.0f; y < height; y++) {
+				Quad quad = {
+					{x * mTestGridQuadGapSize[0], y * mTestGridQuadGapSize[1], 1.0f},
+					{mTestGridQuadSize[0], mTestGridQuadSize[1]},
+					{0.0f, 1.0f, 1.0f, 1.0f}
+				};
+
+				//TOOD:: texture slot to be determined by batch by texture that is attatched to quad
+				//uint32_t textureSlot = static_cast<uint32_t>(x) % 8;
+
+				mTestGrid.push_back({
+					{x * mTestGridQuadGapSize[0], y * mTestGridQuadGapSize[1], 1.0f},
+					{mTestGridQuadSize[0], mTestGridQuadSize[1]},
+					{0.0f, 1.0f, 1.0f, 1.0f}
+				});
+			}
+		}
 	}
 
 	void TG_AppLogic::initUi() {

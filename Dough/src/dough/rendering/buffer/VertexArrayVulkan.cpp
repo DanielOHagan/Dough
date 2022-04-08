@@ -35,6 +35,14 @@ namespace DOH {
 		}
 	}
 
+	void VertexArrayVulkan::closeVertexBuffers(VkDevice logicDevice) {
+		for (std::shared_ptr<VertexBufferVulkan> vbo : mVertexBuffers) {
+			vbo->close(logicDevice);
+		}
+
+		mVertexBuffers.clear();
+	}
+
 	void VertexArrayVulkan::close(VkDevice logicDevice) {
 		for (std::shared_ptr<VertexBufferVulkan> vertexBuffer : mVertexBuffers) {
 			vertexBuffer->close(logicDevice);

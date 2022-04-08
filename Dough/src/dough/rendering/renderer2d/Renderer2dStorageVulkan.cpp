@@ -11,8 +11,6 @@ namespace DOH {
 
 	Renderer2dStorageVulkan::Renderer2dStorageVulkan(RenderingContextVulkan& context)
 	:	mContext(context),
-		mSceneQuadDataIndex(0),
-		mSceneQuadCount(0),
 		mDescriptorPool(VK_NULL_HANDLE)
 	{}
 
@@ -38,9 +36,6 @@ namespace DOH {
 		mQuadShaderProgram->close(logicDevice);
 		mQuadGraphicsPipeline->close(logicDevice);
 		mQuadVao->close(logicDevice);
-		mQuadVbo->close(logicDevice);
-
-		mSceneQuadData.clear();
 
 		mWhiteTexture->close(logicDevice);
 
@@ -84,7 +79,11 @@ namespace DOH {
 			ObjInit::shader(EShaderType::FRAGMENT, Renderer2dStorageVulkan::QUAD_SHADER_PATH_FRAG)
 		);
 
-		mSceneQuadData.resize(BatchSizeLimits::QUAD_COMPONENT_COUNT);
+		mRenderBatchQuad = std::make_unique<RenderBatchQuad>(
+			BatchSizeLimits::BATCH_QUAD_COUNT,
+			BatchSizeLimits::SINGLE_QUAD_COMPONENT_COUNT,
+			BatchSizeLimits::BATCH_MAX_TEXTURE_COUNT
+		);
 
 		ShaderUniformLayout& layout = mQuadShaderProgram->getUniformLayout();
 		layout.setValue(0, sizeof(glm::mat4x4));
@@ -104,42 +103,25 @@ namespace DOH {
 			{ mWhiteTexture->getImageView(), mWhiteTexture->getSampler() }
 		);
 
-		glm::vec2 quadSize = { 0.1f, 0.1f };
-		const float quadGapDistanceX = quadSize.x * 1.5f;
-		const float quadGapDistanceY = quadSize.y * 1.5f;
-
-		for (float x = 0.0f; x < 10.0f; x++) {
-			for (float y = 0.0f; y < 10.0f; y++) {
-				Quad quad = {
-					{x * quadGapDistanceX, y * quadGapDistanceY, 1.0f},
-					quadSize,
-					{0.0f, 1.0f, 1.0f, 1.0f}
-				};
-				uint32_t textureSlot = static_cast<uint32_t>(x) % 8;
-				addSceneQuad(quad, (uint32_t) (x + y) % 8);
-			}
-		}
-
 		mQuadVao = ObjInit::vertexArray();
-		mQuadVbo = ObjInit::stagedVertexBuffer(
+		std::shared_ptr<VertexBufferVulkan> vbo = ObjInit::vertexBuffer(
 			{
 				{ EDataType::FLOAT3 },
 				{ EDataType::FLOAT4 },
 				{ EDataType::FLOAT2 },
 				{ EDataType::FLOAT }
 			},
-			mSceneQuadData.data(),
-			sizeof(float) * mSceneQuadData.size(),
+			BatchSizeLimits::BATCH_QUAD_BYTE_SIZE,
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
 		);
-		mQuadVao->addVertexBuffer(mQuadVbo);
+		mQuadVao->addVertexBuffer(vbo);
 
 		//Quad index buffer
 		std::vector<uint16_t> quadIndices;
-		quadIndices.resize(BatchSizeLimits::QUAD_INDEX_COUNT);
+		quadIndices.resize(BatchSizeLimits::BATCH_QUAD_INDEX_COUNT);
 		uint16_t vertexOffset = 0;
-		for (uint16_t i = 0; i < BatchSizeLimits::QUAD_INDEX_COUNT; i += BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT) {
+		for (uint16_t i = 0; i < BatchSizeLimits::BATCH_QUAD_INDEX_COUNT; i += BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT) {
 			quadIndices[i + 0] = vertexOffset + 0;
 			quadIndices[i + 1] = vertexOffset + 1;
 			quadIndices[i + 2] = vertexOffset + 2;
@@ -152,8 +134,8 @@ namespace DOH {
 		}
 		std::shared_ptr<IndexBufferVulkan> quadIb = ObjInit::stagedIndexBuffer(
 			quadIndices.data(),
-			sizeof(uint16_t) * BatchSizeLimits::QUAD_INDEX_COUNT,
-			BatchSizeLimits::QUAD_INDEX_COUNT
+			sizeof(uint16_t) * BatchSizeLimits::BATCH_QUAD_INDEX_COUNT,
+			BatchSizeLimits::BATCH_QUAD_INDEX_COUNT
 		);
 		mQuadVao->setIndexBuffer(quadIb);
 
@@ -171,182 +153,16 @@ namespace DOH {
 	}
 
 	void Renderer2dStorageVulkan::addSceneQuad(Quad& quad) {
-		int texCoordsIndex = 0;
-		const uint32_t textureSlotIndex = 0;
-
-		addSceneQuadVertexToBatch(
-			quad.getPosition().x,
-			quad.getPosition().y,
-			quad.getPosition().z,
-			quad.getColour().x,
-			quad.getColour().y,
-			quad.getColour().z,
-			quad.getColour().w,
-			//quad.mTextureCoordsU[texCoordsIndex],
-			//quad.mTextureCoordsV[texCoordsIndex],
-			0.0f,
-			1.0f,
-			textureSlotIndex
-		);
-		texCoordsIndex++;
-
-		addSceneQuadVertexToBatch(
-			quad.getPosition().x + quad.getSize().x,
-			quad.getPosition().y,
-			quad.getPosition().z,
-			quad.getColour().x,
-			quad.getColour().y,
-			quad.getColour().z,
-			quad.getColour().w,
-			//quad.mTextureCoordsU[texCoordsIndex],
-			//quad.mTextureCoordsV[texCoordsIndex],
-			1.0f,
-			1.0f,
-			textureSlotIndex
-		);
-		texCoordsIndex++;
-
-		addSceneQuadVertexToBatch(
-			quad.getPosition().x + quad.getSize().x,
-			quad.getPosition().y + quad.getSize().y,
-			quad.getPosition().z,
-			quad.getColour().x,
-			quad.getColour().y,
-			quad.getColour().z,
-			quad.getColour().w,
-			//quad.mTextureCoordsU[texCoordsIndex],
-			//quad.mTextureCoordsV[texCoordsIndex],
-			1.0f,
-			0.0f,
-			textureSlotIndex
-		);
-		texCoordsIndex++;
-
-		addSceneQuadVertexToBatch(
-			quad.getPosition().x,
-			quad.getPosition().y + quad.getSize().y,
-			quad.getPosition().z,
-			quad.getColour().x,
-			quad.getColour().y,
-			quad.getColour().z,
-			quad.getColour().w,
-			//quad.mTextureCoordsU[texCoordsIndex],
-			//quad.mTextureCoordsV[texCoordsIndex],
-			0.0f,
-			0.0f,
-			textureSlotIndex
-		);
-
-		mSceneQuadCount++;
+		mRenderBatchQuad->add(quad, 0);
 	}
 
 	void Renderer2dStorageVulkan::addSceneQuad(Quad& quad, uint32_t textureSlotIndex) {
-		int texCoordsIndex = 0;
-
-		addSceneQuadVertexToBatch(
-			quad.getPosition().x,
-			quad.getPosition().y,
-			quad.getPosition().z,
-			quad.getColour().x,
-			quad.getColour().y,
-			quad.getColour().z,
-			quad.getColour().w,
-			//quad.mTextureCoordsU[texCoordsIndex],
-			//quad.mTextureCoordsV[texCoordsIndex],
-			0.0f,
-			1.0f,
-			static_cast<float>(textureSlotIndex)
-		);
-		texCoordsIndex++;
-
-		addSceneQuadVertexToBatch(
-			quad.getPosition().x + quad.getSize().x,
-			quad.getPosition().y,
-			quad.getPosition().z,
-			quad.getColour().x,
-			quad.getColour().y,
-			quad.getColour().z,
-			quad.getColour().w,
-			//quad.mTextureCoordsU[texCoordsIndex],
-			//quad.mTextureCoordsV[texCoordsIndex],
-			1.0f,
-			1.0f,
-			static_cast<float>(textureSlotIndex)
-		);
-		texCoordsIndex++;
-
-		addSceneQuadVertexToBatch(
-			quad.getPosition().x + quad.getSize().x,
-			quad.getPosition().y + quad.getSize().y,
-			quad.getPosition().z,
-			quad.getColour().x,
-			quad.getColour().y,
-			quad.getColour().z,
-			quad.getColour().w,
-			//quad.mTextureCoordsU[texCoordsIndex],
-			//quad.mTextureCoordsV[texCoordsIndex],
-			1.0f,
-			0.0f,
-			static_cast<float>(textureSlotIndex)
-		);
-		texCoordsIndex++;
-
-		addSceneQuadVertexToBatch(
-			quad.getPosition().x,
-			quad.getPosition().y + quad.getSize().y,
-			quad.getPosition().z,
-			quad.getColour().x,
-			quad.getColour().y,
-			quad.getColour().z,
-			quad.getColour().w,
-			//quad.mTextureCoordsU[texCoordsIndex],
-			//quad.mTextureCoordsV[texCoordsIndex],
-			0.0f,
-			0.0f,
-			static_cast<float>(textureSlotIndex)
-		);
-
-		mSceneQuadCount++;
+		mRenderBatchQuad->add(quad, textureSlotIndex);
 	}
 
-	void Renderer2dStorageVulkan::resetBatch() {
-		mSceneQuadCount = 0;
-		mSceneQuadDataIndex = 0;
-		//mQuadTextureSlots.clear();
-	}
-
-	void Renderer2dStorageVulkan::addSceneQuadVertexToBatch(
-		float posX,
-		float posY,
-		float posZ,
-		float colourR,
-		float colourG,
-		float colourB,
-		float colourA,
-		float texCoordU,
-		float texCoordV,
-		float texIndex 
-	) {
-		mSceneQuadData[mSceneQuadDataIndex] = posX;
-		mSceneQuadDataIndex++;
-		mSceneQuadData[mSceneQuadDataIndex]  = posY;
-		mSceneQuadDataIndex++;
-		mSceneQuadData[mSceneQuadDataIndex]  = posZ;
-		mSceneQuadDataIndex++;
-		mSceneQuadData[mSceneQuadDataIndex]  = colourR;
-		mSceneQuadDataIndex++;
-		mSceneQuadData[mSceneQuadDataIndex]  = colourG;
-		mSceneQuadDataIndex++;
-		mSceneQuadData[mSceneQuadDataIndex]  = colourB;
-		mSceneQuadDataIndex++;
-		mSceneQuadData[mSceneQuadDataIndex]  = colourA;
-		mSceneQuadDataIndex++;
-
-		mSceneQuadData[mSceneQuadDataIndex] = texCoordU;
-		mSceneQuadDataIndex++;
-		mSceneQuadData[mSceneQuadDataIndex] = texCoordV;
-		mSceneQuadDataIndex++;
-		mSceneQuadData[mSceneQuadDataIndex] = texIndex;
-		mSceneQuadDataIndex++;
+	void Renderer2dStorageVulkan::addSceneQuadArray(std::vector<Quad>& quadArr) {
+		for (Quad& quad : quadArr) {
+			mRenderBatchQuad->add(quad, 0);
+		}
 	}
 }

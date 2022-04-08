@@ -212,9 +212,7 @@ namespace DOH {
 		mSwapChain->beginRenderPass(SwapChainVulkan::ERenderPassType::SCENE, imageIndex, cmd);
 		mSceneGraphicsPipeline->bind(cmd);
 		mSceneGraphicsPipeline->recordDrawCommands(imageIndex, cmd);
-		if (mRenderSceneBatch) {
-			mRenderer2d->flush/*Scene*/(mLogicDevice, imageIndex, cmd);
-		}
+		mRenderer2d->flushScene(mLogicDevice, imageIndex, cmd);
 		mSwapChain->endRenderPass(cmd);
 	}
 
@@ -222,9 +220,7 @@ namespace DOH {
 		mSwapChain->beginRenderPass(SwapChainVulkan::ERenderPassType::APP_UI, imageIndex, cmd);
 		mAppUiGraphicsPipeline->bind(cmd);
 		mAppUiGraphicsPipeline->recordDrawCommands(imageIndex, cmd);
-		if (mRenderUiBatch) {
-			//Renderer2d::get().flushUi();
-		}
+		//Renderer2d::get().flushUi();
 		mImGuiWrapper->render(cmd);
 		mSwapChain->endRenderPass(cmd);
 	}
@@ -242,13 +238,12 @@ namespace DOH {
 
 		VkSemaphore waitSemaphores[] = { mImageAvailableSemaphores[mCurrentFrame] };
 		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+		VkSemaphore signalSemaphores[] = { mRenderFinishedSemaphores[mCurrentFrame] };
 		submitInfo.waitSemaphoreCount = 1;
 		submitInfo.pWaitSemaphores = waitSemaphores;
 		submitInfo.pWaitDstStageMask = waitStages;
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &cmd;
-
-		VkSemaphore signalSemaphores[] = { mRenderFinishedSemaphores[mCurrentFrame] };
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = signalSemaphores;
 
@@ -454,22 +449,22 @@ namespace DOH {
 		allocation.commandPool = mCommandPool;
 		allocation.commandBufferCount = 1;
 
-		VkCommandBuffer cmdBuffer;
+		VkCommandBuffer cmd;
 		VK_TRY(
-			vkAllocateCommandBuffers(mLogicDevice, &allocation, &cmdBuffer),
+			vkAllocateCommandBuffers(mLogicDevice, &allocation, &cmd),
 			"Failed to allocate single time command buffer"
 		);
-		beginCommandBuffer(cmdBuffer, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-		return cmdBuffer;
+		beginCommandBuffer(cmd, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+		return cmd;
 	}
 
-	void RenderingContextVulkan::endSingleTimeCommands(VkCommandBuffer cmdBuffer) {
-		vkEndCommandBuffer(cmdBuffer);
+	void RenderingContextVulkan::endSingleTimeCommands(VkCommandBuffer cmd) {
+		endCommandBuffer(cmd);
 
 		VkSubmitInfo submit{};
 		submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submit.commandBufferCount = 1;
-		submit.pCommandBuffers = &cmdBuffer;
+		submit.pCommandBuffers = &cmd;
 
 		VK_TRY(
 			vkQueueSubmit(mGraphicsQueue, 1, &submit, VK_NULL_HANDLE),
@@ -481,7 +476,7 @@ namespace DOH {
 			"Failed to wait on graphics queue for single time command"
 		);
 
-		vkFreeCommandBuffers(mLogicDevice, mCommandPool, 1, &cmdBuffer);
+		vkFreeCommandBuffers(mLogicDevice, mCommandPool, 1, &cmd);
 	}
 
 	void RenderingContextVulkan::beginCommandBuffer(VkCommandBuffer cmd, VkCommandBufferUsageFlags usage) {

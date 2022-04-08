@@ -5,6 +5,7 @@
 #include "dough/rendering/buffer/VertexArrayVulkan.h"
 #include "dough/rendering/TextureVulkan.h"
 #include "dough/rendering/Config.h"
+#include "dough/scene/geometry/Quad.h"
 
 #include "testGame/TG_OrthoCameraController.h"
 
@@ -48,6 +49,11 @@ namespace TG {
 		std::shared_ptr<VertexArrayVulkan> mSceneVertexArray;
 		std::shared_ptr<TextureVulkan> mTestTexture1;
 		std::shared_ptr<TextureVulkan> mTestTexture2;
+		std::vector<Quad> mTestGrid;
+		int mTestGridMaxQuadCount = 1000;
+		int mTestGridSize[2] = { 10, 10 };
+		float mTestGridQuadSize[2] = { 0.1f, 0.1f };
+		float mTestGridQuadGapSize[2] = { mTestGridQuadSize[0] * 1.5f, mTestGridQuadSize[1] * 1.5f };
 
 		//UI Data
 		const std::string mUiShaderVertPath = "res/shaders/spv/SimpleUi.vert.spv";
@@ -100,6 +106,8 @@ namespace TG {
 			mUiProjMat = glm::ortho(-aspectRatio, aspectRatio, -1.0f, 1.0f, -1.0f, 1.0f);
 			mUiProjMat[1][1] *= -1;
 		}
+
+		void populateTestGrid(int width, int height);
 
 		//ImGui convenience functions
 		void imguiDisplayHelpTooltip(const char* message);

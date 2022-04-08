@@ -8,7 +8,7 @@ namespace DOH {
 	class VertexArrayVulkan : public IGPUResourceVulkan {
 
 		//TODO:: Multiple VBOs aren't fully supported, for now only use one
-		//	It might not be worth adding support for > 1 VBOs as interweaving data
+		//	It might not be worth adding support for > 1 VBOs as interleaving data
 		//	is faster than sorting many different vertex input possibilities
 
 	private:
@@ -29,6 +29,7 @@ namespace DOH {
 		void bind(VkCommandBuffer cmdBuffer);
 
 		void addVertexBuffer(std::shared_ptr<VertexBufferVulkan> vertexBuffer);
+		void closeVertexBuffers(VkDevice logicDevice);
 		virtual void close(VkDevice logicDevice) override;
 
 		inline void setIndexBuffer(std::shared_ptr<IndexBufferVulkan> indexBuffer) { mIndexBuffer = indexBuffer; }

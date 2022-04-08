@@ -24,7 +24,6 @@ namespace DOH {
 			glm::vec3 pos,
 			glm::vec2 size,
 			glm::vec4 colour,
-			//TextureVulkan& texture = Renderer2dStorageVulkan::getWhiteTexture(),
 			float rotationRads = 0.0f
 		) : AGeometry(pos, size, rotationRads),
 			mColour(colour)
@@ -33,8 +32,5 @@ namespace DOH {
 		inline glm::vec4 getColour() const { return mColour; }
 		inline void setColour(glm::vec4 colour) { mColour = colour; }
 		inline void setColour(float r, float g, float b, float a) { mColour.x = r; mColour.y = g; mColour.z = b; mColour.w = a; }
-		//inline bool isUsingTexture() const { return mTexture.getId() == Renderer2dStorageVulkan::getWhiteTexture().getId(); }
-		//inline TextureVulkan& getTexture() const { mOptionalTexture.value(); }
-		//inline void setTexture(TextureVulkan& texture) { mTexture = texture; }
 	};
 }

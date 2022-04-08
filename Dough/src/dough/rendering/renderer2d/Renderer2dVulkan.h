@@ -3,7 +3,6 @@
 #include "dough/Utils.h"
 #include "dough/scene/geometry/Quad.h"
 #include "dough/rendering/renderer2d/Renderer2dStorageVulkan.h"
-//#include "dough/rendering/SwapChainVulkan.h"
 
 #include <vulkan/vulkan_core.h>
 
@@ -29,13 +28,12 @@ namespace DOH {
 		void recreateSwapChainSpecificObjects(SwapChainVulkan& swapChain);
 
 		void updateSceneUniformData(VkDevice logicDevice, uint32_t currentImage, glm::mat4x4& sceneProjView);
-		void flush(VkDevice logicDevice, uint32_t imageIndex, VkCommandBuffer cmd);
-
+		void flushScene(VkDevice logicDevice, uint32_t imageIndex, VkCommandBuffer cmd);
 		//TODO:: separate flush functions for rendering in different render passes
-		//void flushScene();
 		//void flushUi();
 
 		void drawQuadScene(Quad& quad);
+		void drawQuadArrayScene(std::vector<Quad>& quadArr);
 		//void drawQuadUi(Quad& quad);
 
 

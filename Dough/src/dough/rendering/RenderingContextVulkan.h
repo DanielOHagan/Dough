@@ -15,14 +15,14 @@ namespace DOH {
 		struct UniformBufferObject {
 			glm::mat4 ProjectionViewMat;
 		} mSceneUbo;
-		
+
 		//Shared device handles for convenience
 		VkDevice mLogicDevice;
 		VkPhysicalDevice mPhysicalDevice;
 
 		std::unique_ptr<VkPhysicalDeviceProperties> mPhysicalDeviceProperties;
 		std::unique_ptr<SwapChainCreationInfo> mSwapChainCreationInfo;
-		
+
 		VkQueue mGraphicsQueue;
 		VkQueue mPresentQueue;
 		std::vector<VkCommandBuffer> mCommandBuffers;
@@ -31,7 +31,7 @@ namespace DOH {
 
 		std::shared_ptr<GraphicsPipelineVulkan> mSceneGraphicsPipeline;
 		std::shared_ptr<GraphicsPipelineVulkan> mAppUiGraphicsPipeline;
-		
+
 		std::unique_ptr<Renderer2dVulkan> mRenderer2d;
 		std::unique_ptr<ImGuiWrapper> mImGuiWrapper;
 
@@ -160,10 +160,6 @@ namespace DOH {
 			VkImage image,
 			VkMemoryPropertyFlags props
 		);
-
-		//-----DEBUG----- (TEMP)
-		bool mRenderSceneBatch = true;
-		bool mRenderUiBatch = true;
 
 		//-----Pipeline-----
 		std::shared_ptr<GraphicsPipelineVulkan> createGraphicsPipeline(

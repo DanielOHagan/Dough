@@ -60,6 +60,8 @@ namespace DOH {
 		createSampler();
 
 		imageStagingBuffer->close(logicDevice);
+
+		mId = ResourceHandler::getNextUniqueTextureId();
 	}
 
 	TextureVulkan::TextureVulkan(
@@ -81,7 +83,7 @@ namespace DOH {
 			a *= 255;
 		}
 
-		std::array<float, 4> colourData = { r, g, b, a };
+		std::array<float, 4> colourData = { a, r, g, b };
 		std::shared_ptr<BufferVulkan> imageStagingBuffer = ObjInit::stagedBuffer(
 			colourData.data(),
 			sizeof(colourData),
@@ -120,6 +122,8 @@ namespace DOH {
 		createSampler();
 
 		imageStagingBuffer->close(logicDevice);
+
+		mId = ResourceHandler::getNextUniqueTextureId();
 	}
 
 	void TextureVulkan::close(VkDevice logicDevice) {

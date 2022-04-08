@@ -16,6 +16,10 @@ namespace DOH {
 		ResourceHandler::INSTANCE.freeImageImpl(imageData);
 	}
 
+	uint32_t ResourceHandler::getNextUniqueTextureId() {
+		return ResourceHandler::INSTANCE.mNextAvailableTextureId++;
+	}
+
 	std::vector<char> ResourceHandler::readFile(const std::string& filename) {
 		std::ifstream file(filename, std::ios::ate | std::ios::binary);
 

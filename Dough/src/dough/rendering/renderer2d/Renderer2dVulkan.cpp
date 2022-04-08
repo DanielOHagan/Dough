@@ -1,6 +1,6 @@
 #include "dough/rendering/renderer2d/Renderer2dVulkan.h"
 
-#include "dough/rendering/renderer2d/Renderer2dStorageVulkan.h"
+#include "dough/rendering/RenderingContextVulkan.h"
 #include "dough/Logging.h"
 #include "dough/rendering/ObjInit.h"
 
@@ -35,6 +35,14 @@ namespace DOH {
 		}
 	}
 
+	void Renderer2dVulkan::drawQuadArrayScene(std::vector<Quad>& quadArr) {
+		if (mStorage->sceneQuadBatchHasSpace(quadArr.size())) {
+			mStorage->addSceneQuadArray(quadArr);
+		} else {
+			LOG_WARN("Failed to add scene quad array of size: " << quadArr.size());
+		}
+	}
+
 	void Renderer2dVulkan::updateSceneUniformData(
 		VkDevice logicDevice,
 		uint32_t currentImage,
@@ -45,24 +53,41 @@ namespace DOH {
 			setData(logicDevice, &sceneProjView, sizeof(glm::mat4x4));
 	}
 
-	void Renderer2dVulkan::flush/*Scene*/(VkDevice logicDevice, uint32_t imageIndex, VkCommandBuffer cmd) {
-		const size_t quadCount = mStorage->getSceneQuadCount();
+	void Renderer2dVulkan::flushScene(VkDevice logicDevice, uint32_t imageIndex, VkCommandBuffer cmd) {
+		const uint32_t quadCount = mStorage->getRenderBatchQuad().getGeometryCount();
 		if (quadCount > 0) {
 			GraphicsPipelineVulkan& quadPipeline = mStorage->getQuadGraphicsPipeline();
-			quadPipeline.bind(cmd);
-		
-			//foreach (batch : mStorage->getQuadBatches()) {
-			VertexArrayVulkan& sceneQuadVao = mStorage->getQuadVao();
-			sceneQuadVao.getIndexBuffer().setCount(mStorage->getSceneQuadCount() * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT);
 
-			quadPipeline.addVaoToDraw(sceneQuadVao);
+			//foreach (batch : mStorage->getQuadBatches()) {
+
+			//TODO:: create uniform objects with each batch.textures
+
+			RenderBatchQuad& batch = mStorage->getRenderBatchQuad();
+
+			//TODO::VertexArrayVulkan& vao = batch.getVao();
+			VertexArrayVulkan& vao = mStorage->getQuadVao();
+
+			quadPipeline.bind(cmd);
+
+			std::vector<float> batchData = batch.getData();
+
+			//IMPORTANT NOTE:: Since only 1 vbo is allowed, I can assume here that index 0 must be where the correct vbo is
+			vao.getVertexBuffers()[0]->setData(
+				logicDevice,
+				batchData.data(),
+				Renderer2dStorageVulkan::BatchSizeLimits::BATCH_QUAD_BYTE_SIZE
+			);
+			vao.getIndexBuffer().setCount(
+				quadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT
+			);
+
+			quadPipeline.addVaoToDraw(vao);
 			quadPipeline.recordDrawCommands(imageIndex, cmd);
-		
 			quadPipeline.clearVaoToDraw();
+
+			batch.reset();
+			
 			//}
-		
-			//TODO:: Enable per-frame updates to quad batches
-			//mStorage->resetBatches();
 		}
 	}
 }

@@ -3,6 +3,8 @@
 #include "dough/rendering/RendererVulkan.h"
 #include "dough/application/Application.h"
 
+#include "dough/Logging.h"
+
 namespace DOH {
 
 	BufferVulkan::~BufferVulkan() {
@@ -190,31 +192,31 @@ namespace DOH {
 		allocation.commandPool = cmdPool;
 		allocation.commandBufferCount = 1;
 
-		VkCommandBuffer cmdBuffer;
-		vkAllocateCommandBuffers(logicDevice, &allocation, &cmdBuffer);
+		VkCommandBuffer cmd;
+		vkAllocateCommandBuffers(logicDevice, &allocation, &cmd);
 
 		VkCommandBufferBeginInfo cmdBegin = {};
 		cmdBegin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		cmdBegin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-		vkBeginCommandBuffer(cmdBuffer, &cmdBegin);
-		
+		vkBeginCommandBuffer(cmd, &cmdBegin);
+
 		VkBufferCopy copyRegion = {};
 		copyRegion.srcOffset = 0;
 		copyRegion.dstOffset = 0;
 		copyRegion.size = size;
-		vkCmdCopyBuffer(cmdBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+		vkCmdCopyBuffer(cmd, srcBuffer, dstBuffer, 1, &copyRegion);
 
-		vkEndCommandBuffer(cmdBuffer);
+		vkEndCommandBuffer(cmd);
 
 		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &cmdBuffer;
+		submitInfo.pCommandBuffers = &cmd;
 
 		vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
 		vkQueueWaitIdle(graphicsQueue);
 
-		vkFreeCommandBuffers(logicDevice, cmdPool, 1, &cmdBuffer);
+		vkFreeCommandBuffers(logicDevice, cmdPool, 1, &cmd);
 	}
 
 	void BufferVulkan::copyBuffer(BufferVulkan& source, BufferVulkan& destination, VkCommandBuffer cmd) {

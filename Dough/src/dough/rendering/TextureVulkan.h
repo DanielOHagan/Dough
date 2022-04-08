@@ -8,6 +8,7 @@ namespace DOH {
 	class TextureVulkan : public IGPUResourceVulkan {
 
 	private:
+		uint32_t mId;
 		int mWidth;
 		int mHeight;
 		int mChannels;
@@ -40,6 +41,7 @@ namespace DOH {
 
 		virtual void close(VkDevice logicDevice) override;
 
+		inline uint32_t getId() const { return mId; }
 		inline int getWidth() const { return mWidth; }
 		inline int getHeight() const { return mHeight; }
 		inline int getChannels() const { return mChannels; }
