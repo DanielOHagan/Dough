@@ -58,4 +58,18 @@ namespace DOH {
 
 		inline bool isFocused() const { return mFocused; }
 	};
+
+	class WindowIconifyChangeEvent : public WindowEvent {
+
+	private:
+		bool mIconified;
+
+	public:
+		WindowIconifyChangeEvent(Window& window, bool iconified)
+		:	WindowEvent(EEventType::WINDOW_ICONIFY_CHANGE, window),
+			mIconified(iconified)
+		{}
+
+		inline bool isIconified() const { return mIconified; }
+	};
 }

@@ -12,7 +12,7 @@ namespace DOH {
 		ShaderUniformLayout& mUniformLayout;
 		
 		std::vector<VkDescriptorSet> mDescriptorSets;
-		std::map<uint32_t, std::vector<std::shared_ptr<BufferVulkan>>> mValueBufferMap;
+		std::unordered_map<uint32_t, std::vector<std::shared_ptr<BufferVulkan>>> mValueBufferMap;
 
 	public:
 		DescriptorVulkan(ShaderUniformLayout& uniformLayout);

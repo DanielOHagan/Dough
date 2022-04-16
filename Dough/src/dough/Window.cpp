@@ -5,10 +5,11 @@
 
 namespace DOH {
 
-	Window::Window(uint32_t width, uint32_t height)
+	Window::Window(uint32_t width, uint32_t height, WindowDisplayMode displayMode)
 	:	mWidth(width),
 		mHeight(height),
-		mWindowPtr(nullptr)
+		mWindowPtr(nullptr),
+		mCurrentDisplayMode(displayMode)
 	{
 		TRY(width < 0 || height < 0, "Window width and height must be greater than 0.");
 	}
@@ -19,7 +20,20 @@ namespace DOH {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-		mWindowPtr = glfwCreateWindow(mWidth, mHeight, "VulkanWindow", nullptr, nullptr);
+		GLFWmonitor* monitor = nullptr;
+		
+		if (mCurrentDisplayMode == WindowDisplayMode::FULLSCREEN) {
+			monitor = glfwGetPrimaryMonitor();
+		} else if (mCurrentDisplayMode == WindowDisplayMode::BORDERLESS_FULLSCREEN) {
+			monitor = glfwGetPrimaryMonitor();
+			const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
+			glfwWindowHint(GLFW_RED_BITS, videoMode->redBits);
+			glfwWindowHint(GLFW_GREEN_BITS, videoMode->greenBits);
+			glfwWindowHint(GLFW_BLUE_BITS, videoMode->blueBits);
+			glfwWindowHint(GLFW_REFRESH_RATE, videoMode->refreshRate);
+		}
+
+		mWindowPtr = glfwCreateWindow(mWidth, mHeight, "VulkanWindow", monitor, nullptr);
 
 		TRY(mWindowPtr == nullptr, "Failed to create GLFW window");
 
@@ -34,6 +48,58 @@ namespace DOH {
 
 	void Window::pollEvents() {
 		glfwPollEvents();
+	}
+
+	void Window::selectDisplayMode(const WindowDisplayMode displayMode) {
+		if (displayMode != mCurrentDisplayMode) {
+			switch (displayMode) {
+				case WindowDisplayMode::WINDOWED:
+				{
+					//TODO:: keep a track of the windowed mode width/height separate from mWidth/mHeight as the latter
+					// deal with viewport & swapchain resizing
+
+					mCurrentDisplayMode = WindowDisplayMode::WINDOWED;
+					GLFWmonitor* monitor = glfwGetWindowMonitor(mWindowPtr);
+					const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
+					glfwSetWindowMonitor(
+						mWindowPtr,
+						nullptr,
+						50,
+						50,
+						1920,
+						1080,
+						videoMode->refreshRate
+					);
+					break;
+				}
+				case WindowDisplayMode::BORDERLESS_FULLSCREEN:
+				{
+					mCurrentDisplayMode = WindowDisplayMode::BORDERLESS_FULLSCREEN;
+					GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+					const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
+					glfwWindowHint(GLFW_RED_BITS, videoMode->redBits);
+					glfwWindowHint(GLFW_GREEN_BITS, videoMode->greenBits);
+					glfwWindowHint(GLFW_BLUE_BITS, videoMode->blueBits);
+					glfwWindowHint(GLFW_REFRESH_RATE, videoMode->refreshRate);
+					glfwSetWindowMonitor(mWindowPtr, monitor, 0, 0, videoMode->width, videoMode->height, videoMode->refreshRate);
+					break;
+				}
+				case WindowDisplayMode::FULLSCREEN:
+				{
+					mCurrentDisplayMode = WindowDisplayMode::FULLSCREEN;
+					GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+					const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
+					glfwSetWindowMonitor(mWindowPtr, monitor, 0, 0, videoMode->width, videoMode->height, videoMode->refreshRate);
+					break;
+				}
+			}
+		} else {
+			LOG_WARN("Already in selected display mode");
+		}
+	}
+
+	void Window::setResolution(uint32_t width, uint32_t height) {
+		glfwSetWindowSize(mWindowPtr, width, height);
 	}
 
 	VkSurfaceKHR Window::createVulkanSurface(VkInstance vulkanInstance) {
@@ -153,6 +219,14 @@ namespace DOH {
 		glfwSetScrollCallback(mWindowPtr, [](GLFWwindow* windowPtr, double offsetX, double offsetY) {
 			MouseScrollEvent scroll((float)offsetX, (float)offsetY);
 			Application::get().onMouseEvent(scroll);
+		});
+
+		glfwSetWindowIconifyCallback(mWindowPtr, [](GLFWwindow* windowPtr, int iconified) {
+			WindowIconifyChangeEvent iconify(
+				*reinterpret_cast<Window*>(glfwGetWindowUserPointer(windowPtr)),
+				iconified == GLFW_TRUE
+			);
+			Application::get().onWindowEvent(iconify);
 		});
 	}
 }

@@ -8,6 +8,7 @@
 #include "dough/scene/geometry/Quad.h"
 
 #include "testGame/TG_OrthoCameraController.h"
+#include "testGame/TG_PerspectiveCameraController.h"
 
 using namespace DOH;
 
@@ -26,15 +27,15 @@ namespace TG {
 		const std::string testTexture2Path = "res/images/testTexture2.jpg";
 		const std::vector<Vertex3dTextured> mSceneVertices = {
 			//	x		y		z		r		g		b		a		u		v		texIndex
-			{{	-0.5f,	-0.5f,	1.0f},	{1.0f,	0.0f,	0.0f,	1.0f},	{0.0f,	1.0f},	{0.0f}},
-			{{	 0.5f,	-0.5f,	1.0f},	{0.0f,	0.0f,	0.0f,	1.0f},	{1.0f,	1.0f},	{0.0f}},
-			{{	 0.5f,	0.5f,	1.0f},	{0.0f,	0.0f,	1.0f,	1.0f},	{1.0f,	0.0f},	{0.0f}},
-			{{	-0.5f,	0.5f,	1.0f},	{0.0f,	0.0f,	0.0f,	1.0f},	{0.0f,	0.0f},	{0.0f}},
+			{{	-0.5f,	-0.5f,	0.0f},	{1.0f,	0.0f,	0.0f,	1.0f},	{0.0f,	1.0f},	{0.0f}},
+			{{	 0.5f,	-0.5f,	0.0f},	{0.0f,	0.0f,	0.0f,	1.0f},	{1.0f,	1.0f},	{0.0f}},
+			{{	 0.5f,	0.5f,	0.0f},	{0.0f,	0.0f,	1.0f,	1.0f},	{1.0f,	0.0f},	{0.0f}},
+			{{	-0.5f,	0.5f,	0.0f},	{0.0f,	0.0f,	0.0f,	1.0f},	{0.0f,	0.0f},	{0.0f}},
 
-			{{0.00f,	0.00f,	1.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{0.0f,	1.0f},	{1.0f}},
-			{{1.00f,	0.00f,	1.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{1.0f,	1.0f},	{1.0f}},
-			{{1.00f,	1.00f,	1.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{1.0f,	0.0f},	{1.0f}},
-			{{0.00f,	1.00f,	1.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{0.0f,	0.0f},	{1.0f}}
+			{{0.00f,	0.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{0.0f,	1.0f},	{1.0f}},
+			{{1.00f,	0.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{1.0f,	1.0f},	{1.0f}},
+			{{1.00f,	1.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{1.0f,	0.0f},	{1.0f}},
+			{{0.00f,	1.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{0.0f,	0.0f},	{1.0f}}
 		};
 		const std::vector<uint16_t> indices{
 			0, 1, 2, 2, 3, 0,
@@ -45,12 +46,16 @@ namespace TG {
 		};
 		//Scene Objects
 		std::shared_ptr<TG_OrthoCameraController> TG_mOrthoCameraController;
+		std::shared_ptr<TG_PerspectiveCameraController> mPerspectiveCameraController;
 		std::shared_ptr<ShaderProgramVulkan> mSceneShaderProgram;
 		std::shared_ptr<VertexArrayVulkan> mSceneVertexArray;
 		std::shared_ptr<TextureVulkan> mTestTexture1;
 		std::shared_ptr<TextureVulkan> mTestTexture2;
+		//const std::string testTexturesPath = "res/images/test textures/";
+		//std::vector<std::shared_ptr<TextureVulkan>> mTestTextures;
 		std::vector<Quad> mTestGrid;
-		int mTestGridMaxQuadCount = 1000;
+		std::vector<std::vector<Quad>> mTexturedTestGrid;
+		int mTestGridMaxQuadCount = 10000; //TEMP:: Currently limited as only one quad batch is supported
 		int mTestGridSize[2] = { 10, 10 };
 		float mTestGridQuadSize[2] = { 0.1f, 0.1f };
 		float mTestGridQuadGapSize[2] = { mTestGridQuadSize[0] * 1.5f, mTestGridQuadSize[1] * 1.5f };
@@ -71,20 +76,30 @@ namespace TG {
 		//UI Objects
 		std::shared_ptr<ShaderProgramVulkan> mUiShaderProgram;
 		std::shared_ptr<VertexArrayVulkan> mUiVao;
-		//NOTE:: in OpenGL space because glm
+
 		glm::mat4x4 mUiProjMat;
 
 		struct ImGuiSettings {
+			//ImGui rendering controls
+			bool mRenderDebugWindow = true;
+			bool mRenderToDoListWindow = true;
+
 			//ImGui menu
 			bool mApplicationCollapseMenuOpen = true;
 			bool mRenderingCollapseMenuOpen = true;
-			bool mCameraCollapseMenuOpen = false;
+			bool mCameraCollapseMenuOpen = true;
 			bool mSceneDataCollapseMenuOpen = true;
 			//Rendering
 			bool mRenderScene = true;
 			bool mRenderUi = true;
 			bool mRenderBatchQuadScene = true;
 			bool mRenderBatchQuadUi = true;
+			//Camera
+			bool mUseOrthographicCamera = true;
+			//ToDo List
+			bool mToDoListTopTierCollapseMenuOpen = true;
+			bool mToDoListMidTierCollapseMenuOpen = true;
+			bool mToDoListBottomTierCollapseMenuOpen = true;
 		} mImGuiSettings;
 	public:
 		TG_AppLogic();
@@ -93,6 +108,7 @@ namespace TG {
 
 		virtual void init(float aspectRatio) override;
 		virtual void update(float delta) override;
+		virtual void render() override;
 		virtual void imGuiRender() override;
 		virtual void close() override;
 
@@ -106,6 +122,9 @@ namespace TG {
 			mUiProjMat = glm::ortho(-aspectRatio, aspectRatio, -1.0f, 1.0f, -1.0f, 1.0f);
 			mUiProjMat[1][1] *= -1;
 		}
+
+		void imGuiRenderDebugWindow();
+		void imGuiRenderToDoListWindow();
 
 		void populateTestGrid(int width, int height);
 

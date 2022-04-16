@@ -45,9 +45,16 @@ namespace DOH {
 	public:
 		ApplicationLoop(
 			Application& app,
-			float targetFps = DEFAULT_TARGET_FPS,
-			bool runInBackground = DEFAULT_RUN_IN_BACKGROUND,
-			float targetBackgroundFps = DEFAULT_TARGET_BACKGROUND_FPS
+			float targetFps,
+			float targetUps
+		);
+		ApplicationLoop(
+			Application& app,
+			float targetFps,
+			float targetUps,
+			bool runInBackground,
+			float targetBackgroundFps,
+			float targetBackgroundUps
 		);
 		ApplicationLoop(const ApplicationLoop& copy) = delete;
 		ApplicationLoop operator=(const ApplicationLoop& assignment) = delete;
@@ -66,7 +73,21 @@ namespace DOH {
 		inline float getTargetBackgroundFps() const { return mTargetBackgroundFps; }
 		void setTargetBackgroundFps(float targetBackgroundFps);
 		inline float getFps() const { return mPreviousFps; } //Number of renders in last second-long interval
-		
+		inline bool isValidTargetFps(const float targetFps) const {
+			if (targetFps > MAX_TARGET_FPS) return false;
+			if (targetFps < MIN_TARGET_FPS) return false;
+			if (targetFps > mTargetUps) return false;
+
+			return true;
+		}
+		inline bool isValidTargetUps(const float targetUps) const {
+			if (targetUps > MAX_TARGET_UPS) return false;
+			if (targetUps < MIN_TARGET_UPS) return false;
+			if (targetUps < mTargetFps) return false;
+
+			return true;
+		}
+
 		inline float getTargetUps() const { return mTargetUps; }
 		void setTargetUps(float targetUps, bool includeTargetBackroundUps = false);
 		inline float getTargetBackgroundUps() const { return mTargetBackgroundUps; }

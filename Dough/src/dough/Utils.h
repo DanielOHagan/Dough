@@ -10,3 +10,4 @@
 #define THROW(message) throw std::runtime_error(message)
 #define TRY(result, message) {if (result) THROW(message);}
 #define VK_TRY(instructionResult, message) TRY(instructionResult != VK_SUCCESS, message)
+#define VK_TRY_KHR(instructionResult, message) TRY(instructionResult != VK_SUCCESS && instructionResult != VK_SUBOPTIMAL_KHR, message)

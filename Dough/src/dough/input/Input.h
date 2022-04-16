@@ -11,11 +11,11 @@ namespace DOH {
 	private:
 		static std::unique_ptr<Input> INSTANCE;
 
-		static const std::array<int, 44> DEFAULT_KEY_CODES;
+		static const std::array<int, 53> DEFAULT_KEY_CODES;
 		static const std::array<int, 3> DEFAULT_MOUSE_BUTTON_CODES;
 
-		std::map<int, bool> mPressedKeysMap;
-		std::map<int, bool> mPressedMouseButtonsMap;
+		std::unordered_map<int, bool> mPressedKeysMap;
+		std::unordered_map<int, bool> mPressedMouseButtonsMap;
 
 		std::unique_ptr<glm::vec2> mMouseScreenPos;
 		std::unique_ptr<glm::vec2> mMouseScrollOffset;

@@ -169,7 +169,6 @@ namespace DOH {
 		ShaderUniformLayout& layout = mShaderProgram.getUniformLayout();
 
 		layout.initDescriptorSetLayoutBindings(layout.getTotalUniformCount());
-		std::vector<VkDescriptorSetLayoutBinding>::iterator layoutBindingIter = layout.getDescriptorSetLayoutBindings().begin();
 		//Create values' layout binding
 		for (const auto& [binding, value] : layout.getValueUniformMap()) {
 			layout.getDescriptorSetLayoutBindings()[binding] = DescriptorVulkan::createLayoutBinding(

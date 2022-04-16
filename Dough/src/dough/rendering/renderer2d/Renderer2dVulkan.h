@@ -16,6 +16,10 @@ namespace DOH {
 		RenderingContextVulkan& mContext;
 		std::unique_ptr<Renderer2dStorageVulkan> mStorage;
 
+		//TODO:: When searching batches for texures, instead of doing 
+		// for each (batch) doesBatchHave(texture).
+		// store a map of textureId's to batch references of one or more batches that use the texture
+
 	public:
 		Renderer2dVulkan(RenderingContextVulkan& context);
 		Renderer2dVulkan(const Renderer2dVulkan& copy) = delete;
@@ -33,7 +37,10 @@ namespace DOH {
 		//void flushUi();
 
 		void drawQuadScene(Quad& quad);
+		void drawQuadTexturedScene(Quad& quad);
 		void drawQuadArrayScene(std::vector<Quad>& quadArr);
+		void drawQuadArrayTexturedScene(std::vector<Quad>& quadArr);
+		void drawQuadArraySameTextureScene(std::vector<Quad>& quadArr);
 		//void drawQuadUi(Quad& quad);
 
 

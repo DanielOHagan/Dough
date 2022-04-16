@@ -7,7 +7,8 @@ namespace DOH {
 
 	Application::Application()
 	:	mRunning(false),
-		mFocused(true)
+		mFocused(true),
+		mIconified(false)
 	{}
 
 	void Application::run() {
@@ -23,12 +24,21 @@ namespace DOH {
 		mAppInfoTimer->recordInterval("Application.init() start");
 		mAppLogic = appLogic;
 
-		mWindow = std::make_unique<Window>(1920, 1080);
+		mWindow = std::make_unique<Window>(1920, 1080, WindowDisplayMode::WINDOWED);
+		//mWindow = std::make_unique<Window>(2560, 1440, WindowDisplayMode::BORDERLESS_FULLSCREEN);
+		//mWindow = std::make_unique<Window>(2560, 1440, WindowDisplayMode::FULLSCREEN);
 		mAppInfoTimer->recordInterval("Window.init() start");
 		mWindow->init();
 		mAppInfoTimer->recordInterval("Window.init() start");
 
-		mAppLoop = std::make_unique<ApplicationLoop>(*this);
+		mAppLoop = std::make_unique<ApplicationLoop>(
+			*this,
+			ApplicationLoop::MAX_TARGET_FPS,
+			ApplicationLoop::MAX_TARGET_UPS,
+			false,
+			ApplicationLoop::DEFAULT_TARGET_BACKGROUND_FPS,
+			ApplicationLoop::DEFAULT_TARGET_BACKGROUND_UPS
+		);
 
 		Input::init();
 
@@ -56,10 +66,13 @@ namespace DOH {
 	}
 
 	void Application::render() {
-		mRenderer->getContext().getImGuiWrapper().newFrame();
-		mAppLogic->imGuiRender();
-		mRenderer->getContext().getImGuiWrapper().endFrame();
-		mRenderer->drawFrame();
+		if (!mIconified) {
+			mAppLogic->render();
+			mRenderer->getContext().getImGuiWrapper().newFrame();
+			mAppLogic->imGuiRender();
+			mRenderer->getContext().getImGuiWrapper().endFrame();
+			mRenderer->drawFrame();
+		}
 	}
 
 	void Application::close() {
@@ -113,13 +126,24 @@ namespace DOH {
 				LOGLN("Focus Change: " << (mFocused ? "Focused" : "Not Focused"));
 				return;
 			case EEventType::WINDOW_RESIZE:
-				WindowResizeEvent& e = (WindowResizeEvent&) windowEvent;
+			{
+				WindowResizeEvent& e = (WindowResizeEvent&)windowEvent;
 				mRenderer->onResize(
 					e.getWidth(),
 					e.getHeight()
 				);
-				mAppLogic->onResize((float) e.getWidth() / e.getHeight());
+				mAppLogic->onResize((float)e.getWidth() / e.getHeight());
 				LOGLN("Window Resized: " << e.getWidth() << "x" << e.getHeight());
+				return;
+			}
+			case EEventType::WINDOW_ICONIFY_CHANGE:
+				mIconified = ((WindowIconifyChangeEvent&) windowEvent).isIconified();
+				if (mIconified) {
+					LOGLN("forcing wait");
+					mRenderer->deviceWaitIdle();
+				} else {
+
+				}
 				return;
 		}
 	}

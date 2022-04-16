@@ -9,26 +9,25 @@ namespace DOH {
 	class RenderBatchQuad : public ARenderBatch<Quad> {
 
 	public:
-		RenderBatchQuad(uint32_t maxGeometryCount, uint32_t geoComponentCount, uint32_t maxTextureCount);
+		RenderBatchQuad(const uint32_t maxGeometryCount, const uint32_t maxTextureCount);
 
-		virtual void add(Quad& geo, uint32_t textureSlotIndex) override;
-		virtual void addAll(std::vector<Quad> geoArray, uint32_t textureSlotIndex) override;
+		virtual void add(const Quad& geo, const uint32_t textureSlotIndex) override;
+		virtual void addAll(const std::vector<Quad>& geoArray, const uint32_t textureSlotIndex) override;
 
 	private:
-		RenderBatchQuad(const RenderBatchQuad& copy) = delete;
 		RenderBatchQuad operator=(const RenderBatchQuad& assignment) = delete;
 
-		void addQuadVertex(
-			float posX,
-			float posY,
-			float posZ,
-			float colourR,
-			float colourG,
-			float colourB,
-			float colourA,
-			float texCoordU,
-			float texCoordV,
-			float texIndex
+		inline void addQuadVertex(
+			const float posX,
+			const float posY,
+			const float posZ,
+			const float colourR,
+			const float colourG,
+			const float colourB,
+			const float colourA,
+			const float texCoordU,
+			const float texCoordV,
+			const float texIndex
 		);
 	};
 }

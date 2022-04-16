@@ -1,6 +1,5 @@
 #include "testGame/TG_AppLogic.h"
 
-#include "dough/Utils.h"
 #include "dough/rendering/ObjInit.h"
 #include "dough/application/Application.h"
 #include "dough/input/InputCodes.h"
@@ -21,20 +20,44 @@ namespace TG {
 		setUiProjection(aspectRatio);
 		initScene(aspectRatio);
 		initUi();
+
+		TG_mOrthoCameraController = std::make_shared<TG::TG_OrthoCameraController>(aspectRatio);
+		mPerspectiveCameraController = std::make_shared<TG_PerspectiveCameraController>(aspectRatio);
 	}
 
 	void TG_AppLogic::update(float delta) {
+		if (Input::isKeyPressed(DOH_KEY_F1)) {
+			mImGuiSettings.mRenderDebugWindow = true;
+		}
+
+		if (mImGuiSettings.mUseOrthographicCamera) {
+			TG_mOrthoCameraController->onUpdate(delta);
+		} else {
+			mPerspectiveCameraController->onUpdate(delta);
+		}
+
+		if (mImGuiSettings.mRenderBatchQuadScene) {
+			populateTestGrid(mTestGridSize[0], mTestGridSize[1]);
+		}
+	}
+
+	void TG_AppLogic::render() {
 		RendererVulkan& renderer = GET_RENDERER;
-
-		TG_mOrthoCameraController->onUpdate(delta);
-
-		renderer.beginScene(TG_mOrthoCameraController->getCamera());
+		//renderer.beginScene(TG_mOrthoCameraController->getCamera());
+		renderer.beginScene(
+			mImGuiSettings.mUseOrthographicCamera ?
+				TG_mOrthoCameraController->getCamera() : mPerspectiveCameraController->getCamera()
+		);
 		if (mImGuiSettings.mRenderScene) {
 			renderer.getContext().addVaoToSceneDrawList(*mSceneVertexArray);
 		}
 
 		if (mImGuiSettings.mRenderBatchQuadScene) {
-			renderer.getContext().getRenderer2d().drawQuadArrayScene(mTestGrid);
+			//renderer.getContext().getRenderer2d().drawQuadArrayScene(mTestGrid);
+			//renderer.getContext().getRenderer2d().drawQuadArrayTexturedScene(mTestGrid);
+			for (std::vector<Quad>& sameTexturedQuads : mTexturedTestGrid) {
+				renderer.getContext().getRenderer2d().drawQuadArraySameTextureScene(sameTexturedQuads);
+			}
 		}
 		renderer.endScene();
 
@@ -46,12 +69,21 @@ namespace TG {
 	}
 
 	void TG_AppLogic::imGuiRender() {
+		if (mImGuiSettings.mRenderDebugWindow) {
+			imGuiRenderDebugWindow();
+		}
+
+		if (mImGuiSettings.mRenderToDoListWindow) {
+			imGuiRenderToDoListWindow();
+		}
+	}
+
+	void TG_AppLogic::imGuiRenderDebugWindow() {
 		//TODO:: Clean up basic layout and styling, maybe add a few imgui helper functions
 
 		RendererVulkan& renderer = GET_RENDERER;
 
 		ImGui::Begin("Debug Window");
-
 
 		ImGui::SetNextItemOpen(mImGuiSettings.mApplicationCollapseMenuOpen);
 		if (ImGui::CollapsingHeader("Application")) {
@@ -60,7 +92,19 @@ namespace TG {
 			bool focused = Application::get().isFocused();
 
 			ImGui::Text("Runtime: %fs", Time::convertMillisToSeconds(Application::get().getAppInfoTimer().getCurrentTickingTimeMillis()));
-			ImGui::Text("Window Size: X: %i \tY: %i", window.getWidth(), window.getHeight());
+			ImGui::Text("Window Size: (%i, %i)", window.getWidth(), window.getHeight());
+			bool displayModeWindowActive = window.getDisplayMode() == WindowDisplayMode::WINDOWED;
+			if (ImGui::RadioButton("Windowed", displayModeWindowActive) && window.getDisplayMode() != WindowDisplayMode::WINDOWED) {
+				window.selectDisplayMode(WindowDisplayMode::WINDOWED);
+			}
+			bool displayModeBorderlessWindowActive = window.getDisplayMode() == WindowDisplayMode::BORDERLESS_FULLSCREEN;
+			if (ImGui::RadioButton("Borderless Windowed", displayModeBorderlessWindowActive) && window.getDisplayMode() != WindowDisplayMode::BORDERLESS_FULLSCREEN) {
+				window.selectDisplayMode(WindowDisplayMode::BORDERLESS_FULLSCREEN);
+			}
+			bool displayModeFullscreenActive = window.getDisplayMode() == WindowDisplayMode::FULLSCREEN;
+			if (ImGui::RadioButton("Fullscreen", displayModeFullscreenActive) && window.getDisplayMode() != WindowDisplayMode::FULLSCREEN) {
+				window.selectDisplayMode(WindowDisplayMode::FULLSCREEN);
+			}
 			ImGui::Text("Is Focused: ");
 			ImGui::SameLine();
 			ImGui::TextColored(focused ? ImVec4(0, 1, 0, 1) : ImVec4(1, 0, 0, 1), focused ? "FOCUSED" : "NOT FOCUSED");
@@ -69,6 +113,18 @@ namespace TG {
 			imguiDisplayHelpTooltip("FPS displayed is the count of frames in the last full second interval");
 			ImGui::Text("UPS: %i \t(Fore: %i, Back: %i)", (int)loop.getUps(), (int)loop.getTargetUps(), (int)loop.getTargetBackgroundUps());
 			imguiDisplayHelpTooltip("UPS displayed is the count of frames in the last full second interval");
+			int tempTargetFps = (int)loop.getTargetFps();
+			if (ImGui::InputInt("Target FPS", &tempTargetFps)) {
+				if (loop.isValidTargetFps((float)tempTargetFps)) {
+					loop.setTargetFps((float)tempTargetFps);
+				}
+			}
+			int tempTargetUps = (int)loop.getTargetUps();
+			if (ImGui::InputInt("Target UPS", &tempTargetUps)) {
+				if (loop.isValidTargetUps((float)tempTargetUps)) {
+					loop.setTargetUps((float)tempTargetUps);
+				}
+			}
 
 			bool runInBackground = loop.isRunningInBackground();
 			if (ImGui::Checkbox("Run In Background", &runInBackground)) {
@@ -87,6 +143,7 @@ namespace TG {
 			ImGui::Checkbox("Render Batch Quad Scene", &mImGuiSettings.mRenderBatchQuadScene);
 			ImGui::Checkbox("Render Batch Quad UI", &mImGuiSettings.mRenderBatchQuadUi);
 			//TODO:: ImGui::Checkbox("Render Wireframes", &mRenderWireframes);
+			ImGui::Text("Quad Batches: %i", renderer.getContext().getRenderer2d().getStorage().getQuadRenderBatches().size());
 
 			mImGuiSettings.mRenderingCollapseMenuOpen = true;
 		} else {
@@ -95,20 +152,23 @@ namespace TG {
 
 		ImGui::SetNextItemOpen(mImGuiSettings.mSceneDataCollapseMenuOpen);
 		if (ImGui::CollapsingHeader("Quad Test Grid")) {
+			//Size of grid can be adjusted but it limited to a certain number of quads,
+			// ImGui values are taken and checked to see if they are valid
 			ImGui::Text("Test Grid Quad Count: %i", mTestGridSize[0] * mTestGridSize[1]);
 			int tempTestGridSize[2] = { mTestGridSize[0], mTestGridSize[1] };
-			ImGui::InputInt2("Test Grid Size", tempTestGridSize);
-			if (tempTestGridSize[0] > 0 && tempTestGridSize[1] > 0) {
-				int tempGridQuadCount = tempTestGridSize[0] * tempTestGridSize[1];
-				if (tempGridQuadCount <= mTestGridMaxQuadCount) {
-					mTestGridSize[0] = tempTestGridSize[0];
-					mTestGridSize[1] = tempTestGridSize[1];
-				} else {
-					LOG_WARN(
-						"New grid size of " << tempTestGridSize[0] << "x" << tempTestGridSize[1] <<
-						" (" << tempTestGridSize[0] * tempTestGridSize[1] <<
-						") is too large, max quad count is " << mTestGridMaxQuadCount
-					);
+			if (ImGui::InputInt2("Test Grid Size", tempTestGridSize)) {
+				if (tempTestGridSize[0] > 0 && tempTestGridSize[1] > 0) {
+					const int tempGridQuadCount = tempTestGridSize[0] * tempTestGridSize[1];
+					if (tempGridQuadCount <= mTestGridMaxQuadCount) {
+						mTestGridSize[0] = tempTestGridSize[0];
+						mTestGridSize[1] = tempTestGridSize[1];
+					} else {
+						LOG_WARN(
+							"New grid size of " << tempTestGridSize[0] << "x" << tempTestGridSize[1] <<
+							" (" << tempTestGridSize[0] * tempTestGridSize[1] <<
+							") is too large, max quad count is " << mTestGridMaxQuadCount
+						);
+					}
 				}
 			}
 
@@ -122,8 +182,12 @@ namespace TG {
 			// Maybe have the dynamic settings hidden unless dynamic is selected
 
 			if (ImGui::Button("Reset Grid")) {
-				//TODO:: Set values to default
-				LOG_WARN("'Reset Grid' button not implemented yet");
+				mTestGridSize[0] = 10;
+				mTestGridSize[1] = 10;
+				mTestGridQuadSize[0] = 0.1f;
+				mTestGridQuadSize[1] = 0.1f;
+				mTestGridQuadGapSize[0] = mTestGridQuadSize[0] * 1.5f;
+				mTestGridQuadGapSize[1] = mTestGridQuadSize[1] * 1.5f;
 			}
 
 			mImGuiSettings.mSceneDataCollapseMenuOpen = true;
@@ -133,20 +197,46 @@ namespace TG {
 
 		//TODO:: Use different formats, currently looks bad
 		ImGui::SetNextItemOpen(mImGuiSettings.mCameraCollapseMenuOpen);
-		if (ImGui::CollapsingHeader("Scene Camera")) {
-			ImGui::BeginListBox("Camera Controls");
-			ImGui::BulletText("W, A, S, D: Move Camera");
-			ImGui::BulletText("Z, X: Zoom Camera In & Out");
-			ImGui::EndListBox();
-			ImGui::BeginListBox("Camera Position");
-			ImGui::Text("X: %f", TG_mOrthoCameraController->getPosition().x);
-			ImGui::Text("Y: %f", TG_mOrthoCameraController->getPosition().y);
-			ImGui::Text("Zoom: %f", TG_mOrthoCameraController->getZoomLevel());
-			imguiDisplayHelpTooltip("Higher is more \"zoomed in\" and lower is more \"zoomed out\"");
-			ImGui::EndListBox();
-			if (ImGui::Button("Reset Camera")) {
-				TG_mOrthoCameraController->setPosition({0.0f, 0.0f, 0.0f});
+		if (ImGui::CollapsingHeader("Camera")) {
+			const bool orthoCameraActive = mImGuiSettings.mUseOrthographicCamera;
+			const bool perspectiveCameraActive = !orthoCameraActive;
+			if (ImGui::RadioButton("Orthographic Camera", orthoCameraActive)) {
+				mImGuiSettings.mUseOrthographicCamera = true;
+			}
+			if (ImGui::RadioButton("Perspective Camera", perspectiveCameraActive)) {
+				mImGuiSettings.mUseOrthographicCamera = false;
+			}
+			ImGui::Text("Current Camera: ");
+			ImGui::SameLine();
+			ImGui::Text(mImGuiSettings.mUseOrthographicCamera ? "Orthographic" : "Perspective");
+			if (mImGuiSettings.mUseOrthographicCamera) {
+				ImGui::Text("Orthographic Camera Controls");
+				ImGui::BulletText("W, A, S, D: Move Camera");
+				ImGui::BulletText("Z, X: Zoom Camera In & Out");
+				ImGui::BulletText("Right Click Drag Camera");
+				ImGui::Text("Camera Position");
+				ImGui::Text("X: %f", TG_mOrthoCameraController->getPosition().x);
+				ImGui::Text("Y: %f", TG_mOrthoCameraController->getPosition().y);
+				ImGui::Text("Zoom: %f", TG_mOrthoCameraController->getZoomLevel());
+				imguiDisplayHelpTooltip("Higher is more \"zoomed in\" and lower is more \"zoomed out\"");
+			} else {
+				ImGui::Text("Perspective Camera Controls");
+				ImGui::Text("Position");
+				ImGui::Text("X: %f", mPerspectiveCameraController->getPosition().x);
+				ImGui::Text("Y: %f", mPerspectiveCameraController->getPosition().y);
+				ImGui::Text("Z: %f", mPerspectiveCameraController->getPosition().z);
+				ImGui::Text("Direction");
+				ImGui::Text("X: %f", mPerspectiveCameraController->getDirection().x);
+				ImGui::Text("Y: %f", mPerspectiveCameraController->getDirection().y);
+				ImGui::Text("Z: %f", mPerspectiveCameraController->getDirection().z);
+			}
+			if (ImGui::Button("Reset Orthographic Camera")) {
+				TG_mOrthoCameraController->setPosition({ 0.0f, 0.0f, 0.0f });
 				TG_mOrthoCameraController->setZoomLevel(1.0f);
+			}
+			if (ImGui::Button("Reset Perspective Camera")) {
+				mPerspectiveCameraController->setPosition({ 0.0f, 0.0f, 1.0f });
+				mPerspectiveCameraController->setDirection({ 0.0f, 0.0f, 0.0f });
 			}
 
 			mImGuiSettings.mCameraCollapseMenuOpen = true;
@@ -154,6 +244,56 @@ namespace TG {
 			mImGuiSettings.mCameraCollapseMenuOpen = false;
 		}
 
+		ImGui::Checkbox("Render ToDo List Window", &mImGuiSettings.mRenderToDoListWindow);
+		if (ImGui::Button("Stop Rendering Debug Window")) {
+			mImGuiSettings.mRenderDebugWindow = false;
+		}
+		imguiDisplayHelpTooltip("Once the debug window has stopped rendering, you can press F1 to start rendering again");
+
+		if (ImGui::Button("Quit Application")) {
+			Application::get().stop();
+		}
+
+		ImGui::End();
+	}
+
+	void TG_AppLogic::imGuiRenderToDoListWindow() {
+		ImGui::Begin("Todo List");
+		ImGui::Text("Things to do/fix in no particular order");
+
+		if (ImGui::CollapsingHeader("Top Tier")) {
+			ImGui::Bullet();
+			ImGui::TextWrapped("Multiple quad batches created dynamically based on number of quads and textures required");
+			ImGui::Bullet();
+			ImGui::TextWrapped("Some kind of text rendering");
+
+			mImGuiSettings.mToDoListTopTierCollapseMenuOpen = true;
+		} else {
+			mImGuiSettings.mToDoListTopTierCollapseMenuOpen = false;
+		}
+
+		if (ImGui::CollapsingHeader("Mid Tier")) {
+			ImGui::Bullet();
+			ImGui::TextWrapped("Fix when clicking off app during fullscreen, the monitor freezes with app displayed, maybe force minimise or something like that");
+			ImGui::Bullet();
+			ImGui::TextWrapped("Fix texture artifacts caused, I think, by casting float to int in shader for texture array index");
+
+			mImGuiSettings.mToDoListMidTierCollapseMenuOpen = true;
+		} else {
+			mImGuiSettings.mToDoListMidTierCollapseMenuOpen = false;
+		}
+
+		if (ImGui::CollapsingHeader("Bottom Tier")) {
+			ImGui::Bullet();
+			ImGui::TextWrapped("Better Perspective camera and camera controller");
+			ImGui::Bullet();
+			ImGui::TextWrapped("Texture atlas");
+
+
+			mImGuiSettings.mToDoListBottomTierCollapseMenuOpen = true;
+		} else {
+			mImGuiSettings.mToDoListBottomTierCollapseMenuOpen = false;
+		}
 
 		ImGui::End();
 	}
@@ -167,6 +307,10 @@ namespace TG {
 		renderer.closeGpuResource(mUiVao);
 		renderer.closeGpuResource(mTestTexture1);
 		renderer.closeGpuResource(mTestTexture2);
+
+		//for (std::shared_ptr<TextureVulkan> texture : mTestTextures) {
+		//	renderer.closeGpuResource(texture);
+		//}
 	}
 
 	void TG_AppLogic::onResize(float aspectRatio) {
@@ -177,6 +321,12 @@ namespace TG {
 	void TG_AppLogic::initScene(float aspectRatio) {
 		mTestTexture1 = ObjInit::texture(testTexturePath);
 		mTestTexture2 = ObjInit::texture(testTexture2Path);
+
+		//for (int i = 0; i < 8; i++) {
+		//	std::string path = testTexturesPath + "texture" + std::to_string(i) + ".png";
+		//	std::shared_ptr<TextureVulkan> testTexture = ObjInit::texture(path);
+		//	mTestTextures.push_back(testTexture);
+		//}
 
 		mSceneShaderProgram = ObjInit::shaderProgram(
 			ObjInit::shader(
@@ -212,35 +362,34 @@ namespace TG {
 		mSceneVertexArray->addVertexBuffer(sceneVb);
 		std::shared_ptr<IndexBufferVulkan> sceneIb = ObjInit::stagedIndexBuffer(
 			indices.data(),
-			sizeof(indices[0]) * indices.size(),
+			sizeof(uint16_t) * indices.size(),
 			static_cast<uint32_t>(indices.size())
 		);
 		mSceneVertexArray->setIndexBuffer(sceneIb);
 
 		GET_RENDERER.prepareScenePipeline(*mSceneShaderProgram);
 
-		TG_mOrthoCameraController = std::make_shared<TG::TG_OrthoCameraController>(aspectRatio);
-
-		populateTestGrid(mTestGridSize[0], mTestGridSize[0]);
+		//populateTestGrid(mTestGridSize[0], mTestGridSize[1]);
 	}
 
 	void TG_AppLogic::populateTestGrid(int width, int height) {
-		for (float x = 0.0f; x < width; x++) {
-			for (float y = 0.0f; y < height; y++) {
-				Quad quad = {
-					{x * mTestGridQuadGapSize[0], y * mTestGridQuadGapSize[1], 1.0f},
-					{mTestGridQuadSize[0], mTestGridQuadSize[1]},
-					{0.0f, 1.0f, 1.0f, 1.0f}
-				};
+		const std::vector<std::shared_ptr<TextureVulkan>>& testTextures = GET_RENDERER.getContext().getRenderer2d().getStorage().getTestTextures();
+		//mTestGrid.resize(width * height);
+		mTexturedTestGrid.clear();
+		mTexturedTestGrid.resize(testTextures.size());
 
-				//TOOD:: texture slot to be determined by batch by texture that is attatched to quad
-				//uint32_t textureSlot = static_cast<uint32_t>(x) % 8;
-
-				mTestGrid.push_back({
-					{x * mTestGridQuadGapSize[0], y * mTestGridQuadGapSize[1], 1.0f},
+		uint32_t index = 0;
+		for (float y = 0.0f; y < height; y++) {
+			for (float x = 0.0f; x < width; x++) {
+				uint32_t textureSlot = static_cast<uint32_t>(x + y) % 8;
+				mTexturedTestGrid[textureSlot].push_back({
+					{x * mTestGridQuadGapSize[0], y * mTestGridQuadGapSize[1], 0.5f},
 					{mTestGridQuadSize[0], mTestGridQuadSize[1]},
-					{0.0f, 1.0f, 1.0f, 1.0f}
+					{0.0f, 1.0f, 1.0f, 1.0f},
+					0.0f,
+					testTextures[static_cast<uint32_t>(x + y) % 8]
 				});
+				index++;
 			}
 		}
 	}

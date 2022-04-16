@@ -29,6 +29,7 @@ namespace DOH {
 		std::unique_ptr<IntervalTimer> mAppInfoTimer;
 		bool mRunning;
 		bool mFocused;
+		bool mIconified;
 
 	public:
 		Application(const Application& copy) = delete;

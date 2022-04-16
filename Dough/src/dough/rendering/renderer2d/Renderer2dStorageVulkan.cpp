@@ -18,12 +18,6 @@ namespace DOH {
 
 		mWhiteTexture = ObjInit::texture(255.0f, 255.0f, 255.0f, 255.0f, false);
 
-		for (int i = 0; i < 8; i++) {
-			std::string path = testTexturesPath + "texture" + std::to_string(i) + ".png";
-			std::shared_ptr<TextureVulkan> testTexture = ObjInit::texture(path);
-			mTestTextures.push_back(testTexture);
-		}
-
 		initForQuads(logicDevice);
 
 		std::vector<DescriptorTypeInfo> descTypes = mQuadGraphicsPipeline->getShaderProgram().getUniformLayout().asDescriptorTypes();
@@ -79,11 +73,18 @@ namespace DOH {
 			ObjInit::shader(EShaderType::FRAGMENT, Renderer2dStorageVulkan::QUAD_SHADER_PATH_FRAG)
 		);
 
-		mRenderBatchQuad = std::make_unique<RenderBatchQuad>(
+		//Create at least one batch
+		RenderBatchQuad& batch = mQuadRenderBatches.emplace_back(
 			BatchSizeLimits::BATCH_QUAD_COUNT,
-			BatchSizeLimits::SINGLE_QUAD_COMPONENT_COUNT,
 			BatchSizeLimits::BATCH_MAX_TEXTURE_COUNT
 		);
+
+		for (int i = 0; i < 8; i++) {
+			std::string path = testTexturesPath + "texture" + std::to_string(i) + ".png";
+			std::shared_ptr<TextureVulkan> testTexture = ObjInit::texture(path);
+			mTestTextures.push_back(testTexture);
+			batch.addNewTexture(*testTexture);
+		}
 
 		ShaderUniformLayout& layout = mQuadShaderProgram->getUniformLayout();
 		layout.setValue(0, sizeof(glm::mat4x4));
@@ -150,19 +151,5 @@ namespace DOH {
 			createBindingDescription(binding, sizeof(Vertex3dTextured), VK_VERTEX_INPUT_RATE_VERTEX),
 			attribDescs
 		);
-	}
-
-	void Renderer2dStorageVulkan::addSceneQuad(Quad& quad) {
-		mRenderBatchQuad->add(quad, 0);
-	}
-
-	void Renderer2dStorageVulkan::addSceneQuad(Quad& quad, uint32_t textureSlotIndex) {
-		mRenderBatchQuad->add(quad, textureSlotIndex);
-	}
-
-	void Renderer2dStorageVulkan::addSceneQuadArray(std::vector<Quad>& quadArr) {
-		for (Quad& quad : quadArr) {
-			mRenderBatchQuad->add(quad, 0);
-		}
 	}
 }

@@ -10,8 +10,13 @@ namespace TG {
 
 	class TG_OrthoCameraController : public ICameraController {
 
+		//TODO:: mMaxTranslation and/or mMaxPosition ?
+
 	private:
+		std::unique_ptr<OrthographicCamera> mCamera;
 		glm::vec3 mPosition;
+		glm::vec2 mCursorLastPosUpdate;
+		bool mClickAndDragActive;
 		float mAspectRatio;
 		float mRotation;
 		float mZoomLevel;
@@ -19,7 +24,6 @@ namespace TG {
 		float mZoomMax;
 		float mZoomMin;
 		float mTranslationSpeed;
-		std::shared_ptr<OrthographicCamera> mCamera;
 
 	public:
 		TG_OrthoCameraController(float aspectRatio);
@@ -51,9 +55,8 @@ namespace TG {
 		inline void setZoomMin(float zoomMin) { mZoomMin = zoomMin; }
 
 	private:
-		//Convenience function
-		void updateMatrices();
-
+		//Convenience functions
+		void updateViewMatrices();
 		void handleInput(float delta);
 	};
 }

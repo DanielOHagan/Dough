@@ -264,10 +264,14 @@ namespace DOH {
 		present.pSwapchains = swapChains;
 		present.pImageIndices = &imageIndex;
 
-		VK_TRY(
+		VK_TRY_KHR(
 			vkQueuePresentKHR(mPresentQueue, &present),
 			"Failed to present"
 		);
+		//VkResult res = vkQueuePresentKHR(mPresentQueue, &present);
+		//if (res != VK_SUCCESS) {
+		//	VK_TRY_KHR(res, "failed to present");
+		//}
 
 		mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 	}

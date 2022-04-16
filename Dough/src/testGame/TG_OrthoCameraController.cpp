@@ -9,31 +9,38 @@ using namespace DOH;
 namespace TG {
 
 	TG_OrthoCameraController::TG_OrthoCameraController(float aspectRatio)
-	:	mPosition({0.0f, 0.0f, 1.0f}),
+	:	mCamera(std::make_unique<OrthographicCamera>(
+			-aspectRatio,
+			aspectRatio,
+			-1.0f,
+			1.0f
+		)),
+		mPosition(0.0f, 0.0f, 1.0f),
+		mCursorLastPosUpdate(0.0f, 0.0f),
+		mClickAndDragActive(false),
 		mAspectRatio(aspectRatio),
 		mRotation(0.0f),
 		mZoomLevel(1.0f),
 		mZoomSpeed(0.1f),
 		mZoomMax(2.00f),
 		mZoomMin(0.25f),
-		mTranslationSpeed(0.3f),
-		mCamera(std::make_shared<OrthographicCamera>(
-			-aspectRatio * mZoomLevel,
-			aspectRatio * mZoomLevel,
-			-mZoomLevel,
-			mZoomLevel
-		))
+		mTranslationSpeed(0.3f)
 	{}
 
 	void TG_OrthoCameraController::onUpdate(float delta) {
 		handleInput(delta);
-
-		//Update camera matrices
-		updateMatrices();
+		updateViewMatrices();
 	}
 
 	void TG_OrthoCameraController::onViewportResize(float aspectRatio) {
 		mAspectRatio = aspectRatio;
+
+		mCamera->setProjection(
+			-mAspectRatio * mZoomLevel,
+			mAspectRatio * mZoomLevel,
+			-mZoomLevel,
+			mZoomLevel
+		);
 	}
 
 	void TG_OrthoCameraController::translate(glm::vec3& translation) {
@@ -46,20 +53,28 @@ namespace TG {
 		mZoomLevel -= zoomAmount * mZoomSpeed;
 
 		mZoomLevel = std::clamp(mZoomLevel, mZoomMin, mZoomMax);
-	}
 
-	void TG_OrthoCameraController::updateMatrices() {
 		mCamera->setProjection(
 			-mAspectRatio * mZoomLevel,
 			mAspectRatio * mZoomLevel,
 			-mZoomLevel,
 			mZoomLevel
 		);
+	}
+
+	void TG_OrthoCameraController::updateViewMatrices() {
+		//mCamera->setProjection(
+		//	-mAspectRatio * mZoomLevel,
+		//	mAspectRatio * mZoomLevel,
+		//	-mZoomLevel,
+		//	mZoomLevel
+		//);
 		mCamera->setView(mPosition, mRotation);
 		mCamera->updateProjectionViewMatrix();
 	}
 
 	void TG_OrthoCameraController::handleInput(float delta) {
+		//Zooming
 		if (Input::isKeyPressed(DOH_KEY_X)) {
 			zoom(-1.0f * delta);
 		}
@@ -67,17 +82,33 @@ namespace TG {
 			zoom(1.0f * delta);
 		}
 
+		//WASD translation
 		if (Input::isKeyPressed(DOH_KEY_A)) {
-			translateX(-1.0f * delta);
+			translateX(-mTranslationSpeed * delta);
 		}
 		if (Input::isKeyPressed(DOH_KEY_D)) {
-			translateX(1.0f * delta);
+			translateX(mTranslationSpeed * delta);
 		}
 		if (Input::isKeyPressed(DOH_KEY_W)) {
-			translateY(1.0f * delta);
+			translateY(mTranslationSpeed * delta);
 		}
 		if (Input::isKeyPressed(DOH_KEY_S)) {
-			translateY(-1.0f * delta);
+			translateY(-mTranslationSpeed * delta);
 		}
+
+		//Click and Drag
+		//TODO:: separate mClickAndDragTranslationSpeed ?
+		//	Change cursor appearence when dragging?
+		if (Input::isMouseButtonPressed(DOH_MOUSE_BUTTON_RIGHT)) {
+			const glm::vec2 currentMousePos = Input::getCursorPos();
+			const float translationDelta = mTranslationSpeed * delta;
+
+			translateXY(
+				(mCursorLastPosUpdate.x - currentMousePos.x) * translationDelta,
+				(currentMousePos.y - mCursorLastPosUpdate.y) * translationDelta
+			);
+		}
+
+		mCursorLastPosUpdate = Input::getCursorPos();
 	}
 }

@@ -4,7 +4,7 @@
 
 namespace DOH {
 
-	class OrthographicCamera : public ICamera {
+	class PerspectiveCamera : public ICamera {
 
 	private:
 		glm::mat4x4 mProjectionMatrix;
@@ -12,16 +12,9 @@ namespace DOH {
 		glm::mat4x4 mProjectionViewMatrix;
 
 	public:
-		OrthographicCamera(
-			float left,
-			float right,
-			float bottom,
-			float top,
-			float nearZ	= 0.0f,
-			float farZ = 1.0f
-		);
-		OrthographicCamera(const OrthographicCamera& copy) = delete;
-		OrthographicCamera operator=(const OrthographicCamera& assignment) = delete;
+		PerspectiveCamera(float aspectRatio, float fov = 60.0f, float nearZ = 0.0f, float farZ = 1.0f);
+		PerspectiveCamera(const PerspectiveCamera& copy) = delete;
+		PerspectiveCamera operator=(const PerspectiveCamera& assignment) = delete;
 
 		virtual void updateProjectionViewMatrix() override;
 
@@ -29,14 +22,7 @@ namespace DOH {
 		inline virtual glm::mat4x4& getProjectionMatrix() override { return mProjectionMatrix; }
 		inline virtual glm::mat4x4& getProjectionViewMatrix() override { return mProjectionViewMatrix; }
 
-		void setView(const glm::vec3& pos, const float rotation);
-		void setProjection(
-			float left,
-			float right,
-			float bottom,
-			float top,
-			float nearZ = 0.0f,
-			float farZ = 1.0f
-		);
+		void setView(const glm::vec3 pos, const glm::vec3 direction, const glm::vec3 up);
+		void setProjection(float fovDegrees, float aspectRatio, float nearZ = 0.0f, float farZ = 1.0f);
 	};
 }

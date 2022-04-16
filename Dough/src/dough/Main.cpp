@@ -8,7 +8,7 @@
 	//#define DEBUG_MEM_PREFER_CRT
 	//#define DEBUG_MEM_PREFER_DOH
 
-	#include "dough/Debug.h"
+	//#include "dough/Debug.h"
 #endif
 
 int main() {

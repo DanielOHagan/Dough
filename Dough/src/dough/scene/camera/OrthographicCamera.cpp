@@ -11,10 +11,12 @@ namespace DOH {
         float top,
         float nearZ,
         float farZ
-    ) : mProjectionMatrix(1.0f),
+    ) : mProjectionMatrix(glm::ortho(left, right, bottom, top, nearZ, farZ)),
         mViewMatrix(1.0f),
         mProjectionViewMatrix(1.0f)
-    {}
+    {
+        mProjectionMatrix[1][1] *= -1;
+    }
 
     void OrthographicCamera::updateProjectionViewMatrix() {
         mProjectionViewMatrix = glm::mat4x4(1.0f);

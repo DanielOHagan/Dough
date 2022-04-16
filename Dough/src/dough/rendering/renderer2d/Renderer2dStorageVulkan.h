@@ -21,7 +21,8 @@ namespace DOH {
 		std::shared_ptr<GraphicsPipelineVulkan> mQuadGraphicsPipeline;
 		std::shared_ptr<VertexArrayVulkan> mQuadVao;
 
-		std::unique_ptr<RenderBatchQuad> mRenderBatchQuad;
+		//std::unique_ptr<RenderBatchQuad> mRenderBatchQuad;
+		std::vector<RenderBatchQuad> mQuadRenderBatches;
 
 		//Textures
 		std::shared_ptr<TextureVulkan> mWhiteTexture;
@@ -42,10 +43,10 @@ namespace DOH {
 		enum BatchSizeLimits {
 			SINGLE_QUAD_VERTEX_COUNT = 4,
 			SINGLE_QUAD_INDEX_COUNT = 6,
-			SINGLE_QUAD_COMPONENT_COUNT = Vertex3dTextured::COMPONENT_COUNT,
-			SINGLE_QUAD_BYTE_SIZE = Vertex3dTextured::BYTE_SIZE,
+			SINGLE_QUAD_COMPONENT_COUNT = Vertex3dTextured::COMPONENT_COUNT * SINGLE_QUAD_VERTEX_COUNT,
+			SINGLE_QUAD_BYTE_SIZE = Vertex3dTextured::BYTE_SIZE * SINGLE_QUAD_VERTEX_COUNT,
 			
-			BATCH_QUAD_COUNT = 1000,
+			BATCH_QUAD_COUNT = 10000,
 			BATCH_QUAD_VERTEX_COUNT = BATCH_QUAD_COUNT * SINGLE_QUAD_VERTEX_COUNT,
 			BATCH_QUAD_INDEX_COUNT = BATCH_QUAD_COUNT * SINGLE_QUAD_INDEX_COUNT,
 			BATCH_QUAD_COMPONENT_COUNT = BATCH_QUAD_COUNT * SINGLE_QUAD_COMPONENT_COUNT,
@@ -63,20 +64,24 @@ namespace DOH {
 		void closeSwapChainSpecificObjects(VkDevice logicDevice);
 		void recreateSwapChainSpecificObjects();
 
-		void addSceneQuad(Quad& quad);
-		void addSceneQuad(Quad& quad, uint32_t textureSlotIndex);
-		void addSceneQuadArray(std::vector<Quad>& quadArr);
+		//void addSceneQuad(Quad& quad);
+		//void addSceneQuad(Quad& quad, uint32_t textureSlotIndex);
+		//void addSceneQuadArray(std::vector<Quad>& quadArr);
 		//void addSceneQuadArray(std::vector<Quad>& quadArr, uint32_t textureSlotIndex);
 
+		inline VkDescriptorPool getDescriptorPool() const { return mDescriptorPool; }
 		inline GraphicsPipelineVulkan& getQuadGraphicsPipeline() const { return *mQuadGraphicsPipeline; }
+		inline const TextureVulkan& getWhiteTexture() const { return *mWhiteTexture; }
 		inline VertexArrayVulkan& getQuadVao() const { return *mQuadVao; }
-		inline RenderBatchQuad& getRenderBatchQuad() const { return *mRenderBatchQuad; }
+		inline std::vector<RenderBatchQuad>& getQuadRenderBatches() { return mQuadRenderBatches; }
+		inline const std::vector<std::shared_ptr<TextureVulkan>>& getTestTextures() const { return mTestTextures; }
 
+		//inline RenderBatchQuad& getRenderBatchQuad() const { return *mRenderBatchQuad; }
 		//inline bool sceneQuadBatchHasSpace(size_t quadCount) const {
 		//	return mSceneQuadCount + quadCount <= BatchSizeLimits::QUAD_COUNT;
 		//};
-		inline bool sceneQuadBatchHasSpace(size_t quadCount) const {
-			return mRenderBatchQuad->hasSpace(static_cast<uint32_t>(quadCount));
-		};
+		//inline bool sceneQuadBatchHasSpace(size_t quadCount) const {
+		//	return mRenderBatchQuad->hasSpace(static_cast<uint32_t>(quadCount));
+		//};
 	};
 }

@@ -57,7 +57,6 @@ namespace DOH {
 		void onResize(int width, int height);
 
 		void drawFrame();
-
 		inline void setupPostAppLogicInit() const { mRenderingContext->setupPostAppLogicInit(); }
 		inline void prepareScenePipeline(ShaderProgramVulkan& shaderProgram) const { mRenderingContext->prepareScenePipeline(shaderProgram, false); }
 		inline void prepareUiPipeline(ShaderProgramVulkan& shaderProgram) const { mRenderingContext->prepareAppUiPipeline(shaderProgram, false); }
@@ -65,6 +64,9 @@ namespace DOH {
 		void endScene();
 		void beginUi(glm::mat4x4& proj);
 		void endUi();
+		inline void deviceWaitIdle() {
+			VK_TRY(vkDeviceWaitIdle(mLogicDevice), "Device failed to wait idle");
+		}
 
 		inline RenderingContextVulkan& getContext() const { return *mRenderingContext; }
 

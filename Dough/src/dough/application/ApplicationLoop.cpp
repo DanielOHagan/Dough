@@ -19,8 +19,37 @@ namespace DOH {
 	ApplicationLoop::ApplicationLoop(
 		Application& app,
 		float targetFps,
+		float targetUps
+	) : mApplication(app),
+		mTargetFrameTimeSpan(0),
+		mLastCycleTimePoint(Time::getCurrentTimeMillis()),
+		mPerSecondCountersTimeSpan(0.0f),
+		mDeltaRenderTimeSpan(0.0),
+		mLastRenderTimePoint(0.0),
+		mTargetUpdateTimeSpan(0),
+		mDeltaUpdateTimeSpan(0.0),
+		mLastUpdateTimePoint(0.0),
+		mFps(0.0f),
+		mTargetFps(targetFps),
+		mTargetBackgroundFps(DEFAULT_TARGET_BACKGROUND_FPS),
+		mUps(0.0f),
+		mTargetUps(targetUps),
+		mTargetBackgroundUps(DEFAULT_TARGET_BACKGROUND_UPS),
+		mPreviousFps(0.0f),
+		mPreviousUps(0.0f),
+		mRunInBackground(false)
+	{
+		updateTargetUpdateTime(app.isFocused());
+		updateTargetFrameTime(app.isFocused());
+	}
+
+	ApplicationLoop::ApplicationLoop(
+		Application& app,
+		float targetFps,
+		float targetUps,
 		bool runInBackground,
-		float targetBackgroundFps
+		float targetBackgroundFps,
+		float targetBackgroundUps
 	) : mApplication(app),
 		mTargetFrameTimeSpan(0),
 		mLastCycleTimePoint(Time::getCurrentTimeMillis()),
@@ -34,14 +63,14 @@ namespace DOH {
 		mTargetFps(targetFps),
 		mTargetBackgroundFps(targetBackgroundFps),
 		mUps(0.0f),
-		mTargetUps(DEFAULT_TARGET_UPS),
-		mTargetBackgroundUps(DEFAULT_TARGET_BACKGROUND_UPS),
+		mTargetUps(targetUps),
+		mTargetBackgroundUps(targetBackgroundUps),
 		mPreviousFps(0.0f),
 		mPreviousUps(0.0f),
 		mRunInBackground(runInBackground)
 	{
-		updateTargetUpdateTime(app.isFocused());
 		updateTargetFrameTime(app.isFocused());
+		updateTargetUpdateTime(app.isFocused());
 	}
 
 	void ApplicationLoop::run() {
@@ -83,6 +112,8 @@ namespace DOH {
 			}
 
 			if (!(mDeltaRenderTimeSpan < mTargetFrameTimeSpan)) {
+				//NOTE:: When Iconified the app doesn't call any render functions even though
+				//	it is called here and the FPS increments here
 				mApplication.render();
 			
 				mFps++;
