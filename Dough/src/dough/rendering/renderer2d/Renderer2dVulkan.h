@@ -16,6 +16,8 @@ namespace DOH {
 		RenderingContextVulkan& mContext;
 		std::unique_ptr<Renderer2dStorageVulkan> mStorage;
 
+		//Texture IDs pointing to batches currently using those textures
+		//std::unordered_map<uint32_t, std::reference_wrapper<RenderBatchQuad>> mQuadBatchTextureUsageMap;
 		//TODO:: When searching batches for texures, instead of doing 
 		// for each (batch) doesBatchHave(texture).
 		// store a map of textureId's to batch references of one or more batches that use the texture
@@ -36,6 +38,9 @@ namespace DOH {
 		//TODO:: separate flush functions for rendering in different render passes
 		//void flushUi();
 
+		//Close the dynamic batches that have a geo count of 0
+		void closeEmptyQuadBatches();
+
 		void drawQuadScene(Quad& quad);
 		void drawQuadTexturedScene(Quad& quad);
 		void drawQuadArrayScene(std::vector<Quad>& quadArr);
@@ -44,8 +49,9 @@ namespace DOH {
 		//void drawQuadUi(Quad& quad);
 
 
-		//-----DEBUG----- TEMP:: Storage should only be visible to Renderer2d
-		Renderer2dStorageVulkan& getStorage() const { return *mStorage; }
+		//-----DEBUG----- TEMP:: Storage should only be visible to Renderer2d, used to show info to ImGui in app
+		inline Renderer2dStorageVulkan& getStorage() const { return *mStorage; }
+		inline size_t getQuadBatchCount() const { return mStorage->getQuadRenderBatches().size(); }
 	};
 
 }

@@ -62,8 +62,18 @@ namespace DOH {
 		void run();
 
 		inline void onFocusChange(bool focused) { updateTargetFrameTime(focused); updateTargetUpdateTime(focused); }
-		inline void updateTargetFrameTime(bool focused) { mTargetFrameTimeSpan = 1000.0 / (focused ? mTargetFps : mRunInBackground ? mTargetFps : mTargetBackgroundFps); }
-		inline void updateTargetUpdateTime(bool focused) { mTargetUpdateTimeSpan = 1000.0 / (focused ? mTargetUps : mRunInBackground ? mTargetUps : mTargetBackgroundUps); }
+		inline void updateTargetFrameTime(bool focused) {
+			//Calculate the target time span between each render in millis, then deduct an arbitrary amount to account for overflow
+			// 1000.0(ms) / targetFpsTimeSpan for exact time span, the arbitrary change is applied by changing the 1000ms to 995ms
+			const float targetFpsTimeSpan = focused ? mTargetFps : mRunInBackground ? mTargetFps : mTargetBackgroundFps;
+			mTargetFrameTimeSpan = (995.0 / targetFpsTimeSpan);// - 5 / targetFpsTimeSpan;
+		}
+		inline void updateTargetUpdateTime(bool focused) {
+			//Calculate the target time span between each update in millis, then deduct an arbitrary amount to account for overflow
+			// 1000.0(ms) / targetUpsTimeSpan for exact time span, the arbitrary change is applied by changing the 1000ms to 995ms
+			const float targetUpsTimeSpan = focused ? mTargetUps : mRunInBackground ? mTargetUps : mTargetBackgroundUps;
+			mTargetUpdateTimeSpan = (995.0 / targetUpsTimeSpan);// - 5 / targetUpsTimeSpan;
+		}
 
 		inline bool isRunningInBackground() const { return mRunInBackground; }
 		inline void setRunInBackground(bool renderInBackground) { mRunInBackground = renderInBackground; }

@@ -13,7 +13,12 @@ namespace TG {
 
 	TG_AppLogic::TG_AppLogic()
 	:	IApplicationLogic(),
-		mUiProjMat(1.0f)
+		mUiProjMat(1.0f),
+		//mTestGridMaxQuadCount(50000)
+		mTestGridMaxQuadCount(
+			Renderer2dStorageVulkan::MAX_BATCH_COUNT_QUAD *
+			Renderer2dStorageVulkan::BATCH_MAX_GEO_COUNT_QUAD
+		) //Set to max supported by batch renderer as excess quads are truncated
 	{}
 
 	void TG_AppLogic::init(float aspectRatio) {
@@ -43,7 +48,7 @@ namespace TG {
 
 	void TG_AppLogic::render() {
 		RendererVulkan& renderer = GET_RENDERER;
-		//renderer.beginScene(TG_mOrthoCameraController->getCamera());
+
 		renderer.beginScene(
 			mImGuiSettings.mUseOrthographicCamera ?
 				TG_mOrthoCameraController->getCamera() : mPerspectiveCameraController->getCamera()
@@ -53,10 +58,9 @@ namespace TG {
 		}
 
 		if (mImGuiSettings.mRenderBatchQuadScene) {
-			//renderer.getContext().getRenderer2d().drawQuadArrayScene(mTestGrid);
-			//renderer.getContext().getRenderer2d().drawQuadArrayTexturedScene(mTestGrid);
 			for (std::vector<Quad>& sameTexturedQuads : mTexturedTestGrid) {
-				renderer.getContext().getRenderer2d().drawQuadArraySameTextureScene(sameTexturedQuads);
+				renderer.getContext().getRenderer2d().drawQuadArrayScene(sameTexturedQuads);
+				//renderer.getContext().getRenderer2d().drawQuadArraySameTextureScene(sameTexturedQuads);
 			}
 		}
 		renderer.endScene();
@@ -94,15 +98,24 @@ namespace TG {
 			ImGui::Text("Runtime: %fs", Time::convertMillisToSeconds(Application::get().getAppInfoTimer().getCurrentTickingTimeMillis()));
 			ImGui::Text("Window Size: (%i, %i)", window.getWidth(), window.getHeight());
 			bool displayModeWindowActive = window.getDisplayMode() == WindowDisplayMode::WINDOWED;
-			if (ImGui::RadioButton("Windowed", displayModeWindowActive) && window.getDisplayMode() != WindowDisplayMode::WINDOWED) {
+			if (
+				ImGui::RadioButton("Windowed", displayModeWindowActive) &&
+				window.getDisplayMode() != WindowDisplayMode::WINDOWED
+			) {
 				window.selectDisplayMode(WindowDisplayMode::WINDOWED);
 			}
 			bool displayModeBorderlessWindowActive = window.getDisplayMode() == WindowDisplayMode::BORDERLESS_FULLSCREEN;
-			if (ImGui::RadioButton("Borderless Windowed", displayModeBorderlessWindowActive) && window.getDisplayMode() != WindowDisplayMode::BORDERLESS_FULLSCREEN) {
+			if (
+				ImGui::RadioButton("Borderless Windowed", displayModeBorderlessWindowActive) &&
+				window.getDisplayMode() != WindowDisplayMode::BORDERLESS_FULLSCREEN
+			) {
 				window.selectDisplayMode(WindowDisplayMode::BORDERLESS_FULLSCREEN);
 			}
 			bool displayModeFullscreenActive = window.getDisplayMode() == WindowDisplayMode::FULLSCREEN;
-			if (ImGui::RadioButton("Fullscreen", displayModeFullscreenActive) && window.getDisplayMode() != WindowDisplayMode::FULLSCREEN) {
+			if (
+				ImGui::RadioButton("Fullscreen", displayModeFullscreenActive) &&
+				window.getDisplayMode() != WindowDisplayMode::FULLSCREEN
+			) {
 				window.selectDisplayMode(WindowDisplayMode::FULLSCREEN);
 			}
 			ImGui::Text("Is Focused: ");
@@ -110,9 +123,9 @@ namespace TG {
 			ImGui::TextColored(focused ? ImVec4(0, 1, 0, 1) : ImVec4(1, 0, 0, 1), focused ? "FOCUSED" : "NOT FOCUSED");
 			ImGui::Text("Current and Target FPS/UPS");
 			ImGui::Text("FPS: %i \t(Fore: %i, Back: %i)", (int)loop.getFps(), (int)loop.getTargetFps(), (int)loop.getTargetBackgroundFps());
-			imguiDisplayHelpTooltip("FPS displayed is the count of frames in the last full second interval");
+			imGuiDisplayHelpTooltip("Max: Current Target UPS or 360, whichever is lower. Min: 15\nFPS displayed is the count of frames in the last full second interval");
 			ImGui::Text("UPS: %i \t(Fore: %i, Back: %i)", (int)loop.getUps(), (int)loop.getTargetUps(), (int)loop.getTargetBackgroundUps());
-			imguiDisplayHelpTooltip("UPS displayed is the count of frames in the last full second interval");
+			imGuiDisplayHelpTooltip("Max: 1000. Min: Current Target FPS or 15, whichever is higher.\nUPS displayed is the count of frames in the last full second interval");
 			int tempTargetFps = (int)loop.getTargetFps();
 			if (ImGui::InputInt("Target FPS", &tempTargetFps)) {
 				if (loop.isValidTargetFps((float)tempTargetFps)) {
@@ -131,6 +144,17 @@ namespace TG {
 				loop.setRunInBackground(runInBackground);
 			}
 
+			ImGui::Checkbox("Render ToDo List Window", &mImGuiSettings.mRenderToDoListWindow);
+			if (ImGui::Button("Stop Rendering All ImGui Windows")) {
+				mImGuiSettings.mRenderDebugWindow = false;
+				mImGuiSettings.mRenderToDoListWindow = false;
+			}
+			imGuiDisplayHelpTooltip("Once the debug window has stopped rendering, you can press F1 to start rendering again");
+
+			if (ImGui::Button("Quit Application")) {
+				Application::get().stop();
+			}
+
 			mImGuiSettings.mApplicationCollapseMenuOpen = true;
 		} else {
 			mImGuiSettings.mApplicationCollapseMenuOpen = false;
@@ -143,7 +167,21 @@ namespace TG {
 			ImGui::Checkbox("Render Batch Quad Scene", &mImGuiSettings.mRenderBatchQuadScene);
 			ImGui::Checkbox("Render Batch Quad UI", &mImGuiSettings.mRenderBatchQuadUi);
 			//TODO:: ImGui::Checkbox("Render Wireframes", &mRenderWireframes);
-			ImGui::Text("Quad Batches: %i", renderer.getContext().getRenderer2d().getStorage().getQuadRenderBatches().size());
+			ImGui::Text("Quad Batch Max Size: %i", Renderer2dStorageVulkan::BatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD);
+			ImGui::Text(
+				"Quad Batch Count: %i of Max %i",
+				renderer.getContext().getRenderer2d().getQuadBatchCount(),
+				Renderer2dStorageVulkan::BatchSizeLimits::MAX_BATCH_COUNT_QUAD
+			);
+			uint32_t index = 0;
+			for (RenderBatchQuad& batch : renderer.getContext().getRenderer2d().getStorage().getQuadRenderBatches()) {
+				ImGui::Text("Batch: %i Geo Count: %i", index, batch.getGeometryCount());
+				index++;
+			}
+			if (ImGui::Button("Close All Empty Quad Batches")) {
+				renderer.getContext().getRenderer2d().closeEmptyQuadBatches();
+			}
+			imGuiDisplayHelpTooltip("Close Empty Quad Batches. This can help clean-up when 1 or more batches have geo counts of 0");
 
 			mImGuiSettings.mRenderingCollapseMenuOpen = true;
 		} else {
@@ -154,7 +192,7 @@ namespace TG {
 		if (ImGui::CollapsingHeader("Quad Test Grid")) {
 			//Size of grid can be adjusted but it limited to a certain number of quads,
 			// ImGui values are taken and checked to see if they are valid
-			ImGui::Text("Test Grid Quad Count: %i", mTestGridSize[0] * mTestGridSize[1]);
+			ImGui::Text("Test Grid Quad Count: %i of Max %i", mTestGridSize[0] * mTestGridSize[1], mTestGridMaxQuadCount);
 			int tempTestGridSize[2] = { mTestGridSize[0], mTestGridSize[1] };
 			if (ImGui::InputInt2("Test Grid Size", tempTestGridSize)) {
 				if (tempTestGridSize[0] > 0 && tempTestGridSize[1] > 0) {
@@ -218,7 +256,7 @@ namespace TG {
 				ImGui::Text("X: %f", TG_mOrthoCameraController->getPosition().x);
 				ImGui::Text("Y: %f", TG_mOrthoCameraController->getPosition().y);
 				ImGui::Text("Zoom: %f", TG_mOrthoCameraController->getZoomLevel());
-				imguiDisplayHelpTooltip("Higher is more \"zoomed in\" and lower is more \"zoomed out\"");
+				imGuiDisplayHelpTooltip("Higher is more \"zoomed in\" and lower is more \"zoomed out\"");
 			} else {
 				ImGui::Text("Perspective Camera Controls");
 				ImGui::Text("Position");
@@ -231,7 +269,7 @@ namespace TG {
 				ImGui::Text("Z: %f", mPerspectiveCameraController->getDirection().z);
 			}
 			if (ImGui::Button("Reset Orthographic Camera")) {
-				TG_mOrthoCameraController->setPosition({ 0.0f, 0.0f, 0.0f });
+				TG_mOrthoCameraController->setPosition({ 0.0f, 0.0f, 1.0f });
 				TG_mOrthoCameraController->setZoomLevel(1.0f);
 			}
 			if (ImGui::Button("Reset Perspective Camera")) {
@@ -244,16 +282,6 @@ namespace TG {
 			mImGuiSettings.mCameraCollapseMenuOpen = false;
 		}
 
-		ImGui::Checkbox("Render ToDo List Window", &mImGuiSettings.mRenderToDoListWindow);
-		if (ImGui::Button("Stop Rendering Debug Window")) {
-			mImGuiSettings.mRenderDebugWindow = false;
-		}
-		imguiDisplayHelpTooltip("Once the debug window has stopped rendering, you can press F1 to start rendering again");
-
-		if (ImGui::Button("Quit Application")) {
-			Application::get().stop();
-		}
-
 		ImGui::End();
 	}
 
@@ -263,7 +291,9 @@ namespace TG {
 
 		if (ImGui::CollapsingHeader("Top Tier")) {
 			ImGui::Bullet();
-			ImGui::TextWrapped("Multiple quad batches created dynamically based on number of quads and textures required");
+			ImGui::TextWrapped("Multiple texture support for dynamic batches");
+			ImGui::Bullet();
+			ImGui::TextWrapped("App Loop FPS/UPS issues, linking updates to delta");
 			ImGui::Bullet();
 			ImGui::TextWrapped("Some kind of text rendering");
 
@@ -273,8 +303,9 @@ namespace TG {
 		}
 
 		if (ImGui::CollapsingHeader("Mid Tier")) {
-			ImGui::Bullet();
-			ImGui::TextWrapped("Fix when clicking off app during fullscreen, the monitor freezes with app displayed, maybe force minimise or something like that");
+			//TODO:: Check if this still happens, I have successfully alt-tabbed while in fullscreen and viewed other windows on same monitor as application.
+			//ImGui::Bullet();
+			//ImGui::TextWrapped("Fix when clicking off app during fullscreen, the monitor freezes with app displayed, maybe force minimise or something like that");
 			ImGui::Bullet();
 			ImGui::TextWrapped("Fix texture artifacts caused, I think, by casting float to int in shader for texture array index");
 
@@ -423,7 +454,7 @@ namespace TG {
 		GET_RENDERER.prepareUiPipeline(*mUiShaderProgram);
 	}
 
-	void TG_AppLogic::imguiDisplayHelpTooltip(const char* message) {
+	void TG_AppLogic::imGuiDisplayHelpTooltip(const char* message) {
 		ImGui::SameLine();
 		ImGui::Text("(?)");
 		if (ImGui::IsItemHovered()) {

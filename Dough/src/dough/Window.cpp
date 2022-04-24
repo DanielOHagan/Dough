@@ -14,7 +14,7 @@ namespace DOH {
 		TRY(width < 0 || height < 0, "Window width and height must be greater than 0.");
 	}
 
-	void Window::init() {
+	void Window::init(const std::string& windowTitle) {
 		TRY(!glfwInit(), "Failed to initialise GLFW.");
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -33,7 +33,7 @@ namespace DOH {
 			glfwWindowHint(GLFW_REFRESH_RATE, videoMode->refreshRate);
 		}
 
-		mWindowPtr = glfwCreateWindow(mWidth, mHeight, "VulkanWindow", monitor, nullptr);
+		mWindowPtr = glfwCreateWindow(mWidth, mHeight, windowTitle.c_str(), monitor, nullptr);
 
 		TRY(mWindowPtr == nullptr, "Failed to create GLFW window");
 

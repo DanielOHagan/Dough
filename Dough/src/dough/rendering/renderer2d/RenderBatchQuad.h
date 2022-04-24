@@ -13,6 +13,12 @@ namespace DOH {
 
 		virtual void add(const Quad& geo, const uint32_t textureSlotIndex) override;
 		virtual void addAll(const std::vector<Quad>& geoArray, const uint32_t textureSlotIndex) override;
+		void addAll(
+			const std::vector<Quad>& quadArr,
+			const size_t startIndex,
+			const size_t endIndex,
+			const uint32_t textureSlotIndex
+		);
 
 	private:
 		RenderBatchQuad operator=(const RenderBatchQuad& assignment) = delete;

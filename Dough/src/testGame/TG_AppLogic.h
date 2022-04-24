@@ -55,7 +55,8 @@ namespace TG {
 		//std::vector<std::shared_ptr<TextureVulkan>> mTestTextures;
 		std::vector<Quad> mTestGrid;
 		std::vector<std::vector<Quad>> mTexturedTestGrid;
-		int mTestGridMaxQuadCount = 10000; //TEMP:: Currently limited as only one quad batch is supported
+		//This is an arbitrary number, setting it to a number higher than the renderer supports results in quads being trunacated
+		int mTestGridMaxQuadCount;
 		int mTestGridSize[2] = { 10, 10 };
 		float mTestGridQuadSize[2] = { 0.1f, 0.1f };
 		float mTestGridQuadGapSize[2] = { mTestGridQuadSize[0] * 1.5f, mTestGridQuadSize[1] * 1.5f };
@@ -123,12 +124,11 @@ namespace TG {
 			mUiProjMat[1][1] *= -1;
 		}
 
-		void imGuiRenderDebugWindow();
-		void imGuiRenderToDoListWindow();
-
 		void populateTestGrid(int width, int height);
 
-		//ImGui convenience functions
-		void imguiDisplayHelpTooltip(const char* message);
+		//ImGui convenience and separated functions
+		void imGuiDisplayHelpTooltip(const char* message);
+		void imGuiRenderDebugWindow();
+		void imGuiRenderToDoListWindow();
 	};
 }

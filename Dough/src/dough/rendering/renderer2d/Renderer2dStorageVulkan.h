@@ -19,10 +19,10 @@ namespace DOH {
 
 		std::shared_ptr<ShaderProgramVulkan> mQuadShaderProgram;
 		std::shared_ptr<GraphicsPipelineVulkan> mQuadGraphicsPipeline;
-		std::shared_ptr<VertexArrayVulkan> mQuadVao;
 
-		//std::unique_ptr<RenderBatchQuad> mRenderBatchQuad;
 		std::vector<RenderBatchQuad> mQuadRenderBatches;
+		std::vector<std::shared_ptr<VertexArrayVulkan>> mQuadBatchVaos;
+		//TODO:: std::unique_ptr<StaticSharedIndexBuffer> mQuadIndexBuffer;
 
 		//Textures
 		std::shared_ptr<TextureVulkan> mWhiteTexture;
@@ -41,18 +41,20 @@ namespace DOH {
 		//which isn't even enforced by the engine.
 		//Maybe, for optimisation, the renderer might grant a higher limit to scene batches than UI batches.
 		enum BatchSizeLimits {
+			MAX_BATCH_COUNT_QUAD = 8,
+
 			SINGLE_QUAD_VERTEX_COUNT = 4,
 			SINGLE_QUAD_INDEX_COUNT = 6,
 			SINGLE_QUAD_COMPONENT_COUNT = Vertex3dTextured::COMPONENT_COUNT * SINGLE_QUAD_VERTEX_COUNT,
 			SINGLE_QUAD_BYTE_SIZE = Vertex3dTextured::BYTE_SIZE * SINGLE_QUAD_VERTEX_COUNT,
 			
-			BATCH_QUAD_COUNT = 10000,
-			BATCH_QUAD_VERTEX_COUNT = BATCH_QUAD_COUNT * SINGLE_QUAD_VERTEX_COUNT,
-			BATCH_QUAD_INDEX_COUNT = BATCH_QUAD_COUNT * SINGLE_QUAD_INDEX_COUNT,
-			BATCH_QUAD_COMPONENT_COUNT = BATCH_QUAD_COUNT * SINGLE_QUAD_COMPONENT_COUNT,
-			BATCH_QUAD_BYTE_SIZE = BATCH_QUAD_COUNT * SINGLE_QUAD_BYTE_SIZE,
+			BATCH_MAX_GEO_COUNT_QUAD = 10000,
+			BATCH_MAX_COUNT_TEXTURE = 8,
 
-			BATCH_MAX_TEXTURE_COUNT = 8
+			BATCH_QUAD_VERTEX_COUNT = BATCH_MAX_GEO_COUNT_QUAD * SINGLE_QUAD_VERTEX_COUNT,
+			BATCH_QUAD_INDEX_COUNT = BATCH_MAX_GEO_COUNT_QUAD * SINGLE_QUAD_INDEX_COUNT,
+			BATCH_QUAD_COMPONENT_COUNT = BATCH_MAX_GEO_COUNT_QUAD * SINGLE_QUAD_COMPONENT_COUNT,
+			BATCH_QUAD_BYTE_SIZE = BATCH_MAX_GEO_COUNT_QUAD * SINGLE_QUAD_BYTE_SIZE
 		};
 
 		Renderer2dStorageVulkan(RenderingContextVulkan& context);
@@ -62,26 +64,15 @@ namespace DOH {
 		void init(VkDevice logicDevice);
 		void close(VkDevice logicDevice);
 		void closeSwapChainSpecificObjects(VkDevice logicDevice);
+		//void closeQuadBatches();
 		void recreateSwapChainSpecificObjects();
-
-		//void addSceneQuad(Quad& quad);
-		//void addSceneQuad(Quad& quad, uint32_t textureSlotIndex);
-		//void addSceneQuadArray(std::vector<Quad>& quadArr);
-		//void addSceneQuadArray(std::vector<Quad>& quadArr, uint32_t textureSlotIndex);
+		size_t createNewBatchQuad();
 
 		inline VkDescriptorPool getDescriptorPool() const { return mDescriptorPool; }
 		inline GraphicsPipelineVulkan& getQuadGraphicsPipeline() const { return *mQuadGraphicsPipeline; }
 		inline const TextureVulkan& getWhiteTexture() const { return *mWhiteTexture; }
-		inline VertexArrayVulkan& getQuadVao() const { return *mQuadVao; }
 		inline std::vector<RenderBatchQuad>& getQuadRenderBatches() { return mQuadRenderBatches; }
+		inline std::vector<std::shared_ptr<VertexArrayVulkan>>& getQuadRenderBatchVaos() { return mQuadBatchVaos; }
 		inline const std::vector<std::shared_ptr<TextureVulkan>>& getTestTextures() const { return mTestTextures; }
-
-		//inline RenderBatchQuad& getRenderBatchQuad() const { return *mRenderBatchQuad; }
-		//inline bool sceneQuadBatchHasSpace(size_t quadCount) const {
-		//	return mSceneQuadCount + quadCount <= BatchSizeLimits::QUAD_COUNT;
-		//};
-		//inline bool sceneQuadBatchHasSpace(size_t quadCount) const {
-		//	return mRenderBatchQuad->hasSpace(static_cast<uint32_t>(quadCount));
-		//};
 	};
 }

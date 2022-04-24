@@ -28,13 +28,13 @@ namespace DOH {
 		//mWindow = std::make_unique<Window>(2560, 1440, WindowDisplayMode::BORDERLESS_FULLSCREEN);
 		//mWindow = std::make_unique<Window>(2560, 1440, WindowDisplayMode::FULLSCREEN);
 		mAppInfoTimer->recordInterval("Window.init() start");
-		mWindow->init();
-		mAppInfoTimer->recordInterval("Window.init() start");
+		mWindow->init("Dough Engine");
+		mAppInfoTimer->recordInterval("Window.init() end");
 
 		mAppLoop = std::make_unique<ApplicationLoop>(
 			*this,
-			ApplicationLoop::MAX_TARGET_FPS,
-			ApplicationLoop::MAX_TARGET_UPS,
+			144.0f,
+			144.0f,
 			false,
 			ApplicationLoop::DEFAULT_TARGET_BACKGROUND_FPS,
 			ApplicationLoop::DEFAULT_TARGET_BACKGROUND_UPS
@@ -61,18 +61,19 @@ namespace DOH {
 	}
 
 	void Application::update(float delta) {
+		mWindow->pollEvents();
+
 		mAppLogic->update(delta);
+
 		Input::get().resetCycleData();
 	}
 
 	void Application::render() {
-		if (!mIconified) {
-			mAppLogic->render();
-			mRenderer->getContext().getImGuiWrapper().newFrame();
-			mAppLogic->imGuiRender();
-			mRenderer->getContext().getImGuiWrapper().endFrame();
-			mRenderer->drawFrame();
-		}
+		mAppLogic->render();
+		mRenderer->getContext().getImGuiWrapper().newFrame();
+		mAppLogic->imGuiRender();
+		mRenderer->getContext().getImGuiWrapper().endFrame();
+		mRenderer->drawFrame();
 	}
 
 	void Application::close() {
@@ -144,6 +145,10 @@ namespace DOH {
 				} else {
 
 				}
+				return;
+
+			default:
+				LOG_WARN("Unknown window event type");
 				return;
 		}
 	}

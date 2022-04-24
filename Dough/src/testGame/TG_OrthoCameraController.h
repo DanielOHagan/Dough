@@ -46,7 +46,7 @@ namespace TG {
 
 		void zoom(float zoomAmount);
 		inline float getZoomLevel() const { return mZoomLevel; }
-		inline void setZoomLevel(float zoomLevel) { mZoomLevel = zoomLevel; }
+		inline void setZoomLevel(float zoomLevel) { mZoomLevel = zoomLevel; updateProjectionMatrix(); }
 		inline float getZoomSpeed() const { return mZoomSpeed; }
 		inline void setZoomSpeed(float speed) { mZoomSpeed = speed; }
 		inline float getZoomMax() const { return mZoomMax; }
@@ -56,6 +56,14 @@ namespace TG {
 
 	private:
 		//Convenience functions
+		inline void updateProjectionMatrix() {
+			mCamera->setProjection(
+				-mAspectRatio * mZoomLevel,
+				mAspectRatio * mZoomLevel,
+				-mZoomLevel,
+				mZoomLevel
+			);
+		}
 		void updateViewMatrices();
 		void handleInput(float delta);
 	};

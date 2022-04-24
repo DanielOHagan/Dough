@@ -29,12 +29,15 @@ namespace DOH {
 	void Renderer2dStorageVulkan::close(VkDevice logicDevice) {
 		mQuadShaderProgram->close(logicDevice);
 		mQuadGraphicsPipeline->close(logicDevice);
-		mQuadVao->close(logicDevice);
 
 		mWhiteTexture->close(logicDevice);
 
 		for (std::shared_ptr<TextureVulkan> texture : mTestTextures) {
 			texture->close(logicDevice);
+		}
+
+		for (std::shared_ptr<VertexArrayVulkan> vao : mQuadBatchVaos) {
+			vao->close(logicDevice);
 		}
 
 		vkDestroyDescriptorPool(logicDevice, mDescriptorPool, nullptr);
@@ -67,23 +70,72 @@ namespace DOH {
 		mContext.createPipelineUniformObjects(*mQuadGraphicsPipeline, mDescriptorPool);
 	}
 
+	size_t Renderer2dStorageVulkan::createNewBatchQuad() {
+		if (mQuadRenderBatches.size() < BatchSizeLimits::MAX_BATCH_COUNT_QUAD) {
+			RenderBatchQuad& batch = mQuadRenderBatches.emplace_back(
+				BatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD,
+				BatchSizeLimits::BATCH_MAX_COUNT_TEXTURE
+			);
+
+			for (std::shared_ptr<TextureVulkan> texture : mTestTextures) {
+				batch.addNewTexture(*texture);
+			}
+
+			std::shared_ptr<VertexArrayVulkan> vao = ObjInit::vertexArray();
+			std::shared_ptr<VertexBufferVulkan> vbo = ObjInit::vertexBuffer(
+				{
+					{ EDataType::FLOAT3 },
+					{ EDataType::FLOAT4 },
+					{ EDataType::FLOAT2 },
+					{ EDataType::FLOAT }
+				},
+				BatchSizeLimits::BATCH_QUAD_BYTE_SIZE,
+				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+			);
+			vao->addVertexBuffer(vbo);
+
+			//TODO:: Some kind of static/const & shared (data is usable by multiple vao's but with differing indexCount values) index 
+			std::vector<uint16_t> quadIndices;
+			quadIndices.resize(BatchSizeLimits::BATCH_QUAD_INDEX_COUNT);
+			uint16_t vertexOffset = 0;
+			for (uint16_t i = 0; i < BatchSizeLimits::BATCH_QUAD_INDEX_COUNT; i += BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT) {
+				quadIndices[i + 0] = vertexOffset + 0;
+				quadIndices[i + 1] = vertexOffset + 1;
+				quadIndices[i + 2] = vertexOffset + 2;
+
+				quadIndices[i + 3] = vertexOffset + 2;
+				quadIndices[i + 4] = vertexOffset + 3;
+				quadIndices[i + 5] = vertexOffset + 0;
+
+				vertexOffset += BatchSizeLimits::SINGLE_QUAD_VERTEX_COUNT;
+			}
+			std::shared_ptr<IndexBufferVulkan> quadIb = ObjInit::stagedIndexBuffer(
+				quadIndices.data(),
+				sizeof(uint16_t) * BatchSizeLimits::BATCH_QUAD_INDEX_COUNT,
+				BatchSizeLimits::BATCH_QUAD_INDEX_COUNT
+			);
+			vao->setIndexBuffer(quadIb);
+
+			mQuadBatchVaos.push_back(vao);
+
+			return mQuadRenderBatches.size() - 1;
+		} else {
+			LOG_WARN("Max Quad Batch Count reached");
+			return -1;
+		}
+	}
+
 	void Renderer2dStorageVulkan::initForQuads(VkDevice logicDevice) {
 		mQuadShaderProgram = ObjInit::shaderProgram(
 			ObjInit::shader(EShaderType::VERTEX, Renderer2dStorageVulkan::QUAD_SHADER_PATH_VERT),
 			ObjInit::shader(EShaderType::FRAGMENT, Renderer2dStorageVulkan::QUAD_SHADER_PATH_FRAG)
 		);
 
-		//Create at least one batch
-		RenderBatchQuad& batch = mQuadRenderBatches.emplace_back(
-			BatchSizeLimits::BATCH_QUAD_COUNT,
-			BatchSizeLimits::BATCH_MAX_TEXTURE_COUNT
-		);
-
 		for (int i = 0; i < 8; i++) {
 			std::string path = testTexturesPath + "texture" + std::to_string(i) + ".png";
 			std::shared_ptr<TextureVulkan> testTexture = ObjInit::texture(path);
 			mTestTextures.push_back(testTexture);
-			batch.addNewTexture(*testTexture);
 		}
 
 		ShaderUniformLayout& layout = mQuadShaderProgram->getUniformLayout();
@@ -103,42 +155,6 @@ namespace DOH {
 			8,
 			{ mWhiteTexture->getImageView(), mWhiteTexture->getSampler() }
 		);
-
-		mQuadVao = ObjInit::vertexArray();
-		std::shared_ptr<VertexBufferVulkan> vbo = ObjInit::vertexBuffer(
-			{
-				{ EDataType::FLOAT3 },
-				{ EDataType::FLOAT4 },
-				{ EDataType::FLOAT2 },
-				{ EDataType::FLOAT }
-			},
-			BatchSizeLimits::BATCH_QUAD_BYTE_SIZE,
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-		);
-		mQuadVao->addVertexBuffer(vbo);
-
-		//Quad index buffer
-		std::vector<uint16_t> quadIndices;
-		quadIndices.resize(BatchSizeLimits::BATCH_QUAD_INDEX_COUNT);
-		uint16_t vertexOffset = 0;
-		for (uint16_t i = 0; i < BatchSizeLimits::BATCH_QUAD_INDEX_COUNT; i += BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT) {
-			quadIndices[i + 0] = vertexOffset + 0;
-			quadIndices[i + 1] = vertexOffset + 1;
-			quadIndices[i + 2] = vertexOffset + 2;
-		
-			quadIndices[i + 3] = vertexOffset + 2;
-			quadIndices[i + 4] = vertexOffset + 3;
-			quadIndices[i + 5] = vertexOffset + 0;
-		
-			vertexOffset += BatchSizeLimits::SINGLE_QUAD_VERTEX_COUNT;
-		}
-		std::shared_ptr<IndexBufferVulkan> quadIb = ObjInit::stagedIndexBuffer(
-			quadIndices.data(),
-			sizeof(uint16_t) * BatchSizeLimits::BATCH_QUAD_INDEX_COUNT,
-			BatchSizeLimits::BATCH_QUAD_INDEX_COUNT
-		);
-		mQuadVao->setIndexBuffer(quadIb);
 
 		const uint32_t binding = 0;
 		std::vector<VkVertexInputAttributeDescription> attribDescs = std::move(Vertex3dTextured::asAttributeDescriptions(binding));

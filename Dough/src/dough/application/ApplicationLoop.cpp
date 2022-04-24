@@ -5,9 +5,9 @@
 
 namespace DOH {
 
-	const float ApplicationLoop::MAX_TARGET_FPS = 144.0f;
+	const float ApplicationLoop::MAX_TARGET_FPS = 360.0f;
 	const float ApplicationLoop::MIN_TARGET_FPS = 15.0f;
-	const float ApplicationLoop::MAX_TARGET_UPS = 200.0f;
+	const float ApplicationLoop::MAX_TARGET_UPS = 1000.0f;
 	const float ApplicationLoop::MIN_TARGET_UPS = 15.0f;
 	const float ApplicationLoop::DEFAULT_TARGET_FPS = 120.0f;
 	const float ApplicationLoop::DEFAULT_TARGET_BACKGROUND_FPS = 15.0f;
@@ -77,8 +77,7 @@ namespace DOH {
 		while (mApplication.isRunning()) {
 			mApplication.pollEvents();
 
-			const double currentTimePoint = Time::getCurrentTimeMillis();
-			double deltaCycleTimeSpan = currentTimePoint - mLastCycleTimePoint;
+			const double deltaCycleTimeSpan = Time::getCurrentTimeMillis() - mLastCycleTimePoint;
 
 			mDeltaUpdateTimeSpan += deltaCycleTimeSpan;
 			mDeltaRenderTimeSpan += deltaCycleTimeSpan;
@@ -89,7 +88,7 @@ namespace DOH {
 				mFps = 0.0f;
 				mPreviousUps = mUps;
 				mUps = 0.0f;
-			
+
 				const bool noLimitFps = mApplication.isFocused() || mRunInBackground;
 				LOG(
 					"FPS: " << mPreviousFps << " (" <<
@@ -102,26 +101,26 @@ namespace DOH {
 
 				mPerSecondCountersTimeSpan = 0.0;
 			}
-
+			
 			if (!(mDeltaUpdateTimeSpan < mTargetUpdateTimeSpan)) {
 				mApplication.update(Time::convertMillisToSeconds(mDeltaUpdateTimeSpan));
-				
 				mUps++;
 				mDeltaUpdateTimeSpan = 0.0;
-				mLastUpdateTimePoint = currentTimePoint;
+				mLastUpdateTimePoint = Time::getCurrentTimeMillis();
 			}
 
 			if (!(mDeltaRenderTimeSpan < mTargetFrameTimeSpan)) {
 				//NOTE:: When Iconified the app doesn't call any render functions even though
 				//	it is called here and the FPS increments here
-				mApplication.render();
-			
-				mFps++;
-				mDeltaRenderTimeSpan = 0.0;
-				mLastRenderTimePoint = currentTimePoint;
+				if (!mApplication.isIconified()) {
+					mApplication.render();
+					mFps++;
+					mDeltaRenderTimeSpan = 0.0;
+					mLastRenderTimePoint = Time::getCurrentTimeMillis();
+				}
 			}
 
-			mLastCycleTimePoint = currentTimePoint;
+			mLastCycleTimePoint = Time::getCurrentTimeMillis();
 		}
 	}
 

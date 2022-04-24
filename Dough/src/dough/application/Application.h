@@ -49,6 +49,7 @@ namespace DOH {
 		inline IntervalTimer& getAppInfoTimer() const { return *mAppInfoTimer; }
 		inline bool isRunning() const { return mRunning; }
 		inline bool isFocused() const { return mFocused; }
+		inline bool isIconified() const { return mIconified; }
 
 		static int start(std::shared_ptr<IApplicationLogic> appLogic);
 		static bool isInstantiated() { return INSTANCE != nullptr; };

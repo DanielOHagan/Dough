@@ -62,7 +62,7 @@ namespace TG {
 			const glm::vec2 currentMousePos = Input::getCursorPos();
 
 			rotation.x += (mCursorLastPosUpdate.x - currentMousePos.x) * delta;
-			rotation.y -= (currentMousePos.y - mCursorLastPosUpdate.y) * delta;
+			rotation.y += (currentMousePos.y - mCursorLastPosUpdate.y) * delta;
 
 			if (glm::dot(rotation, rotation) > std::numeric_limits<float>::epsilon()) {
 				mDirectionFacing += glm::normalize(rotation) * delta;

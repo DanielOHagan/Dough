@@ -22,9 +22,6 @@ namespace DOH {
 
 		AGeometry() = delete;
 
-		inline void setPosition(glm::vec3 pos) { Position = pos; }
-		inline void setSize(glm::vec2 size) { Size = size; }
-		inline void setSize(float width, float height) { Size.x = width; Size.y = height; }
 		inline float getRotationRads() const { return Rotation; }
 		inline float getRotationDegs() const { return glm::degrees(Rotation); }
 		inline void setRotationRads(float rotationRads) { Rotation = rotationRads; }

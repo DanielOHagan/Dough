@@ -37,6 +37,12 @@ namespace DOH {
 	public:
 		virtual void add(const T& geo, const uint32_t textureSlotIndex) = 0;
 		virtual void addAll(const std::vector<T>& geoArray, const uint32_t textureSlotIndex) = 0;
+		virtual void addAll(
+			const std::vector<T>& geoArr,
+			const size_t startIndex,
+			const size_t endIndex,
+			const uint32_t textureSlotIndex
+		) = 0;
 
 		bool hasTextureId(const uint32_t textureId) {
 			for (TextureVulkan& texture : mTextureSlots) {
@@ -78,9 +84,9 @@ namespace DOH {
 		}
 
 		inline uint32_t getDataIndex() const { return mDataIndex; }
-		inline bool hasSpace(uint32_t geoCount) const { return getRemainingGeometrySpace() > 0; }
-		inline uint32_t getRemainingGeometrySpace() const { return MAX_GEOMETRY_COUNT - mGeometryCount; }
-		inline uint32_t getGeometryCount() const { return mGeometryCount; }
+		inline bool hasSpace(size_t geoCount) const { return mGeometryCount + geoCount <= MAX_GEOMETRY_COUNT; }
+		inline size_t getRemainingGeometrySpace() const { return MAX_GEOMETRY_COUNT - mGeometryCount; }
+		inline size_t getGeometryCount() const { return mGeometryCount; }
 		inline const std::vector<float> getData() const { return mData; }
 		inline const std::vector<std::reference_wrapper<TextureVulkan>> getTextureSlots() const { return mTextureSlots; }
 		inline bool hasTextureSlotAvailable() { return mNextTextureSlotIndex < MAX_TEXTURE_COUNT; }

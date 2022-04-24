@@ -4,6 +4,7 @@
 #include <GLFW/glfw3.h>
 
 #include <vector>
+#include <string>
 
 namespace DOH {
 
@@ -27,7 +28,7 @@ namespace DOH {
 		Window(const Window& copy) = delete;
 		Window operator=(const Window& assignment) = delete;
 
-		void init();
+		void init(const std::string& windowTitle);
 		bool shouldClose() const;
 		void pollEvents();
 		void selectDisplayMode(const WindowDisplayMode displayMode);

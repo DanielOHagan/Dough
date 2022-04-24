@@ -23,13 +23,10 @@ namespace DOH {
 			quad.Colour.y,
 			quad.Colour.z,
 			quad.Colour.w,
-			//quad.TextureCoordsU[texCoordsIndex],
-			//quad.TextureCoordsV[texCoordsIndex],
-			0.0f,
-			1.0f,
+			quad.TextureCoords[0],
+			quad.TextureCoords[1],
 			textureSlot
 		);
-		texCoordsIndex++;
 
 		addQuadVertex(
 			quad.Position.x + quad.Size.x,
@@ -39,13 +36,10 @@ namespace DOH {
 			quad.Colour.y,
 			quad.Colour.z,
 			quad.Colour.w,
-			//quad.TextureCoordsU[texCoordsIndex],
-			//quad.TextureCoordsV[texCoordsIndex],
-			1.0f,
-			1.0f,
+			quad.TextureCoords[2],
+			quad.TextureCoords[3],
 			textureSlot
 		);
-		texCoordsIndex++;
 
 		addQuadVertex(
 			quad.Position.x + quad.Size.x,
@@ -55,13 +49,10 @@ namespace DOH {
 			quad.Colour.y,
 			quad.Colour.z,
 			quad.Colour.w,
-			//quad.TextureCoordsU[texCoordsIndex],
-			//quad.TextureCoordsV[texCoordsIndex],
-			1.0f,
-			0.0f,
+			quad.TextureCoords[4],
+			quad.TextureCoords[5],
 			textureSlot
 		);
-		texCoordsIndex++;
 
 		addQuadVertex(
 			quad.Position.x,
@@ -71,10 +62,8 @@ namespace DOH {
 			quad.Colour.y,
 			quad.Colour.z,
 			quad.Colour.w,
-			//quad.TextureCoordsU[texCoordsIndex],
-			//quad.TextureCoordsV[texCoordsIndex],
-			0.0f,
-			0.0f,
+			quad.TextureCoords[6],
+			quad.TextureCoords[7],
 			textureSlot
 		);
 
@@ -85,8 +74,6 @@ namespace DOH {
 		const float textureSlot = static_cast<float>(textureSlotIndex);
 
 		for (const Quad& quad : quadArr) {
-			float texCoordsIndex = 0;
-
 			addQuadVertex(
 				quad.Position.x,
 				quad.Position.y,
@@ -95,13 +82,10 @@ namespace DOH {
 				quad.Colour.y,
 				quad.Colour.z,
 				quad.Colour.w,
-				//quad.TextureCoordsU[texCoordsIndex],
-				//quad.TextureCoordsV[texCoordsIndex],
-				0.0f,
-				1.0f,
+				quad.TextureCoords[0],
+				quad.TextureCoords[1],
 				textureSlot
 			);
-			texCoordsIndex++;
 
 			addQuadVertex(
 				quad.Position.x + quad.Size.x,
@@ -111,13 +95,10 @@ namespace DOH {
 				quad.Colour.y,
 				quad.Colour.z,
 				quad.Colour.w,
-				//quad.TextureCoordsU[texCoordsIndex],
-				//quad.TextureCoordsV[texCoordsIndex],
-				1.0f,
-				1.0f,
+				quad.TextureCoords[2],
+				quad.TextureCoords[3],
 				textureSlot
 			);
-			texCoordsIndex++;
 
 			addQuadVertex(
 				quad.Position.x + quad.Size.x,
@@ -127,13 +108,10 @@ namespace DOH {
 				quad.Colour.y,
 				quad.Colour.z,
 				quad.Colour.w,
-				//quad.TextureCoordsU[texCoordsIndex],
-				//quad.TextureCoordsV[texCoordsIndex],
-				1.0f,
-				0.0f,
+				quad.TextureCoords[4],
+				quad.TextureCoords[5],
 				textureSlot
 			);
-			texCoordsIndex++;
 
 			addQuadVertex(
 				quad.Position.x,
@@ -143,15 +121,92 @@ namespace DOH {
 				quad.Colour.y,
 				quad.Colour.z,
 				quad.Colour.w,
-				//quad.TextureCoordsU[texCoordsIndex],
-				//quad.TextureCoordsV[texCoordsIndex],
-				0.0f,
-				0.0f,
+				quad.TextureCoords[6],
+				quad.TextureCoords[7],
 				textureSlot
 			);
 		}
 
 		mGeometryCount += static_cast<uint32_t>(quadArr.size());
+	}
+
+	void RenderBatchQuad::addAll(
+		const std::vector<Quad>& quadArr,
+		const size_t startIndex,
+		const size_t endIndex,
+		const uint32_t textureSlotIndex
+	) {
+		const float textureSlot = static_cast<float>(textureSlotIndex);
+
+		for (size_t i = startIndex; i < endIndex; i++) {
+
+			const Quad& quad = quadArr[i];
+			
+			addQuadVertex(
+				quad.Position.x,
+				quad.Position.y,
+				quad.Position.z,
+				quad.Colour.x,
+				quad.Colour.y,
+				quad.Colour.z,
+				quad.Colour.w,
+				//quad.TextureCoordsU[texCoordsIndex],
+				//quad.TextureCoordsV[texCoordsIndex],
+				0.0f,
+				1.0f,
+				textureSlot
+			);
+			//texCoordsIndex++;
+
+			addQuadVertex(
+				quad.Position.x + quad.Size.x,
+				quad.Position.y,
+				quad.Position.z,
+				quad.Colour.x,
+				quad.Colour.y,
+				quad.Colour.z,
+				quad.Colour.w,
+				//quad.TextureCoordsU[texCoordsIndex],
+				//quad.TextureCoordsV[texCoordsIndex],
+				1.0f,
+				1.0f,
+				textureSlot
+			);
+			//texCoordsIndex++;
+
+			addQuadVertex(
+				quad.Position.x + quad.Size.x,
+				quad.Position.y + quad.Size.y,
+				quad.Position.z,
+				quad.Colour.x,
+				quad.Colour.y,
+				quad.Colour.z,
+				quad.Colour.w,
+				//quad.TextureCoordsU[texCoordsIndex],
+				//quad.TextureCoordsV[texCoordsIndex],
+				1.0f,
+				0.0f,
+				textureSlot
+			);
+			//texCoordsIndex++;
+
+			addQuadVertex(
+				quad.Position.x,
+				quad.Position.y + quad.Size.y,
+				quad.Position.z,
+				quad.Colour.x,
+				quad.Colour.y,
+				quad.Colour.z,
+				quad.Colour.w,
+				//quad.TextureCoordsU[texCoordsIndex],
+				//quad.TextureCoordsV[texCoordsIndex],
+				0.0f,
+				0.0f,
+				textureSlot
+			);
+
+			mGeometryCount++;
+		}
 	}
 
 	void RenderBatchQuad::addQuadVertex(
@@ -167,26 +222,16 @@ namespace DOH {
 		const float texIndex
 	) {
 		mData[mDataIndex + 0] = posX;
-		//mDataIndex++;
 		mData[mDataIndex + 1] = posY;
-		//mDataIndex++;
 		mData[mDataIndex + 2] = posZ;
-		//mDataIndex++;
 		mData[mDataIndex + 3] = colourR;
-		//mDataIndex++;
 		mData[mDataIndex + 4] = colourG;
-		//mDataIndex++;
 		mData[mDataIndex + 5] = colourB;
-		//mDataIndex++;
 		mData[mDataIndex + 6] = colourA;
-		//mDataIndex++;
 
 		mData[mDataIndex + 7] = texCoordU;
-		//mDataIndex++;
 		mData[mDataIndex + 8] = texCoordV;
-		//mDataIndex++;
 		mData[mDataIndex + 9] = texIndex;
-		//mDataIndex++;
 
 		mDataIndex += 10;
 	}

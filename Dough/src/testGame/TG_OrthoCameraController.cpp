@@ -34,13 +34,7 @@ namespace TG {
 
 	void TG_OrthoCameraController::onViewportResize(float aspectRatio) {
 		mAspectRatio = aspectRatio;
-
-		mCamera->setProjection(
-			-mAspectRatio * mZoomLevel,
-			mAspectRatio * mZoomLevel,
-			-mZoomLevel,
-			mZoomLevel
-		);
+		updateProjectionMatrix();
 	}
 
 	void TG_OrthoCameraController::translate(glm::vec3& translation) {
@@ -50,25 +44,14 @@ namespace TG {
 	}
 
 	void TG_OrthoCameraController::zoom(float zoomAmount) {
-		mZoomLevel -= zoomAmount * mZoomSpeed;
+		mZoomLevel -= zoomAmount;
 
 		mZoomLevel = std::clamp(mZoomLevel, mZoomMin, mZoomMax);
 
-		mCamera->setProjection(
-			-mAspectRatio * mZoomLevel,
-			mAspectRatio * mZoomLevel,
-			-mZoomLevel,
-			mZoomLevel
-		);
+		updateProjectionMatrix();
 	}
 
 	void TG_OrthoCameraController::updateViewMatrices() {
-		//mCamera->setProjection(
-		//	-mAspectRatio * mZoomLevel,
-		//	mAspectRatio * mZoomLevel,
-		//	-mZoomLevel,
-		//	mZoomLevel
-		//);
 		mCamera->setView(mPosition, mRotation);
 		mCamera->updateProjectionViewMatrix();
 	}
@@ -76,10 +59,10 @@ namespace TG {
 	void TG_OrthoCameraController::handleInput(float delta) {
 		//Zooming
 		if (Input::isKeyPressed(DOH_KEY_X)) {
-			zoom(-1.0f * delta);
+			zoom(-mZoomSpeed * delta);
 		}
 		if (Input::isKeyPressed(DOH_KEY_Z)) {
-			zoom(1.0f * delta);
+			zoom(mZoomSpeed * delta);
 		}
 
 		//WASD translation
