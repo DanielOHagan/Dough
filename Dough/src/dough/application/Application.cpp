@@ -124,6 +124,11 @@ namespace DOH {
 			case EEventType::WINDOW_FOCUS_CHANGE:
 				mFocused = ((WindowFocusChangeEvent&) windowEvent).isFocused();
 				mAppLoop->onFocusChange(mFocused);
+
+				//If fullscreen iconify window so it doesn't display frozen on monitor
+				if (!mFocused && mWindow->getDisplayMode() == WindowDisplayMode::FULLSCREEN) {
+					mWindow->iconify();
+				}
 				LOGLN("Focus Change: " << (mFocused ? "Focused" : "Not Focused"));
 				return;
 			case EEventType::WINDOW_RESIZE:
@@ -140,10 +145,8 @@ namespace DOH {
 			case EEventType::WINDOW_ICONIFY_CHANGE:
 				mIconified = ((WindowIconifyChangeEvent&) windowEvent).isIconified();
 				if (mIconified) {
-					LOGLN("forcing wait");
+					LOGLN("Forcing GPU wait while iconified");
 					mRenderer->deviceWaitIdle();
-				} else {
-
 				}
 				return;
 

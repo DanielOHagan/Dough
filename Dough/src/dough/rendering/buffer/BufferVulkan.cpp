@@ -10,8 +10,9 @@ namespace DOH {
 	BufferVulkan::~BufferVulkan() {
 		//GPU resources MUST be released separately from destructor
 		if (isUsingGpuResource()) {
-			int breakPointChance = 0;
-			//THROW("Buffer GPU resource NOT released before destructor was called");
+			LOG_ERR("Buffer GPU resource NOT released before destructor was called");
+
+			//TODO:: some kind of "lost GPU resources" list to manage?
 		}
 	}
 

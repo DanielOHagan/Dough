@@ -40,6 +40,8 @@ namespace DOH {
 			vao->close(logicDevice);
 		}
 
+		mQuadSharedIndexBuffer->close(logicDevice);
+
 		vkDestroyDescriptorPool(logicDevice, mDescriptorPool, nullptr);
 	}
 
@@ -77,10 +79,6 @@ namespace DOH {
 				BatchSizeLimits::BATCH_MAX_COUNT_TEXTURE
 			);
 
-			for (std::shared_ptr<TextureVulkan> texture : mTestTextures) {
-				batch.addNewTexture(*texture);
-			}
-
 			std::shared_ptr<VertexArrayVulkan> vao = ObjInit::vertexArray();
 			std::shared_ptr<VertexBufferVulkan> vbo = ObjInit::vertexBuffer(
 				{
@@ -93,29 +91,8 @@ namespace DOH {
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
 			);
-			vao->addVertexBuffer(vbo);
-
-			//TODO:: Some kind of static/const & shared (data is usable by multiple vao's but with differing indexCount values) index 
-			std::vector<uint16_t> quadIndices;
-			quadIndices.resize(BatchSizeLimits::BATCH_QUAD_INDEX_COUNT);
-			uint16_t vertexOffset = 0;
-			for (uint16_t i = 0; i < BatchSizeLimits::BATCH_QUAD_INDEX_COUNT; i += BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT) {
-				quadIndices[i + 0] = vertexOffset + 0;
-				quadIndices[i + 1] = vertexOffset + 1;
-				quadIndices[i + 2] = vertexOffset + 2;
-
-				quadIndices[i + 3] = vertexOffset + 2;
-				quadIndices[i + 4] = vertexOffset + 3;
-				quadIndices[i + 5] = vertexOffset + 0;
-
-				vertexOffset += BatchSizeLimits::SINGLE_QUAD_VERTEX_COUNT;
-			}
-			std::shared_ptr<IndexBufferVulkan> quadIb = ObjInit::stagedIndexBuffer(
-				quadIndices.data(),
-				sizeof(uint16_t) * BatchSizeLimits::BATCH_QUAD_INDEX_COUNT,
-				BatchSizeLimits::BATCH_QUAD_INDEX_COUNT
-			);
-			vao->setIndexBuffer(quadIb);
+			vao->addVertexBuffer(vbo);			
+			vao->setIndexBuffer(mQuadSharedIndexBuffer, true);
 
 			mQuadBatchVaos.push_back(vao);
 
@@ -132,33 +109,26 @@ namespace DOH {
 			ObjInit::shader(EShaderType::FRAGMENT, Renderer2dStorageVulkan::QUAD_SHADER_PATH_FRAG)
 		);
 
+		mQuadBatchTextureArray = std::make_unique<TextureArray>(
+			BatchSizeLimits::BATCH_MAX_COUNT_TEXTURE,
+			*mWhiteTexture
+		);
+
 		for (int i = 0; i < 8; i++) {
 			std::string path = testTexturesPath + "texture" + std::to_string(i) + ".png";
 			std::shared_ptr<TextureVulkan> testTexture = ObjInit::texture(path);
 			mTestTextures.push_back(testTexture);
+			
+			//TODO:: dynamic texture arrays, instead of assigning at initialisation
+			mQuadBatchTextureArray->addNewTexture(*testTexture);
 		}
 
 		ShaderUniformLayout& layout = mQuadShaderProgram->getUniformLayout();
 		layout.setValue(0, sizeof(glm::mat4x4));
-		layout.setTextureArray(
-			1, 
-			{
-				{ mTestTextures[0]->getImageView(), mTestTextures[0]->getSampler() },
-				{ mTestTextures[1]->getImageView(), mTestTextures[1]->getSampler() },
-				{ mTestTextures[2]->getImageView(), mTestTextures[2]->getSampler() },
-				{ mTestTextures[3]->getImageView(), mTestTextures[3]->getSampler() },
-				{ mTestTextures[4]->getImageView(), mTestTextures[4]->getSampler() },
-				{ mTestTextures[5]->getImageView(), mTestTextures[5]->getSampler() },
-				{ mTestTextures[6]->getImageView(), mTestTextures[6]->getSampler() },
-				{ mTestTextures[7]->getImageView(), mTestTextures[7]->getSampler() }
-			},
-			8,
-			{ mWhiteTexture->getImageView(), mWhiteTexture->getSampler() }
-		);
+		layout.setTextureArray(1, *mQuadBatchTextureArray);
 
 		const uint32_t binding = 0;
 		std::vector<VkVertexInputAttributeDescription> attribDescs = std::move(Vertex3dTextured::asAttributeDescriptions(binding));
-
 
 		mQuadGraphicsPipeline = ObjInit::graphicsPipeline(
 			mContext.getSwapChain().getExtent(),
@@ -166,6 +136,26 @@ namespace DOH {
 			*mQuadShaderProgram,
 			createBindingDescription(binding, sizeof(Vertex3dTextured), VK_VERTEX_INPUT_RATE_VERTEX),
 			attribDescs
+		);
+
+		//Quad Index Buffer
+		std::vector<uint16_t> quadIndices;
+		quadIndices.resize(BatchSizeLimits::BATCH_QUAD_INDEX_COUNT);
+		uint16_t vertexOffset = 0;
+		for (uint16_t i = 0; i < BatchSizeLimits::BATCH_QUAD_INDEX_COUNT; i += BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT) {
+			quadIndices[i + 0] = vertexOffset + 0;
+			quadIndices[i + 1] = vertexOffset + 1;
+			quadIndices[i + 2] = vertexOffset + 2;
+
+			quadIndices[i + 3] = vertexOffset + 2;
+			quadIndices[i + 4] = vertexOffset + 3;
+			quadIndices[i + 5] = vertexOffset + 0;
+
+			vertexOffset += BatchSizeLimits::SINGLE_QUAD_VERTEX_COUNT;
+		}
+		mQuadSharedIndexBuffer = ObjInit::stagedIndexBuffer(
+			quadIndices.data(),
+			sizeof(uint16_t) * BatchSizeLimits::BATCH_QUAD_INDEX_COUNT
 		);
 	}
 }

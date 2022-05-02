@@ -10,14 +10,6 @@ namespace DOH {
 
 	using ValueUniformInfo = VkDeviceSize; //TODO:: std::pair<VkDeviceSize, VkPipelineStage> to allow for input into different pipeline stages
 	using TextureUniformInfo = std::pair<VkImageView, VkSampler>;
-	struct TextureArrayUniformInfo {
-		TextureArrayUniformInfo(const std::initializer_list<TextureUniformInfo>& textureUniforms)
-		:	TextureUniforms(textureUniforms),
-			Count(static_cast<uint32_t>(textureUniforms.size()))
-		{}
-		std::vector<TextureUniformInfo> TextureUniforms;
-		uint32_t Count;
-	};
 	using PushConstantInfo = VkPushConstantRange;
 	using DescriptorTypeInfo = std::pair<VkDescriptorType, uint32_t>;
 

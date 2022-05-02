@@ -26,10 +26,8 @@ namespace DOH {
 		double mLastCycleTimePoint;
 		double mPerSecondCountersTimeSpan;
 		double mDeltaRenderTimeSpan;
-		double mLastRenderTimePoint;
 		double mTargetUpdateTimeSpan;
 		double mDeltaUpdateTimeSpan;
-		double mLastUpdateTimePoint;
 
 		float mFps;
 		float mTargetFps;
@@ -63,16 +61,12 @@ namespace DOH {
 
 		inline void onFocusChange(bool focused) { updateTargetFrameTime(focused); updateTargetUpdateTime(focused); }
 		inline void updateTargetFrameTime(bool focused) {
-			//Calculate the target time span between each render in millis, then deduct an arbitrary amount to account for overflow
-			// 1000.0(ms) / targetFpsTimeSpan for exact time span, the arbitrary change is applied by changing the 1000ms to 995ms
 			const float targetFpsTimeSpan = focused ? mTargetFps : mRunInBackground ? mTargetFps : mTargetBackgroundFps;
-			mTargetFrameTimeSpan = (995.0 / targetFpsTimeSpan);// - 5 / targetFpsTimeSpan;
+			mTargetFrameTimeSpan = 1000.0 / targetFpsTimeSpan;
 		}
 		inline void updateTargetUpdateTime(bool focused) {
-			//Calculate the target time span between each update in millis, then deduct an arbitrary amount to account for overflow
-			// 1000.0(ms) / targetUpsTimeSpan for exact time span, the arbitrary change is applied by changing the 1000ms to 995ms
 			const float targetUpsTimeSpan = focused ? mTargetUps : mRunInBackground ? mTargetUps : mTargetBackgroundUps;
-			mTargetUpdateTimeSpan = (995.0 / targetUpsTimeSpan);// - 5 / targetUpsTimeSpan;
+			mTargetUpdateTimeSpan = 1000.0 / targetUpsTimeSpan;
 		}
 
 		inline bool isRunningInBackground() const { return mRunInBackground; }
@@ -103,5 +97,8 @@ namespace DOH {
 		inline float getTargetBackgroundUps() const { return mTargetBackgroundUps; }
 		void setTargetBackgroundUps(float targetBackgroundUps);
 		inline float getUps() const { return mPreviousUps; } //Number of updates in last second-long interval
+
+		inline double getTargetFrameTime() const { return mTargetFrameTimeSpan; }
+		inline double getTargetUpdateTime() const { return mTargetUpdateTimeSpan; }
 	};
 }

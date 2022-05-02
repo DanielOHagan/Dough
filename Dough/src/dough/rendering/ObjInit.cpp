@@ -65,25 +65,14 @@ namespace DOH {
 		return CONTEXT.createStagedVertexBuffer(elements, data, size, usage, props);
 	}
 
-	std::shared_ptr<IndexBufferVulkan> ObjInit::indexBuffer(
-		VkDeviceSize size,
-		uint32_t count
-	) {
-		return CONTEXT.createIndexBuffer(size, count);
+	std::shared_ptr<IndexBufferVulkan> ObjInit::indexBuffer(VkDeviceSize size) {
+		return CONTEXT.createIndexBuffer(size);
 	}
-	std::shared_ptr<IndexBufferVulkan> ObjInit::stagedIndexBuffer(
-		void* data,
-		VkDeviceSize size,
-		uint32_t count
-	) {
-		return CONTEXT.createStagedIndexBuffer((const void*) data, size, count);
+	std::shared_ptr<IndexBufferVulkan> ObjInit::stagedIndexBuffer(void* data, VkDeviceSize size) {
+		return CONTEXT.createStagedIndexBuffer((const void*) data, size);
 	}
-	std::shared_ptr<IndexBufferVulkan> ObjInit::stagedIndexBuffer(
-		const void* data,
-		VkDeviceSize size,
-		uint32_t count
-	) {
-		return CONTEXT.createStagedIndexBuffer(data, size, count);
+	std::shared_ptr<IndexBufferVulkan> ObjInit::stagedIndexBuffer(const void* data, VkDeviceSize size) {
+		return CONTEXT.createStagedIndexBuffer(data, size);
 	}
 
 

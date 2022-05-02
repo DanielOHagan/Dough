@@ -150,13 +150,10 @@ namespace DOH {
 				quad.Colour.y,
 				quad.Colour.z,
 				quad.Colour.w,
-				//quad.TextureCoordsU[texCoordsIndex],
-				//quad.TextureCoordsV[texCoordsIndex],
-				0.0f,
-				1.0f,
+				quad.TextureCoords[0],
+				quad.TextureCoords[1],
 				textureSlot
 			);
-			//texCoordsIndex++;
 
 			addQuadVertex(
 				quad.Position.x + quad.Size.x,
@@ -166,13 +163,10 @@ namespace DOH {
 				quad.Colour.y,
 				quad.Colour.z,
 				quad.Colour.w,
-				//quad.TextureCoordsU[texCoordsIndex],
-				//quad.TextureCoordsV[texCoordsIndex],
-				1.0f,
-				1.0f,
+				quad.TextureCoords[2],
+				quad.TextureCoords[3],
 				textureSlot
 			);
-			//texCoordsIndex++;
 
 			addQuadVertex(
 				quad.Position.x + quad.Size.x,
@@ -182,13 +176,10 @@ namespace DOH {
 				quad.Colour.y,
 				quad.Colour.z,
 				quad.Colour.w,
-				//quad.TextureCoordsU[texCoordsIndex],
-				//quad.TextureCoordsV[texCoordsIndex],
-				1.0f,
-				0.0f,
+				quad.TextureCoords[4],
+				quad.TextureCoords[5],
 				textureSlot
 			);
-			//texCoordsIndex++;
 
 			addQuadVertex(
 				quad.Position.x,
@@ -198,15 +189,13 @@ namespace DOH {
 				quad.Colour.y,
 				quad.Colour.z,
 				quad.Colour.w,
-				//quad.TextureCoordsU[texCoordsIndex],
-				//quad.TextureCoordsV[texCoordsIndex],
-				0.0f,
-				0.0f,
+				quad.TextureCoords[6],
+				quad.TextureCoords[7],
 				textureSlot
 			);
-
-			mGeometryCount++;
 		}
+
+		mGeometryCount += static_cast<uint32_t>(endIndex - startIndex);
 	}
 
 	void RenderBatchQuad::addQuadVertex(

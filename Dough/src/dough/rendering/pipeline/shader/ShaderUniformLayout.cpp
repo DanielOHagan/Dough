@@ -7,7 +7,7 @@ namespace DOH {
 	ShaderUniformLayout::ShaderUniformLayout()
 	:	mValueUniformMap(std::make_unique<std::unordered_map<uint32_t, ValueUniformInfo>>()),
 		mTextureUniformMap(std::make_unique<std::unordered_map<uint32_t, TextureUniformInfo>>()),
-		mTextureArrayUniformMap(std::make_unique<std::unordered_map<uint32_t, TextureArrayUniformInfo>>()),
+		mTextureArrayUniformMap(std::make_unique<std::unordered_map<uint32_t, std::reference_wrapper<TextureArray>>>()),
 		mHasUniforms(false)
 	{}
 
@@ -29,7 +29,7 @@ namespace DOH {
 			return false;
 		}
 
-		std::unordered_map<uint32_t, TextureArrayUniformInfo>::iterator textureArrIt = mTextureArrayUniformMap->find(binding);
+		std::unordered_map<uint32_t, std::reference_wrapper<TextureArray>>::iterator textureArrIt = mTextureArrayUniformMap->find(binding);
 		if (textureArrIt != mTextureArrayUniformMap->end()) {
 			return false;
 		}
@@ -51,26 +51,14 @@ namespace DOH {
 		}
 	}
 
-	void ShaderUniformLayout::setTextureArray(
-		uint32_t binding,
-		TextureArrayUniformInfo texArrayInfo,
-		uint32_t countToFill,
-		TextureUniformInfo fillTexture
-	) {
-		//If binding available, assign texArray, if texArray doesn't have enough textures to match countToFill then fill remaining
-		//array indexes with fillTexture
+	void ShaderUniformLayout::setTextureArray(uint32_t binding, TextureArray& texArr) {
 		if (isBindingAvailable(binding)) {
-			if (texArrayInfo.Count < countToFill) {
-				for (uint32_t i = texArrayInfo.Count; i < countToFill; i++) {
-					texArrayInfo.TextureUniforms.push_back({ fillTexture.first, fillTexture.second });
-				}
-				texArrayInfo.Count = countToFill;
-			}
-			mTextureArrayUniformMap->emplace(binding, texArrayInfo);
+			mTextureArrayUniformMap->emplace(binding, texArr);
 			mHasUniforms = true;
 		} else {
 			LOG_WARN("Binding: " << binding << " not available for texture array");
 		}
+		
 	}
 
 	void ShaderUniformLayout::addPushConstant(VkShaderStageFlags shaderStages, uint32_t size) {
@@ -129,9 +117,9 @@ namespace DOH {
 	const uint32_t ShaderUniformLayout::getTotalTextureCountInTextureArrayMap() const {
 		uint32_t count = 0;
 
-		std::unordered_map<uint32_t, TextureArrayUniformInfo>::iterator textureArrIt;
+		std::unordered_map<uint32_t, std::reference_wrapper<TextureArray>>::iterator textureArrIt;
 		for (textureArrIt = mTextureArrayUniformMap->begin(); textureArrIt != mTextureArrayUniformMap->end(); textureArrIt++) {
-			count += textureArrIt->second.Count;
+			count += textureArrIt->second.get().getMaxTextureCount();
 		}
 
 		return count;

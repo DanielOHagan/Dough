@@ -81,9 +81,9 @@ namespace TG {
 		glm::mat4x4 mUiProjMat;
 
 		struct ImGuiSettings {
-			//ImGui rendering controls
+			//ImGui window rendering controls
 			bool mRenderDebugWindow = true;
-			bool mRenderToDoListWindow = true;
+			bool mRenderToDoListWindow = false;
 
 			//ImGui menu
 			bool mApplicationCollapseMenuOpen = true;

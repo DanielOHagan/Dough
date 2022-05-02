@@ -81,7 +81,15 @@ namespace DOH {
 					glfwWindowHint(GLFW_GREEN_BITS, videoMode->greenBits);
 					glfwWindowHint(GLFW_BLUE_BITS, videoMode->blueBits);
 					glfwWindowHint(GLFW_REFRESH_RATE, videoMode->refreshRate);
-					glfwSetWindowMonitor(mWindowPtr, monitor, 0, 0, videoMode->width, videoMode->height, videoMode->refreshRate);
+					glfwSetWindowMonitor(
+						mWindowPtr,
+						nullptr,
+						0,
+						0,
+						videoMode->width,
+						videoMode->height,
+						videoMode->refreshRate
+					);
 					break;
 				}
 				case WindowDisplayMode::FULLSCREEN:
@@ -89,7 +97,15 @@ namespace DOH {
 					mCurrentDisplayMode = WindowDisplayMode::FULLSCREEN;
 					GLFWmonitor* monitor = glfwGetPrimaryMonitor();
 					const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
-					glfwSetWindowMonitor(mWindowPtr, monitor, 0, 0, videoMode->width, videoMode->height, videoMode->refreshRate);
+					glfwSetWindowMonitor(
+						mWindowPtr,
+						monitor,
+						0,
+						0,
+						videoMode->width,
+						videoMode->height,
+						videoMode->refreshRate
+					);
 					break;
 				}
 			}
@@ -132,6 +148,12 @@ namespace DOH {
 		glfwTerminate();
 	}
 
+	void Window::iconify() {
+		if (!Application::get().isIconified()) {
+			glfwIconifyWindow(mWindowPtr);
+		}
+	}
+
 	void Window::setUpCallbacks() {
 		//Setup callbacks
 		glfwSetWindowSizeCallback(mWindowPtr, [](GLFWwindow* windowPtr, int width, int height) {
@@ -171,7 +193,7 @@ namespace DOH {
 				case GLFW_PRESS: {
 					KeyDownEvent keyDown(key);
 					Application::get().onKeyEvent(keyDown);
-					break;
+					return;
 				}
 
 				case GLFW_RELEASE: {

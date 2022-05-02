@@ -4,6 +4,9 @@
 
 #include <algorithm>
 
+//DEBUG::
+#include "dough/Logging.h"
+
 using namespace DOH;
 
 namespace TG {
@@ -57,6 +60,12 @@ namespace TG {
 	}
 
 	void TG_OrthoCameraController::handleInput(float delta) {
+		if (Input::isKeyPressed(DOH_KEY_LEFT_SHIFT)) {
+			mTranslationSpeed = 0.3f * 6.0f;
+		} else {
+			mTranslationSpeed = 0.3f;
+		}
+
 		//Zooming
 		if (Input::isKeyPressed(DOH_KEY_X)) {
 			zoom(-mZoomSpeed * delta);
@@ -83,6 +92,12 @@ namespace TG {
 		//TODO:: separate mClickAndDragTranslationSpeed ?
 		//	Change cursor appearence when dragging?
 		if (Input::isMouseButtonPressed(DOH_MOUSE_BUTTON_RIGHT)) {
+			if (!mClickAndDragActive) {
+				mClickAndDragActive = true;
+			}
+
+			//TODO:: fix differing speeds on differing ups
+			//Invert axes for a "drag" effect
 			const glm::vec2 currentMousePos = Input::getCursorPos();
 			const float translationDelta = mTranslationSpeed * delta;
 
@@ -90,6 +105,8 @@ namespace TG {
 				(mCursorLastPosUpdate.x - currentMousePos.x) * translationDelta,
 				(currentMousePos.y - mCursorLastPosUpdate.y) * translationDelta
 			);
+		} else {
+			mClickAndDragActive = false;
 		}
 
 		mCursorLastPosUpdate = Input::getCursorPos();

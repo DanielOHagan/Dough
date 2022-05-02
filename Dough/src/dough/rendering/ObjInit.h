@@ -63,20 +63,9 @@ namespace DOH {
 			VkMemoryPropertyFlags props
 		);
 
-		static std::shared_ptr<IndexBufferVulkan> indexBuffer(
-			VkDeviceSize size,
-			uint32_t count
-		);
-		static std::shared_ptr<IndexBufferVulkan> stagedIndexBuffer(
-			void* data,
-			VkDeviceSize size,
-			uint32_t count
-		);
-		static std::shared_ptr<IndexBufferVulkan> stagedIndexBuffer(
-			const void* data,
-			VkDeviceSize size,
-			uint32_t count
-		);
+		static std::shared_ptr<IndexBufferVulkan> indexBuffer(VkDeviceSize size);
+		static std::shared_ptr<IndexBufferVulkan> stagedIndexBuffer(void* data, VkDeviceSize size);
+		static std::shared_ptr<IndexBufferVulkan> stagedIndexBuffer(const void* data, VkDeviceSize size);
 
 
 		//-----Buffer-----

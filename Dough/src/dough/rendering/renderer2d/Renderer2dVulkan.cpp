@@ -52,32 +52,37 @@ namespace DOH {
 
 	void Renderer2dVulkan::drawQuadTexturedScene(Quad& quad) {
 		bool added = false;
+		TextureArray& texArr = mStorage->getTextureArray();
 
 		for (RenderBatchQuad& batch : mStorage->getQuadRenderBatches()) {
 			if (batch.hasSpace(1)) {
-				if (batch.hasTextureId(quad.getTexture().getId())) {
-					batch.add(quad, batch.getTextureSlotIndex(quad.getTexture().getId()));
+				if (texArr.hasTextureId(quad.getTexture().getId())) {
+					batch.add(quad, texArr.getTextureSlotIndex(quad.getTexture().getId()));
 					added = true;
 					break;
-				} else if (batch.hasTextureSlotAvailable()) {
-					const uint32_t textureSlot = batch.addNewTexture(quad.getTexture());
+				} else if (texArr.hasTextureSlotAvailable()) {
+					const uint32_t textureSlot = texArr.addNewTexture(quad.getTexture());
 					batch.add(quad, textureSlot);
 					added = true;
 					break;
 				}
 			}
 		}
-
+		
 		if (!added) {
 			const size_t batchIndex = mStorage->createNewBatchQuad();
-			if (batchIndex == -1) {
-				LOG_ERR("Failed to add new Quad Batch");
-				return;
-			} else {
+			if (batchIndex != -1) {
 				RenderBatchQuad& batch = mStorage->getQuadRenderBatches()[batchIndex];
-				const uint32_t textureSlot = batch.addNewTexture(quad.getTexture());
+				uint32_t textureSlot = 0;
+				if (texArr.hasTextureId(quad.getTexture().getId())) {
+					textureSlot = texArr.getTextureSlotIndex(quad.getTexture().getId());
+				} else if (texArr.hasTextureSlotAvailable()) {
+					textureSlot = texArr.addNewTexture(quad.getTexture());
+				}
 				batch.add(quad, textureSlot);
 				added = true;
+			} else {
+				return;
 			}
 		}
 	}
@@ -89,10 +94,10 @@ namespace DOH {
 		while (addedCount <= arrSize) {
 			for (RenderBatchQuad& batch : mStorage->getQuadRenderBatches()) {
 				const size_t remainingSpace = batch.getRemainingGeometrySpace();
-				//If has space for all of quadArr then add all, else fill remaining space with 
+				//If has space for all of quadArr then add all, else fill remaining space with geo
 				const size_t toAddCount = arrSize - addedCount;
 				if (remainingSpace >= toAddCount) {
-					batch.addAll(quadArr, 0, toAddCount, 0);
+					batch.addAll(quadArr, addedCount, addedCount + toAddCount, 0);
 					addedCount += toAddCount;
 					break;
 				} else if (remainingSpace > 0) {
@@ -106,7 +111,7 @@ namespace DOH {
 				}
 			}
 
-			//Add a new batch if possible and 
+			//Add a new batch if possible and add geo
 			if (addedCount < arrSize) {
 				const size_t batchIndex = mStorage->createNewBatchQuad();
 				if (batchIndex != -1) {
@@ -115,7 +120,7 @@ namespace DOH {
 					//If has space for all of quadArr then add all, else fill remaining space with quads
 					const size_t toAddCount = arrSize - addedCount;
 					if (remainingSpace >= toAddCount) {
-						batch.addAll(quadArr, 0, toAddCount, 0);
+						batch.addAll(quadArr, addedCount, addedCount + toAddCount, 0);
 						addedCount += toAddCount;
 						break;
 					} else if (remainingSpace > 0) {
@@ -141,103 +146,122 @@ namespace DOH {
 		}
 	}
 
+	//TODO:: Make this work more like drawQuadArraySameTextureScene,
+	// use the while loop so there isn't a need to check for at least one batch
 	void Renderer2dVulkan::drawQuadArrayTexturedScene(std::vector<Quad>& quadArr) {
 		size_t addedCount = 0;
+		const size_t arrSize = quadArr.size();
+		TextureArray& texArr = mStorage->getQuadBatchTextureArray();
 
-		for (RenderBatchQuad& batch : mStorage->getQuadRenderBatches()) {
-			const uint32_t size = static_cast<uint32_t>(quadArr.size());
-			if (size > 0 && batch.hasSpace(size)) {
-				for (Quad& quad : quadArr) {
-					if (batch.hasTextureId(quad.getTexture().getId())) {
-						batch.add(quad, batch.getTextureSlotIndex(quad.getTexture().getId()));
-						addedCount += quadArr.size();
-						continue;
-					} else if (batch.hasTextureSlotAvailable()) {
-						const uint32_t textureSlot = batch.addNewTexture(quad.getTexture());
-						batch.add(quad, textureSlot);
-						addedCount =+ quadArr.size();
-						continue;
-					}
-				}
+		if (mStorage->getQuadRenderBatches().size() == 0) {
+			if (mStorage->createNewBatchQuad() == -1) {
+				LOG_ERR("Failed to create new quad batch");
 			}
 		}
 
-		//Add excess quads to a new batch
-		//TODO:: currently assumes the new batch has size for the excess quads
-		if (addedCount < quadArr.size()) {
-			const size_t batchIndex = mStorage->createNewBatchQuad();
-			if (batchIndex == -1) {
-				LOG_ERR("Failed to add new Quad Batch");
-				return;
-			} else {
-				RenderBatchQuad& batch = mStorage->getQuadRenderBatches()[batchIndex];
-				for (size_t i = addedCount; i < quadArr.size(); i++) {
-					if (batch.hasTextureId(quadArr[i].getTexture().getId())) {
-						batch.add(quadArr[i], batch.getTextureSlotIndex(quadArr[i].getTexture().getId()));
-						addedCount++;
-						continue;
-					} else if (batch.hasTextureSlotAvailable()) {
-						const uint32_t textureSlot = batch.addNewTexture(quadArr[i].getTexture());
-						batch.add(quadArr[i], textureSlot);
-						addedCount++;
-						continue;
-					}
+		size_t quadBatchStartIndex = 0;
+		for (Quad& quad : quadArr) {
+			bool added = false;
+
+			//TODO:: If the quad is unable to be added to the texArr then addNewTexture may add a texture that is never used
+			uint32_t textureSlot = 0;
+			if (texArr.hasTextureId(quad.getTexture().getId())) {
+				textureSlot = texArr.getTextureSlotIndex(quad.getTexture().getId());
+			} else if (texArr.hasTextureSlotAvailable()) {
+				textureSlot = texArr.addNewTexture(quad.getTexture());
+			}
+		
+			for (size_t i = quadBatchStartIndex; i < mStorage->getQuadRenderBatches().size(); i++) {
+				RenderBatchQuad& batch = mStorage->getQuadRenderBatches()[i];
+				if (batch.hasSpace(1)) {
+					batch.add(quad, textureSlot);
+					addedCount++;
+					added = true;
+					break;
+				} else {
+					//Signal for next quad to exclude this batch 
+					quadBatchStartIndex++;
 				}
 			}
+		
+			if (!added) {
+				const size_t batchIndex = mStorage->createNewBatchQuad();
+				mStorage->getQuadRenderBatches()[batchIndex].add(quad, textureSlot);
+				addedCount++;
+				break;
+			}
+		}
+
+		//DEBUG:: Might be worth keeping as a "debug option"
+		if (addedCount < quadArr.size()) {
+			LOG_WARN(quadArr.size() - addedCount << " Quads unable to be drawn");
 		}
 	}
 
 	void Renderer2dVulkan::drawQuadArraySameTextureScene(std::vector<Quad>& quadArr) {
 		size_t addedCount = 0;
+		const size_t arrSize = quadArr.size();
 		const uint32_t textureId = quadArr[0].getTexture().getId();
-		const uint32_t size = static_cast<uint32_t>(quadArr.size());
+		TextureArray& texArr = mStorage->getQuadBatchTextureArray();
 
-		//TODO::
-		//for (RenderBatchQuad& batch : getBatchesUsingTexture(textureId)) {
-		//	if (batch.hasSpace(size)) {
-		//		const uint32_t textureSlot = batch.getTextureSlotIndex(textureId);
-		//		batch.addAll(quadArr, textureSlot);
-		//		addedCount += size;
-		//		break;
-		//	}
-		//}
-		//
-		//if (addedCount < size) {
-		//	
-		//}
-		//
-		//
-		
-		//Search through existing batches for a batch the has 
-		for (RenderBatchQuad& batch : mStorage->getQuadRenderBatches()) {
-			if (size > 0 && batch.hasSpace(size)) {
-				const uint32_t textureSlot = batch.getTextureSlotIndex(textureId);
-				if (textureSlot != -1) {
-					batch.addAll(quadArr, textureSlot);
-					addedCount += quadArr.size();
+		uint32_t textureSlotIndex = 0;
+		if (texArr.hasTextureId(textureId)) {
+			textureSlotIndex = texArr.getTextureSlotIndex(textureId);
+		} else if (texArr.hasTextureSlotAvailable()) {
+			textureSlotIndex = texArr.addNewTexture(quadArr[0].getTexture());
+		}
+
+		while (addedCount <= arrSize) {
+			for (RenderBatchQuad& batch : mStorage->getQuadRenderBatches()) {
+				const size_t remainingSpace = batch.getRemainingGeometrySpace();
+				const size_t toAddCount = arrSize - addedCount;
+
+				if (remainingSpace >= toAddCount) {
+					batch.addAll(
+						quadArr,
+						addedCount,
+						addedCount + toAddCount,
+						texArr.getTextureSlotIndex(textureId)
+					);
+					addedCount += toAddCount;
 					break;
-				} else if (batch.hasTextureSlotAvailable()) {
-					const uint32_t textureSlot = batch.addNewTexture(quadArr[0].getTexture());
-					batch.addAll(quadArr, textureSlot);
-					addedCount += quadArr.size();
+				} else if (remainingSpace > 0) {
+					batch.addAll(
+						quadArr,
+						addedCount,
+						addedCount + remainingSpace,
+						texArr.getTextureSlotIndex(textureId)
+					);
+					addedCount += remainingSpace;
+				}
+			}
+
+			//Either the existing batches don't have the space for the geo array or space for a new texture
+			if (addedCount < arrSize) {
+				const size_t batchIndex = mStorage->createNewBatchQuad();
+				if (batchIndex != -1) {
+					RenderBatchQuad& batch = mStorage->getQuadRenderBatches()[batchIndex];
+					const size_t remainingSpace = batch.getRemainingGeometrySpace();
+					const size_t toAddCount = arrSize - addedCount;
+					if (remainingSpace >= toAddCount) {
+						batch.addAll(quadArr, 0, toAddCount, textureSlotIndex);
+						addedCount += toAddCount;
+						break;
+					} else {
+						batch.addAll(quadArr, addedCount, addedCount + remainingSpace, textureSlotIndex);
+						addedCount += remainingSpace;
+					}
+				} else {
 					break;
 				}
+			} else {
+				break;
 			}
 		}
 
-		//Add excess quads to a new batch
-		//TODO:: currently assumes the new batch has size for the excess quads
+		//DEBUG:: Might be worth keeping as a "debug option"
 		if (addedCount < quadArr.size()) {
-			const size_t batchIndex = mStorage->createNewBatchQuad();
-			if (batchIndex == -1) {
-				LOG_ERR("Failed to add new Quad Batch");
-				return;
-			} else {
-				RenderBatchQuad& batch = mStorage->getQuadRenderBatches()[batchIndex];
-				const uint32_t textureSlot = batch.addNewTexture(quadArr[0].getTexture());
-				batch.addAll(quadArr, addedCount > 0 ? addedCount - 1 : 0, quadArr.size() - 1, textureSlot);
-				addedCount += quadArr.size() - addedCount;
-			}
+			LOG_WARN(quadArr.size() - addedCount << " Quads unable to be drawn");
 		}
 	}
 
@@ -253,13 +277,9 @@ namespace DOH {
 
 	void Renderer2dVulkan::flushScene(VkDevice logicDevice, uint32_t imageIndex, VkCommandBuffer cmd) {
 		GraphicsPipelineVulkan& quadPipeline = mStorage->getQuadGraphicsPipeline();
-		//VertexArrayVulkan& vao = mStorage->getQuadVao();
 
 		quadPipeline.bind(cmd);
-
-		//TODO:: each batch needs separate VAOs
-
-		//quadPipeline.addVaoToDraw(vao);
+		mStorage->getQuadBatchIndexBuffer().bind(cmd);
 
 		uint32_t index = 0;
 		for (RenderBatchQuad& batch : mStorage->getQuadRenderBatches()) {
@@ -267,15 +287,13 @@ namespace DOH {
 
 			if (quadCount > 0) {
 				VertexArrayVulkan& vao = *mStorage->getQuadRenderBatchVaos()[index];
-				//batch.uploadData(logicDevice);
+
 				vao.getVertexBuffers()[0]->setData(
 					logicDevice,
 					batch.getData().data(),
 					Renderer2dStorageVulkan::BatchSizeLimits::BATCH_QUAD_BYTE_SIZE
 				);
-				vao.getIndexBuffer().setCount(
-					quadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT
-				);
+				vao.setDrawCount(quadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT);
 
 				quadPipeline.addVaoToDraw(vao);
 

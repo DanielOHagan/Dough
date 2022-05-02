@@ -1,7 +1,5 @@
 #pragma once
 
-#define DEBUG_MEM_USE_DOH
-
 #include "dough/Utils.h"
 #include "dough/Window.h"
 #include "dough/rendering/RendererVulkan.h"

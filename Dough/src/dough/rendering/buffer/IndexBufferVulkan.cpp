@@ -6,16 +6,14 @@ namespace DOH {
 	IndexBufferVulkan::IndexBufferVulkan(
 		VkDevice logicDevice,
 		VkPhysicalDevice physicalDevice,
-		VkDeviceSize size,
-		uint32_t count
+		VkDeviceSize size
 	) : BufferVulkan(
 			logicDevice,
 			physicalDevice,
 			size,
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-		),
-		mCount(count)
+		)
 	{}
 
 	//Staged
@@ -25,8 +23,7 @@ namespace DOH {
 		VkCommandPool cmdPool,
 		VkQueue graphicsQueue,
 		const void* data,
-		VkDeviceSize size,
-		uint32_t count
+		VkDeviceSize size
 	) : BufferVulkan(
 			logicDevice,
 			physicalDevice,
@@ -36,7 +33,10 @@ namespace DOH {
 			size,
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-		),
-		mCount(count)
+		)
 	{}
+
+	void IndexBufferVulkan::bind(VkCommandBuffer cmd) {
+		vkCmdBindIndexBuffer(cmd, mBuffer, 0, VK_INDEX_TYPE_UINT16);
+	}
 }

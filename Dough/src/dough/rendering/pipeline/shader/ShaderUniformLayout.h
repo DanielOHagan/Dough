@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dough/rendering/Config.h"
+#include "dough/rendering/TextureArray.h"
 
 namespace DOH {
 
@@ -11,7 +12,7 @@ namespace DOH {
 
 		std::unique_ptr<std::unordered_map<uint32_t, ValueUniformInfo>> mValueUniformMap;
 		std::unique_ptr<std::unordered_map<uint32_t, TextureUniformInfo>> mTextureUniformMap;
-		std::unique_ptr<std::unordered_map<uint32_t, TextureArrayUniformInfo>> mTextureArrayUniformMap;
+		std::unique_ptr<std::unordered_map<uint32_t, std::reference_wrapper<TextureArray>>> mTextureArrayUniformMap;
 		std::vector<VkPushConstantRange> mPushConstantRanges;
 
 		bool mHasUniforms;
@@ -25,12 +26,7 @@ namespace DOH {
 		bool isBindingAvailable(uint32_t binding) const;
 		void setValue(uint32_t binding, ValueUniformInfo value);
 		void setTexture(uint32_t binding, TextureUniformInfo textureInfo);
-		void setTextureArray(
-			uint32_t binding,
-			TextureArrayUniformInfo texArrayInfo,
-			uint32_t countToFill,
-			TextureUniformInfo fillTexture
-		);
+		void setTextureArray(uint32_t binding, TextureArray& texArr);
 		void addPushConstant(VkShaderStageFlags shaderStages, uint32_t size);
 		void clearDescriptorSetLayoutBindings();
 		void clearTextureUniforms();
@@ -49,7 +45,7 @@ namespace DOH {
 		inline std::vector<VkDescriptorSetLayoutBinding>& getDescriptorSetLayoutBindings() { return mDescriptorSetLayoutBindings; }
 		inline std::unordered_map<uint32_t, ValueUniformInfo>& getValueUniformMap() const { return *mValueUniformMap; }
 		inline std::unordered_map<uint32_t, TextureUniformInfo>& getTextureUniformMap() const { return *mTextureUniformMap; }
-		inline std::unordered_map<uint32_t, TextureArrayUniformInfo>& getTextureArrayUniformMap() const { return *mTextureArrayUniformMap; }
+		inline std::unordered_map<uint32_t, std::reference_wrapper<TextureArray>>& getTextureArrayUniformMap() const { return *mTextureArrayUniformMap; }
 
 	private:
 		uint32_t getPushConstantOffset() const;

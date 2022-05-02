@@ -190,11 +190,11 @@ namespace DOH {
 		}
 
 		//Create texture arrays' layout binding
-		for (const auto& [binding, value] : layout.getTextureArrayUniformMap()) {
+		for (const auto& [binding, texArr] : layout.getTextureArrayUniformMap()) {
 			layout.getDescriptorSetLayoutBindings()[binding] = DescriptorVulkan::createLayoutBinding(
 				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 				VK_SHADER_STAGE_FRAGMENT_BIT,
-				value.Count,
+				texArr.get().getMaxTextureCount(),
 				binding
 			);
 		}
@@ -218,7 +218,8 @@ namespace DOH {
 
 			vkCmdDrawIndexed(
 				cmd,
-				vao.getIndexBuffer().getCount(),
+				//vao.getIndexBuffer().getCount(),
+				vao.getDrawCount(),
 				1,
 				0,
 				0,

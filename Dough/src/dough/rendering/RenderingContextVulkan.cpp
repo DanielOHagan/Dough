@@ -186,9 +186,10 @@ namespace DOH {
 		//TODO:: mRenderer2d->uploadSceneData();
 		//TODO:: mRenderer2d->uploadUiData();
 
-		//TODO:: draw___(mSwapChain->getRenderPass(SwapChainVulkan::ERenderPassType::SCENE, imageIndex, cmd);
-		//TODO:: draw___(mSwapChain->getRenderPass(SwapChainVulkan::ERenderPassType::UI, imageIndex, cmd);
-		//TODO:: draw___(mSwapChain->getRenderPass(SwapChainVulkan::ERenderPassType::IMGUI / DEBUG, imageIndex, cmd);
+		//Possible idea for drawing API, not guaranteed
+		//TODO:: draw___(mSwapChain->getRenderPass(SwapChainVulkan::ERenderPassType::SCENE), imageIndex, cmd);
+		//TODO:: draw___(mSwapChain->getRenderPass(SwapChainVulkan::ERenderPassType::UI), imageIndex, cmd);
+		//TODO:: draw___(mSwapChain->getRenderPass(SwapChainVulkan::ERenderPassType::IMGUI / DEBUG), imageIndex, cmd);
 
 		//Draw scene
 		drawScene(imageIndex, cmd);
@@ -268,10 +269,6 @@ namespace DOH {
 			vkQueuePresentKHR(mPresentQueue, &present),
 			"Failed to present"
 		);
-		//VkResult res = vkQueuePresentKHR(mPresentQueue, &present);
-		//if (res != VK_SUCCESS) {
-		//	VK_TRY_KHR(res, "failed to present");
-		//}
 
 		mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 	}
@@ -777,16 +774,20 @@ namespace DOH {
 		return std::make_shared<VertexBufferVulkan>(elements, mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size, usage, props);
 	}
 
-	std::shared_ptr<IndexBufferVulkan> RenderingContextVulkan::createIndexBuffer(VkDeviceSize size, uint32_t count) {
-		return std::make_shared<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, size, count);
+	std::shared_ptr<IndexBufferVulkan> RenderingContextVulkan::createIndexBuffer(VkDeviceSize size/*, uint32_t count*/) {
+		return std::make_shared<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, size/*, count*/);
 	}
 
-	std::shared_ptr<IndexBufferVulkan> RenderingContextVulkan::createStagedIndexBuffer(void* data, VkDeviceSize size, uint32_t count) {
-		return std::make_shared<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, (const void*) data, size, count);
+	std::shared_ptr<IndexBufferVulkan> RenderingContextVulkan::createStagedIndexBuffer(void* data, VkDeviceSize size/*, uint32_t count*/) {
+		return std::make_shared<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, (const void*) data, size/*, count*/);
 	}
 
-	std::shared_ptr<IndexBufferVulkan> RenderingContextVulkan::createStagedIndexBuffer(const void* data, VkDeviceSize size, uint32_t count) {
-		return std::make_shared<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size, count);
+	std::shared_ptr<IndexBufferVulkan> RenderingContextVulkan::createStagedIndexBuffer(const void* data, VkDeviceSize size/*, uint32_t count*/) {
+		return std::make_shared<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size/*, count*/);
+	}
+
+	std::unique_ptr<IndexBufferVulkan> RenderingContextVulkan::createSharedStagedIndexBuffer(const void* data, VkDeviceSize size) {
+		return std::make_unique<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size);
 	}
 
 	std::shared_ptr<BufferVulkan> RenderingContextVulkan::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props) {

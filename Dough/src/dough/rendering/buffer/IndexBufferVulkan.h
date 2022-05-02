@@ -6,10 +6,6 @@ namespace DOH {
 
 	class IndexBufferVulkan : public BufferVulkan {
 
-	private:
-		//The number of indices to draw, by default is set to the number of indices
-		uint32_t mCount;
-
 	public:
 		IndexBufferVulkan() = delete;
 		IndexBufferVulkan(const IndexBufferVulkan& copy) = delete;
@@ -19,8 +15,7 @@ namespace DOH {
 		IndexBufferVulkan(
 			VkDevice logicDevice,
 			VkPhysicalDevice physicalDevice,
-			VkDeviceSize size,
-			uint32_t count
+			VkDeviceSize size
 		);
 		//Staged
 		IndexBufferVulkan(
@@ -29,11 +24,9 @@ namespace DOH {
 			VkCommandPool cmdPool,
 			VkQueue graphicsQueue,
 			const void* data,
-			VkDeviceSize size,
-			uint32_t count
+			VkDeviceSize size
 		);
 
-		inline uint32_t getCount() const { return mCount; }
-		inline void setCount(uint32_t count) { mCount = count; }
+		void bind(VkCommandBuffer cmd);
 	};
 }

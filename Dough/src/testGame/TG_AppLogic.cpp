@@ -14,7 +14,6 @@ namespace TG {
 	TG_AppLogic::TG_AppLogic()
 	:	IApplicationLogic(),
 		mUiProjMat(1.0f),
-		//mTestGridMaxQuadCount(50000)
 		mTestGridMaxQuadCount(
 			Renderer2dStorageVulkan::MAX_BATCH_COUNT_QUAD *
 			Renderer2dStorageVulkan::BATCH_MAX_GEO_COUNT_QUAD
@@ -59,8 +58,18 @@ namespace TG {
 
 		if (mImGuiSettings.mRenderBatchQuadScene) {
 			for (std::vector<Quad>& sameTexturedQuads : mTexturedTestGrid) {
-				renderer.getContext().getRenderer2d().drawQuadArrayScene(sameTexturedQuads);
-				//renderer.getContext().getRenderer2d().drawQuadArraySameTextureScene(sameTexturedQuads);
+				//Different ways of drawing quads (inserting into RenderBatches),
+				// shouldn't cause too much of a performance difference (quick testing showed 0-3 fps drop max)
+				
+				//for (Quad& quad : sameTexturedQuads) {
+				//	renderer.getContext().getRenderer2d().drawQuadScene(quad);
+				//}
+				//for (Quad& quad : sameTexturedQuads) {
+				//	renderer.getContext().getRenderer2d().drawQuadTexturedScene(quad);
+				//}
+				//renderer.getContext().getRenderer2d().drawQuadArrayScene(sameTexturedQuads);
+				//renderer.getContext().getRenderer2d().drawQuadArrayTexturedScene(sameTexturedQuads);
+				renderer.getContext().getRenderer2d().drawQuadArraySameTextureScene(sameTexturedQuads);
 			}
 		}
 		renderer.endScene();
@@ -173,11 +182,19 @@ namespace TG {
 				renderer.getContext().getRenderer2d().getQuadBatchCount(),
 				Renderer2dStorageVulkan::BatchSizeLimits::MAX_BATCH_COUNT_QUAD
 			);
-			uint32_t index = 0;
+			uint32_t quadBatchIndex = 0;
 			for (RenderBatchQuad& batch : renderer.getContext().getRenderer2d().getStorage().getQuadRenderBatches()) {
-				ImGui::Text("Batch: %i Geo Count: %i", index, batch.getGeometryCount());
-				index++;
+				//ImGui::Text("Batch: %i Geo Count: %i Texture Count: %i", index, batch.getGeometryCount(), batch.getTextureSlots().size());
+				ImGui::Text("Batch: %i Geo Count: %i", quadBatchIndex, batch.getGeometryCount());
+				quadBatchIndex++;
 			}
+			//TODO:: debug info when multiple texture arrays are supported
+			//uint32_t texArrIndex = 0;
+			//for (TextureArray& texArr : renderer.getContext().getRenderer2d().getStorage().getTextureArrays()) {
+			//	ImGui::Text("Texture Array: %i Texture Count: %i", texArrIndex, texArr.getTextureSlots().size());
+			//	texArrIndex++;
+			//}
+			ImGui::Text("Texture Array: %i Texture Count: %i", 1, renderer.getContext().getRenderer2d().getStorage().getTextureArray().getTextureSlots().size());
 			if (ImGui::Button("Close All Empty Quad Batches")) {
 				renderer.getContext().getRenderer2d().closeEmptyQuadBatches();
 			}
@@ -250,8 +267,10 @@ namespace TG {
 			if (mImGuiSettings.mUseOrthographicCamera) {
 				ImGui::Text("Orthographic Camera Controls");
 				ImGui::BulletText("W, A, S, D: Move Camera");
+				ImGui::BulletText("Hold Left Shift: Increase move speed");
 				ImGui::BulletText("Z, X: Zoom Camera In & Out");
 				ImGui::BulletText("Right Click Drag Camera");
+				imGuiDisplayHelpTooltip("NOTE:: Drag doesn't work properly at all update rates");
 				ImGui::Text("Camera Position");
 				ImGui::Text("X: %f", TG_mOrthoCameraController->getPosition().x);
 				ImGui::Text("Y: %f", TG_mOrthoCameraController->getPosition().y);
@@ -293,8 +312,6 @@ namespace TG {
 			ImGui::Bullet();
 			ImGui::TextWrapped("Multiple texture support for dynamic batches");
 			ImGui::Bullet();
-			ImGui::TextWrapped("App Loop FPS/UPS issues, linking updates to delta");
-			ImGui::Bullet();
 			ImGui::TextWrapped("Some kind of text rendering");
 
 			mImGuiSettings.mToDoListTopTierCollapseMenuOpen = true;
@@ -303,11 +320,14 @@ namespace TG {
 		}
 
 		if (ImGui::CollapsingHeader("Mid Tier")) {
-			//TODO:: Check if this still happens, I have successfully alt-tabbed while in fullscreen and viewed other windows on same monitor as application.
-			//ImGui::Bullet();
-			//ImGui::TextWrapped("Fix when clicking off app during fullscreen, the monitor freezes with app displayed, maybe force minimise or something like that");
 			ImGui::Bullet();
 			ImGui::TextWrapped("Fix texture artifacts caused, I think, by casting float to int in shader for texture array index");
+			ImGui::Bullet();
+			ImGui::TextWrapped(
+				"Have some way of batching textures so it's easier for multiple batches that use the same textures. Maybe start/end texture batch calls, this is because multiple batches will use the same textures so it's probably better to limit the number of uniform updates per frame. Currently it is being changed per batch."
+			);
+			ImGui::Bullet();
+			ImGui::TextWrapped("Maybe have a \"Master Texture Batch\" or a \"Static\" and a \"Dynamic\" Texture Batch to manage how batches and textures are sorted for uniform and vertex input");
 
 			mImGuiSettings.mToDoListMidTierCollapseMenuOpen = true;
 		} else {
@@ -391,11 +411,16 @@ namespace TG {
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
 		mSceneVertexArray->addVertexBuffer(sceneVb);
+		//std::shared_ptr<IndexBufferVulkan> sceneIb = ObjInit::stagedIndexBuffer(
+		//	indices.data(),
+		//	sizeof(uint16_t) * indices.size(),
+		//	static_cast<uint32_t>(indices.size())
+		//);
 		std::shared_ptr<IndexBufferVulkan> sceneIb = ObjInit::stagedIndexBuffer(
 			indices.data(),
-			sizeof(uint16_t) * indices.size(),
-			static_cast<uint32_t>(indices.size())
+			sizeof(uint16_t) * indices.size()
 		);
+		mSceneVertexArray->setDrawCount(static_cast<uint32_t>(indices.size()));
 		mSceneVertexArray->setIndexBuffer(sceneIb);
 
 		GET_RENDERER.prepareScenePipeline(*mSceneShaderProgram);
@@ -405,7 +430,7 @@ namespace TG {
 
 	void TG_AppLogic::populateTestGrid(int width, int height) {
 		const std::vector<std::shared_ptr<TextureVulkan>>& testTextures = GET_RENDERER.getContext().getRenderer2d().getStorage().getTestTextures();
-		//mTestGrid.resize(width * height);
+		
 		mTexturedTestGrid.clear();
 		mTexturedTestGrid.resize(testTextures.size());
 
@@ -444,11 +469,16 @@ namespace TG {
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
 		mUiVao->addVertexBuffer(appUiVb);
+		//std::shared_ptr<IndexBufferVulkan> appUiIb = ObjInit::stagedIndexBuffer(
+		//	mUiIndices.data(),
+		//	sizeof(mUiIndices[0]) * mUiIndices.size(),
+		//	static_cast<uint32_t>(mUiIndices.size())
+		//);
 		std::shared_ptr<IndexBufferVulkan> appUiIb = ObjInit::stagedIndexBuffer(
 			mUiIndices.data(),
-			sizeof(mUiIndices[0]) * mUiIndices.size(),
-			static_cast<uint32_t>(mUiIndices.size())
+			sizeof(mUiIndices[0]) * mUiIndices.size()
 		);
+		mUiVao->setDrawCount(static_cast<uint32_t>(mUiIndices.size()));
 		mUiVao->setIndexBuffer(appUiIb);
 
 		GET_RENDERER.prepareUiPipeline(*mUiShaderProgram);

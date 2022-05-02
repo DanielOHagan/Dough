@@ -25,10 +25,8 @@ namespace DOH {
 		mLastCycleTimePoint(Time::getCurrentTimeMillis()),
 		mPerSecondCountersTimeSpan(0.0f),
 		mDeltaRenderTimeSpan(0.0),
-		mLastRenderTimePoint(0.0),
 		mTargetUpdateTimeSpan(0),
 		mDeltaUpdateTimeSpan(0.0),
-		mLastUpdateTimePoint(0.0),
 		mFps(0.0f),
 		mTargetFps(targetFps),
 		mTargetBackgroundFps(DEFAULT_TARGET_BACKGROUND_FPS),
@@ -55,10 +53,8 @@ namespace DOH {
 		mLastCycleTimePoint(Time::getCurrentTimeMillis()),
 		mPerSecondCountersTimeSpan(0.0f),
 		mDeltaRenderTimeSpan(0.0),
-		mLastRenderTimePoint(0.0),
 		mTargetUpdateTimeSpan(0),
 		mDeltaUpdateTimeSpan(0.0),
-		mLastUpdateTimePoint(0.0),
 		mFps(0.0f),
 		mTargetFps(targetFps),
 		mTargetBackgroundFps(targetBackgroundFps),
@@ -77,7 +73,8 @@ namespace DOH {
 		while (mApplication.isRunning()) {
 			mApplication.pollEvents();
 
-			const double deltaCycleTimeSpan = Time::getCurrentTimeMillis() - mLastCycleTimePoint;
+			const double currentTimePoint = Time::getCurrentTimeMillis();
+			const double deltaCycleTimeSpan = currentTimePoint - mLastCycleTimePoint;
 
 			mDeltaUpdateTimeSpan += deltaCycleTimeSpan;
 			mDeltaRenderTimeSpan += deltaCycleTimeSpan;
@@ -101,12 +98,11 @@ namespace DOH {
 
 				mPerSecondCountersTimeSpan = 0.0;
 			}
-			
+
 			if (!(mDeltaUpdateTimeSpan < mTargetUpdateTimeSpan)) {
 				mApplication.update(Time::convertMillisToSeconds(mDeltaUpdateTimeSpan));
 				mUps++;
 				mDeltaUpdateTimeSpan = 0.0;
-				mLastUpdateTimePoint = Time::getCurrentTimeMillis();
 			}
 
 			if (!(mDeltaRenderTimeSpan < mTargetFrameTimeSpan)) {
@@ -116,11 +112,10 @@ namespace DOH {
 					mApplication.render();
 					mFps++;
 					mDeltaRenderTimeSpan = 0.0;
-					mLastRenderTimePoint = Time::getCurrentTimeMillis();
 				}
 			}
 
-			mLastCycleTimePoint = Time::getCurrentTimeMillis();
+			mLastCycleTimePoint = currentTimePoint;
 		}
 	}
 

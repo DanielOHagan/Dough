@@ -36,6 +36,7 @@ namespace DOH {
 		VkSurfaceKHR createVulkanSurface(VkInstance vulkanInstance);
 		std::vector<const char*> getRequiredExtensions(bool validationLayersEnabled);
 		void close();
+		void iconify();
 
 		inline uint32_t getWidth() const { return mWidth; }
 		inline uint32_t getHeight() const { return mHeight; }

@@ -2,6 +2,17 @@
 
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 #include "dough/rendering/renderer2d/RenderBatchQuad.h"
+#include "dough/rendering/TextureArray.h"
+
+//Currently batching has significantly different performance on different configurations
+#define MAX_BATCH_QUAD_COUNT
+#if defined (_DEBUG)
+	#undef MAX_BATCH_QUAD_COUNT
+	#define MAX_BATCH_QUAD_COUNT 4
+#else
+	#undef MAX_BATCH_QUAD_COUNT
+	#define MAX_BATCH_QUAD_COUNT 10
+#endif
 
 namespace DOH {
 
@@ -22,7 +33,9 @@ namespace DOH {
 
 		std::vector<RenderBatchQuad> mQuadRenderBatches;
 		std::vector<std::shared_ptr<VertexArrayVulkan>> mQuadBatchVaos;
-		//TODO:: std::unique_ptr<StaticSharedIndexBuffer> mQuadIndexBuffer;
+		//Quad indices buffer to be shared between Quad VAOs
+		std::shared_ptr<IndexBufferVulkan> mQuadSharedIndexBuffer;
+		std::unique_ptr<TextureArray> mQuadBatchTextureArray;
 
 		//Textures
 		std::shared_ptr<TextureVulkan> mWhiteTexture;
@@ -41,7 +54,7 @@ namespace DOH {
 		//which isn't even enforced by the engine.
 		//Maybe, for optimisation, the renderer might grant a higher limit to scene batches than UI batches.
 		enum BatchSizeLimits {
-			MAX_BATCH_COUNT_QUAD = 8,
+			MAX_BATCH_COUNT_QUAD = MAX_BATCH_QUAD_COUNT,
 
 			SINGLE_QUAD_VERTEX_COUNT = 4,
 			SINGLE_QUAD_INDEX_COUNT = 6,
@@ -64,7 +77,6 @@ namespace DOH {
 		void init(VkDevice logicDevice);
 		void close(VkDevice logicDevice);
 		void closeSwapChainSpecificObjects(VkDevice logicDevice);
-		//void closeQuadBatches();
 		void recreateSwapChainSpecificObjects();
 		size_t createNewBatchQuad();
 
@@ -74,5 +86,11 @@ namespace DOH {
 		inline std::vector<RenderBatchQuad>& getQuadRenderBatches() { return mQuadRenderBatches; }
 		inline std::vector<std::shared_ptr<VertexArrayVulkan>>& getQuadRenderBatchVaos() { return mQuadBatchVaos; }
 		inline const std::vector<std::shared_ptr<TextureVulkan>>& getTestTextures() const { return mTestTextures; }
+		inline TextureArray& getQuadBatchTextureArray() const { return *mQuadBatchTextureArray; }
+		inline IndexBufferVulkan& getQuadBatchIndexBuffer() const { return *mQuadSharedIndexBuffer; }
+
+		//TEMP:: DEBUG::
+		TextureArray& getTextureArray() const { return *mQuadBatchTextureArray; }
+		ShaderProgramVulkan& getQuadShaderProgram() const { return *mQuadShaderProgram; }
 	};
 }

@@ -6,7 +6,13 @@ namespace DOH {
 
 	const uint32_t VertexArrayVulkan::MAX_VBO_COUNT = 1;
 
-	void VertexArrayVulkan::bind(VkCommandBuffer cmdBuffer) {
+	VertexArrayVulkan::VertexArrayVulkan()
+	:	mIndexBuffer(nullptr),
+		mDrawCount(0),
+		mSharingIndexBuffer(false)
+	{}
+
+	void VertexArrayVulkan::bind(VkCommandBuffer cmd) {
 		std::vector<VkBuffer> vertexBuffers;
 		std::vector<VkDeviceSize> offsets{0};
 		for (std::shared_ptr<VertexBufferVulkan> vertexBuffer : mVertexBuffers) {
@@ -14,13 +20,16 @@ namespace DOH {
 			offsets.push_back(static_cast<VkDeviceSize>(vertexBuffer->getBufferLayout().getStride()));
 		}
 		vkCmdBindVertexBuffers(
-			cmdBuffer,
+			cmd,
 			0,
 			static_cast<uint32_t>(vertexBuffers.size()),
 			vertexBuffers.data(),
 			offsets.data()
 		);
-		vkCmdBindIndexBuffer(cmdBuffer, mIndexBuffer->getBuffer(), 0, VK_INDEX_TYPE_UINT16);
+
+		if (!mSharingIndexBuffer) {
+			mIndexBuffer->bind(cmd);
+		}
 	}
 
 	void VertexArrayVulkan::addVertexBuffer(std::shared_ptr<VertexBufferVulkan> vertexBuffer) {
@@ -48,7 +57,9 @@ namespace DOH {
 			vertexBuffer->close(logicDevice);
 		}
 
-		mIndexBuffer->close(logicDevice);
+		if (!mSharingIndexBuffer) {
+			mIndexBuffer->close(logicDevice);
+		}
 
 		mUsingGpuResource = false;
 	}
@@ -60,6 +71,6 @@ namespace DOH {
 			}
 		}
 
-		return mIndexBuffer->isUsingGpuResource();
+		return !mSharingIndexBuffer && mIndexBuffer->isUsingGpuResource();
 	}
 }

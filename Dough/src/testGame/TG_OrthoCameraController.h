@@ -34,6 +34,7 @@ namespace TG {
 		virtual void onViewportResize(float aspectRatio) override;
 		inline virtual ICamera& getCamera() const override { return *mCamera; }
 
+		//All delta multiplications are expected to have been performed on arguments
 		void translate(glm::vec3& translation);
 		inline void translateX(float translation) { mPosition.x += translation; }
 		inline void translateY(float translation) { mPosition.y += translation; }

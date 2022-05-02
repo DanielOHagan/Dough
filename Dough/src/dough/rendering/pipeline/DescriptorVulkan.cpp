@@ -123,11 +123,22 @@ namespace DOH {
 				VkWriteDescriptorSet write = {};
 
 				const uint32_t arrayImagesStart = imageIndex;
-				for (const TextureUniformInfo& info : texArray.TextureUniforms) {
+				for (std::reference_wrapper<TextureVulkan> texture : texArray.get().getTextureSlots()) {
 					VkDescriptorImageInfo imageInfo = {};
 					imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-					imageInfo.imageView = info.first;
-					imageInfo.sampler = info.second;
+					imageInfo.imageView = texture.get().getImageView();
+					imageInfo.sampler = texture.get().getSampler();
+					imageInfos[imageIndex] = imageInfo;
+					imageIndex++;
+				}
+
+				//Fill remaining spaces with fallback texture 
+				const TextureVulkan& fallbackTexture = texArray.get().getFallbackTexture();
+				for (uint32_t i = texArray.get().getNextTextureSlotIndex(); i < texArray.get().getMaxTextureCount(); i++) {
+					VkDescriptorImageInfo imageInfo = {};
+					imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					imageInfo.imageView = fallbackTexture.getImageView();
+					imageInfo.sampler = fallbackTexture.getSampler();
 					imageInfos[imageIndex] = imageInfo;
 					imageIndex++;
 				}
@@ -137,7 +148,7 @@ namespace DOH {
 				write.dstBinding = binding;
 				write.dstArrayElement = 0;
 				write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				write.descriptorCount = texArray.Count;
+				write.descriptorCount = texArray.get().getMaxTextureCount();
 				write.pImageInfo = &imageInfos[arrayImagesStart];
 
 				descWrites[writeIndex] = write;
