@@ -25,7 +25,7 @@ namespace TG {
 		mRotation(0.0f),
 		mZoomLevel(1.0f),
 		mZoomSpeed(0.1f),
-		mZoomMax(2.00f),
+		mZoomMax(50.00f),
 		mZoomMin(0.25f),
 		mTranslationSpeed(0.3f)
 	{}

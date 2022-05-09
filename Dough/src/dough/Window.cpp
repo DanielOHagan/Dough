@@ -57,55 +57,70 @@ namespace DOH {
 				{
 					//TODO:: keep a track of the windowed mode width/height separate from mWidth/mHeight as the latter
 					// deal with viewport & swapchain resizing
+					// 
+					//TODO::check videoMode->refresh rate with mAppLoop, differing refresh rates can cause the CPU/GPU syncing issues
+					//TODO:: when switching from borderless fullscreen to windowed this fails to get window monitor
 
 					mCurrentDisplayMode = WindowDisplayMode::WINDOWED;
 					GLFWmonitor* monitor = glfwGetWindowMonitor(mWindowPtr);
-					const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
-					glfwSetWindowMonitor(
-						mWindowPtr,
-						nullptr,
-						50,
-						50,
-						1920,
-						1080,
-						videoMode->refreshRate
-					);
+					if (monitor != nullptr) {
+						const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
+						glfwSetWindowMonitor(
+							mWindowPtr,
+							nullptr,
+							50,
+							50,
+							1920,
+							1080,
+							videoMode->refreshRate
+						);
+					} else {
+						LOG_ERR("Failed to get window monitor");
+					}
 					break;
 				}
 				case WindowDisplayMode::BORDERLESS_FULLSCREEN:
 				{
 					mCurrentDisplayMode = WindowDisplayMode::BORDERLESS_FULLSCREEN;
 					GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-					const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
-					glfwWindowHint(GLFW_RED_BITS, videoMode->redBits);
-					glfwWindowHint(GLFW_GREEN_BITS, videoMode->greenBits);
-					glfwWindowHint(GLFW_BLUE_BITS, videoMode->blueBits);
-					glfwWindowHint(GLFW_REFRESH_RATE, videoMode->refreshRate);
-					glfwSetWindowMonitor(
-						mWindowPtr,
-						nullptr,
-						0,
-						0,
-						videoMode->width,
-						videoMode->height,
-						videoMode->refreshRate
-					);
+					if (monitor != nullptr) {
+						const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
+						glfwWindowHint(GLFW_RED_BITS, videoMode->redBits);
+						glfwWindowHint(GLFW_GREEN_BITS, videoMode->greenBits);
+						glfwWindowHint(GLFW_BLUE_BITS, videoMode->blueBits);
+						glfwWindowHint(GLFW_REFRESH_RATE, videoMode->refreshRate);
+						glfwSetWindowMonitor(
+							mWindowPtr,
+							nullptr,
+							0,
+							0,
+							videoMode->width,
+							videoMode->height,
+							videoMode->refreshRate
+						);
+					} else {
+						LOG_ERR("Failed to get primary monitor");
+					}
 					break;
 				}
 				case WindowDisplayMode::FULLSCREEN:
 				{
 					mCurrentDisplayMode = WindowDisplayMode::FULLSCREEN;
 					GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-					const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
-					glfwSetWindowMonitor(
-						mWindowPtr,
-						monitor,
-						0,
-						0,
-						videoMode->width,
-						videoMode->height,
-						videoMode->refreshRate
-					);
+					if (monitor != nullptr) {
+						const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
+						glfwSetWindowMonitor(
+							mWindowPtr,
+							monitor,
+							0,
+							0,
+							videoMode->width,
+							videoMode->height,
+							videoMode->refreshRate
+						);
+					} else {
+						LOG_ERR("Failed to get primary monitor");
+					}
 					break;
 				}
 			}

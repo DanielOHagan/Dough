@@ -51,7 +51,7 @@ namespace DOH {
 		mAppLogic->init((float) mWindow->getWidth() / mWindow->getHeight());
 		mAppInfoTimer->recordInterval("AppLogic.init() end");
 
-		mRenderer->setupPostAppLogicInit();
+		//mRenderer->setupPostAppLogicInit();
 		if (!mRenderer->isReady()) {
 			LOG_ERR("Renderer is not ready, forcing stop");
 			THROW("Thrown: Renderer not ready");

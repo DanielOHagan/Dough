@@ -13,19 +13,8 @@ namespace DOH {
 	private:
 		//TODO:: Material member to handle texture or solid/pattern/gradient/vertex colour
 		std::optional<std::reference_wrapper<TextureVulkan>> Texture;
-		//TextureVulkan& mTexture;
 
 	public:
-		//static const std::array<float, 8> DEFAULT_TEXTURE_COORDS = {
-		//	0.0f,
-		//	1.0f,
-		//	1.0f,
-		//	1.0f,
-		//	1.0f,
-		//	0.0f,
-		//	0.0f,
-		//	0.0f
-		//};
 
 		Quad()
 		:	AGeometry({ 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, 0.0f),
@@ -52,5 +41,6 @@ namespace DOH {
 		inline void setColourRGBA(float r, float g, float b, float a) { Colour.x = r; Colour.y = g; Colour.z = b; Colour.w = a; }
 		inline bool hasTexture() const { return Texture.has_value(); }
 		inline TextureVulkan& getTexture() const { return Texture.value(); }
+		inline void setTexture(std::reference_wrapper<TextureVulkan> texture) { Texture.emplace(texture); }
 	};
 }

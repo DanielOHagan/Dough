@@ -158,7 +158,6 @@ namespace DOH {
 		mSize = size;
 		void* mappedData;
 		vkMapMemory(logicDevice, mBufferMemory, 0, size, 0, &mappedData);
-
 		memcpy(mappedData, data, size);
 		vkUnmapMemory(logicDevice, mBufferMemory);
 	}

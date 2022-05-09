@@ -50,6 +50,7 @@ namespace DOH {
 		inline const VkDescriptorPool getDescriptorPool() const { return mDescriptorPool; }
 		inline DescriptorVulkan& getShaderDescriptor() const { return mShaderProgram.getShaderDescriptor(); }
 		inline ShaderProgramVulkan& getShaderProgram() const { return mShaderProgram; }
+		inline bool isReady() const { return mGraphicsPipeline != VK_NULL_HANDLE; }
 
 		inline VkPipeline get() const { return mGraphicsPipeline; }
 

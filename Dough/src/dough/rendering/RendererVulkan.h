@@ -57,9 +57,9 @@ namespace DOH {
 		void onResize(int width, int height);
 
 		void drawFrame();
-		inline void setupPostAppLogicInit() const { mRenderingContext->setupPostAppLogicInit(); }
-		inline void prepareScenePipeline(ShaderProgramVulkan& shaderProgram) const { mRenderingContext->prepareScenePipeline(shaderProgram, false); }
-		inline void prepareUiPipeline(ShaderProgramVulkan& shaderProgram) const { mRenderingContext->prepareAppUiPipeline(shaderProgram, false); }
+		inline void prepareScenePipeline(ShaderProgramVulkan& shaderProgram, bool createUniformObjects = false) const { mRenderingContext->prepareScenePipeline(shaderProgram, createUniformObjects); }
+		inline void prepareUiPipeline(ShaderProgramVulkan& shaderProgram, bool createUniformObjects = false) const { mRenderingContext->prepareAppUiPipeline(shaderProgram, createUniformObjects); }
+		inline void closeCustomPipelines() { mRenderingContext->closeCustomPipelines(); };
 		void beginScene(ICamera& camera);
 		void endScene();
 		void beginUi(glm::mat4x4& proj);

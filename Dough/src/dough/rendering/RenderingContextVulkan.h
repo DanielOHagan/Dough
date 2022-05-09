@@ -56,6 +56,9 @@ namespace DOH {
 		std::vector<VkFence> mFramesInFlightFences;
 		std::vector<VkFence> mImageFencesInFlight;
 
+		bool mUsingScenePipeline;
+		bool mUsingUiPipeline;
+
 	public:
 		RenderingContextVulkan(VkDevice logicDevice, VkPhysicalDevice physicalDevice);
 
@@ -70,7 +73,7 @@ namespace DOH {
 			VkInstance vulkanInstance
 		);
 		void close();
-		void setupPostAppLogicInit();
+		//Finalise the creation of custom pipelines
 		void prepareScenePipeline(ShaderProgramVulkan& shaderProgram, bool createUniformObjects = false);
 		void prepareAppUiPipeline(ShaderProgramVulkan& shaderProgram, bool createUniformObjects = false);
 		void preparePipeline(
@@ -81,6 +84,10 @@ namespace DOH {
 			uint32_t vertexStride
 		);
 		void createPipelineUniformObjects(GraphicsPipelineVulkan& pipeline, VkDescriptorPool descPool);
+		void createCustomPipelinesUniformObjects();
+		void closeCustomPipelines();
+		void closeScenePipeline();
+		void closeUiPipeline();
 		VkDescriptorPool createDescriptorPool(std::vector<DescriptorTypeInfo>& descTypes, uint32_t pipelineCount);
 		bool isReady() const;
 
@@ -202,9 +209,9 @@ namespace DOH {
 			VkBufferUsageFlags usage,
 			VkMemoryPropertyFlags props
 		);
-		std::shared_ptr<IndexBufferVulkan> createIndexBuffer(VkDeviceSize size/*, uint32_t count*/);
-		std::shared_ptr<IndexBufferVulkan> createStagedIndexBuffer(void* data, VkDeviceSize size/*, uint32_t count*/);
-		std::shared_ptr<IndexBufferVulkan> createStagedIndexBuffer(const void* data, VkDeviceSize size/*, uint32_t count*/);
+		std::shared_ptr<IndexBufferVulkan> createIndexBuffer(VkDeviceSize size);
+		std::shared_ptr<IndexBufferVulkan> createStagedIndexBuffer(void* data, VkDeviceSize size);
+		std::shared_ptr<IndexBufferVulkan> createStagedIndexBuffer(const void* data, VkDeviceSize size);
 		std::unique_ptr<IndexBufferVulkan> createSharedStagedIndexBuffer(const void* data, VkDeviceSize size);
 		std::shared_ptr<BufferVulkan> createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props);
 		std::shared_ptr<BufferVulkan> createStagedBuffer(void* data, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props);
