@@ -78,10 +78,13 @@ namespace TG {
 			renderer.getContext().addVaoToSceneDrawList(*mCustomDemo.mSceneVertexArray);
 		}
 
+		if (mImGuiSettings.CubeDemo.Render) {
+			renderer.getContext().addVaoToSceneDrawList(mCubeDemo.mCubeModel->getVao());
+		}
+
 		if (mImGuiSettings.GridDemo.Render) {
 			for (std::vector<Quad>& sameTexturedQuads : mGridDemo.mTexturedTestGrid) {
-				//Different ways of drawing quads (inserting into RenderBatches),
-				// shouldn't cause too much of a performance difference (quick testing showed 0-3 fps drop max)
+				//Different ways of drawing quads (inserting into RenderBatches)
 
 				//for (Quad& quad : sameTexturedQuads) {
 				//	rrenderer2d.drawQuadScene(quad);
@@ -140,14 +143,15 @@ namespace TG {
 			) {
 				window.selectDisplayMode(WindowDisplayMode::WINDOWED);
 			}
-			ImGui::SameLine();
-			bool displayModeBorderlessWindowActive = window.getDisplayMode() == WindowDisplayMode::BORDERLESS_FULLSCREEN;
-			if (
-				ImGui::RadioButton("Borderless Windowed", displayModeBorderlessWindowActive) &&
-				window.getDisplayMode() != WindowDisplayMode::BORDERLESS_FULLSCREEN
-			) {
-				window.selectDisplayMode(WindowDisplayMode::BORDERLESS_FULLSCREEN);
-			}
+			//TODO:: Disabled for now as it causes a bug when switching from borderless to any other display mode
+			//ImGui::SameLine();
+			//bool displayModeBorderlessWindowActive = window.getDisplayMode() == WindowDisplayMode::BORDERLESS_FULLSCREEN;
+			//if (
+			//	ImGui::RadioButton("Borderless Windowed", displayModeBorderlessWindowActive) &&
+			//	window.getDisplayMode() != WindowDisplayMode::BORDERLESS_FULLSCREEN
+			//) {
+			//	window.selectDisplayMode(WindowDisplayMode::BORDERLESS_FULLSCREEN);
+			//}
 			ImGui::SameLine();
 			bool displayModeFullscreenActive = window.getDisplayMode() == WindowDisplayMode::FULLSCREEN;
 			if (
@@ -223,7 +227,11 @@ namespace TG {
 			//	ImGui::Text("Texture Array: %i Texture Count: %i", texArrIndex, texArr.getTextureSlots().size());
 			//	texArrIndex++;
 			//}
-			ImGui::Text("Texture Array: %i Texture Count: %i", 0, renderer.getContext().getRenderer2d().getStorage().getTextureArray().getTextureSlots().size());
+			ImGui::Text(
+				"Texture Array: %i Texture Count: %i",
+				0,
+				renderer.getContext().getRenderer2d().getStorage().getQuadBatchTextureArray().getTextureSlots().size()
+			);
 			if (ImGui::Button("Close All Empty Quad Batches")) {
 				renderer.getContext().getRenderer2d().closeEmptyQuadBatches();
 			}
@@ -236,6 +244,8 @@ namespace TG {
 
 		ImGui::SetNextItemOpen(mImGuiSettings.CurrentDemoCollapseMenuOpen);
 		if (ImGui::CollapsingHeader("Current Demo")) {
+			ImGui::Text("2D: ");
+			ImGui::SameLine();
 			if (ImGui::RadioButton("Grid Demo", mSelectedDemo == EDemo::GRID)) {
 				if (mSelectedDemo != EDemo::GRID) {
 					switchToDemo(EDemo::GRID);
@@ -253,12 +263,23 @@ namespace TG {
 					switchToDemo(EDemo::CUSTOM);
 				}
 			}
+			ImGui::Text("3D: ");
 			ImGui::SameLine();
+			if (ImGui::RadioButton("Cube Demo", mSelectedDemo == EDemo::CUBE)) {
+				if (mSelectedDemo != EDemo::CUBE) {
+					switchToDemo(EDemo::CUBE);
+				}
+			}
+			imGuiDisplayHelpTooltip("Currently only one \"custom\" pipeline demo is supported so selecting either CUSTOM or CUBE prevents the other from being loaded. This will be fixed.");
+			//ImGui::SameLine();
 			if (ImGui::RadioButton("No Demo", mSelectedDemo == EDemo::NONE)) {
 				if (mSelectedDemo != EDemo::NONE) {
 					switchToDemo(EDemo::NONE);
 				}
 			}
+
+			ImGui::Text("Demo Settings & Info");
+
 
 			switch (mSelectedDemo) {
 				case EDemo::GRID:
@@ -328,9 +349,23 @@ namespace TG {
 					break;
 				}
 
+				case EDemo::CUBE:
+				{
+					ImGui::Checkbox("Render", &mImGuiSettings.CubeDemo.Render);
+					ImGui::Checkbox("Update", &mImGuiSettings.CubeDemo.Update);
+					break;
+				}
+
 				case EDemo::NONE:
 				{
 					ImGui::Text("No Demo selected");
+					break;
+				}
+
+				default:
+				{
+					ImGui::Text("Selected demo has no info/settings set in ImGui");
+					break;
 				}
 			}
 			mImGuiSettings.CurrentDemoCollapseMenuOpen = true;
@@ -402,6 +437,8 @@ namespace TG {
 			ImGui::TextWrapped("Multiple texture support for dynamic batches");
 			ImGui::Bullet();
 			ImGui::TextWrapped("Some kind of text rendering");
+			ImGui::Bullet();
+			ImGui::TextWrapped("Allow for multiple demos to be displayed at once");
 
 			mImGuiSettings.ToDoListTopTierCollapseMenuOpen = true;
 		} else {
@@ -409,6 +446,8 @@ namespace TG {
 		}
 
 		if (ImGui::CollapsingHeader("Mid Tier")) {
+			ImGui::Bullet();
+			ImGui::TextWrapped("Multiple \"custom\" pipelines & ability to safely close them when needed.");
 			ImGui::Bullet();
 			ImGui::TextWrapped("Fix texture artifacts caused, I think, by casting float to int in shader for texture array index");
 			ImGui::Bullet();
@@ -450,6 +489,11 @@ namespace TG {
 			renderer.closeGpuResource(mCustomDemo.mUiVao);
 			renderer.closeGpuResource(mCustomDemo.mTestTexture1);
 			renderer.closeGpuResource(mCustomDemo.mTestTexture2);
+		}
+
+		if (mCubeDemo.mLoaded) {
+			renderer.closeGpuResource(mCubeDemo.mCubeModel);
+			renderer.closeGpuResource(mCubeDemo.mSceneShaderProgram);
 		}
 
 		//for (std::shared_ptr<TextureVulkan> texture : mTestTextures) {
@@ -517,7 +561,9 @@ namespace TG {
 		layout.setTexture(1, { mCustomDemo.mTestTexture1->getImageView(), mCustomDemo.mTestTexture1->getSampler() });
 
 		mCustomDemo.mSceneVertexArray = ObjInit::vertexArray();
+		const EVertexType vertexType = EVertexType::VERTEX_3D_TEXTURED;
 		std::shared_ptr<VertexBufferVulkan> sceneVb = ObjInit::stagedVertexBuffer(
+			//vertexType,
 			{
 				{EDataType::FLOAT3},
 				{EDataType::FLOAT4},
@@ -525,7 +571,7 @@ namespace TG {
 				{EDataType::FLOAT}
 			},
 			mCustomDemo.mSceneVertices.data(),
-			sizeof(Vertex3dTextured) * mCustomDemo.mSceneVertices.size(),
+			getVertexTypeSize(vertexType) * mCustomDemo.mSceneVertices.size(),
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
@@ -537,7 +583,26 @@ namespace TG {
 		mCustomDemo.mSceneVertexArray->setDrawCount(static_cast<uint32_t>(mCustomDemo.indices.size()));
 		mCustomDemo.mSceneVertexArray->setIndexBuffer(sceneIb);
 
-		GET_RENDERER.prepareScenePipeline(*mCustomDemo.mSceneShaderProgram);
+		GET_RENDERER.prepareScenePipeline(*mCustomDemo.mSceneShaderProgram, vertexType);
+	}
+
+	void TG_AppLogic::initCube() {
+		mCubeDemo.mCubeModel = ModelVulkan::createModel(mCubeDemo.testCubeObjFilepath);
+		mCubeDemo.mSceneShaderProgram = ObjInit::shaderProgram(
+			ObjInit::shader(
+				EShaderType::VERTEX,
+				mCubeDemo.flatColourShaderVertPath
+			),
+			ObjInit::shader(
+				EShaderType::FRAGMENT,
+				mCubeDemo.flatColourShaderFragPath
+			)
+		);
+		mCubeDemo.mSceneShaderProgram->getUniformLayout().setValue(0, sizeof(CubeDemo::UniformBufferObject));
+
+		GET_RENDERER.prepareScenePipeline(*mCubeDemo.mSceneShaderProgram, EVertexType::VERTEX_3D);
+
+		mCubeDemo.mLoaded = true;
 	}
 
 	void TG_AppLogic::initCustomUi() {
@@ -548,13 +613,15 @@ namespace TG {
 		mCustomDemo.mUiShaderProgram->getUniformLayout().setValue(0, sizeof(CustomDemo::UniformBufferObject));
 
 		mCustomDemo.mUiVao = ObjInit::vertexArray();
+		const EVertexType vertexType = EVertexType::VERTEX_2D;
 		std::shared_ptr<VertexBufferVulkan> appUiVb = ObjInit::stagedVertexBuffer(
+			//vertexType,
 			{
 				{EDataType::FLOAT2},
 				{EDataType::FLOAT4}
 			},
 			mCustomDemo.mUiVertices.data(),
-			sizeof(Vertex2d) * mCustomDemo.mUiVertices.size(),
+			getVertexTypeSize(vertexType) * mCustomDemo.mUiVertices.size(),
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
@@ -566,7 +633,7 @@ namespace TG {
 		mCustomDemo.mUiVao->setDrawCount(static_cast<uint32_t>(mCustomDemo.mUiIndices.size()));
 		mCustomDemo.mUiVao->setIndexBuffer(appUiIb);
 
-		GET_RENDERER.prepareUiPipeline(*mCustomDemo.mUiShaderProgram);
+		GET_RENDERER.prepareUiPipeline(*mCustomDemo.mUiShaderProgram, vertexType);
 	}
 
 	void TG_AppLogic::initBouncingQuads() {
@@ -618,8 +685,14 @@ namespace TG {
 					break;
 
 				case EDemo::CUSTOM:
-					LOG_INFO("Demo switched to: CUSTOM");
 
+					if (mCubeDemo.mLoaded) {
+						LOG_WARN("Unable to switch to CUSTOM demo as CUBE demo is already loaded. Currently only one demo using a \"custom\" pieline is supported");
+						demo = mSelectedDemo;
+						break;
+					}
+
+					LOG_INFO("Demo switched to: CUSTOM");
 					closeSelectedDemo();
 
 					mImGuiSettings.CustomDemo.RenderScene = true;
@@ -631,6 +704,26 @@ namespace TG {
 						initCustomUi();
 						GET_RENDERER.getContext().createCustomPipelinesUniformObjects();
 						mCustomDemo.mLoaded = true;
+					}
+
+					break;
+
+				case EDemo::CUBE:
+					if (mCustomDemo.mLoaded) {
+						LOG_WARN("Unable to switch to CUBE demo as CUSTOM demo is already loaded. Currently only one demo using a \"custom\" pieline is supported");
+						demo = mSelectedDemo;
+						break;
+					}
+
+					closeSelectedDemo();
+					
+					mImGuiSettings.CubeDemo.Render = true;
+					mImGuiSettings.CubeDemo.Update = true;
+
+					if (!mCubeDemo.mLoaded) {
+						initCube();
+						GET_RENDERER.getContext().createCustomPipelinesUniformObjects();
+						mCubeDemo.mLoaded = true;
 					}
 
 					break;
@@ -668,6 +761,12 @@ namespace TG {
 				mImGuiSettings.CustomDemo.RenderScene = false;
 				mImGuiSettings.CustomDemo.RenderUi = false;
 				mImGuiSettings.CustomDemo.Update = false;
+
+				break;
+
+			case EDemo::CUBE:
+				mImGuiSettings.CubeDemo.Render = false;
+				mImGuiSettings.CubeDemo.Update = false;
 
 				break;
 		}

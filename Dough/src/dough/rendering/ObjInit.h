@@ -42,6 +42,8 @@ namespace DOH {
 		//-----VAO-----
 		static std::shared_ptr<VertexArrayVulkan> vertexArray();
 
+		//TODO:: Use BufferElements for custom vertex buffers and EVertexTypes for pre-defined vertex input
+
 		static std::shared_ptr<VertexBufferVulkan> vertexBuffer(
 			const std::initializer_list<BufferElement>& elements,
 			VkDeviceSize size,
@@ -57,6 +59,13 @@ namespace DOH {
 		);
 		static std::shared_ptr<VertexBufferVulkan> stagedVertexBuffer(
 			const std::initializer_list<BufferElement>& elements,
+			const void* data,
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
+			VkMemoryPropertyFlags props
+		);
+		static std::shared_ptr<VertexBufferVulkan> stagedVertexBuffer(
+			const std::vector<BufferElement>& elements,
 			const void* data,
 			VkDeviceSize size,
 			VkBufferUsageFlags usage,

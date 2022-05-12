@@ -8,6 +8,13 @@ namespace DOH {
 	{
 		calculateOffsetAndStride();
 	}
+	
+	BufferLayout::BufferLayout(const std::vector<BufferElement>& elements)
+	:	mBufferElements(elements),
+		mStride(0)
+	{
+		calculateOffsetAndStride();
+	}
 
 	void BufferLayout::calculateOffsetAndStride() {
 		size_t offset = 0;

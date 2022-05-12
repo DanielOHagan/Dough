@@ -88,9 +88,5 @@ namespace DOH {
 		inline const std::vector<std::shared_ptr<TextureVulkan>>& getTestTextures() const { return mTestTextures; }
 		inline TextureArray& getQuadBatchTextureArray() const { return *mQuadBatchTextureArray; }
 		inline IndexBufferVulkan& getQuadBatchIndexBuffer() const { return *mQuadSharedIndexBuffer; }
-
-		//TEMP:: DEBUG::
-		TextureArray& getTextureArray() const { return *mQuadBatchTextureArray; }
-		ShaderProgramVulkan& getQuadShaderProgram() const { return *mQuadShaderProgram; }
 	};
 }

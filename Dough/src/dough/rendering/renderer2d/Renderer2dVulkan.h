@@ -43,7 +43,7 @@ namespace DOH {
 		//void drawQuadUi(Quad& quad);
 
 
-		//-----DEBUG----- TEMP:: Storage should only be visible to Renderer2d, used to show info to ImGui in app
+		//-----DEBUG----- Storage should only be visible to Renderer2d, used to show info to ImGui in app
 		inline Renderer2dStorageVulkan& getStorage() const { return *mStorage; }
 		inline size_t getQuadBatchCount() const { return mStorage->getQuadRenderBatches().size(); }
 	};

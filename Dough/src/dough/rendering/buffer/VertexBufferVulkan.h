@@ -40,6 +40,18 @@ namespace DOH {
 			VkBufferUsageFlags usage,
 			VkMemoryPropertyFlags props
 		);
+		VertexBufferVulkan(
+			const std::vector<BufferElement>& elements,
+			VkDevice logicDevice,
+			VkPhysicalDevice physicalDevice,
+			VkCommandPool cmdPool,
+			VkQueue graphicsQueue,
+			const void* data,
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
+			VkMemoryPropertyFlags props
+		);
+		
 
 		/** 
 		* Close Vertex Buffer including Layout

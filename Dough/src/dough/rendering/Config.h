@@ -66,6 +66,10 @@ namespace DOH {
 			attribDesc.push_back({ 1, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex2d, Colour) });
 			return attribDesc;
 		}
+
+		bool operator==(const Vertex2d& other) const {
+			return Pos == other.Pos && Colour == other.Colour;
+		}
 	};
 
 	struct Vertex3d {
@@ -77,6 +81,10 @@ namespace DOH {
 			attribDesc.push_back({ 0, binding, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex3d, Pos) });
 			attribDesc.push_back({ 1, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex3d, Colour) });
 			return attribDesc;
+		}
+
+		bool operator==(const Vertex3d& other) const {
+			return Pos == other.Pos && Colour == other.Colour;
 		}
 	};
 
@@ -98,5 +106,50 @@ namespace DOH {
 			attribDesc.push_back({ 3, binding, VK_FORMAT_R32_SFLOAT, offsetof(Vertex3dTextured, TexIndex) });
 			return attribDesc;
 		}
+
+		bool operator==(const Vertex3dTextured& other) const {
+			return Pos == other.Pos && Colour == other.Colour && TexCoord == other.TexCoord && TexIndex == other.TexIndex;
+		}
 	};
+
+	enum class EVertexType {
+		VERTEX_2D = sizeof(Vertex2d),
+		VERTEX_3D = sizeof(Vertex3d),
+		VERTEX_3D_TEXTURED = sizeof(Vertex3dTextured)
+	};
+
+	static std::vector<VkVertexInputAttributeDescription> getVertexTypeAsAttribDesc(
+		EVertexType vertexType,
+		uint32_t binding
+	) {
+		switch (vertexType) {
+			case EVertexType::VERTEX_2D:
+				return Vertex2d::asAttributeDescriptions(binding);
+
+			case EVertexType::VERTEX_3D:
+				return Vertex3d::asAttributeDescriptions(binding);
+
+			case EVertexType::VERTEX_3D_TEXTURED:
+				return Vertex3dTextured::asAttributeDescriptions(binding);
+
+			default:
+				return {};
+		}
+	}
+
+	static uint32_t getVertexTypeSize(EVertexType vertexType) {
+		switch (vertexType) {
+			case EVertexType::VERTEX_2D:
+				return static_cast<uint32_t>(sizeof(Vertex2d));
+
+			case EVertexType::VERTEX_3D:
+				return static_cast<uint32_t>(sizeof(Vertex3d));
+
+			case EVertexType::VERTEX_3D_TEXTURED:
+				return static_cast<uint32_t>(sizeof(Vertex3dTextured));
+
+			default:
+				return -1;
+		}
+	}
 }

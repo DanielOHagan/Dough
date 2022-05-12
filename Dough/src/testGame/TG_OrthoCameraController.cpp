@@ -96,7 +96,7 @@ namespace TG {
 				mClickAndDragActive = true;
 			}
 
-			//TODO:: fix differing speeds on differing ups
+			//TODO:: fix differing speeds on differing UPS rates
 			//Invert axes for a "drag" effect
 			const glm::vec2 currentMousePos = Input::getCursorPos();
 			const float translationDelta = mTranslationSpeed * delta;

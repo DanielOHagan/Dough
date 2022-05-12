@@ -3,9 +3,7 @@
 *.vcxproj
 *.filters
 *.user
-*.spv
 *.tlog
-*.obj
 *.hint
 *.ini
 

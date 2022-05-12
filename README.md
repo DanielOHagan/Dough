@@ -10,3 +10,4 @@ A small number of features from C\+\+17 are used so that version will be require
 - [GLM](https://github.com/g-truc/glm)
 - [STB](https://github.com/nothings/stb)
 - [ImGui](https://github.com/ocornut/imgui)
+- [Tiny OBJ Loader](https://github.com/tinyobjloader)

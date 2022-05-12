@@ -6,6 +6,7 @@
 #include "dough/rendering/TextureVulkan.h"
 #include "dough/rendering/Config.h"
 #include "dough/scene/geometry/Quad.h"
+#include "dough/rendering/ModelVulkan.h"
 
 #include "testGame/TG_OrthoCameraController.h"
 #include "testGame/TG_PerspectiveCameraController.h"
@@ -33,7 +34,8 @@ namespace TG {
 
 			BOUNCING_QUADS,
 			GRID,
-			CUSTOM
+			CUSTOM,
+			CUBE
 
 		};
 
@@ -44,6 +46,21 @@ namespace TG {
 		std::shared_ptr<TG_OrthoCameraController> TG_mOrthoCameraController;
 		std::shared_ptr<TG_PerspectiveCameraController> mPerspectiveCameraController;
 
+		struct CubeDemo {
+			struct UniformBufferObject {
+				glm::mat4x4 projView;
+			};
+
+			const std::string testCubeObjFilepath = "res/models/testCube.obj";
+			const std::string flatColourShaderVertPath = "res/shaders/spv/FlatColour.vert.spv";
+			const std::string flatColourShaderFragPath = "res/shaders/spv/FlatColour.frag.spv";
+
+			std::shared_ptr<ShaderProgramVulkan> mSceneShaderProgram;
+			std::shared_ptr<ModelVulkan> mCubeModel;
+
+			bool mLoaded = false;
+		} mCubeDemo;
+
 		//Generic custom scene objects (TODO:: should this be its own demo, maybe if it's worked on more)
 		struct CustomDemo {
 
@@ -53,8 +70,6 @@ namespace TG {
 
 			const std::string texturedShaderVertPath = "res/shaders/spv/Textured.vert.spv";
 			const std::string texturedShaderFragPath = "res/shaders/spv/Textured.frag.spv";
-			const std::string flatColourShaderVertPath = "res/shaders/spv/FlatColour.vert.spv";
-			const std::string flatColourShaderFragPath = "res/shaders/spv/FlatColour.frag.spv";
 			const std::string quadBatchShaderVertPath = "res/shaders/spv/QuadBatch.vert.spv";
 			const std::string quadBatchShaderFragPath = "res/shaders/spv/QuadBatch.frag.spv";
 			const std::string testTexturePath = "res/images/testTexture.jpg";
@@ -141,6 +156,14 @@ namespace TG {
 				bool RenderUi = false;
 			} CustomDemo;
 
+			struct CubeDemoSettings {
+				bool Update = false;
+				bool Render = false;
+
+				//TODO:: Rename to Model3d and provide a list of models that can be loaded and displayed,
+				// probably through a dropdown menu interface
+			} CubeDemo;
+
 			//ImGui menu
 			bool ApplicationCollapseMenuOpen = true;
 			bool RenderingCollapseMenuOpen = true;
@@ -181,6 +204,7 @@ namespace TG {
 		void initCustomUi();
 		void initGrid();
 		void initBouncingQuads();
+		void initCube();
 		void closeSelectedDemo();
 
 		//ImGui convenience and separated functions

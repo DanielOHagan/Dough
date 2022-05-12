@@ -16,6 +16,9 @@ namespace DOH {
 			glm::mat4 ProjectionViewMat;
 		} mSceneUbo;
 
+		//NOTE:: in OpenGL space because glm
+		glm::mat4x4 mAppUiProjection;
+
 		//Shared device handles for convenience
 		VkDevice mLogicDevice;
 		VkPhysicalDevice mPhysicalDevice;
@@ -35,14 +38,10 @@ namespace DOH {
 		std::unique_ptr<Renderer2dVulkan> mRenderer2d;
 		std::unique_ptr<ImGuiWrapper> mImGuiWrapper;
 
-		//NOTE:: in OpenGL space because glm
-		glm::mat4x4 mAppUiProjection;
-
 		//Used by Scene and UI pipelines
-		//TODO:: when fully transitioned to batch renderer, move this to a renderer3d or something
-		//	as 2d rendering should thereby be done solely by batch rendering (except maybe some debug things)
+		//TODO:: Separate the custom Scene and UI resources (descriptors, pipelines, buffers, etc...)
+		// so they have their own 
 		VkDescriptorPool mDescriptorPool;
-
 
 		VkCommandPool mCommandPool;
 
@@ -74,15 +73,15 @@ namespace DOH {
 		);
 		void close();
 		//Finalise the creation of custom pipelines
-		void prepareScenePipeline(ShaderProgramVulkan& shaderProgram, bool createUniformObjects = false);
-		void prepareAppUiPipeline(ShaderProgramVulkan& shaderProgram, bool createUniformObjects = false);
-		void preparePipeline(
-			std::shared_ptr<GraphicsPipelineVulkan> graphicsPipeline,
-			ShaderProgramVulkan& shaderProgram,
-			VkRenderPass renderPass,
-			std::vector<VkVertexInputAttributeDescription>& attribDesc,
-			uint32_t vertexStride
-		);
+		void prepareScenePipeline(ShaderProgramVulkan& shaderProgram, EVertexType vertexType, bool createUniformObjects = false);
+		void prepareAppUiPipeline(ShaderProgramVulkan& shaderProgram, EVertexType vertexType, bool createUniformObjects = false);
+		//void preparePipeline(
+		//	std::shared_ptr<GraphicsPipelineVulkan> graphicsPipeline,
+		//	ShaderProgramVulkan& shaderProgram,
+		//	VkRenderPass renderPass,
+		//	std::vector<VkVertexInputAttributeDescription>& attribDesc,
+		//	uint32_t vertexStride
+		//);
 		void createPipelineUniformObjects(GraphicsPipelineVulkan& pipeline, VkDescriptorPool descPool);
 		void createCustomPipelinesUniformObjects();
 		void closeCustomPipelines();
@@ -204,6 +203,13 @@ namespace DOH {
 		);
 		std::shared_ptr<VertexBufferVulkan> createStagedVertexBuffer(
 			const std::initializer_list<BufferElement>& elements,
+			const void* data,
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
+			VkMemoryPropertyFlags props
+		);
+		std::shared_ptr<VertexBufferVulkan> createStagedVertexBuffer(
+			const std::vector<BufferElement>& elements,
 			const void* data,
 			VkDeviceSize size,
 			VkBufferUsageFlags usage,

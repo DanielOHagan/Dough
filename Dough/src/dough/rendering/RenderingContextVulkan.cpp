@@ -190,11 +190,11 @@ namespace DOH {
 			}
 
 			if (mUsingScenePipeline) {
-				prepareScenePipeline(mSceneGraphicsPipeline->getShaderProgram(), true);
+				prepareScenePipeline(mSceneGraphicsPipeline->getShaderProgram(), EVertexType::VERTEX_3D, true);
 			}
 
 			if (mUsingUiPipeline) {
-				prepareAppUiPipeline(mAppUiGraphicsPipeline->getShaderProgram(), true);
+				prepareAppUiPipeline(mAppUiGraphicsPipeline->getShaderProgram(), EVertexType::VERTEX_2D, true);
 			}
 
 			mRenderer2d->recreateSwapChainSpecificObjects(*mSwapChain);
@@ -429,15 +429,14 @@ namespace DOH {
 		}
 	}
 
-	//TODO:: currently uses Vertex3dTextured for vertex attribs, allow for custom vertex attribs
-	void RenderingContextVulkan::prepareScenePipeline(ShaderProgramVulkan& shaderProgram, bool createUniformObjects) {
+	void RenderingContextVulkan::prepareScenePipeline(ShaderProgramVulkan& shaderProgram, EVertexType vertexType, bool createUniformObjects) {
 		const uint32_t binding = 0;
-		std::vector<VkVertexInputAttributeDescription> attribDesc = std::move(Vertex3dTextured::asAttributeDescriptions(binding));
+		std::vector<VkVertexInputAttributeDescription> attribDesc = std::move(getVertexTypeAsAttribDesc(vertexType, binding));
 		mSceneGraphicsPipeline = ObjInit::graphicsPipeline(
 			mSwapChain->getExtent(),
 			mSwapChain->getRenderPass(SwapChainVulkan::ERenderPassType::SCENE).get(),
 			shaderProgram,
-			createBindingDescription(binding, sizeof(Vertex3dTextured), VK_VERTEX_INPUT_RATE_VERTEX),
+			createBindingDescription(binding, getVertexTypeSize(vertexType), VK_VERTEX_INPUT_RATE_VERTEX),
 			attribDesc
 		);
 
@@ -448,15 +447,14 @@ namespace DOH {
 		mUsingScenePipeline = true;
 	}
 
-	//TODO:: currently uses Vertex2d for vertex attribs, allow for custom vertex attribs
-	void RenderingContextVulkan::prepareAppUiPipeline(ShaderProgramVulkan& shaderProgram, bool createUniformObjects) {
+	void RenderingContextVulkan::prepareAppUiPipeline(ShaderProgramVulkan& shaderProgram, EVertexType vertexType, bool createUniformObjects) {
 		const uint32_t binding = 0;
-		std::vector<VkVertexInputAttributeDescription> attribDesc = std::move(Vertex2d::asAttributeDescriptions(binding));
+		std::vector<VkVertexInputAttributeDescription> attribDesc = std::move(getVertexTypeAsAttribDesc(vertexType, binding));
 		mAppUiGraphicsPipeline = ObjInit::graphicsPipeline(
 			mSwapChain->getExtent(),
 			mSwapChain->getRenderPass(SwapChainVulkan::ERenderPassType::APP_UI).get(),
 			shaderProgram,
-			createBindingDescription(binding, sizeof(Vertex2d), VK_VERTEX_INPUT_RATE_VERTEX),
+			createBindingDescription(binding, getVertexTypeSize(vertexType), VK_VERTEX_INPUT_RATE_VERTEX),
 			attribDesc
 		);
 
@@ -520,22 +518,22 @@ namespace DOH {
 		}
 	}
 
-	void RenderingContextVulkan::preparePipeline(
-		std::shared_ptr<GraphicsPipelineVulkan> graphicsPipeline,
-		ShaderProgramVulkan& shaderProgram,
-		VkRenderPass renderPass,
-		std::vector<VkVertexInputAttributeDescription>& attribDesc,
-		uint32_t vertexStride
-	) {
-		const uint32_t binding = 0;
-		graphicsPipeline = ObjInit::graphicsPipeline(
-			mSwapChain->getExtent(),
-			renderPass,
-			shaderProgram,
-			createBindingDescription(binding, vertexStride, VK_VERTEX_INPUT_RATE_VERTEX),
-			attribDesc
-		);
-	}
+	//void RenderingContextVulkan::preparePipeline(
+	//	std::shared_ptr<GraphicsPipelineVulkan> graphicsPipeline,
+	//	ShaderProgramVulkan& shaderProgram,
+	//	VkRenderPass renderPass,
+	//	std::vector<VkVertexInputAttributeDescription>& attribDesc,
+	//	uint32_t vertexStride
+	//) {
+	//	const uint32_t binding = 0;
+	//	graphicsPipeline = ObjInit::graphicsPipeline(
+	//		mSwapChain->getExtent(),
+	//		renderPass,
+	//		shaderProgram,
+	//		createBindingDescription(binding, vertexStride, VK_VERTEX_INPUT_RATE_VERTEX),
+	//		attribDesc
+	//	);
+	//}
 
 	VkCommandBuffer RenderingContextVulkan::beginSingleTimeCommands() {
 		VkCommandBufferAllocateInfo allocation{};
@@ -860,6 +858,16 @@ namespace DOH {
 
 	std::shared_ptr<VertexBufferVulkan> RenderingContextVulkan::createStagedVertexBuffer(
 		const std::initializer_list<BufferElement>& elements,
+		const void* data,
+		VkDeviceSize size,
+		VkBufferUsageFlags usage,
+		VkMemoryPropertyFlags props
+	) {
+		return std::make_shared<VertexBufferVulkan>(elements, mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size, usage, props);
+	}
+
+	std::shared_ptr<VertexBufferVulkan> RenderingContextVulkan::createStagedVertexBuffer(
+		const std::vector<BufferElement>& elements,
 		const void* data,
 		VkDeviceSize size,
 		VkBufferUsageFlags usage,

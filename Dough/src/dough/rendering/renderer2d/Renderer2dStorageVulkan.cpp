@@ -60,12 +60,12 @@ namespace DOH {
 		mDescriptorPool = mContext.createDescriptorPool(descTypes, 1);
 
 		const uint32_t binding = 0;
-		std::vector<VkVertexInputAttributeDescription> attribDesc = std::move(Vertex3dTextured::asAttributeDescriptions(binding));
+		std::vector<VkVertexInputAttributeDescription> attribDesc = std::move(getVertexTypeAsAttribDesc(EVertexType::VERTEX_3D_TEXTURED, binding));
 		mQuadGraphicsPipeline = ObjInit::graphicsPipeline(
 			mContext.getSwapChain().getExtent(),
 			mContext.getSwapChain().getRenderPass(SwapChainVulkan::ERenderPassType::SCENE).get(),
 			*mQuadShaderProgram,
-			createBindingDescription(binding, sizeof(Vertex3dTextured), VK_VERTEX_INPUT_RATE_VERTEX),
+			createBindingDescription(binding, getVertexTypeSize(EVertexType::VERTEX_3D_TEXTURED), VK_VERTEX_INPUT_RATE_VERTEX),
 			attribDesc
 		);
 
@@ -81,6 +81,7 @@ namespace DOH {
 
 			std::shared_ptr<VertexArrayVulkan> vao = ObjInit::vertexArray();
 			std::shared_ptr<VertexBufferVulkan> vbo = ObjInit::vertexBuffer(
+				//EVertexType::VERTEX_3D_TEXTURED,
 				{
 					{ EDataType::FLOAT3 },
 					{ EDataType::FLOAT4 },
@@ -91,7 +92,7 @@ namespace DOH {
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
 			);
-			vao->addVertexBuffer(vbo);			
+			vao->addVertexBuffer(vbo);
 			vao->setIndexBuffer(mQuadSharedIndexBuffer, true);
 
 			mQuadBatchVaos.push_back(vao);
@@ -128,13 +129,13 @@ namespace DOH {
 		layout.setTextureArray(1, *mQuadBatchTextureArray);
 
 		const uint32_t binding = 0;
-		std::vector<VkVertexInputAttributeDescription> attribDescs = std::move(Vertex3dTextured::asAttributeDescriptions(binding));
+		std::vector<VkVertexInputAttributeDescription> attribDescs = std::move(getVertexTypeAsAttribDesc(EVertexType::VERTEX_3D_TEXTURED, binding));
 
 		mQuadGraphicsPipeline = ObjInit::graphicsPipeline(
 			mContext.getSwapChain().getExtent(),
 			mContext.getSwapChain().getRenderPass(SwapChainVulkan::ERenderPassType::SCENE).get(),
 			*mQuadShaderProgram,
-			createBindingDescription(binding, sizeof(Vertex3dTextured), VK_VERTEX_INPUT_RATE_VERTEX),
+			createBindingDescription(binding, getVertexTypeSize(EVertexType::VERTEX_3D_TEXTURED), VK_VERTEX_INPUT_RATE_VERTEX),
 			attribDescs
 		);
 

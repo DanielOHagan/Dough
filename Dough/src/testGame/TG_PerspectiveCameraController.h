@@ -18,6 +18,7 @@ namespace TG {
 		bool mClickAndDragActive;
 		float mAspectRatio;
 		float mFov;
+		float mTranslationSpeed;
 
 	public:
 		TG_PerspectiveCameraController(float aspectRatio, float fov = 60.0f);
