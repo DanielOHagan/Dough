@@ -7,16 +7,16 @@ namespace DOH {
 	struct BufferElement;
 
 	struct TextureCreationData {
-		void* data;
-		int width;
-		int height;
-		int channels;
+		void* Data;
+		int Width;
+		int Height;
+		int Channels;
 	};
 
 	struct Model3dCreationData {
 		std::vector<BufferElement> BufferElements;
 		std::vector<Vertex3d> Vertices;
-		std::vector<uint16_t> Indices;
+		std::vector<uint32_t> Indices;
 		size_t VertexBufferSize;
 		size_t IndexBufferSize;
 	};
@@ -25,7 +25,6 @@ namespace DOH {
 	private:
 		static ResourceHandler INSTANCE;
 
-	private:
 		ResourceHandler()
 		:	mNextAvailableTextureId(0)
 		{}
@@ -42,7 +41,6 @@ namespace DOH {
 
 		static ResourceHandler& get() { return INSTANCE; }
 
-	public:
 		static TextureCreationData loadTexture(const char* filepath);
 		static void freeImage(void* imageData);
 		static std::vector<char> readFile(const std::string& filepath);

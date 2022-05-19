@@ -26,6 +26,8 @@ namespace TG {
 
 		TG_mOrthoCameraController = std::make_shared<TG_OrthoCameraController>(aspectRatio);
 		mPerspectiveCameraController = std::make_shared<TG_PerspectiveCameraController>(aspectRatio);
+
+		mPerspectiveCameraController->setPosition({ 0.0f, 0.0f, 5.0f });
 	}
 
 	void TG_AppLogic::update(float delta) {
@@ -62,6 +64,59 @@ namespace TG {
 		if (mImGuiSettings.GridDemo.Update) {
 			//Repopulate entire array each update, not very efficient but the test grid is just an example
 			populateTestGrid(mGridDemo.mTestGridSize[0], mGridDemo.mTestGridSize[1]);
+		}
+
+		if (mImGuiSettings.CubeDemo.Update) {
+			if (mImGuiSettings.CubeDemo.AutoRotate) {
+				mImGuiSettings.CubeDemo.Rotation[1] += mImGuiSettings.CubeDemo.AutoRotateSpeed * delta;
+
+				if (mImGuiSettings.CubeDemo.Rotation[1] > 360.0f) {
+					mImGuiSettings.CubeDemo.Rotation[1] = 0.0f;
+				} else if (mImGuiSettings.CubeDemo.Rotation[1] < 0.0f) {
+					mImGuiSettings.CubeDemo.Rotation[1] = 360.0f;
+				}
+			}
+
+			//Update translation matrix
+			mCubeDemo.mTranslation = glm::mat4x4(1.0f);
+			mCubeDemo.mTranslation = glm::translate(
+				mCubeDemo.mTranslation,
+				{
+					mImGuiSettings.CubeDemo.Position[0],
+					mImGuiSettings.CubeDemo.Position[1],
+					mImGuiSettings.CubeDemo.Position[2]
+				}
+			);
+			if (mImGuiSettings.CubeDemo.Rotation[0] > 0.0f) {
+				mCubeDemo.mTranslation = glm::rotate(
+					mCubeDemo.mTranslation,
+					glm::radians(mImGuiSettings.CubeDemo.Rotation[0]),
+					{ 1.0f, 0.0f, 0.0f }
+				);
+			}
+			if (mImGuiSettings.CubeDemo.Rotation[1] > 0.0f) {
+				mCubeDemo.mTranslation = glm::rotate(
+					mCubeDemo.mTranslation,
+					glm::radians(mImGuiSettings.CubeDemo.Rotation[1]),
+					{ 0.0f, 1.0f, 0.0f }
+				);
+			}
+			if (mImGuiSettings.CubeDemo.Rotation[2] > 0.0f) {
+				mCubeDemo.mTranslation = glm::rotate(
+					mCubeDemo.mTranslation,
+					glm::radians(mImGuiSettings.CubeDemo.Rotation[2]),
+					{ 0.0f, 0.0f, 1.0f}
+				);
+			}
+
+			mCubeDemo.mTranslation = glm::scale(
+				mCubeDemo.mTranslation,
+				{
+					mImGuiSettings.CubeDemo.Scale,
+					mImGuiSettings.CubeDemo.Scale,
+					mImGuiSettings.CubeDemo.Scale 
+				}
+			);
 		}
 	}
 
@@ -353,6 +408,55 @@ namespace TG {
 				{
 					ImGui::Checkbox("Render", &mImGuiSettings.CubeDemo.Render);
 					ImGui::Checkbox("Update", &mImGuiSettings.CubeDemo.Update);
+
+					ImGui::Checkbox("Auto Rotate", &mImGuiSettings.CubeDemo.AutoRotate);
+					
+					ImGui::DragFloat("Auto Rotate Speed", &mImGuiSettings.CubeDemo.AutoRotateSpeed, 0.1f, 1.0f, 60.0f);
+
+
+					//Add temp array and set -1 > rotation < 361 to allow for "infinite" drag
+					float tempRotation[3] = {
+						mImGuiSettings.CubeDemo.Rotation[0],
+						mImGuiSettings.CubeDemo.Rotation[1],
+						mImGuiSettings.CubeDemo.Rotation[2]
+					};
+					if (ImGui::DragFloat3("Rotation", tempRotation, 1.0f, -1.0f, 361.0f)) {
+						if (tempRotation[0] > 360.0f) {
+							tempRotation[0] = 0.0f;
+						} else if (tempRotation[0] < 0.0f) {
+							tempRotation[0] = 360.0f;
+						}
+						if (tempRotation[1] > 360.0f) {
+							tempRotation[1] = 0.0f;
+						} else if (tempRotation[1] < 0.0f) {
+							tempRotation[1] = 360.0f;
+						}
+						if (tempRotation[2] > 360.0f) {
+							tempRotation[2] = 0.0f;
+						} else if (tempRotation[2] < 0.0f) {
+							tempRotation[2] = 360.0f;
+						}
+
+						mImGuiSettings.CubeDemo.Rotation[0] = tempRotation[0];
+						mImGuiSettings.CubeDemo.Rotation[1] = tempRotation[1];
+						mImGuiSettings.CubeDemo.Rotation[2] = tempRotation[2];
+					}
+
+					ImGui::DragFloat3("Position", mImGuiSettings.CubeDemo.Position, 0.05f, -10.0f, 10.0f);
+					ImGui::DragFloat("Uniform Scale", &mImGuiSettings.CubeDemo.Scale, 0.1f, 0.1f, 5.0f);
+
+					if (ImGui::Button("Reset Cube")) {
+						mImGuiSettings.CubeDemo.AutoRotate = false;
+						mImGuiSettings.CubeDemo.AutoRotateSpeed = 15.0f;
+						mImGuiSettings.CubeDemo.Rotation[0] = 0.0f;
+						mImGuiSettings.CubeDemo.Rotation[1] = 0.0f;
+						mImGuiSettings.CubeDemo.Rotation[2] = 0.0f;
+						mImGuiSettings.CubeDemo.Position[0] = 0.0f;
+						mImGuiSettings.CubeDemo.Position[1] = 0.0f;
+						mImGuiSettings.CubeDemo.Position[2] = 0.0f;
+						mImGuiSettings.CubeDemo.Scale = 1.0f;
+					}
+
 					break;
 				}
 
@@ -416,7 +520,7 @@ namespace TG {
 				TG_mOrthoCameraController->setZoomLevel(1.0f);
 			}
 			if (ImGui::Button("Reset Perspective Camera")) {
-				mPerspectiveCameraController->setPosition({ 0.0f, 0.0f, 1.0f });
+				mPerspectiveCameraController->setPosition({ 0.0f, 0.0f, 5.0f });
 				mPerspectiveCameraController->setDirection({ 0.0f, 0.0f, 0.0f });
 			}
 
@@ -512,10 +616,13 @@ namespace TG {
 	}
 
 	void TG_AppLogic::populateTestGrid(int width, int height) {
-		const std::vector<std::shared_ptr<TextureVulkan>>& testTextures = GET_RENDERER.getContext().getRenderer2d().getStorage().getTestTextures();
+		const std::vector<std::shared_ptr<TextureVulkan>>& testTextures =
+			GET_RENDERER.getContext().getRenderer2d().getStorage().getTestTextures();
 
 		mGridDemo.mTexturedTestGrid.clear();
-		mGridDemo.mTexturedTestGrid.resize(testTextures.size());
+		uint32_t texturesInUseCount = std::max(std::max(width, height), width * height);
+		texturesInUseCount = std::min(texturesInUseCount, static_cast<uint32_t>(testTextures.size()));
+		mGridDemo.mTexturedTestGrid.resize(texturesInUseCount);
 
 		uint32_t index = 0;
 		for (float y = 0.0f; y < height; y++) {
@@ -563,22 +670,16 @@ namespace TG {
 		mCustomDemo.mSceneVertexArray = ObjInit::vertexArray();
 		const EVertexType vertexType = EVertexType::VERTEX_3D_TEXTURED;
 		std::shared_ptr<VertexBufferVulkan> sceneVb = ObjInit::stagedVertexBuffer(
-			//vertexType,
-			{
-				{EDataType::FLOAT3},
-				{EDataType::FLOAT4},
-				{EDataType::FLOAT2},
-				{EDataType::FLOAT}
-			},
+			vertexType,
 			mCustomDemo.mSceneVertices.data(),
-			getVertexTypeSize(vertexType) * mCustomDemo.mSceneVertices.size(),
+			(size_t) vertexType * mCustomDemo.mSceneVertices.size(),
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
 		mCustomDemo.mSceneVertexArray->addVertexBuffer(sceneVb);
 		std::shared_ptr<IndexBufferVulkan> sceneIb = ObjInit::stagedIndexBuffer(
 			mCustomDemo.indices.data(),
-			sizeof(uint16_t) * mCustomDemo.indices.size()
+			sizeof(uint32_t) * mCustomDemo.indices.size()
 		);
 		mCustomDemo.mSceneVertexArray->setDrawCount(static_cast<uint32_t>(mCustomDemo.indices.size()));
 		mCustomDemo.mSceneVertexArray->setIndexBuffer(sceneIb);
@@ -588,6 +689,8 @@ namespace TG {
 
 	void TG_AppLogic::initCube() {
 		mCubeDemo.mCubeModel = ModelVulkan::createModel(mCubeDemo.testCubeObjFilepath);
+		mCubeDemo.mCubeModel->getVao().setPushConstantPtr(&mCubeDemo.mTranslation);
+
 		mCubeDemo.mSceneShaderProgram = ObjInit::shaderProgram(
 			ObjInit::shader(
 				EShaderType::VERTEX,
@@ -598,7 +701,10 @@ namespace TG {
 				mCubeDemo.flatColourShaderFragPath
 			)
 		);
-		mCubeDemo.mSceneShaderProgram->getUniformLayout().setValue(0, sizeof(CubeDemo::UniformBufferObject));
+		ShaderUniformLayout& layout = mCubeDemo.mSceneShaderProgram->getUniformLayout();
+		layout.setValue(0, sizeof(CubeDemo::UniformBufferObject));
+		//Push constant for transformation matrix
+		layout.addPushConstant(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::mat4x4));
 
 		GET_RENDERER.prepareScenePipeline(*mCubeDemo.mSceneShaderProgram, EVertexType::VERTEX_3D);
 
@@ -615,13 +721,9 @@ namespace TG {
 		mCustomDemo.mUiVao = ObjInit::vertexArray();
 		const EVertexType vertexType = EVertexType::VERTEX_2D;
 		std::shared_ptr<VertexBufferVulkan> appUiVb = ObjInit::stagedVertexBuffer(
-			//vertexType,
-			{
-				{EDataType::FLOAT2},
-				{EDataType::FLOAT4}
-			},
+			vertexType,
 			mCustomDemo.mUiVertices.data(),
-			getVertexTypeSize(vertexType) * mCustomDemo.mUiVertices.size(),
+			(size_t) vertexType * mCustomDemo.mUiVertices.size(),
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
@@ -637,7 +739,8 @@ namespace TG {
 	}
 
 	void TG_AppLogic::initBouncingQuads() {
-		const std::vector<std::shared_ptr<TextureVulkan>>& testTextures = GET_RENDERER.getContext().getRenderer2d().getStorage().getTestTextures();
+		const std::vector<std::shared_ptr<TextureVulkan>>& testTextures =
+			GET_RENDERER.getContext().getRenderer2d().getStorage().getTestTextures();
 		for (size_t i = 0; i < mBouncingQuadDemo.mBouncingQuadCount; i++) {
 			mBouncingQuadDemo.mBouncingQuads.push_back({
 				//Semi-random values for starting position, velocitiy and assigned texture

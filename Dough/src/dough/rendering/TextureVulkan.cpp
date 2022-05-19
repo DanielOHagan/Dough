@@ -12,20 +12,20 @@ namespace DOH {
 	) {
 		TextureCreationData textureData = ResourceHandler::loadTexture(filePath.c_str());
 		
-		mWidth = textureData.width;
-		mHeight = textureData.height;
-		mChannels = textureData.channels;
+		mWidth = textureData.Width;
+		mHeight = textureData.Height;
+		mChannels = textureData.Channels;
 
-		VkDeviceSize imageSize = textureData.width * textureData.height * 4;
+		VkDeviceSize imageSize = textureData.Width * textureData.Height * 4;
 
 		std::shared_ptr<BufferVulkan> imageStagingBuffer = ObjInit::stagedBuffer(
-			textureData.data,
+			textureData.Data,
 			imageSize,
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 		);
 
-		ResourceHandler::freeImage(textureData.data);
+		ResourceHandler::freeImage(textureData.Data);
 
 		mImage = RenderingContextVulkan::createImage(
 			logicDevice,

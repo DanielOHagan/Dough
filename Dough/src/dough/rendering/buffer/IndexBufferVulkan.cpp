@@ -37,6 +37,6 @@ namespace DOH {
 	{}
 
 	void IndexBufferVulkan::bind(VkCommandBuffer cmd) {
-		vkCmdBindIndexBuffer(cmd, mBuffer, 0, VK_INDEX_TYPE_UINT16);
+		vkCmdBindIndexBuffer(cmd, mBuffer, 0, VK_INDEX_TYPE_UINT32);
 	}
 }

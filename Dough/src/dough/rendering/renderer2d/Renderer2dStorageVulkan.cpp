@@ -60,12 +60,17 @@ namespace DOH {
 		mDescriptorPool = mContext.createDescriptorPool(descTypes, 1);
 
 		const uint32_t binding = 0;
-		std::vector<VkVertexInputAttributeDescription> attribDesc = std::move(getVertexTypeAsAttribDesc(EVertexType::VERTEX_3D_TEXTURED, binding));
+		std::vector<VkVertexInputAttributeDescription> attribDesc =
+			std::move(getVertexTypeAsAttribDesc(EVertexType::VERTEX_3D_TEXTURED, binding));
 		mQuadGraphicsPipeline = ObjInit::graphicsPipeline(
 			mContext.getSwapChain().getExtent(),
 			mContext.getSwapChain().getRenderPass(SwapChainVulkan::ERenderPassType::SCENE).get(),
 			*mQuadShaderProgram,
-			createBindingDescription(binding, getVertexTypeSize(EVertexType::VERTEX_3D_TEXTURED), VK_VERTEX_INPUT_RATE_VERTEX),
+			createBindingDescription(
+				binding,
+				static_cast<uint32_t>(getVertexTypeSize(EVertexType::VERTEX_3D_TEXTURED)),
+				VK_VERTEX_INPUT_RATE_VERTEX
+			),
 			attribDesc
 		);
 
@@ -81,13 +86,7 @@ namespace DOH {
 
 			std::shared_ptr<VertexArrayVulkan> vao = ObjInit::vertexArray();
 			std::shared_ptr<VertexBufferVulkan> vbo = ObjInit::vertexBuffer(
-				//EVertexType::VERTEX_3D_TEXTURED,
-				{
-					{ EDataType::FLOAT3 },
-					{ EDataType::FLOAT4 },
-					{ EDataType::FLOAT2 },
-					{ EDataType::FLOAT }
-				},
+				EVertexType::VERTEX_3D_TEXTURED,
 				BatchSizeLimits::BATCH_QUAD_BYTE_SIZE,
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
@@ -135,15 +134,19 @@ namespace DOH {
 			mContext.getSwapChain().getExtent(),
 			mContext.getSwapChain().getRenderPass(SwapChainVulkan::ERenderPassType::SCENE).get(),
 			*mQuadShaderProgram,
-			createBindingDescription(binding, getVertexTypeSize(EVertexType::VERTEX_3D_TEXTURED), VK_VERTEX_INPUT_RATE_VERTEX),
+			createBindingDescription(
+				binding,
+				static_cast<uint32_t>(getVertexTypeSize(EVertexType::VERTEX_3D_TEXTURED)),
+				VK_VERTEX_INPUT_RATE_VERTEX
+			),
 			attribDescs
 		);
 
 		//Quad Index Buffer
-		std::vector<uint16_t> quadIndices;
+		std::vector<uint32_t> quadIndices;
 		quadIndices.resize(BatchSizeLimits::BATCH_QUAD_INDEX_COUNT);
-		uint16_t vertexOffset = 0;
-		for (uint16_t i = 0; i < BatchSizeLimits::BATCH_QUAD_INDEX_COUNT; i += BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT) {
+		uint32_t vertexOffset = 0;
+		for (uint32_t i = 0; i < BatchSizeLimits::BATCH_QUAD_INDEX_COUNT; i += BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT) {
 			quadIndices[i + 0] = vertexOffset + 0;
 			quadIndices[i + 1] = vertexOffset + 1;
 			quadIndices[i + 2] = vertexOffset + 2;
@@ -156,7 +159,7 @@ namespace DOH {
 		}
 		mQuadSharedIndexBuffer = ObjInit::stagedIndexBuffer(
 			quadIndices.data(),
-			sizeof(uint16_t) * BatchSizeLimits::BATCH_QUAD_INDEX_COUNT
+			sizeof(uint32_t) * BatchSizeLimits::BATCH_QUAD_INDEX_COUNT
 		);
 	}
 }

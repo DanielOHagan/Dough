@@ -2,6 +2,7 @@
 
 #include "dough/Core.h"
 #include "dough/rendering/buffer/BufferElement.h"
+#include "dough/rendering/Config.h"
 
 namespace DOH {
 
@@ -14,6 +15,7 @@ namespace DOH {
 	public:
 		BufferLayout(const std::initializer_list<BufferElement>& elements);
 		BufferLayout(const std::vector<BufferElement>& elements);
+		BufferLayout(const EVertexType vertexType);
 
 		inline std::vector<BufferElement> const getBufferElements() { return mBufferElements; }
 		inline uint32_t getStride() const { return mStride; }

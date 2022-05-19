@@ -27,6 +27,14 @@ namespace DOH {
 			VkBufferUsageFlags usage,
 			VkMemoryPropertyFlags props
 		);
+		VertexBufferVulkan(
+			const std::vector<BufferElement>& elements,
+			VkDevice logicDevice,
+			VkPhysicalDevice physicalDevice,
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
+			VkMemoryPropertyFlags props
+		);
 
 		//Staged
 		VertexBufferVulkan(
@@ -42,6 +50,17 @@ namespace DOH {
 		);
 		VertexBufferVulkan(
 			const std::vector<BufferElement>& elements,
+			VkDevice logicDevice,
+			VkPhysicalDevice physicalDevice,
+			VkCommandPool cmdPool,
+			VkQueue graphicsQueue,
+			const void* data,
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
+			VkMemoryPropertyFlags props
+		);
+		VertexBufferVulkan(
+			const EVertexType vertexType,
 			VkDevice logicDevice,
 			VkPhysicalDevice physicalDevice,
 			VkCommandPool cmdPool,

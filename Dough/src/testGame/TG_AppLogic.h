@@ -57,6 +57,7 @@ namespace TG {
 
 			std::shared_ptr<ShaderProgramVulkan> mSceneShaderProgram;
 			std::shared_ptr<ModelVulkan> mCubeModel;
+			glm::mat4x4 mTranslation = glm::mat4x4(1.0f);
 
 			bool mLoaded = false;
 		} mCubeDemo;
@@ -70,8 +71,6 @@ namespace TG {
 
 			const std::string texturedShaderVertPath = "res/shaders/spv/Textured.vert.spv";
 			const std::string texturedShaderFragPath = "res/shaders/spv/Textured.frag.spv";
-			const std::string quadBatchShaderVertPath = "res/shaders/spv/QuadBatch.vert.spv";
-			const std::string quadBatchShaderFragPath = "res/shaders/spv/QuadBatch.frag.spv";
 			const std::string testTexturePath = "res/images/testTexture.jpg";
 			const std::string testTexture2Path = "res/images/testTexture2.jpg";
 			const std::vector<Vertex3dTextured> mSceneVertices = {
@@ -86,7 +85,7 @@ namespace TG {
 				{{1.00f,	1.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{1.0f,	0.0f},	{1.0f}},
 				{{0.00f,	1.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{0.0f,	0.0f},	{1.0f}}
 			};
-			const std::vector<uint16_t> indices{
+			const std::vector<uint32_t> indices{
 				0, 1, 2, 2, 3, 0,
 				4, 5, 6, 6, 7, 4
 			};
@@ -100,7 +99,7 @@ namespace TG {
 				{{	-0.75f,	-0.65f},	{0.0f,	0.0f,	1.0f,	1.0f}}, //top-right
 				{{	-1.0f,	-0.65f},	{0.0f,	0.5f,	0.5f,	1.0f}}  //top-left
 			};
-			const std::vector<uint16_t> mUiIndices{
+			const std::vector<uint32_t> mUiIndices{
 				0, 1, 2, 2, 3, 0
 			};
 
@@ -159,6 +158,13 @@ namespace TG {
 			struct CubeDemoSettings {
 				bool Update = false;
 				bool Render = false;
+
+				bool AutoRotate = false;
+				float AutoRotateSpeed = 15.0f;
+				float Rotation[3] = { 0.0f, 0.0f, 0.0f };
+				float Position[3] = { 0.0f, 0.0f, 0.0f };
+				//Only allow for uniform scalling to avoid normal deformation later
+				float Scale = 1.0f;
 
 				//TODO:: Rename to Model3d and provide a list of models that can be loaded and displayed,
 				// probably through a dropdown menu interface

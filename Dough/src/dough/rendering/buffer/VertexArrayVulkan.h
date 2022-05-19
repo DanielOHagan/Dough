@@ -19,6 +19,7 @@ namespace DOH {
 		std::shared_ptr<IndexBufferVulkan> mIndexBuffer;
 		uint32_t mDrawCount;
 		bool mSharingIndexBuffer;
+		void* mPushConstantData;
 
 	public:
 		VertexArrayVulkan();
@@ -38,5 +39,7 @@ namespace DOH {
 		inline void setIndexBuffer(std::shared_ptr<IndexBufferVulkan> indexBuffer, bool sharing = false) { mIndexBuffer = indexBuffer; mSharingIndexBuffer = sharing; }
 		inline IndexBufferVulkan& getIndexBuffer() const { return *mIndexBuffer; }
 		inline std::vector<std::shared_ptr<VertexBufferVulkan>>& getVertexBuffers() { return mVertexBuffers; }
+		inline void setPushConstantPtr(void* data) { mPushConstantData = data; }
+		inline void* getPushConstantPtr() const { return mPushConstantData; }
 	};
 }

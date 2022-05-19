@@ -50,6 +50,12 @@ namespace DOH {
 			VkBufferUsageFlags usage,
 			VkMemoryPropertyFlags props
 		);
+		static std::shared_ptr<VertexBufferVulkan> vertexBuffer(
+			const std::vector<BufferElement>& elements,
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
+			VkMemoryPropertyFlags props
+		);
 		static std::shared_ptr<VertexBufferVulkan> stagedVertexBuffer(
 			const std::initializer_list<BufferElement>& elements,
 			void* data,
@@ -71,6 +77,13 @@ namespace DOH {
 			VkBufferUsageFlags usage,
 			VkMemoryPropertyFlags props
 		);
+		static std::shared_ptr<VertexBufferVulkan> stagedVertexBuffer(
+			const EVertexType vertexType,
+			const void* data,
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
+			VkMemoryPropertyFlags props
+		);
 
 		static std::shared_ptr<IndexBufferVulkan> indexBuffer(VkDeviceSize size);
 		static std::shared_ptr<IndexBufferVulkan> stagedIndexBuffer(void* data, VkDeviceSize size);
@@ -79,6 +92,12 @@ namespace DOH {
 
 		//-----Buffer-----
 		static std::shared_ptr<BufferVulkan> buffer(
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
+			VkMemoryPropertyFlags props
+		);
+		static std::shared_ptr<VertexBufferVulkan> vertexBuffer(
+			const EVertexType vertexType,
 			VkDeviceSize size,
 			VkBufferUsageFlags usage,
 			VkMemoryPropertyFlags props

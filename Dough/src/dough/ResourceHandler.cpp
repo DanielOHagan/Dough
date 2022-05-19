@@ -26,6 +26,32 @@ namespace std {
 			);
 		}
 	};
+	template<>
+	struct hash<DOH::Vertex3dTextured> {
+		size_t operator()(DOH::Vertex3dTextured const& vertex) const {
+			return (
+				(((((hash<glm::vec3>()(vertex.Pos) ^
+					(hash<glm::vec4>()(vertex.Colour) << 1)
+				) >> 1)) ^
+					(hash<glm::vec2>()(vertex.TexCoord) << 1)
+				) >> 1) ^
+					(hash<float>()(vertex.TexIndex) << 1)
+			);
+		}
+	};
+	template<>
+	struct hash<DOH::Vertex3dLitTextured> {
+		size_t operator()(DOH::Vertex3dLitTextured const& vertex) const {
+			return (
+				(((((hash<glm::vec3>()(vertex.Pos) ^
+					(hash<glm::vec4>()(vertex.Colour) << 1)
+				) >> 1)) ^
+					(hash<glm::vec3>()(vertex.Normal) << 1)
+				) >> 1) ^
+					(hash<glm::vec2>()(vertex.TexCoord) << 1)
+			);
+		}
+	};
 }
 
 namespace DOH {
@@ -67,11 +93,11 @@ namespace DOH {
 	TextureCreationData ResourceHandler::loadTextureImpl(const char* filepath) {
 		TextureCreationData textureData{};
 
-		stbi_uc* pixels = stbi_load(filepath, &textureData.width, &textureData.height, &textureData.channels, STBI_rgb_alpha);
+		stbi_uc* pixels = stbi_load(filepath, &textureData.Width, &textureData.Height, &textureData.Channels, STBI_rgb_alpha);
 
-		TRY(pixels == nullptr || textureData.width < 0 || textureData.height < 0 || textureData.channels < 0, "Failed to load image data");
+		TRY(pixels == nullptr || textureData.Width < 0 || textureData.Height < 0 || textureData.Channels < 0, "Failed to load image data");
 
-		textureData.data = static_cast<void*>(pixels);
+		textureData.Data = static_cast<void*>(pixels);
 		return textureData;
 	}
 
@@ -96,7 +122,7 @@ namespace DOH {
 		model3d.BufferElements.push_back(EDataType::FLOAT3);
 		model3d.BufferElements.push_back(EDataType::FLOAT4);
 
-		std::unordered_map<Vertex3d, uint16_t> uniqueVertices = {};
+		std::unordered_map<Vertex3d, uint32_t> uniqueVertices = {};
 		for (const tinyobj::shape_t& shape : shapes) {
 			for (const tinyobj::index_t& index : shape.mesh.indices) {
 				Vertex3d vertex = {};
@@ -117,8 +143,16 @@ namespace DOH {
 					};
 				}
 
+				//if (index.normal_index >= 0) {
+				//	vertex.Normal = {
+				//		attrib.normals[3 * index.normal_index + 0],
+				//		attrib.normals[3 * index.normal_index + 1],
+				//		attrib.normals[3 * index.normal_index + 2]
+				//	};
+				//}
+
 				if (uniqueVertices.count(vertex) == 0) {
-					uniqueVertices[vertex] = static_cast<uint16_t>(model3d.Vertices.size());
+					uniqueVertices[vertex] = static_cast<uint32_t>(model3d.Vertices.size());
 					model3d.Vertices.push_back(vertex);
 				}
 
@@ -127,7 +161,7 @@ namespace DOH {
 		}
 
 		model3d.VertexBufferSize = model3d.Vertices.size() * sizeof(Vertex3d);
-		model3d.IndexBufferSize = model3d.Indices.size() * sizeof(uint16_t);
+		model3d.IndexBufferSize = model3d.Indices.size() * sizeof(uint32_t);
 
 		return model3d;
 	}

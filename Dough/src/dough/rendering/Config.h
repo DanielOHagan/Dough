@@ -3,6 +3,7 @@
 #include "dough/Core.h"
 #include "dough/Maths.h"
 #include "dough/rendering/buffer/DataType.h"
+#include "dough/rendering/buffer/BufferElement.h"
 
 #include <vulkan/vulkan_core.h>
 
@@ -60,11 +61,18 @@ namespace DOH {
 		glm::vec2 Pos;
 		glm::vec4 Colour;
 
+		constexpr static const uint32_t COMPONENT_COUNT = 6;
+		constexpr static const uint32_t BYTE_SIZE = COMPONENT_COUNT * DataType::getDataTypeSize(EDataType::FLOAT);
+
 		static std::vector<VkVertexInputAttributeDescription> asAttributeDescriptions(uint32_t binding) {
 			std::vector<VkVertexInputAttributeDescription> attribDesc = {};
-			attribDesc.push_back({ 0, binding, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex2d, Pos) });
+			attribDesc.push_back({ 0, binding, VK_FORMAT_R32G32_SFLOAT		, offsetof(Vertex2d, Pos) });
 			attribDesc.push_back({ 1, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex2d, Colour) });
 			return attribDesc;
+		}
+
+		static std::initializer_list<BufferElement> asBufferElements() {
+			return { EDataType::FLOAT2, EDataType::FLOAT4 };
 		}
 
 		bool operator==(const Vertex2d& other) const {
@@ -76,11 +84,18 @@ namespace DOH {
 		glm::vec3 Pos;
 		glm::vec4 Colour;
 
+		constexpr static const uint32_t COMPONENT_COUNT = 7;
+		constexpr static const uint32_t BYTE_SIZE = COMPONENT_COUNT * DataType::getDataTypeSize(EDataType::FLOAT);
+
 		static std::vector<VkVertexInputAttributeDescription> asAttributeDescriptions(uint32_t binding) {
 			std::vector<VkVertexInputAttributeDescription> attribDesc = {};
-			attribDesc.push_back({ 0, binding, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex3d, Pos) });
+			attribDesc.push_back({ 0, binding, VK_FORMAT_R32G32B32_SFLOAT	, offsetof(Vertex3d, Pos) });
 			attribDesc.push_back({ 1, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex3d, Colour) });
 			return attribDesc;
+		}
+
+		static std::initializer_list<BufferElement> asBufferElements() {
+			return { EDataType::FLOAT3, EDataType::FLOAT4 };
 		}
 
 		bool operator==(const Vertex3d& other) const {
@@ -100,11 +115,15 @@ namespace DOH {
 
 		static std::vector<VkVertexInputAttributeDescription> asAttributeDescriptions(uint32_t binding) {
 			std::vector<VkVertexInputAttributeDescription> attribDesc = {};
-			attribDesc.push_back({ 0, binding, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex3dTextured, Pos) });
+			attribDesc.push_back({ 0, binding, VK_FORMAT_R32G32B32_SFLOAT	, offsetof(Vertex3dTextured, Pos) });
 			attribDesc.push_back({ 1, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex3dTextured, Colour) });
-			attribDesc.push_back({ 2, binding, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex3dTextured, TexCoord) });
-			attribDesc.push_back({ 3, binding, VK_FORMAT_R32_SFLOAT, offsetof(Vertex3dTextured, TexIndex) });
+			attribDesc.push_back({ 2, binding, VK_FORMAT_R32G32_SFLOAT		, offsetof(Vertex3dTextured, TexCoord) });
+			attribDesc.push_back({ 3, binding, VK_FORMAT_R32_SFLOAT			, offsetof(Vertex3dTextured, TexIndex) });
 			return attribDesc;
+		}
+
+		static std::initializer_list<BufferElement> asBufferElements() {
+			return { EDataType::FLOAT3, EDataType::FLOAT4, EDataType::FLOAT2, EDataType::FLOAT };
 		}
 
 		bool operator==(const Vertex3dTextured& other) const {
@@ -112,15 +131,43 @@ namespace DOH {
 		}
 	};
 
+	struct Vertex3dLitTextured {
+		glm::vec3 Pos;
+		glm::vec4 Colour;
+		glm::vec3 Normal;
+		glm::vec2 TexCoord;
+
+		constexpr static const uint32_t COMPONENT_COUNT = 12;
+		constexpr static const uint32_t BYTE_SIZE = COMPONENT_COUNT * DataType::getDataTypeSize(EDataType::FLOAT);
+
+		static std::vector<VkVertexInputAttributeDescription> asAttributeDescriptions(uint32_t binding) {
+			std::vector<VkVertexInputAttributeDescription> attribDesc = {};
+			attribDesc.push_back({ 0, binding, VK_FORMAT_R32G32B32_SFLOAT	, offsetof(Vertex3dLitTextured, Pos) });
+			attribDesc.push_back({ 1, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex3dLitTextured, Colour) });
+			attribDesc.push_back({ 2, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex3dLitTextured, Normal) });
+			attribDesc.push_back({ 3, binding, VK_FORMAT_R32G32_SFLOAT		, offsetof(Vertex3dLitTextured, TexCoord) });
+			return attribDesc;
+		}
+
+		static std::initializer_list<BufferElement> asBufferElements() {
+			return { EDataType::FLOAT3, EDataType::FLOAT4, EDataType::FLOAT3, EDataType::FLOAT2 };
+		}
+
+		bool operator==(const Vertex3dLitTextured& other) const {
+			return Pos == other.Pos && Colour == other.Colour && Normal == other.Normal && TexCoord == other.TexCoord;
+		}
+	};
+
 	enum class EVertexType {
 		VERTEX_2D = sizeof(Vertex2d),
 		VERTEX_3D = sizeof(Vertex3d),
-		VERTEX_3D_TEXTURED = sizeof(Vertex3dTextured)
+		VERTEX_3D_TEXTURED = sizeof(Vertex3dTextured),
+		VERTEX_3D_LIT_TEXTURED = sizeof(Vertex3dLitTextured)
 	};
 
 	static std::vector<VkVertexInputAttributeDescription> getVertexTypeAsAttribDesc(
-		EVertexType vertexType,
-		uint32_t binding
+		const EVertexType vertexType,
+		const uint32_t binding
 	) {
 		switch (vertexType) {
 			case EVertexType::VERTEX_2D:
@@ -132,24 +179,49 @@ namespace DOH {
 			case EVertexType::VERTEX_3D_TEXTURED:
 				return Vertex3dTextured::asAttributeDescriptions(binding);
 
+			case EVertexType::VERTEX_3D_LIT_TEXTURED:
+				return Vertex3dLitTextured::asAttributeDescriptions(binding);
+
 			default:
 				return {};
 		}
 	}
 
-	static uint32_t getVertexTypeSize(EVertexType vertexType) {
+	static size_t getVertexTypeSize(const EVertexType vertexType) {
 		switch (vertexType) {
 			case EVertexType::VERTEX_2D:
-				return static_cast<uint32_t>(sizeof(Vertex2d));
+				return sizeof(Vertex2d);
 
 			case EVertexType::VERTEX_3D:
-				return static_cast<uint32_t>(sizeof(Vertex3d));
+				return sizeof(Vertex3d);
 
 			case EVertexType::VERTEX_3D_TEXTURED:
-				return static_cast<uint32_t>(sizeof(Vertex3dTextured));
+				return sizeof(Vertex3dTextured);
+
+			case EVertexType::VERTEX_3D_LIT_TEXTURED:
+				return sizeof(Vertex3dLitTextured);
 
 			default:
-				return -1;
+				return 0;
+		}
+	}
+
+	static std::initializer_list<BufferElement> getVertexTypeAsBufferElements(const EVertexType vertexType) {
+		switch (vertexType) {
+			case EVertexType::VERTEX_2D:
+				return Vertex2d::asBufferElements();
+
+			case EVertexType::VERTEX_3D:
+				return Vertex3d::asBufferElements();
+
+			case EVertexType::VERTEX_3D_TEXTURED:
+				return Vertex3dTextured::asBufferElements();
+
+			case EVertexType::VERTEX_3D_LIT_TEXTURED:
+				return Vertex3dLitTextured::asBufferElements();
+
+			default:
+				return {};
 		}
 	}
 }

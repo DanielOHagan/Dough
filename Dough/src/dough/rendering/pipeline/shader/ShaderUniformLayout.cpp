@@ -64,7 +64,10 @@ namespace DOH {
 	void ShaderUniformLayout::addPushConstant(VkShaderStageFlags shaderStages, uint32_t size) {
 		//TODO:: Only the 128 bits guaranteed by Vulkan are supported right now, set a limit based off device capabilities
 		uint32_t offset = getPushConstantOffset();
-		TRY(offset + size > 128, "Currently only 128bit push constants are supported");
+		if (offset + size > 128) {
+			LOG_ERR("Currently only 128bit push constants are supported");
+			return;
+		}
 
 		VkPushConstantRange pushConstant = {};
 		pushConstant.stageFlags = shaderStages;
@@ -107,7 +110,7 @@ namespace DOH {
 
 	uint32_t ShaderUniformLayout::getPushConstantOffset() const {
 		uint32_t size = 0;
-		for (VkPushConstantRange pushConstant : mPushConstantRanges) {
+		for (const VkPushConstantRange& pushConstant : mPushConstantRanges) {
 			size += pushConstant.size;
 		}
 

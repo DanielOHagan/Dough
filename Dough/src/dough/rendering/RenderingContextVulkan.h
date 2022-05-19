@@ -75,13 +75,6 @@ namespace DOH {
 		//Finalise the creation of custom pipelines
 		void prepareScenePipeline(ShaderProgramVulkan& shaderProgram, EVertexType vertexType, bool createUniformObjects = false);
 		void prepareAppUiPipeline(ShaderProgramVulkan& shaderProgram, EVertexType vertexType, bool createUniformObjects = false);
-		//void preparePipeline(
-		//	std::shared_ptr<GraphicsPipelineVulkan> graphicsPipeline,
-		//	ShaderProgramVulkan& shaderProgram,
-		//	VkRenderPass renderPass,
-		//	std::vector<VkVertexInputAttributeDescription>& attribDesc,
-		//	uint32_t vertexStride
-		//);
 		void createPipelineUniformObjects(GraphicsPipelineVulkan& pipeline, VkDescriptorPool descPool);
 		void createCustomPipelinesUniformObjects();
 		void closeCustomPipelines();
@@ -194,6 +187,12 @@ namespace DOH {
 			VkBufferUsageFlags usage,
 			VkMemoryPropertyFlags props
 		);
+		std::shared_ptr<VertexBufferVulkan> createVertexBuffer(
+			const std::vector<BufferElement>& elements,
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
+			VkMemoryPropertyFlags props
+		);
 		std::shared_ptr<VertexBufferVulkan> createStagedVertexBuffer(
 			const std::initializer_list<BufferElement>& elements,
 			void* data,
@@ -210,6 +209,13 @@ namespace DOH {
 		);
 		std::shared_ptr<VertexBufferVulkan> createStagedVertexBuffer(
 			const std::vector<BufferElement>& elements,
+			const void* data,
+			VkDeviceSize size,
+			VkBufferUsageFlags usage,
+			VkMemoryPropertyFlags props
+		);
+		std::shared_ptr<VertexBufferVulkan> createStagedVertexBuffer(
+			const EVertexType vertexType,
 			const void* data,
 			VkDeviceSize size,
 			VkBufferUsageFlags usage,

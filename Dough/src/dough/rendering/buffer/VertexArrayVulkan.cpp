@@ -9,7 +9,8 @@ namespace DOH {
 	VertexArrayVulkan::VertexArrayVulkan()
 	:	mIndexBuffer(nullptr),
 		mDrawCount(0),
-		mSharingIndexBuffer(false)
+		mSharingIndexBuffer(false),
+		mPushConstantData(nullptr)
 	{}
 
 	void VertexArrayVulkan::bind(VkCommandBuffer cmd) {

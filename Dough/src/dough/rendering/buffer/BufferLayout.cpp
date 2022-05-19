@@ -16,6 +16,13 @@ namespace DOH {
 		calculateOffsetAndStride();
 	}
 
+	BufferLayout::BufferLayout(const EVertexType vertexType)
+	:	mBufferElements(getVertexTypeAsBufferElements(vertexType)),
+		mStride(0)
+	{
+		calculateOffsetAndStride();
+	}
+
 	void BufferLayout::calculateOffsetAndStride() {
 		size_t offset = 0;
 		mStride = 0;

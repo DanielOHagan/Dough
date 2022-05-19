@@ -46,6 +46,22 @@ namespace DOH {
 	) {
 		return CONTEXT.createVertexBuffer(elements, size, usage, props);
 	}
+	std::shared_ptr<VertexBufferVulkan> vertexBuffer(
+		const std::vector<BufferElement>& elements,
+		VkDeviceSize size,
+		VkBufferUsageFlags usage,
+		VkMemoryPropertyFlags props
+	) {
+		return CONTEXT.createVertexBuffer(elements, size, usage, props);
+	}
+	std::shared_ptr<VertexBufferVulkan> ObjInit::vertexBuffer(
+		const EVertexType vertexType,
+		VkDeviceSize size,
+		VkBufferUsageFlags usage,
+		VkMemoryPropertyFlags props
+	) {
+		return CONTEXT.createVertexBuffer(getVertexTypeAsBufferElements(vertexType), size, usage, props);
+	}
 	std::shared_ptr<VertexBufferVulkan> ObjInit::stagedVertexBuffer(
 		const std::initializer_list<BufferElement>& elements,
 		void* data,
@@ -72,6 +88,15 @@ namespace DOH {
 		VkMemoryPropertyFlags props
 	) {
 		return CONTEXT.createStagedVertexBuffer(elements, data, size, usage, props);
+	}
+	std::shared_ptr<VertexBufferVulkan> ObjInit::stagedVertexBuffer(
+		const EVertexType vertexType,
+		const void* data,
+		VkDeviceSize size,
+		VkBufferUsageFlags usage,
+		VkMemoryPropertyFlags props
+	) {
+		return CONTEXT.createStagedVertexBuffer(getVertexTypeAsBufferElements(vertexType), data, size, usage, props);
 	}
 
 	std::shared_ptr<IndexBufferVulkan> ObjInit::indexBuffer(VkDeviceSize size) {

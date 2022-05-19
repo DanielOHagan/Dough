@@ -29,7 +29,7 @@ namespace DOH {
 		bool bufferCreated = false;
 		for (auto& [binding, value] : mUniformLayout.getValueUniformMap()) {
 			mValueBufferMap.emplace(binding, std::vector<std::shared_ptr<BufferVulkan>>(count));
-			
+
 			for (size_t i = 0; i < count; i++) {
 				mValueBufferMap[binding][i] = ObjInit::buffer(
 					mUniformLayout.getValueUniformMap().at(binding),

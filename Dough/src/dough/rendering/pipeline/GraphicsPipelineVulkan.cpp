@@ -129,9 +129,14 @@ namespace DOH {
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutCreateInfo.setLayoutCount = 1;
 		pipelineLayoutCreateInfo.pSetLayouts = &mShaderProgram.getShaderDescriptor().getDescriptorSetLayout();
-		pipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(mShaderProgram.getUniformLayout().getPushConstantRanges().size());
-		pipelineLayoutCreateInfo.pPushConstantRanges = mShaderProgram.getUniformLayout().hasPushConstant() ?
-			mShaderProgram.getUniformLayout().getPushConstantRanges().data() : nullptr;
+
+		if (mShaderProgram.getUniformLayout().hasPushConstant()) {
+			pipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(mShaderProgram.getUniformLayout().getPushConstantRanges().size());
+			pipelineLayoutCreateInfo.pPushConstantRanges = mShaderProgram.getUniformLayout().getPushConstantRanges().data();
+		} else {
+			pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
+			pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
+		}
 
 		VK_TRY(
 			vkCreatePipelineLayout(logicDevice, &pipelineLayoutCreateInfo, nullptr, &mGraphicsPipelineLayout),
@@ -216,9 +221,19 @@ namespace DOH {
 				mShaderProgram.getShaderDescriptor().bindDescriptorSets(cmd, mGraphicsPipelineLayout, imageIndex);
 			}
 
+			for (const VkPushConstantRange& pushConstant : mShaderProgram.getUniformLayout().getPushConstantRanges()) {
+				vkCmdPushConstants(
+					cmd,
+					mGraphicsPipelineLayout,
+					pushConstant.stageFlags,
+					pushConstant.offset,
+					pushConstant.size,
+					vao.getPushConstantPtr()
+				);
+			}
+
 			vkCmdDrawIndexed(
 				cmd,
-				//vao.getIndexBuffer().getCount(),
 				vao.getDrawCount(),
 				1,
 				0,

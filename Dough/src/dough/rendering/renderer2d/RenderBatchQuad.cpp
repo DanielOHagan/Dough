@@ -6,7 +6,7 @@ namespace DOH {
 	RenderBatchQuad::RenderBatchQuad(const uint32_t maxGeometryCount, const uint32_t maxTextureCount)
 	:	ARenderBatch(
 			maxGeometryCount,
-			Vertex3dTextured::COMPONENT_COUNT * 4 /* Renderer2dVulkan::BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT*/,
+			Vertex3dTextured::COMPONENT_COUNT * 4 /* Renderer2dVulkan::BatchSizeLimits::SINGLE_QUAD_VERTEX_COUNT*/,
 			maxTextureCount
 		)
 	{}
