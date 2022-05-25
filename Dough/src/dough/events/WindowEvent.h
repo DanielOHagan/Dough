@@ -72,4 +72,27 @@ namespace DOH {
 
 		inline bool isIconified() const { return mIconified; }
 	};
+
+	class WindowMonitorChangeEvent : public WindowEvent {
+
+	private:
+		uint32_t mWidth;
+		uint32_t mHeight;
+		uint32_t mMaxRefreshRate;
+		EWindowDisplayMode mDisplayMode;
+
+	public:
+		WindowMonitorChangeEvent(Window& window, uint32_t width, uint32_t height, uint32_t maxRefreshRate, EWindowDisplayMode displayMode)
+		:	WindowEvent(EEventType::WINDOW_MONITOR_CHANGE, window),
+			mWidth(width),
+			mHeight(height),
+			mMaxRefreshRate(maxRefreshRate),
+			mDisplayMode(displayMode)
+		{}
+
+		inline uint32_t getWidth() const { return mWidth; }
+		inline uint32_t getHeight() const { return mHeight; }
+		inline uint32_t getMaxRefreshRate() const { return mMaxRefreshRate; }
+		inline EWindowDisplayMode getDisplayMode() const { return mDisplayMode; }
+	};
 }

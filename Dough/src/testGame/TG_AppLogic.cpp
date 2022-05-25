@@ -190,30 +190,44 @@ namespace TG {
 			bool focused = Application::get().isFocused();
 
 			ImGui::Text("Runtime: %fs", Time::convertMillisToSeconds(Application::get().getAppInfoTimer().getCurrentTickingTimeMillis()));
+			std::vector<std::string> monitorNames = window.getAllAvailableMonitorNames();
+			if (ImGui::BeginCombo("Monitor", window.getSelectedMonitorName().c_str())) {
+				int monitorNameIndex2 = -1;
+				for (const std::string& name : monitorNames) {
+					bool selected = false;
+					ImGui::Selectable(name.c_str(), &selected);
+					monitorNameIndex2++;
+					if (selected) {
+						window.selectMonitor(monitorNameIndex2);
+						break;
+					}
+				}
+				ImGui::EndCombo();
+			}
 			ImGui::Text("Window Size: (%i, %i)", window.getWidth(), window.getHeight());
-			bool displayModeWindowActive = window.getDisplayMode() == WindowDisplayMode::WINDOWED;
+			bool displayModeWindowActive = window.getDisplayMode() == EWindowDisplayMode::WINDOWED;
 			if (
 				ImGui::RadioButton("Windowed", displayModeWindowActive) &&
-				window.getDisplayMode() != WindowDisplayMode::WINDOWED
+				window.getDisplayMode() != EWindowDisplayMode::WINDOWED
 			) {
-				window.selectDisplayMode(WindowDisplayMode::WINDOWED);
+				window.selectDisplayMode(EWindowDisplayMode::WINDOWED);
 			}
 			//TODO:: Disabled for now as it causes a bug when switching from borderless to any other display mode
-			//ImGui::SameLine();
-			//bool displayModeBorderlessWindowActive = window.getDisplayMode() == WindowDisplayMode::BORDERLESS_FULLSCREEN;
-			//if (
-			//	ImGui::RadioButton("Borderless Windowed", displayModeBorderlessWindowActive) &&
-			//	window.getDisplayMode() != WindowDisplayMode::BORDERLESS_FULLSCREEN
-			//) {
-			//	window.selectDisplayMode(WindowDisplayMode::BORDERLESS_FULLSCREEN);
-			//}
 			ImGui::SameLine();
-			bool displayModeFullscreenActive = window.getDisplayMode() == WindowDisplayMode::FULLSCREEN;
+			bool displayModeBorderlessWindowActive = window.getDisplayMode() == EWindowDisplayMode::BORDERLESS_FULLSCREEN;
+			if (
+				ImGui::RadioButton("Borderless Windowed", displayModeBorderlessWindowActive) &&
+				window.getDisplayMode() != EWindowDisplayMode::BORDERLESS_FULLSCREEN
+			) {
+				window.selectDisplayMode(EWindowDisplayMode::BORDERLESS_FULLSCREEN);
+			}
+			ImGui::SameLine();
+			bool displayModeFullscreenActive = window.getDisplayMode() == EWindowDisplayMode::FULLSCREEN;
 			if (
 				ImGui::RadioButton("Fullscreen", displayModeFullscreenActive) &&
-				window.getDisplayMode() != WindowDisplayMode::FULLSCREEN
+				window.getDisplayMode() != EWindowDisplayMode::FULLSCREEN
 			) {
-				window.selectDisplayMode(WindowDisplayMode::FULLSCREEN);
+				window.selectDisplayMode(EWindowDisplayMode::FULLSCREEN);
 			}
 			ImGui::Text("Is Focused: ");
 			ImGui::SameLine();

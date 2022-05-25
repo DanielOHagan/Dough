@@ -5,11 +5,12 @@
 
 namespace DOH {
 
-	Window::Window(uint32_t width, uint32_t height, WindowDisplayMode displayMode)
+	Window::Window(uint32_t width, uint32_t height, EWindowDisplayMode displayMode)
 	:	mWidth(width),
 		mHeight(height),
 		mWindowPtr(nullptr),
-		mCurrentDisplayMode(displayMode)
+		mCurrentDisplayMode(displayMode),
+		mSelectedMonitor(nullptr)
 	{
 		TRY(width < 0 || height < 0, "Window width and height must be greater than 0.");
 	}
@@ -20,20 +21,45 @@ namespace DOH {
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-		GLFWmonitor* monitor = nullptr;
-		
-		if (mCurrentDisplayMode == WindowDisplayMode::FULLSCREEN) {
-			monitor = glfwGetPrimaryMonitor();
-		} else if (mCurrentDisplayMode == WindowDisplayMode::BORDERLESS_FULLSCREEN) {
-			monitor = glfwGetPrimaryMonitor();
-			const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
+		int monitorCount = 0;
+		GLFWmonitor** monitors = glfwGetMonitors(&monitorCount);
+
+		if (monitors == NULL) {
+			THROW("Unable to find any monitors");
+		}
+
+		//Store monitor names with index appended as names aren't guaranteed to be unique
+		for (int i = 0; i < monitorCount; i++) {
+			std::string monitorName = glfwGetMonitorName(*(monitors + i));
+			monitorName.append(" (" + std::to_string(i) + ")");
+			mAvailableMonitors.push_back({ *(monitors + i), monitorName });
+		}
+
+		mSelectedMonitor = glfwGetPrimaryMonitor();
+
+		int vidModeCount = 0;
+		const GLFWvidmode* vidMode = glfwGetVideoModes(mSelectedMonitor, &vidModeCount);
+		std::vector<int> refreshRates;
+		for (int i = 0; i < vidModeCount; i++) {
+			refreshRates.push_back((vidMode + i)->refreshRate);
+		}
+
+		if (mCurrentDisplayMode == EWindowDisplayMode::BORDERLESS_FULLSCREEN) {
+			mSelectedMonitor = glfwGetPrimaryMonitor();
+			const GLFWvidmode* videoMode = glfwGetVideoMode(mSelectedMonitor);
 			glfwWindowHint(GLFW_RED_BITS, videoMode->redBits);
 			glfwWindowHint(GLFW_GREEN_BITS, videoMode->greenBits);
 			glfwWindowHint(GLFW_BLUE_BITS, videoMode->blueBits);
 			glfwWindowHint(GLFW_REFRESH_RATE, videoMode->refreshRate);
 		}
 
-		mWindowPtr = glfwCreateWindow(mWidth, mHeight, windowTitle.c_str(), monitor, nullptr);
+		mWindowPtr = glfwCreateWindow(
+			mWidth,
+			mHeight,
+			windowTitle.c_str(),
+			mCurrentDisplayMode != EWindowDisplayMode::WINDOWED ? mSelectedMonitor : nullptr,
+			nullptr
+		);
 
 		TRY(mWindowPtr == nullptr, "Failed to create GLFW window");
 
@@ -50,76 +76,42 @@ namespace DOH {
 		glfwPollEvents();
 	}
 
-	void Window::selectDisplayMode(const WindowDisplayMode displayMode) {
+	void Window::selectDisplayMode(const EWindowDisplayMode displayMode) {
 		if (displayMode != mCurrentDisplayMode) {
 			switch (displayMode) {
-				case WindowDisplayMode::WINDOWED:
+				case EWindowDisplayMode::WINDOWED:
 				{
 					//TODO:: keep a track of the windowed mode width/height separate from mWidth/mHeight as the latter
 					// deal with viewport & swapchain resizing
 					// 
-					//TODO::check videoMode->refresh rate with mAppLoop, differing refresh rates can cause the CPU/GPU syncing issues
 					//TODO:: when switching from borderless fullscreen to windowed this fails to get window monitor
 
-					mCurrentDisplayMode = WindowDisplayMode::WINDOWED;
-					GLFWmonitor* monitor = glfwGetWindowMonitor(mWindowPtr);
-					if (monitor != nullptr) {
-						const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
-						glfwSetWindowMonitor(
-							mWindowPtr,
-							nullptr,
-							50,
-							50,
-							1920,
-							1080,
-							videoMode->refreshRate
-						);
+					mCurrentDisplayMode = EWindowDisplayMode::WINDOWED;
+					if (mSelectedMonitor != nullptr) {
+						changeToDisplayModeWindowed();
 					} else {
-						LOG_ERR("Failed to get window monitor");
+						LOG_ERR("Failed to get selected monitor");
 					}
 					break;
 				}
-				case WindowDisplayMode::BORDERLESS_FULLSCREEN:
+				case EWindowDisplayMode::BORDERLESS_FULLSCREEN:
 				{
-					mCurrentDisplayMode = WindowDisplayMode::BORDERLESS_FULLSCREEN;
+					mCurrentDisplayMode = EWindowDisplayMode::BORDERLESS_FULLSCREEN;
 					GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-					if (monitor != nullptr) {
-						const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
-						glfwWindowHint(GLFW_RED_BITS, videoMode->redBits);
-						glfwWindowHint(GLFW_GREEN_BITS, videoMode->greenBits);
-						glfwWindowHint(GLFW_BLUE_BITS, videoMode->blueBits);
-						glfwWindowHint(GLFW_REFRESH_RATE, videoMode->refreshRate);
-						glfwSetWindowMonitor(
-							mWindowPtr,
-							nullptr,
-							0,
-							0,
-							videoMode->width,
-							videoMode->height,
-							videoMode->refreshRate
-						);
+					if (mSelectedMonitor != nullptr) {
+						changeToDisplayModeBorderlessFullscreen();
 					} else {
-						LOG_ERR("Failed to get primary monitor");
+						LOG_ERR("Failed to get selected monitor");
 					}
 					break;
 				}
-				case WindowDisplayMode::FULLSCREEN:
+				case EWindowDisplayMode::FULLSCREEN:
 				{
-					mCurrentDisplayMode = WindowDisplayMode::FULLSCREEN;
-					GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-					if (monitor != nullptr) {
-						const GLFWvidmode* videoMode = glfwGetVideoMode(monitor);
-						glfwSetWindowMonitor(
-							mWindowPtr,
-							monitor,
-							0,
-							0,
-							videoMode->width,
-							videoMode->height,
-							videoMode->refreshRate
-						);
+					mCurrentDisplayMode = EWindowDisplayMode::FULLSCREEN;
+					if (mSelectedMonitor != nullptr) {
+						changeToDisplayModeFullscreen();
 					} else {
-						LOG_ERR("Failed to get primary monitor");
+						LOG_ERR("Failed to get selected monitor");
 					}
 					break;
 				}
@@ -127,6 +119,77 @@ namespace DOH {
 		} else {
 			LOG_WARN("Already in selected display mode");
 		}
+	}
+
+	void Window::selectMonitor(int selectedMonitorIndex) {
+		if (selectedMonitorIndex > mAvailableMonitors.size() - 1) {
+			LOG_ERR("Selected monitor index (" << selectedMonitorIndex << ") is not available");
+		} else {
+			mSelectedMonitor = mAvailableMonitors.at(selectedMonitorIndex).first;
+
+			switch (mCurrentDisplayMode) {
+				case EWindowDisplayMode::WINDOWED:
+				{
+					mCurrentDisplayMode = EWindowDisplayMode::WINDOWED;
+					if (mSelectedMonitor != nullptr) {
+						changeToDisplayModeWindowed();
+					} else {
+						LOG_ERR("Failed to get selected monitor");
+					}
+					break;
+				}
+				case EWindowDisplayMode::BORDERLESS_FULLSCREEN:
+				{
+					mCurrentDisplayMode = EWindowDisplayMode::BORDERLESS_FULLSCREEN;
+					if (mSelectedMonitor != nullptr) {
+						changeToDisplayModeBorderlessFullscreen();
+					} else {
+						LOG_ERR("Failed to get selected monitor");
+					}
+					break;
+				}
+				case EWindowDisplayMode::FULLSCREEN:
+				{
+					mCurrentDisplayMode = EWindowDisplayMode::FULLSCREEN;
+					if (mSelectedMonitor != nullptr) {
+						changeToDisplayModeFullscreen();
+					} else {
+						LOG_ERR("Failed to get selected monitor");
+					}
+					break;
+				}
+			}
+
+			const GLFWvidmode* vidMode = glfwGetVideoMode(mSelectedMonitor);
+			WindowMonitorChangeEvent monitorChange{
+				*reinterpret_cast<Window*>(glfwGetWindowUserPointer(mWindowPtr)),
+				(uint32_t) vidMode->width,
+				(uint32_t) vidMode->height,
+				(uint32_t) vidMode->refreshRate,
+				mCurrentDisplayMode
+			};
+			Application::get().onWindowEvent(monitorChange);
+		}
+	}
+
+	const std::string& Window::getSelectedMonitorName() const {
+		for (const auto& monitor : mAvailableMonitors) {
+			if (monitor.first == mSelectedMonitor) {
+				return monitor.second;
+			}
+		}
+
+		return "Unable to find monitor";
+	}
+
+	const std::vector<std::string> Window::getAllAvailableMonitorNames() const {
+		std::vector<std::string> names;
+
+		for (const auto& monitor : mAvailableMonitors) {
+			names.push_back(monitor.second);
+		}
+
+		return names;
 	}
 
 	void Window::setResolution(uint32_t width, uint32_t height) {
@@ -265,5 +328,72 @@ namespace DOH {
 			);
 			Application::get().onWindowEvent(iconify);
 		});
+	}
+
+	void Window::changeToDisplayModeWindowed() {
+		const GLFWvidmode* videoMode = glfwGetVideoMode(mSelectedMonitor);
+		glfwWindowHint(GLFW_RED_BITS, videoMode->redBits);
+		glfwWindowHint(GLFW_GREEN_BITS, videoMode->greenBits);
+		glfwWindowHint(GLFW_BLUE_BITS, videoMode->blueBits);
+
+		glfwWindowHint(GLFW_REFRESH_RATE, videoMode->refreshRate);
+
+		int x = 0;
+		int y = 0;
+		glfwGetMonitorPos(mSelectedMonitor, &x, &y);
+
+		glfwSetWindowMonitor(
+			mWindowPtr,
+			nullptr,
+			x + 50,
+			y + 50,
+			1920,
+			1080,
+			videoMode->refreshRate
+		);
+	}
+
+	void Window::changeToDisplayModeBorderlessFullscreen() {
+		const GLFWvidmode* videoMode = glfwGetVideoMode(mSelectedMonitor);
+		glfwWindowHint(GLFW_RED_BITS, videoMode->redBits);
+		glfwWindowHint(GLFW_GREEN_BITS, videoMode->greenBits);
+		glfwWindowHint(GLFW_BLUE_BITS, videoMode->blueBits);
+		glfwWindowHint(GLFW_REFRESH_RATE, videoMode->refreshRate);
+
+		int x = 0;
+		int y = 0;
+		glfwGetMonitorPos(mSelectedMonitor, &x, &y);
+
+		glfwSetWindowMonitor(
+			mWindowPtr,
+			nullptr,
+			x,
+			y,
+			videoMode->width,
+			videoMode->height,
+			videoMode->refreshRate
+		);
+	}
+	void Window::changeToDisplayModeFullscreen() {
+		const GLFWvidmode* videoMode = glfwGetVideoMode(mSelectedMonitor);
+		glfwWindowHint(GLFW_RED_BITS, videoMode->redBits);
+		glfwWindowHint(GLFW_GREEN_BITS, videoMode->greenBits);
+		glfwWindowHint(GLFW_BLUE_BITS, videoMode->blueBits);
+
+		glfwWindowHint(GLFW_REFRESH_RATE, videoMode->refreshRate);
+
+		int x = 0;
+		int y = 0;
+		glfwGetMonitorPos(mSelectedMonitor, &x, &y);
+
+		glfwSetWindowMonitor(
+			mWindowPtr,
+			mSelectedMonitor,
+			x,
+			y,
+			videoMode->width,
+			videoMode->height,
+			videoMode->refreshRate
+		);
 	}
 }

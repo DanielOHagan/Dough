@@ -24,9 +24,9 @@ namespace DOH {
 		mAppInfoTimer->recordInterval("Application.init() start");
 		mAppLogic = appLogic;
 
-		mWindow = std::make_unique<Window>(1920, 1080, WindowDisplayMode::WINDOWED);
-		//mWindow = std::make_unique<Window>(2560, 1440, WindowDisplayMode::BORDERLESS_FULLSCREEN);
-		//mWindow = std::make_unique<Window>(2560, 1440, WindowDisplayMode::FULLSCREEN);
+		mWindow = std::make_unique<Window>(1920, 1080, EWindowDisplayMode::WINDOWED);
+		//mWindow = std::make_unique<Window>(2560, 1440, EWindowDisplayMode::BORDERLESS_FULLSCREEN);
+		//mWindow = std::make_unique<Window>(2560, 1440, EWindowDisplayMode::FULLSCREEN);
 		mAppInfoTimer->recordInterval("Window.init() start");
 		mWindow->init("Dough Engine");
 		mAppInfoTimer->recordInterval("Window.init() end");
@@ -126,14 +126,14 @@ namespace DOH {
 				mAppLoop->onFocusChange(mFocused);
 
 				//If fullscreen iconify window so it doesn't display frozen on monitor
-				if (!mFocused && mWindow->getDisplayMode() == WindowDisplayMode::FULLSCREEN) {
+				if (!mFocused && mWindow->getDisplayMode() == EWindowDisplayMode::FULLSCREEN) {
 					mWindow->iconify();
 				}
 				LOGLN("Focus Change: " << (mFocused ? "Focused" : "Not Focused"));
 				return;
 			case EEventType::WINDOW_RESIZE:
 			{
-				WindowResizeEvent& e = (WindowResizeEvent&)windowEvent;
+				WindowResizeEvent& e = (WindowResizeEvent&) windowEvent;
 				mRenderer->onResize(
 					e.getWidth(),
 					e.getHeight()
@@ -149,6 +149,20 @@ namespace DOH {
 					mRenderer->deviceWaitIdle();
 				}
 				return;
+
+			case EEventType::WINDOW_MONITOR_CHANGE:
+			{
+				WindowMonitorChangeEvent& e = (WindowMonitorChangeEvent&) windowEvent;
+
+				//Resize swap chain if fullscreen & size is different
+				if (e.getDisplayMode() != EWindowDisplayMode::WINDOWED) {
+					if (mWindow->getWidth() != e.getWidth() && mWindow->getHeight() != e.getHeight()) {
+						WindowResizeEvent resizeEvent{e.getWindow(), e.getWidth(), e.getHeight()};
+						onWindowEvent(resizeEvent);
+					}
+				}
+				return;
+			}
 
 			default:
 				LOG_WARN("Unknown window event type");
