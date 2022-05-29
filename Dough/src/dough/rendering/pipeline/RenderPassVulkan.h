@@ -4,7 +4,6 @@
 
 namespace DOH {
 
-	//TODO:: Maybe have an enum for renderpass position or pass in init & final layout, instead of using bools
 	class RenderPassVulkan {
 
 	private:
@@ -13,14 +12,14 @@ namespace DOH {
 		uint32_t mClearCount;
 
 	public:
-		//TODO:: Make a better and less confusing way instead of using loads of bools
 		RenderPassVulkan(
 			VkDevice logicDevice,
 			VkFormat imageFormat,
-			bool hasPassBefore,
-			bool hasPassAfter,
+			VkImageLayout initialLayout,
+			VkImageLayout finalLayout,
+			VkAttachmentLoadOp loadOp,
 			bool enableClearColour,
-			VkClearValue clearColour = { 0.264f, 0.328f, 0.484f, 1.0f }
+			VkClearValue clearColour
 		);
 		RenderPassVulkan(const RenderPassVulkan& copy) = delete;
 		RenderPassVulkan operator=(const RenderPassVulkan& assignment) = delete;

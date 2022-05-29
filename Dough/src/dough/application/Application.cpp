@@ -72,7 +72,7 @@ namespace DOH {
 		mAppLogic->render();
 		mRenderer->getContext().getImGuiWrapper().newFrame();
 		mAppLogic->imGuiRender();
-		mRenderer->getContext().getImGuiWrapper().endFrame();
+		//mRenderer->getContext().getImGuiWrapper().endFrame();
 		mRenderer->drawFrame();
 	}
 

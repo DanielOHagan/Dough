@@ -54,9 +54,11 @@ namespace DOH {
 
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+		io.ConfigDockingWithShift = true;
 		
 		ImGui_ImplGlfw_InitForVulkan(window.getNativeWindow(), true);
-		ImGui_ImplVulkan_Init(&initInfo, imGuiInit.UiRenderPass);
+		ImGui_ImplVulkan_Init(&initInfo, imGuiInit.RenderPass);
 
 		mUsingGpuResource = true;
 	}
@@ -89,6 +91,8 @@ namespace DOH {
 
 	void ImGuiWrapper::endFrame() {
 		ImGui::EndFrame();
+		ImGui::UpdatePlatformWindows();
+		ImGui::RenderPlatformWindowsDefault();
 	}
 
 	void ImGuiWrapper::render(VkCommandBuffer cmd) {

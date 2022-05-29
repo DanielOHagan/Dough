@@ -18,13 +18,16 @@ namespace DOH {
 		std::vector<VkFramebuffer> mSceneFrameBuffers;
 		std::shared_ptr<RenderPassVulkan> mAppUiRenderPass;
 		std::vector<VkFramebuffer> mAppUiFrameBuffers;
+		std::shared_ptr<RenderPassVulkan> mImGuiRenderPass;
+		std::vector<VkFramebuffer> mImGuiFrameBuffers;
 
 		bool mResizable;
 
 	public:
 		enum class ERenderPassType {
 			SCENE,
-			APP_UI
+			APP_UI,
+			IMGUI
 		};
 
 		SwapChainVulkan(

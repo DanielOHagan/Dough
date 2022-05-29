@@ -114,7 +114,7 @@ namespace TG {
 				{
 					mImGuiSettings.CubeDemo.Scale,
 					mImGuiSettings.CubeDemo.Scale,
-					mImGuiSettings.CubeDemo.Scale 
+					mImGuiSettings.CubeDemo.Scale
 				}
 			);
 		}
@@ -170,10 +170,6 @@ namespace TG {
 		if (mImGuiSettings.RenderDebugWindow) {
 			imGuiRenderDebugWindow();
 		}
-
-		if (mImGuiSettings.RenderToDoListWindow) {
-			imGuiRenderToDoListWindow();
-		}
 	}
 
 	void TG_AppLogic::imGuiRenderDebugWindow() {
@@ -182,416 +178,378 @@ namespace TG {
 		RendererVulkan& renderer = GET_RENDERER;
 
 		ImGui::Begin("Debug Window");
+		ImGui::BeginTabBar("Main Tab Bar");
+		if (ImGui::BeginTabItem("Debug")) {
 
-		ImGui::SetNextItemOpen(mImGuiSettings.ApplicationCollapseMenuOpen);
-		if (ImGui::CollapsingHeader("Application")) {
-			ApplicationLoop& loop = Application::get().getLoop();
-			Window& window = Application::get().getWindow();
-			bool focused = Application::get().isFocused();
+			ImGui::SetNextItemOpen(mImGuiSettings.ApplicationCollapseMenuOpen);
+			if (ImGui::CollapsingHeader("Application")) {
+				ApplicationLoop& loop = Application::get().getLoop();
+				Window& window = Application::get().getWindow();
+				bool focused = Application::get().isFocused();
 
-			ImGui::Text("Runtime: %fs", Time::convertMillisToSeconds(Application::get().getAppInfoTimer().getCurrentTickingTimeMillis()));
-			std::vector<std::string> monitorNames = window.getAllAvailableMonitorNames();
-			if (ImGui::BeginCombo("Monitor", window.getSelectedMonitorName().c_str())) {
-				int monitorNameIndex2 = -1;
-				for (const std::string& name : monitorNames) {
-					bool selected = false;
-					ImGui::Selectable(name.c_str(), &selected);
-					monitorNameIndex2++;
-					if (selected) {
-						window.selectMonitor(monitorNameIndex2);
+				ImGui::Text("Runtime: %fs", Time::convertMillisToSeconds(Application::get().getAppInfoTimer().getCurrentTickingTimeMillis()));
+				std::vector<std::string> monitorNames = window.getAllAvailableMonitorNames();
+				if (ImGui::BeginCombo("Monitor", window.getSelectedMonitorName().c_str())) {
+					int monitorNameIndex2 = -1;
+					for (const std::string& name : monitorNames) {
+						bool selected = false;
+						ImGui::Selectable(name.c_str(), &selected);
+						monitorNameIndex2++;
+						if (selected) {
+							window.selectMonitor(monitorNameIndex2);
+							break;
+						}
+					}
+					ImGui::EndCombo();
+				}
+				ImGui::Text("Window Size: (%i, %i)", window.getWidth(), window.getHeight());
+				bool displayModeWindowActive = window.getDisplayMode() == EWindowDisplayMode::WINDOWED;
+				if (
+					ImGui::RadioButton("Windowed", displayModeWindowActive) &&
+					window.getDisplayMode() != EWindowDisplayMode::WINDOWED
+				) {
+					window.selectDisplayMode(EWindowDisplayMode::WINDOWED);
+				}
+				ImGui::SameLine();
+				bool displayModeBorderlessWindowActive = window.getDisplayMode() == EWindowDisplayMode::BORDERLESS_FULLSCREEN;
+				if (
+					ImGui::RadioButton("Borderless Windowed", displayModeBorderlessWindowActive) &&
+					window.getDisplayMode() != EWindowDisplayMode::BORDERLESS_FULLSCREEN
+				) {
+					window.selectDisplayMode(EWindowDisplayMode::BORDERLESS_FULLSCREEN);
+				}
+				ImGui::SameLine();
+				bool displayModeFullscreenActive = window.getDisplayMode() == EWindowDisplayMode::FULLSCREEN;
+				if (
+					ImGui::RadioButton("Fullscreen", displayModeFullscreenActive) &&
+					window.getDisplayMode() != EWindowDisplayMode::FULLSCREEN
+				) {
+					window.selectDisplayMode(EWindowDisplayMode::FULLSCREEN);
+				}
+				ImGui::Text("Is Focused: ");
+				ImGui::SameLine();
+				ImGui::TextColored(focused ? ImVec4(0, 1, 0, 1) : ImVec4(1, 0, 0, 1), focused ? "FOCUSED" : "NOT FOCUSED");
+				ImGui::Text("Current and Target FPS/UPS");
+				ImGui::Text("FPS: %i \t(Fore: %i, Back: %i)", (int)loop.getFps(), (int)loop.getTargetFps(), (int)loop.getTargetBackgroundFps());
+				imGuiDisplayHelpTooltip("Max: Current Target UPS or 360, whichever is lower. Min: 15\nFPS displayed is the count of frames in the last full second interval");
+				ImGui::Text("UPS: %i \t(Fore: %i, Back: %i)", (int)loop.getUps(), (int)loop.getTargetUps(), (int)loop.getTargetBackgroundUps());
+				imGuiDisplayHelpTooltip("Max: 1000. Min: Current Target FPS or 15, whichever is higher.\nUPS displayed is the count of frames in the last full second interval");
+				int tempTargetFps = (int)loop.getTargetFps();
+				if (ImGui::InputInt("Target FPS", &tempTargetFps)) {
+					if (loop.isValidTargetFps((float)tempTargetFps)) {
+						loop.setTargetFps((float)tempTargetFps);
+					}
+				}
+				int tempTargetUps = (int)loop.getTargetUps();
+				if (ImGui::InputInt("Target UPS", &tempTargetUps)) {
+					if (loop.isValidTargetUps((float)tempTargetUps)) {
+						loop.setTargetUps((float)tempTargetUps);
+					}
+				}
+
+				{
+					const glm::vec2 cursorPos = Input::getCursorPos();
+					ImGui::Text("Cursor Position: X: %i, Y: %i", (int)cursorPos.x, (int)cursorPos.y);
+				}
+
+				bool runInBackground = loop.isRunningInBackground();
+				if (ImGui::Checkbox("Run In Background", &runInBackground)) {
+					loop.setRunInBackground(runInBackground);
+				}
+				if (ImGui::Button("Stop Rendering ImGui Windows")) {
+					mImGuiSettings.RenderDebugWindow = false;
+				}
+				imGuiDisplayHelpTooltip("When hidden press F1 to start rendering ImGui again");
+
+				if (ImGui::Button("Quit Application")) {
+					Application::get().stop();
+				}
+
+				mImGuiSettings.ApplicationCollapseMenuOpen = true;
+			} else {
+				mImGuiSettings.ApplicationCollapseMenuOpen = false;
+			}
+
+			ImGui::SetNextItemOpen(mImGuiSettings.RenderingCollapseMenuOpen);
+			if (ImGui::CollapsingHeader("Rendering")) {
+				//TODO:: ImGui::Checkbox("Render Wireframes", &mRenderWireframes);
+				ImGui::Text("Quad Batch Max Size: %i", Renderer2dStorageVulkan::BatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD);
+				ImGui::Text(
+					"Quad Batch Count: %i of Max %i",
+					renderer.getContext().getRenderer2d().getQuadBatchCount(),
+					Renderer2dStorageVulkan::BatchSizeLimits::MAX_BATCH_COUNT_QUAD
+				);
+				uint32_t quadBatchIndex = 0;
+				for (RenderBatchQuad& batch : renderer.getContext().getRenderer2d().getStorage().getQuadRenderBatches()) {
+					ImGui::Text("Batch: %i Geo Count: %i", quadBatchIndex, batch.getGeometryCount());
+					quadBatchIndex++;
+				}
+				//TODO:: debug info when multiple texture arrays are supported
+				//uint32_t texArrIndex = 0;
+				//for (TextureArray& texArr : renderer.getContext().getRenderer2d().getStorage().getTextureArrays()) {
+				//	ImGui::Text("Texture Array: %i Texture Count: %i", texArrIndex, texArr.getTextureSlots().size());
+				//	texArrIndex++;
+				//}
+				ImGui::Text(
+					"Texture Array: %i Texture Count: %i",
+					0,
+					renderer.getContext().getRenderer2d().getStorage().getQuadBatchTextureArray().getTextureSlots().size()
+				);
+				if (ImGui::Button("Close All Empty Quad Batches")) {
+					renderer.getContext().getRenderer2d().closeEmptyQuadBatches();
+				}
+				imGuiDisplayHelpTooltip("Close Empty Quad Batches. This can help clean-up when 1 or more batches have geo counts of 0");
+
+				mImGuiSettings.RenderingCollapseMenuOpen = true;
+			} else {
+				mImGuiSettings.RenderingCollapseMenuOpen = false;
+			}
+
+			ImGui::SetNextItemOpen(mImGuiSettings.CurrentDemoCollapseMenuOpen);
+			if (ImGui::CollapsingHeader("Current Demo")) {
+				ImGui::Text("2D: ");
+				ImGui::SameLine();
+				if (ImGui::RadioButton("Grid Demo", mSelectedDemo == EDemo::GRID)) {
+					if (mSelectedDemo != EDemo::GRID) {
+						switchToDemo(EDemo::GRID);
+					}
+				}
+				ImGui::SameLine();
+				if (ImGui::RadioButton("Bouncing Quads Demo", mSelectedDemo == EDemo::BOUNCING_QUADS)) {
+					if (mSelectedDemo != EDemo::BOUNCING_QUADS) {
+						switchToDemo(EDemo::BOUNCING_QUADS);
+					}
+				}
+				ImGui::SameLine();
+				if (ImGui::RadioButton("Custom Demo", mSelectedDemo == EDemo::CUSTOM)) {
+					if (mSelectedDemo != EDemo::CUSTOM) {
+						switchToDemo(EDemo::CUSTOM);
+					}
+				}
+				ImGui::Text("3D: ");
+				ImGui::SameLine();
+				if (ImGui::RadioButton("Cube Demo", mSelectedDemo == EDemo::CUBE)) {
+					if (mSelectedDemo != EDemo::CUBE) {
+						switchToDemo(EDemo::CUBE);
+					}
+				}
+				imGuiDisplayHelpTooltip("Currently only one \"custom\" pipeline demo is supported so selecting either CUSTOM or CUBE prevents the other from being loaded. This will be fixed.");
+				//ImGui::SameLine();
+				if (ImGui::RadioButton("No Demo", mSelectedDemo == EDemo::NONE)) {
+					if (mSelectedDemo != EDemo::NONE) {
+						switchToDemo(EDemo::NONE);
+					}
+				}
+
+				ImGui::Text("Demo Settings & Info");
+
+
+				switch (mSelectedDemo) {
+					case EDemo::GRID:
+					{
+						//Size of grid can be adjusted but it limited to a certain number of quads,
+						// ImGui values are taken and checked to see if they are valid
+						ImGui::Checkbox("Render", &mImGuiSettings.GridDemo.Render);
+						ImGui::Checkbox("Update", &mImGuiSettings.GridDemo.Update);
+						ImGui::Text("Grid Quad Count: %i of Max %i", mGridDemo.mTestGridSize[0] * mGridDemo.mTestGridSize[1], mGridDemo.mTestGridMaxQuadCount);
+						int tempTestGridSize[2] = { mGridDemo.mTestGridSize[0], mGridDemo.mTestGridSize[1] };
+						if (ImGui::InputInt2("Grid Size", tempTestGridSize)) {
+							if (tempTestGridSize[0] > 0 && tempTestGridSize[1] > 0) {
+								const int tempGridQuadCount = tempTestGridSize[0] * tempTestGridSize[1];
+								if (tempGridQuadCount <= mGridDemo.mTestGridMaxQuadCount) {
+									mGridDemo.mTestGridSize[0] = tempTestGridSize[0];
+									mGridDemo.mTestGridSize[1] = tempTestGridSize[1];
+								} else {
+									LOG_WARN(
+										"New grid size of " << tempTestGridSize[0] << "x" << tempTestGridSize[1] <<
+										" (" << tempTestGridSize[0] * tempTestGridSize[1] <<
+										") is too large, max quad count is " << mGridDemo.mTestGridMaxQuadCount
+									);
+								}
+							}
+						}
+
+						ImGui::DragFloat2("Quad Size", mGridDemo.mTestGridQuadSize, 0.001f, 0.01f, 0.5f);
+						ImGui::DragFloat2("Quad Gap Size", mGridDemo.mTestGridQuadGapSize, 0.001f, 0.01f, 0.5f);
+						//ImGui::DragFloat2("Test Grid Origin Pos", );
+						//ImGui::Text("UI Quad Count: %i", renderer.getContext().getRenderer2d().getStorage().getUiQuadCount());
+
+						//TOOD:: maybe have radio buttons for RenderStaticGrid or RenderDynamicGrid,
+						//	static being the default values and dynamic being from the variables determined by ths menu
+						// Maybe have the dynamic settings hidden unless dynamic is selected
+
+						int tempTestTextureIndexOffset = mGridDemo.mTestTexturesIndexOffset;
+						if (ImGui::InputInt("Test Texture Offset", &tempTestTextureIndexOffset)) {
+							//Cycle through the 8 test texture indexes
+							mGridDemo.mTestTexturesIndexOffset = tempTestTextureIndexOffset < 0 ? 0 : tempTestTextureIndexOffset % 8;
+						}
+
+						if (ImGui::Button("Reset Grid")) {
+							mGridDemo.mTestGridSize[0] = 10;
+							mGridDemo.mTestGridSize[1] = 10;
+							mGridDemo.mTestGridQuadSize[0] = 0.1f;
+							mGridDemo.mTestGridQuadSize[1] = 0.1f;
+							mGridDemo.mTestGridQuadGapSize[0] = mGridDemo.mTestGridQuadSize[0] * 1.5f;
+							mGridDemo.mTestGridQuadGapSize[1] = mGridDemo.mTestGridQuadSize[1] * 1.5f;
+						}
+
+						break;
+					}
+
+					case EDemo::BOUNCING_QUADS:
+					{
+						ImGui::Checkbox("Render", &mImGuiSettings.BouncingQuadsDemo.Render);
+						ImGui::Checkbox("Update", &mImGuiSettings.BouncingQuadsDemo.Update);
+						ImGui::Text("Bouncing Quads Count: %i", mBouncingQuadDemo.mBouncingQuads.size());
+						break;
+					}
+
+					case EDemo::CUSTOM:
+					{
+						ImGui::Checkbox("Render Scene", &mImGuiSettings.CustomDemo.RenderScene);
+						ImGui::Checkbox("Render UI", &mImGuiSettings.CustomDemo.RenderUi);
+						ImGui::Checkbox("Update", &mImGuiSettings.CustomDemo.Update);
+						break;
+					}
+
+					case EDemo::CUBE:
+					{
+						ImGui::Checkbox("Render", &mImGuiSettings.CubeDemo.Render);
+						ImGui::Checkbox("Update", &mImGuiSettings.CubeDemo.Update);
+
+						ImGui::Checkbox("Auto Rotate", &mImGuiSettings.CubeDemo.AutoRotate);
+
+						ImGui::DragFloat("Auto Rotate Speed", &mImGuiSettings.CubeDemo.AutoRotateSpeed, 0.1f, 1.0f, 60.0f);
+
+
+						//Add temp array and set -1 > rotation < 361 to allow for "infinite" drag
+						float tempRotation[3] = {
+							mImGuiSettings.CubeDemo.Rotation[0],
+							mImGuiSettings.CubeDemo.Rotation[1],
+							mImGuiSettings.CubeDemo.Rotation[2]
+						};
+						if (ImGui::DragFloat3("Rotation", tempRotation, 1.0f, -1.0f, 361.0f)) {
+							if (tempRotation[0] > 360.0f) {
+								tempRotation[0] = 0.0f;
+							} else if (tempRotation[0] < 0.0f) {
+								tempRotation[0] = 360.0f;
+							}
+							if (tempRotation[1] > 360.0f) {
+								tempRotation[1] = 0.0f;
+							} else if (tempRotation[1] < 0.0f) {
+								tempRotation[1] = 360.0f;
+							}
+							if (tempRotation[2] > 360.0f) {
+								tempRotation[2] = 0.0f;
+							} else if (tempRotation[2] < 0.0f) {
+								tempRotation[2] = 360.0f;
+							}
+
+							mImGuiSettings.CubeDemo.Rotation[0] = tempRotation[0];
+							mImGuiSettings.CubeDemo.Rotation[1] = tempRotation[1];
+							mImGuiSettings.CubeDemo.Rotation[2] = tempRotation[2];
+						}
+
+						ImGui::DragFloat3("Position", mImGuiSettings.CubeDemo.Position, 0.05f, -10.0f, 10.0f);
+						ImGui::DragFloat("Uniform Scale", &mImGuiSettings.CubeDemo.Scale, 0.1f, 0.1f, 5.0f);
+
+						if (ImGui::Button("Reset Cube")) {
+							mImGuiSettings.CubeDemo.AutoRotate = false;
+							mImGuiSettings.CubeDemo.AutoRotateSpeed = 15.0f;
+							mImGuiSettings.CubeDemo.Rotation[0] = 0.0f;
+							mImGuiSettings.CubeDemo.Rotation[1] = 0.0f;
+							mImGuiSettings.CubeDemo.Rotation[2] = 0.0f;
+							mImGuiSettings.CubeDemo.Position[0] = 0.0f;
+							mImGuiSettings.CubeDemo.Position[1] = 0.0f;
+							mImGuiSettings.CubeDemo.Position[2] = 0.0f;
+							mImGuiSettings.CubeDemo.Scale = 1.0f;
+						}
+
+						break;
+					}
+
+					case EDemo::NONE:
+					{
+						ImGui::Text("No Demo selected");
+						break;
+					}
+
+					default:
+					{
+						ImGui::Text("Selected demo has no info/settings set in ImGui");
 						break;
 					}
 				}
-				ImGui::EndCombo();
-			}
-			ImGui::Text("Window Size: (%i, %i)", window.getWidth(), window.getHeight());
-			bool displayModeWindowActive = window.getDisplayMode() == EWindowDisplayMode::WINDOWED;
-			if (
-				ImGui::RadioButton("Windowed", displayModeWindowActive) &&
-				window.getDisplayMode() != EWindowDisplayMode::WINDOWED
-			) {
-				window.selectDisplayMode(EWindowDisplayMode::WINDOWED);
-			}
-			//TODO:: Disabled for now as it causes a bug when switching from borderless to any other display mode
-			ImGui::SameLine();
-			bool displayModeBorderlessWindowActive = window.getDisplayMode() == EWindowDisplayMode::BORDERLESS_FULLSCREEN;
-			if (
-				ImGui::RadioButton("Borderless Windowed", displayModeBorderlessWindowActive) &&
-				window.getDisplayMode() != EWindowDisplayMode::BORDERLESS_FULLSCREEN
-			) {
-				window.selectDisplayMode(EWindowDisplayMode::BORDERLESS_FULLSCREEN);
-			}
-			ImGui::SameLine();
-			bool displayModeFullscreenActive = window.getDisplayMode() == EWindowDisplayMode::FULLSCREEN;
-			if (
-				ImGui::RadioButton("Fullscreen", displayModeFullscreenActive) &&
-				window.getDisplayMode() != EWindowDisplayMode::FULLSCREEN
-			) {
-				window.selectDisplayMode(EWindowDisplayMode::FULLSCREEN);
-			}
-			ImGui::Text("Is Focused: ");
-			ImGui::SameLine();
-			ImGui::TextColored(focused ? ImVec4(0, 1, 0, 1) : ImVec4(1, 0, 0, 1), focused ? "FOCUSED" : "NOT FOCUSED");
-			ImGui::Text("Current and Target FPS/UPS");
-			ImGui::Text("FPS: %i \t(Fore: %i, Back: %i)", (int)loop.getFps(), (int)loop.getTargetFps(), (int)loop.getTargetBackgroundFps());
-			imGuiDisplayHelpTooltip("Max: Current Target UPS or 360, whichever is lower. Min: 15\nFPS displayed is the count of frames in the last full second interval");
-			ImGui::Text("UPS: %i \t(Fore: %i, Back: %i)", (int)loop.getUps(), (int)loop.getTargetUps(), (int)loop.getTargetBackgroundUps());
-			imGuiDisplayHelpTooltip("Max: 1000. Min: Current Target FPS or 15, whichever is higher.\nUPS displayed is the count of frames in the last full second interval");
-			int tempTargetFps = (int)loop.getTargetFps();
-			if (ImGui::InputInt("Target FPS", &tempTargetFps)) {
-				if (loop.isValidTargetFps((float)tempTargetFps)) {
-					loop.setTargetFps((float)tempTargetFps);
-				}
-			}
-			int tempTargetUps = (int)loop.getTargetUps();
-			if (ImGui::InputInt("Target UPS", &tempTargetUps)) {
-				if (loop.isValidTargetUps((float)tempTargetUps)) {
-					loop.setTargetUps((float)tempTargetUps);
-				}
-			}
-
-			{
-				const glm::vec2 cursorPos = Input::getCursorPos();
-				ImGui::Text("Cursor Position: X: %i, Y: %i", (int) cursorPos.x, (int) cursorPos.y);
-			}
-
-			bool runInBackground = loop.isRunningInBackground();
-			if (ImGui::Checkbox("Run In Background", &runInBackground)) {
-				loop.setRunInBackground(runInBackground);
-			}
-
-			ImGui::Checkbox("Render ToDo List Window", &mImGuiSettings.RenderToDoListWindow);
-			if (ImGui::Button("Stop Rendering All ImGui Windows")) {
-				mImGuiSettings.RenderDebugWindow = false;
-				mImGuiSettings.RenderToDoListWindow = false;
-			}
-			imGuiDisplayHelpTooltip("Once the debug window has stopped rendering, you can press F1 to start rendering again");
-
-			if (ImGui::Button("Quit Application")) {
-				Application::get().stop();
-			}
-
-			mImGuiSettings.ApplicationCollapseMenuOpen = true;
-		} else {
-			mImGuiSettings.ApplicationCollapseMenuOpen = false;
-		}
-
-		ImGui::SetNextItemOpen(mImGuiSettings.RenderingCollapseMenuOpen);
-		if (ImGui::CollapsingHeader("Rendering")) {
-			//TODO:: ImGui::Checkbox("Render Wireframes", &mRenderWireframes);
-			ImGui::Text("Quad Batch Max Size: %i", Renderer2dStorageVulkan::BatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD);
-			ImGui::Text(
-				"Quad Batch Count: %i of Max %i",
-				renderer.getContext().getRenderer2d().getQuadBatchCount(),
-				Renderer2dStorageVulkan::BatchSizeLimits::MAX_BATCH_COUNT_QUAD
-			);
-			uint32_t quadBatchIndex = 0;
-			for (RenderBatchQuad& batch : renderer.getContext().getRenderer2d().getStorage().getQuadRenderBatches()) {
-				ImGui::Text("Batch: %i Geo Count: %i", quadBatchIndex, batch.getGeometryCount());
-				quadBatchIndex++;
-			}
-			//TODO:: debug info when multiple texture arrays are supported
-			//uint32_t texArrIndex = 0;
-			//for (TextureArray& texArr : renderer.getContext().getRenderer2d().getStorage().getTextureArrays()) {
-			//	ImGui::Text("Texture Array: %i Texture Count: %i", texArrIndex, texArr.getTextureSlots().size());
-			//	texArrIndex++;
-			//}
-			ImGui::Text(
-				"Texture Array: %i Texture Count: %i",
-				0,
-				renderer.getContext().getRenderer2d().getStorage().getQuadBatchTextureArray().getTextureSlots().size()
-			);
-			if (ImGui::Button("Close All Empty Quad Batches")) {
-				renderer.getContext().getRenderer2d().closeEmptyQuadBatches();
-			}
-			imGuiDisplayHelpTooltip("Close Empty Quad Batches. This can help clean-up when 1 or more batches have geo counts of 0");
-
-			mImGuiSettings.RenderingCollapseMenuOpen = true;
-		} else {
-			mImGuiSettings.RenderingCollapseMenuOpen = false;
-		}
-
-		ImGui::SetNextItemOpen(mImGuiSettings.CurrentDemoCollapseMenuOpen);
-		if (ImGui::CollapsingHeader("Current Demo")) {
-			ImGui::Text("2D: ");
-			ImGui::SameLine();
-			if (ImGui::RadioButton("Grid Demo", mSelectedDemo == EDemo::GRID)) {
-				if (mSelectedDemo != EDemo::GRID) {
-					switchToDemo(EDemo::GRID);
-				}
-			}
-			ImGui::SameLine();
-			if (ImGui::RadioButton("Bouncing Quads Demo", mSelectedDemo == EDemo::BOUNCING_QUADS)) {
-				if (mSelectedDemo != EDemo::BOUNCING_QUADS) {
-					switchToDemo(EDemo::BOUNCING_QUADS);
-				}
-			}
-			ImGui::SameLine();
-			if (ImGui::RadioButton("Custom Demo", mSelectedDemo == EDemo::CUSTOM)) {
-				if (mSelectedDemo != EDemo::CUSTOM) {
-					switchToDemo(EDemo::CUSTOM);
-				}
-			}
-			ImGui::Text("3D: ");
-			ImGui::SameLine();
-			if (ImGui::RadioButton("Cube Demo", mSelectedDemo == EDemo::CUBE)) {
-				if (mSelectedDemo != EDemo::CUBE) {
-					switchToDemo(EDemo::CUBE);
-				}
-			}
-			imGuiDisplayHelpTooltip("Currently only one \"custom\" pipeline demo is supported so selecting either CUSTOM or CUBE prevents the other from being loaded. This will be fixed.");
-			//ImGui::SameLine();
-			if (ImGui::RadioButton("No Demo", mSelectedDemo == EDemo::NONE)) {
-				if (mSelectedDemo != EDemo::NONE) {
-					switchToDemo(EDemo::NONE);
-				}
-			}
-
-			ImGui::Text("Demo Settings & Info");
-
-
-			switch (mSelectedDemo) {
-				case EDemo::GRID:
-				{
-					//Size of grid can be adjusted but it limited to a certain number of quads,
-					// ImGui values are taken and checked to see if they are valid
-					ImGui::Checkbox("Render", &mImGuiSettings.GridDemo.Render);
-					ImGui::Checkbox("Update", &mImGuiSettings.GridDemo.Update);
-					ImGui::Text("Grid Quad Count: %i of Max %i", mGridDemo.mTestGridSize[0] * mGridDemo.mTestGridSize[1], mGridDemo.mTestGridMaxQuadCount);
-					int tempTestGridSize[2] = { mGridDemo.mTestGridSize[0], mGridDemo.mTestGridSize[1] };
-					if (ImGui::InputInt2("Grid Size", tempTestGridSize)) {
-						if (tempTestGridSize[0] > 0 && tempTestGridSize[1] > 0) {
-							const int tempGridQuadCount = tempTestGridSize[0] * tempTestGridSize[1];
-							if (tempGridQuadCount <= mGridDemo.mTestGridMaxQuadCount) {
-								mGridDemo.mTestGridSize[0] = tempTestGridSize[0];
-								mGridDemo.mTestGridSize[1] = tempTestGridSize[1];
-							} else {
-								LOG_WARN(
-									"New grid size of " << tempTestGridSize[0] << "x" << tempTestGridSize[1] <<
-									" (" << tempTestGridSize[0] * tempTestGridSize[1] <<
-									") is too large, max quad count is " << mGridDemo.mTestGridMaxQuadCount
-								);
-							}
-						}
-					}
-
-					ImGui::DragFloat2("Quad Size", mGridDemo.mTestGridQuadSize, 0.001f, 0.01f, 0.5f);
-					ImGui::DragFloat2("Quad Gap Size", mGridDemo.mTestGridQuadGapSize, 0.001f, 0.01f, 0.5f);
-					//ImGui::DragFloat2("Test Grid Origin Pos", );
-					//ImGui::Text("UI Quad Count: %i", renderer.getContext().getRenderer2d().getStorage().getUiQuadCount());
-
-					//TOOD:: maybe have radio buttons for RenderStaticGrid or RenderDynamicGrid,
-					//	static being the default values and dynamic being from the variables determined by ths menu
-					// Maybe have the dynamic settings hidden unless dynamic is selected
-
-					int tempTestTextureIndexOffset = mGridDemo.mTestTexturesIndexOffset;
-					if (ImGui::InputInt("Test Texture Offset", &tempTestTextureIndexOffset)) {
-						//Cycle through the 8 test texture indexes
-						mGridDemo.mTestTexturesIndexOffset = tempTestTextureIndexOffset < 0 ? 0 : tempTestTextureIndexOffset % 8;
-					}
-
-					if (ImGui::Button("Reset Grid")) {
-						mGridDemo.mTestGridSize[0] = 10;
-						mGridDemo.mTestGridSize[1] = 10;
-						mGridDemo.mTestGridQuadSize[0] = 0.1f;
-						mGridDemo.mTestGridQuadSize[1] = 0.1f;
-						mGridDemo.mTestGridQuadGapSize[0] = mGridDemo.mTestGridQuadSize[0] * 1.5f;
-						mGridDemo.mTestGridQuadGapSize[1] = mGridDemo.mTestGridQuadSize[1] * 1.5f;
-					}
-
-					break;
-				}
-
-				case EDemo::BOUNCING_QUADS:
-				{
-					ImGui::Checkbox("Render", &mImGuiSettings.BouncingQuadsDemo.Render);
-					ImGui::Checkbox("Update", &mImGuiSettings.BouncingQuadsDemo.Update);
-					ImGui::Text("Bouncing Quads Count: %i", mBouncingQuadDemo.mBouncingQuads.size());
-					break;
-				}
-
-				case EDemo::CUSTOM:
-				{
-					ImGui::Checkbox("Render Scene", &mImGuiSettings.CustomDemo.RenderScene);
-					ImGui::Checkbox("Render UI", &mImGuiSettings.CustomDemo.RenderUi);
-					ImGui::Checkbox("Update", &mImGuiSettings.CustomDemo.Update);
-					break;
-				}
-
-				case EDemo::CUBE:
-				{
-					ImGui::Checkbox("Render", &mImGuiSettings.CubeDemo.Render);
-					ImGui::Checkbox("Update", &mImGuiSettings.CubeDemo.Update);
-
-					ImGui::Checkbox("Auto Rotate", &mImGuiSettings.CubeDemo.AutoRotate);
-					
-					ImGui::DragFloat("Auto Rotate Speed", &mImGuiSettings.CubeDemo.AutoRotateSpeed, 0.1f, 1.0f, 60.0f);
-
-
-					//Add temp array and set -1 > rotation < 361 to allow for "infinite" drag
-					float tempRotation[3] = {
-						mImGuiSettings.CubeDemo.Rotation[0],
-						mImGuiSettings.CubeDemo.Rotation[1],
-						mImGuiSettings.CubeDemo.Rotation[2]
-					};
-					if (ImGui::DragFloat3("Rotation", tempRotation, 1.0f, -1.0f, 361.0f)) {
-						if (tempRotation[0] > 360.0f) {
-							tempRotation[0] = 0.0f;
-						} else if (tempRotation[0] < 0.0f) {
-							tempRotation[0] = 360.0f;
-						}
-						if (tempRotation[1] > 360.0f) {
-							tempRotation[1] = 0.0f;
-						} else if (tempRotation[1] < 0.0f) {
-							tempRotation[1] = 360.0f;
-						}
-						if (tempRotation[2] > 360.0f) {
-							tempRotation[2] = 0.0f;
-						} else if (tempRotation[2] < 0.0f) {
-							tempRotation[2] = 360.0f;
-						}
-
-						mImGuiSettings.CubeDemo.Rotation[0] = tempRotation[0];
-						mImGuiSettings.CubeDemo.Rotation[1] = tempRotation[1];
-						mImGuiSettings.CubeDemo.Rotation[2] = tempRotation[2];
-					}
-
-					ImGui::DragFloat3("Position", mImGuiSettings.CubeDemo.Position, 0.05f, -10.0f, 10.0f);
-					ImGui::DragFloat("Uniform Scale", &mImGuiSettings.CubeDemo.Scale, 0.1f, 0.1f, 5.0f);
-
-					if (ImGui::Button("Reset Cube")) {
-						mImGuiSettings.CubeDemo.AutoRotate = false;
-						mImGuiSettings.CubeDemo.AutoRotateSpeed = 15.0f;
-						mImGuiSettings.CubeDemo.Rotation[0] = 0.0f;
-						mImGuiSettings.CubeDemo.Rotation[1] = 0.0f;
-						mImGuiSettings.CubeDemo.Rotation[2] = 0.0f;
-						mImGuiSettings.CubeDemo.Position[0] = 0.0f;
-						mImGuiSettings.CubeDemo.Position[1] = 0.0f;
-						mImGuiSettings.CubeDemo.Position[2] = 0.0f;
-						mImGuiSettings.CubeDemo.Scale = 1.0f;
-					}
-
-					break;
-				}
-
-				case EDemo::NONE:
-				{
-					ImGui::Text("No Demo selected");
-					break;
-				}
-
-				default:
-				{
-					ImGui::Text("Selected demo has no info/settings set in ImGui");
-					break;
-				}
-			}
-			mImGuiSettings.CurrentDemoCollapseMenuOpen = true;
-		} else {
-			mImGuiSettings.CurrentDemoCollapseMenuOpen = false;
-		}
-
-		//TODO:: Use different formats, currently looks bad
-		ImGui::SetNextItemOpen(mImGuiSettings.CameraCollapseMenuOpen);
-		if (ImGui::CollapsingHeader("Camera")) {
-			const bool orthoCameraActive = mImGuiSettings.UseOrthographicCamera;
-			const bool perspectiveCameraActive = !orthoCameraActive;
-			if (ImGui::RadioButton("Orthographic Camera", orthoCameraActive)) {
-				mImGuiSettings.UseOrthographicCamera = true;
-			}
-			ImGui::SameLine();
-			if (ImGui::RadioButton("Perspective Camera", perspectiveCameraActive)) {
-				mImGuiSettings.UseOrthographicCamera = false;
-			}
-			ImGui::Text("Current Camera: ");
-			ImGui::SameLine();
-			ImGui::Text(mImGuiSettings.UseOrthographicCamera ? "Orthographic" : "Perspective");
-			if (mImGuiSettings.UseOrthographicCamera) {
-				ImGui::Text("Orthographic Camera Controls");
-				ImGui::BulletText("W, A, S, D: Move Camera");
-				ImGui::BulletText("Hold Left Shift: Increase move speed");
-				ImGui::BulletText("Z, X: Zoom Camera In & Out");
-				ImGui::BulletText("Right Click Drag Camera");
-				imGuiDisplayHelpTooltip("NOTE:: Drag doesn't work properly at all update rates");
-				ImGui::Text("Camera Position");
-				ImGui::Text("X: %f", TG_mOrthoCameraController->getPosition().x);
-				ImGui::Text("Y: %f", TG_mOrthoCameraController->getPosition().y);
-				ImGui::Text("Zoom: %f", TG_mOrthoCameraController->getZoomLevel());
-				imGuiDisplayHelpTooltip("Higher is more \"zoomed in\" and lower is more \"zoomed out\"");
+				mImGuiSettings.CurrentDemoCollapseMenuOpen = true;
 			} else {
-				ImGui::Text("Perspective Camera Controls");
-				ImGui::Text("Position");
-				ImGui::Text("X: %f", mPerspectiveCameraController->getPosition().x);
-				ImGui::Text("Y: %f", mPerspectiveCameraController->getPosition().y);
-				ImGui::Text("Z: %f", mPerspectiveCameraController->getPosition().z);
-				ImGui::Text("Direction");
-				ImGui::Text("X: %f", mPerspectiveCameraController->getDirection().x);
-				ImGui::Text("Y: %f", mPerspectiveCameraController->getDirection().y);
-				ImGui::Text("Z: %f", mPerspectiveCameraController->getDirection().z);
-			}
-			if (ImGui::Button("Reset Orthographic Camera")) {
-				TG_mOrthoCameraController->setPosition({ 0.0f, 0.0f, 1.0f });
-				TG_mOrthoCameraController->setZoomLevel(1.0f);
-			}
-			if (ImGui::Button("Reset Perspective Camera")) {
-				mPerspectiveCameraController->setPosition({ 0.0f, 0.0f, 5.0f });
-				mPerspectiveCameraController->setDirection({ 0.0f, 0.0f, 0.0f });
+				mImGuiSettings.CurrentDemoCollapseMenuOpen = false;
 			}
 
-			mImGuiSettings.CameraCollapseMenuOpen = true;
-		} else {
-			mImGuiSettings.CameraCollapseMenuOpen = false;
+			//TODO:: Use different formats, currently looks bad
+			ImGui::SetNextItemOpen(mImGuiSettings.CameraCollapseMenuOpen);
+			if (ImGui::CollapsingHeader("Camera")) {
+				const bool orthoCameraActive = mImGuiSettings.UseOrthographicCamera;
+				const bool perspectiveCameraActive = !orthoCameraActive;
+				if (ImGui::RadioButton("Orthographic Camera", orthoCameraActive)) {
+					mImGuiSettings.UseOrthographicCamera = true;
+				}
+				ImGui::SameLine();
+				if (ImGui::RadioButton("Perspective Camera", perspectiveCameraActive)) {
+					mImGuiSettings.UseOrthographicCamera = false;
+				}
+				ImGui::Text("Current Camera: ");
+				ImGui::SameLine();
+				ImGui::Text(mImGuiSettings.UseOrthographicCamera ? "Orthographic" : "Perspective");
+				if (mImGuiSettings.UseOrthographicCamera) {
+					ImGui::Text("Orthographic Camera Controls");
+					ImGui::BulletText("W, A, S, D: Move Camera");
+					ImGui::BulletText("Hold Left Shift: Increase move speed");
+					ImGui::BulletText("Z, X: Zoom Camera In & Out");
+					ImGui::BulletText("Right Click Drag Camera");
+					imGuiDisplayHelpTooltip("NOTE:: Drag doesn't work properly at all update rates");
+					ImGui::Text("Camera Position");
+					ImGui::Text("X: %f", TG_mOrthoCameraController->getPosition().x);
+					ImGui::Text("Y: %f", TG_mOrthoCameraController->getPosition().y);
+					ImGui::Text("Zoom: %f", TG_mOrthoCameraController->getZoomLevel());
+					imGuiDisplayHelpTooltip("Higher is more \"zoomed in\" and lower is more \"zoomed out\"");
+				} else {
+					ImGui::Text("Perspective Camera Controls");
+					ImGui::Text("Position");
+					ImGui::Text("X: %f", mPerspectiveCameraController->getPosition().x);
+					ImGui::Text("Y: %f", mPerspectiveCameraController->getPosition().y);
+					ImGui::Text("Z: %f", mPerspectiveCameraController->getPosition().z);
+					ImGui::Text("Direction");
+					ImGui::Text("X: %f", mPerspectiveCameraController->getDirection().x);
+					ImGui::Text("Y: %f", mPerspectiveCameraController->getDirection().y);
+					ImGui::Text("Z: %f", mPerspectiveCameraController->getDirection().z);
+				}
+				if (ImGui::Button("Reset Orthographic Camera")) {
+					TG_mOrthoCameraController->setPosition({ 0.0f, 0.0f, 1.0f });
+					TG_mOrthoCameraController->setZoomLevel(1.0f);
+				}
+				if (ImGui::Button("Reset Perspective Camera")) {
+					mPerspectiveCameraController->setPosition({ 0.0f, 0.0f, 5.0f });
+					mPerspectiveCameraController->setDirection({ 0.0f, 0.0f, 0.0f });
+				}
+
+				mImGuiSettings.CameraCollapseMenuOpen = true;
+			} else {
+				mImGuiSettings.CameraCollapseMenuOpen = false;
+			}
+
+			ImGui::EndTabItem();
+		}
+		
+		if (ImGui::BeginTabItem("UI Style")) {
+			ImGui::ShowStyleSelector("ImGui Style");
+			imGuiDisplayHelpTooltip("Currently UI style selection is not persistent");
+			ImGui::EndTabItem();
 		}
 
+		ImGui::EndTabBar();
 		ImGui::End();
-	}
 
-	void TG_AppLogic::imGuiRenderToDoListWindow() {
-		ImGui::Begin("Todo List");
-		ImGui::Text("Things to do/fix in no particular order");
-
-		if (ImGui::CollapsingHeader("Top Tier")) {
-			ImGui::Bullet();
-			ImGui::TextWrapped("Multiple texture support for dynamic batches");
-			ImGui::Bullet();
-			ImGui::TextWrapped("Some kind of text rendering");
-			ImGui::Bullet();
-			ImGui::TextWrapped("Allow for multiple demos to be displayed at once");
-
-			mImGuiSettings.ToDoListTopTierCollapseMenuOpen = true;
-		} else {
-			mImGuiSettings.ToDoListTopTierCollapseMenuOpen = false;
-		}
-
-		if (ImGui::CollapsingHeader("Mid Tier")) {
-			ImGui::Bullet();
-			ImGui::TextWrapped("Multiple \"custom\" pipelines & ability to safely close them when needed.");
-			ImGui::Bullet();
-			ImGui::TextWrapped("Fix texture artifacts caused, I think, by casting float to int in shader for texture array index");
-			ImGui::Bullet();
-			ImGui::TextWrapped("Maybe have a \"Master Texture Array\" or a \"Static\" and a \"Dynamic\" Texture Array to manage how batches and textures are sorted for uniform and vertex input");
-			ImGui::Bullet();
-			ImGui::TextWrapped("Abilitiy to keep buffers mapped, currently when data is set on the GPU it is mapped, copied, unmapped");
-
-			mImGuiSettings.ToDoListMidTierCollapseMenuOpen = true;
-		} else {
-			mImGuiSettings.ToDoListMidTierCollapseMenuOpen = false;
-		}
-
-		if (ImGui::CollapsingHeader("Bottom Tier")) {
-			ImGui::Bullet();
-			ImGui::TextWrapped("Better Perspective camera and camera controller");
-			ImGui::Bullet();
-			ImGui::TextWrapped("Texture atlas");
-			ImGui::Bullet();
-			ImGui::TextWrapped("Custom Application/Engine name & icon for window/taskbar");
-
-
-			mImGuiSettings.ToDoListBottomTierCollapseMenuOpen = true;
-		} else {
-			mImGuiSettings.ToDoListBottomTierCollapseMenuOpen = false;
-		}
-
+		ImGui::Begin("Test for docking");
 		ImGui::End();
 	}
 

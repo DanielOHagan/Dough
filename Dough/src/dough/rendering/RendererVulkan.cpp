@@ -253,14 +253,14 @@ namespace DOH {
 		int i = 0;
 		for (const auto& queueFamily : queueFamilies) {
 			if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-				indices.graphicsFamily = i;
+				indices.GraphicsFamily = i;
 			}
 
 			VkBool32 presentSupport = false;
 			vkGetPhysicalDeviceSurfaceSupportKHR(device, i, mSurface, &presentSupport);
 
 			if (presentSupport) {
-				indices.presentFamily = i;
+				indices.PresentFamily = i;
 			}
 
 			if (indices.isComplete()) {
@@ -293,7 +293,7 @@ namespace DOH {
 		QueueFamilyIndices indices = queryQueueFamilies(mPhysicalDevice);
 
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-		std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+		std::set<uint32_t> uniqueQueueFamilies = {indices.GraphicsFamily.value(), indices.PresentFamily.value()};
 
 		float queuePriority = 1.0f;
 		for (uint32_t queueFamily : uniqueQueueFamilies) {

@@ -17,7 +17,7 @@ namespace DOH {
 		VkQueue Queue;//graphics queue
 		uint32_t MinImageCount;
 		uint32_t ImageCount;
-		VkRenderPass UiRenderPass;
+		VkRenderPass RenderPass;
 	};
 
 	class ImGuiWrapper : public IGPUResourceVulkan {

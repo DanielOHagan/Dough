@@ -70,9 +70,9 @@ namespace DOH {
 		createInfo.imageArrayLayers = 1;
 		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-		uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+		uint32_t queueFamilyIndices[] = {indices.GraphicsFamily.value(), indices.PresentFamily.value()};
 
-		if (indices.graphicsFamily != indices.presentFamily) {
+		if (indices.GraphicsFamily != indices.PresentFamily) {
 			createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 			createInfo.queueFamilyIndexCount = 2;
 			createInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -105,8 +105,27 @@ namespace DOH {
 
 		createImageViews(logicDevice);
 
-		mSceneRenderPass = ObjInit::renderPass(mImageFormat, false, true, true);
-		mAppUiRenderPass = ObjInit::renderPass(mImageFormat, true, false , false, { 1, 0, 0 });
+		mSceneRenderPass = ObjInit::renderPass(
+			mImageFormat,
+			VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_ATTACHMENT_LOAD_OP_CLEAR,
+			true
+		);
+		mAppUiRenderPass = ObjInit::renderPass(
+			mImageFormat,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_ATTACHMENT_LOAD_OP_LOAD,
+			false
+		);
+		mImGuiRenderPass = ObjInit::renderPass(
+			mImageFormat,
+			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+			VK_ATTACHMENT_LOAD_OP_LOAD,
+			false
+		);
 
 		createFrameBuffers(logicDevice);
 	}
@@ -114,6 +133,7 @@ namespace DOH {
 	void SwapChainVulkan::close(VkDevice logicDevice) {
 		mSceneRenderPass->close(logicDevice);
 		mAppUiRenderPass->close(logicDevice);
+		mImGuiRenderPass->close(logicDevice);
 
 		destroyFrameBuffers(logicDevice);
 
@@ -135,6 +155,7 @@ namespace DOH {
 		const size_t imageCount = getImageCount();
 		mSceneFrameBuffers.resize(imageCount);
 		mAppUiFrameBuffers.resize(imageCount);
+		mImGuiFrameBuffers.resize(imageCount);
 
 		for (size_t i = 0; i < imageCount; i++) {
 			VkImageView sceneAttachments[] = { mImageViews[i] };
@@ -166,6 +187,21 @@ namespace DOH {
 				vkCreateFramebuffer(logicDevice, &appUiFrameBufferInfo, nullptr, &mAppUiFrameBuffers[i]),
 				"Failed to create App Ui FrameBuffer."
 			);
+
+			VkImageView imGuiAttachments[] = { mImageViews[i] };
+			VkFramebufferCreateInfo imGuiFrameBufferInfo = {};
+			imGuiFrameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			imGuiFrameBufferInfo.renderPass = mImGuiRenderPass->get();
+			imGuiFrameBufferInfo.attachmentCount = 1;
+			imGuiFrameBufferInfo.pAttachments = imGuiAttachments;
+			imGuiFrameBufferInfo.width = mExtent.width;
+			imGuiFrameBufferInfo.height = mExtent.height;
+			imGuiFrameBufferInfo.layers = 1;
+
+			VK_TRY(
+				vkCreateFramebuffer(logicDevice, &imGuiFrameBufferInfo, nullptr, &mImGuiFrameBuffers[i]),
+				"Failed to create ImGui FrameBuffer."
+			);
 		}
 	}
 
@@ -177,6 +213,10 @@ namespace DOH {
 		for (VkFramebuffer frameBuffer : mAppUiFrameBuffers) {
 			vkDestroyFramebuffer(logicDevice, frameBuffer, nullptr);
 		}
+
+		for (VkFramebuffer frameBuffer : mImGuiFrameBuffers) {
+			vkDestroyFramebuffer(logicDevice, frameBuffer, nullptr);
+		}
 	}
 	
 	void SwapChainVulkan::beginRenderPass(ERenderPassType type, size_t frameBufferIndex, VkCommandBuffer cmd) {
@@ -186,6 +226,9 @@ namespace DOH {
 				break;
 			case ERenderPassType::APP_UI:
 				mAppUiRenderPass->begin(mAppUiFrameBuffers[frameBufferIndex], mExtent, cmd);
+				break;
+			case ERenderPassType::IMGUI:
+				mImGuiRenderPass->begin(mImGuiFrameBuffers[frameBufferIndex], mExtent, cmd);
 				break;
 			default:
 				LOG_ERR("Unknown render pass type");
@@ -229,6 +272,11 @@ namespace DOH {
 					THROW("App UI render pass is null");
 				}
 				return *mAppUiRenderPass;
+			case ERenderPassType::IMGUI:
+				if (mImGuiRenderPass == nullptr) {
+					THROW("ImGui render pass is null");
+				}
+				return *mImGuiRenderPass;
 		}
 
 		THROW("Unknown render pass type");

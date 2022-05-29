@@ -21,11 +21,11 @@ namespace DOH {
 	};
 
 	struct QueueFamilyIndices {
-		std::optional<uint32_t> graphicsFamily;
-		std::optional<uint32_t> presentFamily;
+		std::optional<uint32_t> GraphicsFamily;
+		std::optional<uint32_t> PresentFamily;
 
 		bool isComplete() {
-			return graphicsFamily.has_value() && presentFamily.has_value();
+			return GraphicsFamily.has_value() && PresentFamily.has_value();
 		}
 	};
 

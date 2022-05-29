@@ -31,6 +31,7 @@
 
 // CHANGELOG
 // (minor and older changes stripped away, please see git history for details)
+//  2022-05-29: Enabled pipeline creation for individual windows
 //  2022-XX-XX: Platform: Added support for multiple windows via the ImGuiPlatformIO interface.
 //  2021-10-15: Vulkan: Call vkCmdSetScissor() at the end of render a full-viewport to reduce likehood of issues with people using VK_DYNAMIC_STATE_SCISSOR in their app without calling vkCmdSetScissor() explicitly every frame.
 //  2021-06-29: Reorganized backend to pull data from a single structure to facilitate usage with multiple-contexts (all g_XXXX access changed to bd->XXXX).
@@ -1442,7 +1443,9 @@ void ImGui_ImplVulkanH_CreateWindowSwapChain(VkPhysicalDevice physical_device, V
 
         // We do not create a pipeline by default as this is also used by examples' main.cpp,
         // but secondary viewport in multi-viewport mode may want to create one with:
-        //ImGui_ImplVulkan_CreatePipeline(device, allocator, VK_NULL_HANDLE, wd->RenderPass, VK_SAMPLE_COUNT_1_BIT, &wd->Pipeline, bd->Subpass);
+        
+        //(29-05-2022) IMPORTANT NOTE: I, writer of DOH engine, enabled this function separate from default ImGui implementation for multi-window support.
+        ImGui_ImplVulkan_CreatePipeline(device, allocator, VK_NULL_HANDLE, wd->RenderPass, VK_SAMPLE_COUNT_1_BIT, &wd->Pipeline, ImGui_ImplVulkan_GetBackendData()->Subpass);
     }
 
     // Create The Image Views

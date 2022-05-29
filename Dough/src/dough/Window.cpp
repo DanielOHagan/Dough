@@ -65,6 +65,8 @@ namespace DOH {
 
 		glfwSetWindowUserPointer(mWindowPtr, this);
 
+		glfwSetWindowSizeLimits(mWindowPtr, 1, 1, GLFW_DONT_CARE, GLFW_DONT_CARE);
+
 		setUpCallbacks();
 	}
 
@@ -82,9 +84,7 @@ namespace DOH {
 				case EWindowDisplayMode::WINDOWED:
 				{
 					//TODO:: keep a track of the windowed mode width/height separate from mWidth/mHeight as the latter
-					// deal with viewport & swapchain resizing
-					// 
-					//TODO:: when switching from borderless fullscreen to windowed this fails to get window monitor
+					// deal with viewport & swapchain resizing (is this possible with how glfw dispatches its events?)
 
 					mCurrentDisplayMode = EWindowDisplayMode::WINDOWED;
 					if (mSelectedMonitor != nullptr) {
@@ -172,6 +172,10 @@ namespace DOH {
 		}
 	}
 
+	void Window::setTitle(const std::string& title) {
+		glfwSetWindowTitle(mWindowPtr, title.c_str());
+	}
+
 	const std::string& Window::getSelectedMonitorName() const {
 		for (const auto& monitor : mAvailableMonitors) {
 			if (monitor.first == mSelectedMonitor) {
@@ -179,7 +183,7 @@ namespace DOH {
 			}
 		}
 
-		return "Unable to find monitor";
+		THROW("Unable to find selected monitor");
 	}
 
 	const std::vector<std::string> Window::getAllAvailableMonitorNames() const {

@@ -24,12 +24,13 @@ namespace DOH {
 
 	std::shared_ptr<RenderPassVulkan> ObjInit::renderPass(
 		VkFormat imageFormat,
-		bool hasPassBefore,
-		bool hasPassAfter,
+		VkImageLayout initialLayout,
+		VkImageLayout finalLayout,
+		VkAttachmentLoadOp loadOp,
 		bool enableClearColour,
 		VkClearValue clearColour
 	) {
-		return CONTEXT.createRenderPass(imageFormat, hasPassBefore, hasPassAfter, enableClearColour, clearColour);
+		return CONTEXT.createRenderPass(imageFormat, initialLayout, finalLayout, loadOp, enableClearColour, clearColour);
 	}
 
 

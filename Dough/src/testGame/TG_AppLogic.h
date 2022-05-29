@@ -136,7 +136,6 @@ namespace TG {
 		struct ImGuiSettings {
 			//ImGui window rendering controls
 			bool RenderDebugWindow = true;
-			bool RenderToDoListWindow = false;
 
 			//Demos
 			struct GridDemoSettings {
@@ -178,10 +177,6 @@ namespace TG {
 
 			//Camera (switch between orthographic and perspective camera)
 			bool UseOrthographicCamera = true;
-			//ToDo List
-			bool ToDoListTopTierCollapseMenuOpen = true;
-			bool ToDoListMidTierCollapseMenuOpen = true;
-			bool ToDoListBottomTierCollapseMenuOpen = true;
 		} mImGuiSettings;
 	public:
 		TG_AppLogic();
@@ -216,6 +211,6 @@ namespace TG {
 		//ImGui convenience and separated functions
 		void imGuiDisplayHelpTooltip(const char* message);
 		void imGuiRenderDebugWindow();
-		void imGuiRenderToDoListWindow();
+		//void imGuiRenderToDoListWindow();
 	};
 }

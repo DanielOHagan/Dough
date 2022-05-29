@@ -171,10 +171,18 @@ namespace DOH {
 
 		//-----Context-----
 		std::shared_ptr<SwapChainVulkan> createSwapChain(SwapChainCreationInfo& swapChainCreate);
+		//std::shared_ptr<RenderPassVulkan> createRenderPass(
+		//	VkFormat imageFormat,
+		//	bool hasPassBefore,
+		//	bool hasPassAfter,
+		//	bool enableClearColour,
+		//	VkClearValue clearColour
+		//);
 		std::shared_ptr<RenderPassVulkan> createRenderPass(
 			VkFormat imageFormat,
-			bool hasPassBefore,
-			bool hasPassAfter,
+			VkImageLayout initialLayout,
+			VkImageLayout finalLayout,
+			VkAttachmentLoadOp loadOp,
 			bool enableClearColour,
 			VkClearValue clearColour
 		);

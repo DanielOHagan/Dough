@@ -43,6 +43,7 @@ namespace DOH {
 		void close();
 		void iconify();
 		void selectMonitor(int selectedMonitorIndex);
+		void setTitle(const std::string& title);
 		const std::string& getSelectedMonitorName() const;
 		const std::vector<std::string> getAllAvailableMonitorNames() const;
 

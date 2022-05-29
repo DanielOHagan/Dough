@@ -32,10 +32,11 @@ namespace DOH {
 
 		static std::shared_ptr<RenderPassVulkan> renderPass(
 			VkFormat imageFormat,
-			bool hasPassBefore,
-			bool hasPassAfter,
+			VkImageLayout initialLayout,
+			VkImageLayout finalLayout,
+			VkAttachmentLoadOp loadOp,
 			bool enableClearColour,
-			VkClearValue clearColour = { 0.264f, 0.328f, 0.484f, 1.0f }
+			VkClearValue clearColour = {0.264f, 0.328f, 0.484f, 1.0f}
 		);
 
 

@@ -72,8 +72,8 @@ namespace DOH {
 		imGuiInitInfo.LogicDevice = mLogicDevice;
 		imGuiInitInfo.PhysicalDevice = mPhysicalDevice;
 		imGuiInitInfo.Queue = mGraphicsQueue;
-		imGuiInitInfo.QueueFamily = VK_QUEUE_GRAPHICS_BIT;
-		imGuiInitInfo.UiRenderPass = mSwapChain->getRenderPass(SwapChainVulkan::ERenderPassType::APP_UI).get();
+		imGuiInitInfo.QueueFamily = queueFamilyIndices.GraphicsFamily.value();
+		imGuiInitInfo.RenderPass = mSwapChain->getRenderPass(SwapChainVulkan::ERenderPassType::IMGUI).get();
 		imGuiInitInfo.VulkanInstance = vulkanInstance;
 
 		mImGuiWrapper->init(window, imGuiInitInfo);
@@ -236,6 +236,12 @@ namespace DOH {
 		//Draw Application UI
 		drawUi(imageIndex, cmd);
 
+		//Draw ImGui
+		mSwapChain->beginRenderPass(SwapChainVulkan::ERenderPassType::IMGUI, imageIndex, cmd);
+		mImGuiWrapper->render(cmd);
+		mSwapChain->endRenderPass(cmd);
+
+		mImGuiWrapper->endFrame();
 
 		//Clear each frame
 		if (mUsingScenePipeline) {
@@ -270,7 +276,7 @@ namespace DOH {
 			mAppUiGraphicsPipeline->recordDrawCommands(imageIndex, cmd);
 		}
 		//Renderer2d::get().flushUi();
-		mImGuiWrapper->render(cmd);
+		//mImGuiWrapper->render(cmd);
 		mSwapChain->endRenderPass(cmd);
 	}
 
@@ -335,14 +341,14 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::createQueues(QueueFamilyIndices& queueFamilyIndices) {
-		vkGetDeviceQueue(mLogicDevice, queueFamilyIndices.graphicsFamily.value(), 0, &mGraphicsQueue);
-		vkGetDeviceQueue(mLogicDevice, queueFamilyIndices.presentFamily.value(), 0, &mPresentQueue);
+		vkGetDeviceQueue(mLogicDevice, queueFamilyIndices.GraphicsFamily.value(), 0, &mGraphicsQueue);
+		vkGetDeviceQueue(mLogicDevice, queueFamilyIndices.PresentFamily.value(), 0, &mPresentQueue);
 	}
 
 	void RenderingContextVulkan::createCommandPool(QueueFamilyIndices& queueFamilyIndices) {
 		VkCommandPoolCreateInfo cmdPoolCreateInfo = {};
 		cmdPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		cmdPoolCreateInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+		cmdPoolCreateInfo.queueFamilyIndex = queueFamilyIndices.GraphicsFamily.value();
 		cmdPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 		VK_TRY(
@@ -815,18 +821,36 @@ namespace DOH {
 		return std::make_shared<SwapChainVulkan>(mLogicDevice, swapChainCreate);
 	}
 
+	//std::shared_ptr<RenderPassVulkan> RenderingContextVulkan::createRenderPass(
+	//	VkFormat imageFormat,
+	//	bool hasPassBefore,
+	//	bool hasPassAfter,
+	//	bool enableClearColour,
+	//	VkClearValue clearColour = { 0.264f, 0.328f, 0.484f, 1.0f }
+	//) {
+	//	return std::make_shared<RenderPassVulkan>(
+	//		mLogicDevice,
+	//		imageFormat,
+	//		hasPassBefore,
+	//		hasPassAfter,
+	//		enableClearColour,
+	//		clearColour
+	//	);
+	//}
 	std::shared_ptr<RenderPassVulkan> RenderingContextVulkan::createRenderPass(
 		VkFormat imageFormat,
-		bool hasPassBefore,
-		bool hasPassAfter,
+		VkImageLayout initialLayout,
+		VkImageLayout finalLayout,
+		VkAttachmentLoadOp loadOp,
 		bool enableClearColour,
-		VkClearValue clearColour = { 0.264f, 0.328f, 0.484f, 1.0f }
+		VkClearValue clearColour
 	) {
 		return std::make_shared<RenderPassVulkan>(
 			mLogicDevice,
 			imageFormat,
-			hasPassBefore,
-			hasPassAfter,
+			initialLayout,
+			finalLayout,
+			loadOp,
 			enableClearColour,
 			clearColour
 		);

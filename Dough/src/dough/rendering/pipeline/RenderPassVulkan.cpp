@@ -7,23 +7,23 @@ namespace DOH {
 	RenderPassVulkan::RenderPassVulkan(
 		VkDevice logicDevice,
 		VkFormat imageFormat,
-		bool hasPassBefore,
-		bool hasPassAfter,
+		VkImageLayout initialLayout,
+		VkImageLayout finalLayout,
+		VkAttachmentLoadOp loadOp,
 		bool enableClearColour,
 		VkClearValue clearColour
-	) :	mRenderPass(VK_NULL_HANDLE),
+	) : mRenderPass(VK_NULL_HANDLE),
 		mClearColour(clearColour),
-		mClearCount(0)
-	{
+		mClearCount(0) {
 		VkAttachmentDescription colourAttachment = {};
 		colourAttachment.format = imageFormat;
 		colourAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-		colourAttachment.loadOp = enableClearColour ? VK_ATTACHMENT_LOAD_OP_CLEAR : hasPassBefore ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		colourAttachment.loadOp = loadOp;
 		colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		colourAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		colourAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		colourAttachment.initialLayout = hasPassBefore ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
-		colourAttachment.finalLayout = hasPassAfter ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		colourAttachment.initialLayout = initialLayout;
+		colourAttachment.finalLayout = finalLayout;
 
 		VkAttachmentReference colourAttachmentRef = {};
 		colourAttachmentRef.attachment = 0;
