@@ -57,8 +57,6 @@ namespace DOH {
 		void onResize(int width, int height);
 
 		void drawFrame();
-		inline void prepareScenePipeline(ShaderProgramVulkan& shaderProgram, EVertexType vertexType, bool createUniformObjects = false) const { mRenderingContext->prepareScenePipeline(shaderProgram, vertexType, createUniformObjects); }
-		inline void prepareUiPipeline(ShaderProgramVulkan& shaderProgram, EVertexType vertexType, bool createUniformObjects = false) const { mRenderingContext->prepareAppUiPipeline(shaderProgram, vertexType, createUniformObjects); }
 		inline void closeCustomPipelines() { mRenderingContext->closeCustomPipelines(); };
 		void beginScene(ICamera& camera);
 		void endScene();

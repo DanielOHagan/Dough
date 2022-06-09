@@ -7,39 +7,50 @@
 
 namespace DOH {
 
-	GraphicsPipelineVulkan::GraphicsPipelineVulkan(ShaderProgramVulkan& shaderProgram)
-	:	mGraphicsPipeline(VK_NULL_HANDLE),
-		mGraphicsPipelineLayout(VK_NULL_HANDLE),
-		mShaderProgram(shaderProgram),
-		mDescriptorPool(VK_NULL_HANDLE)
-	{}
-
 	GraphicsPipelineVulkan::GraphicsPipelineVulkan(
 		VkDevice logicDevice,
 		VkCommandPool cmdPool,
-		VkExtent2D extent,
-		VkRenderPass renderPass,
+		EVertexType vertexType,
 		ShaderProgramVulkan& shaderProgram,
-		VkVertexInputBindingDescription vertexInputBindingDesc,
-		std::vector<VkVertexInputAttributeDescription>& vertexAttributes
+		VkExtent2D extent,
+		VkRenderPass renderPass
 	) : mGraphicsPipeline(VK_NULL_HANDLE),
 		mGraphicsPipelineLayout(VK_NULL_HANDLE),
+		mVertexType(vertexType),
 		mShaderProgram(shaderProgram),
-		mDescriptorPool(VK_NULL_HANDLE)
+		mEnabled(true)
 	{
 		createUniformObjects(logicDevice);
-		init(logicDevice, vertexInputBindingDesc, vertexAttributes, extent, renderPass);
+		createPipelineLayout(logicDevice);
+		createPipeline(logicDevice, extent, renderPass);
 	}
 
-	void GraphicsPipelineVulkan::init(
+	void GraphicsPipelineVulkan::createPipelineLayout(VkDevice logicDevice) {
+		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
+		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		pipelineLayoutCreateInfo.setLayoutCount = 1;
+		pipelineLayoutCreateInfo.pSetLayouts = &mShaderProgram.getShaderDescriptor().getDescriptorSetLayout();
+
+		if (mShaderProgram.getUniformLayout().hasPushConstant()) {
+			pipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(mShaderProgram.getUniformLayout().getPushConstantRanges().size());
+			pipelineLayoutCreateInfo.pPushConstantRanges = mShaderProgram.getUniformLayout().getPushConstantRanges().data();
+		} else {
+			pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
+			pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
+		}
+
+		VK_TRY(
+			vkCreatePipelineLayout(logicDevice, &pipelineLayoutCreateInfo, nullptr, &mGraphicsPipelineLayout),
+			"Failed to create Pipeline Layout."
+		);
+	}
+
+	void GraphicsPipelineVulkan::createPipeline(
 		VkDevice logicDevice,
-		VkVertexInputBindingDescription bindingDesc,
-		std::vector<VkVertexInputAttributeDescription>& vertexAttributes,
 		VkExtent2D extent,
 		VkRenderPass renderPass
 	) {
 		mShaderProgram.loadModules(logicDevice);
-
 		TRY(!mShaderProgram.areShadersLoaded(), "Shader Modules not loaded");
 
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
@@ -59,10 +70,15 @@ namespace DOH {
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
+		//IMPORTANT:: vertex input binding is always slot 0
+		const uint32_t binding = 0;
+		const auto bindingDesc = getVertexTypeBindingDesc(mVertexType, binding, VK_VERTEX_INPUT_RATE_VERTEX);
+		const auto vertexAttribs = getVertexTypeAsAttribDesc(mVertexType, binding);
+
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
 		vertexInputInfo.pVertexBindingDescriptions = &bindingDesc;
-		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttributes.size());
-		vertexInputInfo.pVertexAttributeDescriptions = vertexAttributes.data();
+		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttribs.size());
+		vertexInputInfo.pVertexAttributeDescriptions = vertexAttribs.data();
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -123,26 +139,6 @@ namespace DOH {
 		colourBlending.attachmentCount = 1;
 		colourBlending.pAttachments = &colourBlendAttachment;
 
-		//NOTE:: Read about Dynamic States
-
-		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
-		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutCreateInfo.setLayoutCount = 1;
-		pipelineLayoutCreateInfo.pSetLayouts = &mShaderProgram.getShaderDescriptor().getDescriptorSetLayout();
-
-		if (mShaderProgram.getUniformLayout().hasPushConstant()) {
-			pipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(mShaderProgram.getUniformLayout().getPushConstantRanges().size());
-			pipelineLayoutCreateInfo.pPushConstantRanges = mShaderProgram.getUniformLayout().getPushConstantRanges().data();
-		} else {
-			pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-			pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
-		}
-
-		VK_TRY(
-			vkCreatePipelineLayout(logicDevice, &pipelineLayoutCreateInfo, nullptr, &mGraphicsPipelineLayout),
-			"Failed to create Pipeline Layout."
-		);
-
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
 		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		pipelineCreateInfo.stageCount = 2;
@@ -168,6 +164,18 @@ namespace DOH {
 	void GraphicsPipelineVulkan::close(VkDevice logicDevice) {
 		vkDestroyPipeline(logicDevice, mGraphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(logicDevice, mGraphicsPipelineLayout, nullptr);
+	}
+
+	void GraphicsPipelineVulkan::recreate(
+		VkDevice logicDevice,
+		VkExtent2D extent,
+		VkRenderPass renderPass
+	) {
+		mShaderProgram.closePipelineSpecificObjects(logicDevice);
+		vkDestroyPipeline(logicDevice, mGraphicsPipeline, nullptr);
+
+		createPipeline(logicDevice, extent, renderPass);
+		mShaderProgram.getShaderDescriptor().createDescriptorSetLayout(logicDevice);
 	}
 
 	void GraphicsPipelineVulkan::createUniformObjects(VkDevice logicDevice) {
@@ -207,10 +215,16 @@ namespace DOH {
 		mShaderProgram.getShaderDescriptor().createDescriptorSetLayout(logicDevice);
 	}
 
-	void GraphicsPipelineVulkan::uploadShaderUniforms(VkDevice logicDevice, VkPhysicalDevice physicalDevice, uint32_t imageCount) {
+	void GraphicsPipelineVulkan::uploadShaderUniforms(
+		VkDevice logicDevice,
+		VkPhysicalDevice physicalDevice,
+		uint32_t imageCount,
+		VkDescriptorPool descPool
+	) {
 		DescriptorVulkan& desc = mShaderProgram.getShaderDescriptor();
 		desc.createValueBuffers(logicDevice, physicalDevice, imageCount);
-		desc.createDescriptorSets(logicDevice, imageCount, mDescriptorPool);
+		desc.createDescriptorSets(logicDevice, imageCount, descPool);
+
 		desc.updateDescriptorSets(logicDevice, imageCount);
 	}
 

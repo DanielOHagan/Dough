@@ -18,11 +18,10 @@ namespace DOH {
 
 		//-----Pipeline-----
 		static std::shared_ptr<GraphicsPipelineVulkan> graphicsPipeline(
-			VkExtent2D extent,
-			VkRenderPass renderPass,
+			EVertexType vertexType,
 			ShaderProgramVulkan& shaderProgram,
-			VkVertexInputBindingDescription vertexInputBindingDesc,
-			std::vector<VkVertexInputAttributeDescription>& vertexAttributes
+			VkRenderPass renderPass,
+			VkExtent2D extent
 		);
 
 		//-----Context-----

@@ -7,7 +7,8 @@
 namespace DOH {
 
 	Renderer2dVulkan::Renderer2dVulkan(RenderingContextVulkan& context)
-	:	mContext(context)
+	:	mContext(context),
+		mDebugInfoDrawCount(0)
 	{}
 
 	void Renderer2dVulkan::init(VkDevice logicDevice) {
@@ -19,12 +20,8 @@ namespace DOH {
 		mStorage->close(logicDevice);
 	}
 
-	void Renderer2dVulkan::closeSwapChainSpecificObjects(VkDevice logicDevice) {
-		mStorage->closeSwapChainSpecificObjects(logicDevice);
-	}
-
-	void Renderer2dVulkan::recreateSwapChainSpecificObjects(SwapChainVulkan& swapChain) {
-		mStorage->recreateSwapChainSpecificObjects();
+	void Renderer2dVulkan::onSwapChainResize(VkDevice logicDevice, SwapChainVulkan& swapChain) {
+		mStorage->onSwapChainResize(logicDevice, swapChain);
 	}
 
 	void Renderer2dVulkan::drawQuadScene(Quad& quad) {
@@ -256,6 +253,7 @@ namespace DOH {
 				vao.setDrawCount(quadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT);
 
 				quadPipeline.addVaoToDraw(vao);
+				mDebugInfoDrawCount++;
 
 				batch.reset();
 			}
@@ -284,11 +282,13 @@ namespace DOH {
 		for (size_t i = batches.size(); i > 0; i--) {
 			if (batches[i - 1].getGeometryCount() == 0) {
 				batches.pop_back();
-				mContext.addResourceToCloseAfterUse(vaos[i - 1]);
+				mContext.closeGpuResourceImmediately(vaos[i - 1]);
 				vaos.pop_back();
 			} else {
 				break;
 			}
 		}
+
+		int d = 0;
 	}
 }

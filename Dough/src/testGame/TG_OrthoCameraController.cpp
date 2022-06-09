@@ -4,9 +4,6 @@
 
 #include <algorithm>
 
-//DEBUG::
-#include "dough/Logging.h"
-
 using namespace DOH;
 
 namespace TG {
@@ -60,11 +57,8 @@ namespace TG {
 	}
 
 	void TG_OrthoCameraController::handleInput(float delta) {
-		if (Input::isKeyPressed(DOH_KEY_LEFT_SHIFT)) {
-			mTranslationSpeed = 0.3f * 6.0f;
-		} else {
-			mTranslationSpeed = 0.3f;
-		}
+		const float translationDelta = Input::isKeyPressed(DOH_KEY_LEFT_SHIFT) ?
+			mTranslationSpeed * 6.0f * delta : mTranslationSpeed * delta;
 
 		//Zooming
 		if (Input::isKeyPressed(DOH_KEY_X)) {
@@ -76,16 +70,16 @@ namespace TG {
 
 		//WASD translation
 		if (Input::isKeyPressed(DOH_KEY_A)) {
-			translateX(-mTranslationSpeed * delta);
+			translateX(-translationDelta);
 		}
 		if (Input::isKeyPressed(DOH_KEY_D)) {
-			translateX(mTranslationSpeed * delta);
+			translateX(translationDelta);
 		}
 		if (Input::isKeyPressed(DOH_KEY_W)) {
-			translateY(mTranslationSpeed * delta);
+			translateY(translationDelta);
 		}
 		if (Input::isKeyPressed(DOH_KEY_S)) {
-			translateY(-mTranslationSpeed * delta);
+			translateY(-translationDelta);
 		}
 
 		//Click and Drag
@@ -99,7 +93,6 @@ namespace TG {
 			//TODO:: fix differing speeds on differing UPS rates
 			//Invert axes for a "drag" effect
 			const glm::vec2 currentMousePos = Input::getCursorPos();
-			const float translationDelta = mTranslationSpeed * delta;
 
 			translateXY(
 				(mCursorLastPosUpdate.x - currentMousePos.x) * translationDelta,

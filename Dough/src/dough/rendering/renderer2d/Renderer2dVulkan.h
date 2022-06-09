@@ -15,6 +15,7 @@ namespace DOH {
 	private:
 		RenderingContextVulkan& mContext;
 		std::unique_ptr<Renderer2dStorageVulkan> mStorage;
+		uint32_t mDebugInfoDrawCount;
 
 	public:
 		Renderer2dVulkan(RenderingContextVulkan& context);
@@ -24,8 +25,7 @@ namespace DOH {
 
 		void init(VkDevice logicDevce);
 		void close(VkDevice logicDevice);
-		void closeSwapChainSpecificObjects(VkDevice logicDevice);
-		void recreateSwapChainSpecificObjects(SwapChainVulkan& swapChain);
+		void onSwapChainResize(VkDevice logicDevice, SwapChainVulkan& swapChain);
 
 		void updateSceneUniformData(VkDevice logicDevice, uint32_t currentImage, glm::mat4x4& sceneProjView);
 		void flushScene(VkDevice logicDevice, uint32_t imageIndex, VkCommandBuffer cmd);
@@ -43,9 +43,11 @@ namespace DOH {
 		//void drawQuadUi(Quad& quad);
 
 
-		//-----DEBUG----- Storage should only be visible to Renderer2d, used to show info to ImGui in app
+		//-----DEBUG----- Used to show info to ImGui in app
 		inline Renderer2dStorageVulkan& getStorage() const { return *mStorage; }
 		inline size_t getQuadBatchCount() const { return mStorage->getQuadRenderBatches().size(); }
+		inline uint32_t getDrawCount() const { return mDebugInfoDrawCount; }
+		inline void resetDrawCount() { mDebugInfoDrawCount = 0; }
 	};
 
 }

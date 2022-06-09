@@ -30,35 +30,45 @@ namespace TG {
 	}
 
 	void TG_PerspectiveCameraController::handleInput(float delta) {
-		if (Input::isKeyPressed(DOH_KEY_LEFT_SHIFT)) {
-			mTranslationSpeed = 0.3f * 6.0f;
-		} else {
-			mTranslationSpeed = 0.3f;
-		}
+
+		const float translationDelta = Input::isKeyPressed(DOH_KEY_LEFT_SHIFT) ?
+			mTranslationSpeed * 6.0f * delta : mTranslationSpeed * delta;
 
 		if (Input::isKeyPressed(DOH_KEY_A)) {
-			mPosition.x -= mTranslationSpeed * delta;
+			mPosition.x -= translationDelta;
 		}
 		if (Input::isKeyPressed(DOH_KEY_D)) {
-			mPosition.x += mTranslationSpeed * delta;
+			mPosition.x += translationDelta;
 		}
 		if (Input::isKeyPressed(DOH_KEY_W)) {
-			mPosition.z -= mTranslationSpeed * delta;
+			mPosition.z -= translationDelta;
 		}
 		if (Input::isKeyPressed(DOH_KEY_S)) {
-			mPosition.z += mTranslationSpeed * delta;
+			mPosition.z += translationDelta;
 		}
 		if (Input::isKeyPressed(DOH_KEY_SPACE)) {
-			mPosition.y += mTranslationSpeed * delta;
+			mPosition.y += translationDelta;
 		}
 		if (Input::isKeyPressed(DOH_KEY_C)) {
-			mPosition.y -= mTranslationSpeed * delta;
+			mPosition.y -= translationDelta;
 		}
 		if (Input::isKeyPressed(DOH_KEY_Z)) {
-			mDirectionFacing.z += mTranslationSpeed * delta;
+			mDirectionFacing.z += translationDelta;
 		}
 		if (Input::isKeyPressed(DOH_KEY_X)) {
-			mDirectionFacing.z -= mTranslationSpeed * delta;
+			mDirectionFacing.z -= translationDelta;
+		}
+		if (Input::isKeyPressed(DOH_KEY_UP)) {
+			mDirectionFacing.y += translationDelta;
+		}
+		if (Input::isKeyPressed(DOH_KEY_DOWN)) {
+			mDirectionFacing.y -= translationDelta;
+		}
+		if (Input::isKeyPressed(DOH_KEY_RIGHT)) {
+			mDirectionFacing.x += translationDelta;
+		}
+		if (Input::isKeyPressed(DOH_KEY_LEFT)) {
+			mDirectionFacing.x -= translationDelta;
 		}
 
 		//Click and Drag

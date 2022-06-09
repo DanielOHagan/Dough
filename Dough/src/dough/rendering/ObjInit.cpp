@@ -8,13 +8,12 @@ namespace DOH {
 
 	//-----Pipeline-----
 	std::shared_ptr<GraphicsPipelineVulkan> ObjInit::graphicsPipeline(
-		VkExtent2D extent,
-		VkRenderPass renderPass,
+		EVertexType vertexType,
 		ShaderProgramVulkan& shaderProgram,
-		VkVertexInputBindingDescription vertexInputBindingDesc,
-		std::vector<VkVertexInputAttributeDescription>& vertexAttributes
+		VkRenderPass renderPass,
+		VkExtent2D extent
 	) {
-		return CONTEXT.createGraphicsPipeline(extent, renderPass, shaderProgram, vertexInputBindingDesc, vertexAttributes);
+		return CONTEXT.createGraphicsPipeline(vertexType, shaderProgram, renderPass, extent);
 	}
 
 	//-----Context-----

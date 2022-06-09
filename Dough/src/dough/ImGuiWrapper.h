@@ -21,6 +21,12 @@ namespace DOH {
 	};
 
 	class ImGuiWrapper : public IGPUResourceVulkan {
+
+		//TODO:: 
+		// Interacting with "detatched" ImGui windows does NOT keep the main window focused
+		//
+		// Handle events that happen when ImGui is focused (sometimes it might be preferable
+		//	that imgui is focused and allow for certain functions in app e.g. camera movement)
 	
 	private:
 		VkDescriptorPool mDescriptorPool = VK_NULL_HANDLE;

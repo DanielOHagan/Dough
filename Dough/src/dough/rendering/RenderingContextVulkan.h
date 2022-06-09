@@ -8,6 +8,24 @@
 
 namespace DOH {
 
+	struct RenderingDebugInfo {
+		uint32_t SceneDrawCalls;
+		uint32_t UiDrawCalls;
+		uint32_t BatchRendererDrawCalls;
+
+		uint32_t TotalDrawCalls;
+
+		inline void updateTotalDrawCallCount() {
+			TotalDrawCalls = SceneDrawCalls + UiDrawCalls + BatchRendererDrawCalls;
+		}
+
+		inline void reset() {
+			SceneDrawCalls = 0;
+			UiDrawCalls = 0;
+			BatchRendererDrawCalls = 0;
+		}
+	};
+
 	class RenderingContextVulkan {
 
 	private:
@@ -18,6 +36,7 @@ namespace DOH {
 
 		//NOTE:: in OpenGL space because glm
 		glm::mat4x4 mAppUiProjection;
+		RenderingDebugInfo mRenderingDebugInfo;
 
 		//Shared device handles for convenience
 		VkDevice mLogicDevice;
@@ -32,15 +51,16 @@ namespace DOH {
 
 		std::shared_ptr<SwapChainVulkan> mSwapChain;
 
-		std::shared_ptr<GraphicsPipelineVulkan> mSceneGraphicsPipeline;
-		std::shared_ptr<GraphicsPipelineVulkan> mAppUiGraphicsPipeline;
+		std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>> mSceneGraphicsPipelines;
+		std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>> mUiGraphicsPipelines;
 
 		std::unique_ptr<Renderer2dVulkan> mRenderer2d;
 		std::unique_ptr<ImGuiWrapper> mImGuiWrapper;
 
 		//Used by Scene and UI pipelines
-		//TODO:: Separate the custom Scene and UI resources (descriptors, pipelines, buffers, etc...)
-		// so they have their own 
+		//TODO::
+		// Separate the custom Scene and UI resources (descriptors, pipelines, buffers, etc...)
+		//	so they have their own.
 		VkDescriptorPool mDescriptorPool;
 
 		VkCommandPool mCommandPool;
@@ -54,9 +74,6 @@ namespace DOH {
 		std::vector<VkSemaphore> mRenderFinishedSemaphores;
 		std::vector<VkFence> mFramesInFlightFences;
 		std::vector<VkFence> mImageFencesInFlight;
-
-		bool mUsingScenePipeline;
-		bool mUsingUiPipeline;
 
 	public:
 		RenderingContextVulkan(VkDevice logicDevice, VkPhysicalDevice physicalDevice);
@@ -73,15 +90,23 @@ namespace DOH {
 		);
 		void close();
 		//Finalise the creation of custom pipelines
-		void prepareScenePipeline(ShaderProgramVulkan& shaderProgram, EVertexType vertexType, bool createUniformObjects = false);
-		void prepareAppUiPipeline(ShaderProgramVulkan& shaderProgram, EVertexType vertexType, bool createUniformObjects = false);
 		void createPipelineUniformObjects(GraphicsPipelineVulkan& pipeline, VkDescriptorPool descPool);
-		void createCustomPipelinesUniformObjects();
+		void createPipelineUniformObjects();
 		void closeCustomPipelines();
-		void closeScenePipeline();
-		void closeUiPipeline();
-		VkDescriptorPool createDescriptorPool(std::vector<DescriptorTypeInfo>& descTypes, uint32_t pipelineCount);
+		void closeScenePipelines();
+		void closeUiPipelines();
+		VkDescriptorPool createDescriptorPool(std::vector<DescriptorTypeInfo>& descTypes);
 		bool isReady() const;
+		void createPipeline(
+			const std::string& name,
+			const SwapChainVulkan::ERenderPassType renderPass,
+			ShaderProgramVulkan& shaderProgram,
+			const EVertexType vertexType,
+			const bool enabled = true
+		);
+		void enablePipeline(const SwapChainVulkan::ERenderPassType renderPass, const std::string& name, bool enable);
+		void closePipeline(const SwapChainVulkan::ERenderPassType renderPass, const std::string& name);
+
 
 		inline void onResize(
 			SwapChainSupportDetails& scSupport,
@@ -97,10 +122,18 @@ namespace DOH {
 		void drawFrame();
 		inline void setSceneUniformBufferObject(ICamera& camera) { mSceneUbo.ProjectionViewMat = camera.getProjectionViewMatrix(); }
 		inline void setUiProjection(glm::mat4x4& proj) { mAppUiProjection = proj; }
-		inline void addVaoToSceneDrawList(VertexArrayVulkan& vao) const { mSceneGraphicsPipeline->addVaoToDraw(vao); }
-		inline void addVaoToUiDrawList(VertexArrayVulkan& vao) const { mAppUiGraphicsPipeline->addVaoToDraw(vao); }
+		
+		//TODO:: a better way of adding to the draw list, maybe have the pipeline create method return a reference
+		inline void addVaoToSceneDrawList(const std::string& name, VertexArrayVulkan& vao) const { 
+			mSceneGraphicsPipelines.at(name)->addVaoToDraw(vao);
+		}
+		inline void addVaoToUiDrawList(const std::string& name, VertexArrayVulkan& vao) const {
+			mUiGraphicsPipelines.at(name)->addVaoToDraw(vao);
+		}
 
-		inline void addResourceToCloseAfterUse(std::shared_ptr<IGPUResourceVulkan> res) { mToReleaseGpuResources.push_back(res); }
+		//TODO:: Ability for better control over when GPU resources can be released (e.g. after certain program stages or as soon as possible)
+		inline void addGpuResourceToCloseAfterUse(std::shared_ptr<IGPUResourceVulkan> res) { mToReleaseGpuResources.push_back(res); }
+		void closeGpuResourceImmediately(std::shared_ptr<IGPUResourceVulkan> res);
 		void releaseGpuResources();
 
 		//TODO:: Prefer grouping commands together then flushing rather than only single commands
@@ -141,6 +174,7 @@ namespace DOH {
 		inline ImGuiWrapper& getImGuiWrapper() const { return *mImGuiWrapper; }
 		inline SwapChainVulkan& getSwapChain() const { return *mSwapChain; }
 		inline Renderer2dVulkan& getRenderer2d() const { return *mRenderer2d; }
+		inline const RenderingDebugInfo& getRenderingDebugInfo() const { return mRenderingDebugInfo; }
 		inline void setLogicDevice(VkDevice logicDevice) { mLogicDevice = logicDevice; }
 		void setPhysicalDevice(VkPhysicalDevice physicalDevice);
 
@@ -162,22 +196,14 @@ namespace DOH {
 
 		//-----Pipeline-----
 		std::shared_ptr<GraphicsPipelineVulkan> createGraphicsPipeline(
-			VkExtent2D extent,
-			VkRenderPass renderPass,
+			EVertexType vertexType,
 			ShaderProgramVulkan& shaderProgram,
-			VkVertexInputBindingDescription vertexInputBindingDesc,
-			std::vector<VkVertexInputAttributeDescription>& vertexAttributes
+			VkRenderPass renderPass,
+			VkExtent2D extent
 		);
 
 		//-----Context-----
 		std::shared_ptr<SwapChainVulkan> createSwapChain(SwapChainCreationInfo& swapChainCreate);
-		//std::shared_ptr<RenderPassVulkan> createRenderPass(
-		//	VkFormat imageFormat,
-		//	bool hasPassBefore,
-		//	bool hasPassAfter,
-		//	bool enableClearColour,
-		//	VkClearValue clearColour
-		//);
 		std::shared_ptr<RenderPassVulkan> createRenderPass(
 			VkFormat imageFormat,
 			VkImageLayout initialLayout,
@@ -258,8 +284,6 @@ namespace DOH {
 			uint32_t width,
 			uint32_t height
 		);
-		void updateSceneUbo(uint32_t currentImage);
-		void updateUiProjectionMatrix(uint32_t currentImage);
 		void drawScene(uint32_t imageIndex, VkCommandBuffer cmd);
 		void drawUi(uint32_t imageIndex, VkCommandBuffer cmd);
 		void present(uint32_t imageIndex, VkCommandBuffer cmd);

@@ -69,9 +69,10 @@ namespace DOH {
 		inline VkSwapchainKHR get() const { return mSwapChain; }
 		inline VkExtent2D getExtent() const { return mExtent; }
 		inline VkFormat getImageFormat() const { return mImageFormat; }
-		inline size_t getImageCount() const { return mImages.size(); }
-		inline size_t getImageViewCount() const { return mImageViews.size(); }
-		inline size_t getFrameBufferCount() const { return mSceneFrameBuffers.size() + mAppUiFrameBuffers.size(); }
+		inline uint32_t getImageCount() const { return static_cast<uint32_t>(mImages.size()); }
+		inline uint32_t getImageViewCount() const { return static_cast<uint32_t>(mImageViews.size()); }
+		//IMPORTANT:: ImGui frame buffers are not included as ImGui handles that itself
+		inline uint32_t getFrameBufferCount() const { return static_cast<uint32_t>(mSceneFrameBuffers.size() + mAppUiFrameBuffers.size()); }
 		RenderPassVulkan& getRenderPass(ERenderPassType type) const;
 
 		//-----Static Methods-----

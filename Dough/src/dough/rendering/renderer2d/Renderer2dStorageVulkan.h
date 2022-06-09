@@ -76,8 +76,9 @@ namespace DOH {
 
 		void init(VkDevice logicDevice);
 		void close(VkDevice logicDevice);
-		void closeSwapChainSpecificObjects(VkDevice logicDevice);
-		void recreateSwapChainSpecificObjects();
+		//void closeSwapChainSpecificObjects(VkDevice logicDevice);
+		//void recreateSwapChainSpecificObjects();
+		void onSwapChainResize(VkDevice logicDevice, SwapChainVulkan& swapChain);
 		size_t createNewBatchQuad();
 
 		inline VkDescriptorPool getDescriptorPool() const { return mDescriptorPool; }

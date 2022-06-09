@@ -54,12 +54,22 @@ namespace TG {
 			const std::string testCubeObjFilepath = "res/models/testCube.obj";
 			const std::string flatColourShaderVertPath = "res/shaders/spv/FlatColour.vert.spv";
 			const std::string flatColourShaderFragPath = "res/shaders/spv/FlatColour.frag.spv";
+			const std::string mScenePipelineName = "Cube";
+			const EVertexType mSceneVertexType = EVertexType::VERTEX_3D;
 
 			std::shared_ptr<ShaderProgramVulkan> mSceneShaderProgram;
 			std::shared_ptr<ModelVulkan> mCubeModel;
 			glm::mat4x4 mTranslation = glm::mat4x4(1.0f);
 
-			bool mLoaded = false;
+			bool Update = false;
+			bool Render = false;
+
+			bool AutoRotate = false;
+			float AutoRotateSpeed = 15.0f;
+			float Rotation[3] = { 0.0f, 0.0f, 0.0f };
+			float Position[3] = { 0.0f, 0.0f, 0.0f };
+			//Only allow for uniform scalling to avoid normal deformation later
+			float Scale = 1.0f;
 		} mCubeDemo;
 
 		//Generic custom scene objects (TODO:: should this be its own demo, maybe if it's worked on more)
@@ -103,6 +113,9 @@ namespace TG {
 				0, 1, 2, 2, 3, 0
 			};
 
+			const EVertexType mSceneVertexType = EVertexType::VERTEX_3D_TEXTURED;
+			const EVertexType mUiVertexType = EVertexType::VERTEX_2D;
+
 			glm::mat4x4 mUiProjMat = glm::mat4x4(1.0f);
 			std::shared_ptr<ShaderProgramVulkan> mSceneShaderProgram;
 			std::shared_ptr<VertexArrayVulkan> mSceneVertexArray;
@@ -111,7 +124,12 @@ namespace TG {
 			std::shared_ptr<ShaderProgramVulkan> mUiShaderProgram;
 			std::shared_ptr<VertexArrayVulkan> mUiVao;
 
-			bool mLoaded = false;
+			const std::string mScenePipelineName = "Custom";
+			const std::string mUiPipelineName = "CustomUi";
+
+			bool Update = false;
+			bool RenderScene = false;
+			bool RenderUi = false;
 		} mCustomDemo;
 		//const std::string testTexturesPath = "res/images/test textures/";
 		//std::vector<std::shared_ptr<TextureVulkan>> mTestTextures;
@@ -119,55 +137,27 @@ namespace TG {
 		struct GridDemo {
 			std::vector<std::vector<Quad>> mTexturedTestGrid;
 			uint32_t mTestTexturesIndexOffset = 0;
-			int mTestGridMaxQuadCount = 0; //Set in init
+			int mTestGridMaxQuadCount = 0;
 			int mTestGridSize[2] = { 10, 10 };
 			float mTestGridQuadSize[2] = { 0.1f, 0.1f };
 			float mTestGridQuadGapSize[2] = { mTestGridQuadSize[0] * 1.5f, mTestGridQuadSize[1] * 1.5f };
-			bool mLoaded = false;
+
+			bool Update = false;
+			bool Render = false;
 		} mGridDemo;
 
 		struct BouncingQuadDemo {
 			std::vector<Quad> mBouncingQuads;
 			std::vector<glm::vec2> mBouncingQuadVelocities;
 			size_t mBouncingQuadCount = BOUNCING_QUAD_COUNT;
-			bool mLoaded = false;
+			
+			bool Update = false;
+			bool Render = false;
 		} mBouncingQuadDemo;
 
 		struct ImGuiSettings {
 			//ImGui window rendering controls
 			bool RenderDebugWindow = true;
-
-			//Demos
-			struct GridDemoSettings {
-				bool Update = false;
-				bool Render = false;
-			} GridDemo;
-
-			struct BouncingQuadsDemoSettings {
-				bool Update = false;
-				bool Render = false;
-			} BouncingQuadsDemo;
-
-			struct CustomDemoSettings {
-				bool Update = false;
-				bool RenderScene = false;
-				bool RenderUi = false;
-			} CustomDemo;
-
-			struct CubeDemoSettings {
-				bool Update = false;
-				bool Render = false;
-
-				bool AutoRotate = false;
-				float AutoRotateSpeed = 15.0f;
-				float Rotation[3] = { 0.0f, 0.0f, 0.0f };
-				float Position[3] = { 0.0f, 0.0f, 0.0f };
-				//Only allow for uniform scalling to avoid normal deformation later
-				float Scale = 1.0f;
-
-				//TODO:: Rename to Model3d and provide a list of models that can be loaded and displayed,
-				// probably through a dropdown menu interface
-			} CubeDemo;
 
 			//ImGui menu
 			bool ApplicationCollapseMenuOpen = true;
@@ -200,17 +190,16 @@ namespace TG {
 
 		void populateTestGrid(int width, int height);
 
-		void switchToDemo(EDemo demo);
-		void initCustomScene();
-		void initCustomUi();
-		void initGrid();
-		void initBouncingQuads();
-		void initCube();
-		void closeSelectedDemo();
+		void initDemos();
+		//void initGridDemo();
+		void initBouncingQuadsDemo();
+		void initCustomDemo();
+		void initCubeDemo();
+
 
 		//ImGui convenience and separated functions
 		void imGuiDisplayHelpTooltip(const char* message);
 		void imGuiRenderDebugWindow();
-		//void imGuiRenderToDoListWindow();
+		void imGuiPrintDrawCallTableColumn(const char* pipelineName, uint32_t drawCount);
 	};
 }

@@ -97,7 +97,7 @@ namespace DOH {
 
 	void RendererVulkan::closeGpuResource(std::shared_ptr<IGPUResourceVulkan> res) {
 		if (res != nullptr) {
-			mRenderingContext->addResourceToCloseAfterUse(res);
+			mRenderingContext->addGpuResourceToCloseAfterUse(res);
 		}
 	}
 

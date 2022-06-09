@@ -152,7 +152,7 @@ namespace DOH {
 	}
 
 	void SwapChainVulkan::createFrameBuffers(VkDevice logicDevice) {
-		const size_t imageCount = getImageCount();
+		const uint32_t imageCount = getImageCount();
 		mSceneFrameBuffers.resize(imageCount);
 		mAppUiFrameBuffers.resize(imageCount);
 		mImGuiFrameBuffers.resize(imageCount);
@@ -245,7 +245,7 @@ namespace DOH {
 		VkFence frameInFlightFence,
 		VkSemaphore imageAvailableSemaphore
 	) {
-		vkWaitForFences(logicDevice, 1, &frameInFlightFence, VK_TRUE, UINT64_MAX);
+		vkWaitForFences(logicDevice, 1, &frameInFlightFence, VK_TRUE, 100);
 
 		uint32_t imageIndex;
 		vkAcquireNextImageKHR(

@@ -72,7 +72,10 @@ namespace DOH {
 		mAppLogic->render();
 		mRenderer->getContext().getImGuiWrapper().newFrame();
 		mAppLogic->imGuiRender();
+
+		//ImGui end frame is now called after it is rendered in RenderingContext::drawFrame(), this is needed for multi-viewport windows
 		//mRenderer->getContext().getImGuiWrapper().endFrame();
+
 		mRenderer->drawFrame();
 	}
 

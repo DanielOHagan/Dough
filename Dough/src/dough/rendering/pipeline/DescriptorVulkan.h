@@ -21,19 +21,19 @@ namespace DOH {
 		DescriptorVulkan operator=(const DescriptorVulkan& assignment) = delete;
 
 		void createDescriptorSetLayout(VkDevice logicDevice);
-		void createValueBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice, size_t count);
-		void createDescriptorSets(VkDevice logicDevice, size_t count, VkDescriptorPool descPool);
+		void createValueBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice, uint32_t count);
+		void createDescriptorSets(VkDevice logicDevice, uint32_t descSetCount, VkDescriptorPool descPool);
 
-		void updateDescriptorSets(VkDevice logicDevice, size_t imageCount);
-		void bindDescriptorSets(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout, size_t descriptorSetIndex);
+		void updateDescriptorSets(VkDevice logicDevice, uint32_t imageCount);
+		void bindDescriptorSets(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout, uint32_t descriptorSetIndex);
 
 		void closeBuffers(VkDevice logicDevice);
+		void closeDescriptorSetLayout(VkDevice logicDevice);
 		void close(VkDevice logicDevice);
 
 		inline const VkDescriptorSetLayout& getDescriptorSetLayout() const { return mDescriptorSetLayout; }
 		inline std::vector<std::shared_ptr<BufferVulkan>>& getBuffersFromBinding(uint32_t binding) { return mValueBufferMap.at(binding); }
 
-	public:
 		static VkDescriptorSetLayoutBinding createLayoutBinding(
 			VkDescriptorType descriptorType,
 			VkShaderStageFlags stages,

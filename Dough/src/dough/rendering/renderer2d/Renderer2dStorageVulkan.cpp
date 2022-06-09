@@ -21,7 +21,7 @@ namespace DOH {
 		initForQuads(logicDevice);
 
 		std::vector<DescriptorTypeInfo> descTypes = mQuadGraphicsPipeline->getShaderProgram().getUniformLayout().asDescriptorTypes();
-		mDescriptorPool = mContext.createDescriptorPool(descTypes, 1);
+		mDescriptorPool = mContext.createDescriptorPool(descTypes);
 
 		mContext.createPipelineUniformObjects(*mQuadGraphicsPipeline, mDescriptorPool);
 	}
@@ -45,35 +45,17 @@ namespace DOH {
 		vkDestroyDescriptorPool(logicDevice, mDescriptorPool, nullptr);
 	}
 
-	void Renderer2dStorageVulkan::closeSwapChainSpecificObjects(VkDevice logicDevice) {
-		mQuadShaderProgram->closePipelineSpecificObjects(logicDevice);
-
-		if (mQuadGraphicsPipeline != nullptr) {
-			mQuadGraphicsPipeline->close(logicDevice);
-		}
-
+	void Renderer2dStorageVulkan::onSwapChainResize(VkDevice logicDevice, SwapChainVulkan& swapChain) {
 		vkDestroyDescriptorPool(logicDevice, mDescriptorPool, nullptr);
-	}
 
-	void Renderer2dStorageVulkan::recreateSwapChainSpecificObjects() {
-		std::vector<DescriptorTypeInfo> descTypes = mQuadGraphicsPipeline->getShaderProgram().getUniformLayout().asDescriptorTypes();
-		mDescriptorPool = mContext.createDescriptorPool(descTypes, 1);
+		auto descTypes = mQuadShaderProgram->getUniformLayout().asDescriptorTypes();
+		mDescriptorPool = mContext.createDescriptorPool(descTypes);
 
-		const uint32_t binding = 0;
-		std::vector<VkVertexInputAttributeDescription> attribDesc =
-			std::move(getVertexTypeAsAttribDesc(EVertexType::VERTEX_3D_TEXTURED, binding));
-		mQuadGraphicsPipeline = ObjInit::graphicsPipeline(
+		mQuadGraphicsPipeline->recreate(
+			logicDevice,
 			mContext.getSwapChain().getExtent(),
-			mContext.getSwapChain().getRenderPass(SwapChainVulkan::ERenderPassType::SCENE).get(),
-			*mQuadShaderProgram,
-			createBindingDescription(
-				binding,
-				static_cast<uint32_t>(getVertexTypeSize(EVertexType::VERTEX_3D_TEXTURED)),
-				VK_VERTEX_INPUT_RATE_VERTEX
-			),
-			attribDesc
+			swapChain.getRenderPass(SwapChainVulkan::ERenderPassType::SCENE).get()
 		);
-
 		mContext.createPipelineUniformObjects(*mQuadGraphicsPipeline, mDescriptorPool);
 	}
 
@@ -126,20 +108,11 @@ namespace DOH {
 		ShaderUniformLayout& layout = mQuadShaderProgram->getUniformLayout();
 		layout.setValue(0, sizeof(glm::mat4x4));
 		layout.setTextureArray(1, *mQuadBatchTextureArray);
-
-		const uint32_t binding = 0;
-		std::vector<VkVertexInputAttributeDescription> attribDescs = std::move(getVertexTypeAsAttribDesc(EVertexType::VERTEX_3D_TEXTURED, binding));
-
 		mQuadGraphicsPipeline = ObjInit::graphicsPipeline(
-			mContext.getSwapChain().getExtent(),
-			mContext.getSwapChain().getRenderPass(SwapChainVulkan::ERenderPassType::SCENE).get(),
+			EVertexType::VERTEX_3D_TEXTURED,
 			*mQuadShaderProgram,
-			createBindingDescription(
-				binding,
-				static_cast<uint32_t>(getVertexTypeSize(EVertexType::VERTEX_3D_TEXTURED)),
-				VK_VERTEX_INPUT_RATE_VERTEX
-			),
-			attribDescs
+			mContext.getSwapChain().getRenderPass(SwapChainVulkan::ERenderPassType::SCENE).get(),
+			mContext.getSwapChain().getExtent()
 		);
 
 		//Quad Index Buffer

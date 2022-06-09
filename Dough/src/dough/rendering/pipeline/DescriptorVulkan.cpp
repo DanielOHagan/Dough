@@ -23,7 +23,7 @@ namespace DOH {
 		mUsingGpuResource = true;
 	}
 
-	void DescriptorVulkan::createValueBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice, size_t count) {
+	void DescriptorVulkan::createValueBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice, uint32_t count) {
 		mValueBufferMap.clear();
 
 		bool bufferCreated = false;
@@ -46,13 +46,13 @@ namespace DOH {
 		}
 	}
 
-	void DescriptorVulkan::createDescriptorSets(VkDevice logicDevice, size_t descSetCount, VkDescriptorPool descPool) {
+	void DescriptorVulkan::createDescriptorSets(VkDevice logicDevice, uint32_t descSetCount, VkDescriptorPool descPool) {
 		std::vector<VkDescriptorSetLayout> layouts(descSetCount, mDescriptorSetLayout);
 
 		VkDescriptorSetAllocateInfo allocation = {};
 		allocation.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocation.descriptorPool = descPool;
-		allocation.descriptorSetCount = static_cast<uint32_t>(descSetCount);
+		allocation.descriptorSetCount = descSetCount;
 		allocation.pSetLayouts = layouts.data();
 
 		mDescriptorSets.resize(descSetCount);
@@ -65,8 +65,8 @@ namespace DOH {
 		mUsingGpuResource = true;
 	}
 
-	void DescriptorVulkan::updateDescriptorSets(VkDevice logicDevice, size_t imageCount) {
-		for (size_t swapChainImageIndex = 0; swapChainImageIndex < imageCount; swapChainImageIndex++) {
+	void DescriptorVulkan::updateDescriptorSets(VkDevice logicDevice, uint32_t imageCount) {
+		for (uint32_t swapChainImageIndex = 0; swapChainImageIndex < imageCount; swapChainImageIndex++) {
 			std::vector<VkWriteDescriptorSet> descWrites(mUniformLayout.getTotalUniformCount());
 			std::vector<VkDescriptorImageInfo> imageInfos(mUniformLayout.getTotalTextureCount());
 
@@ -168,7 +168,7 @@ namespace DOH {
 	void DescriptorVulkan::bindDescriptorSets(
 		VkCommandBuffer cmdBuffer,
 		VkPipelineLayout pipelineLayout,
-		size_t descriptorSetIndex
+		uint32_t descriptorSetIndex
 	) {
 		vkCmdBindDescriptorSets(
 			cmdBuffer,
@@ -188,12 +188,24 @@ namespace DOH {
 				buffer->close(logicDevice);
 			}
 		}
+
+		if (mDescriptorSetLayout != VK_NULL_HANDLE) {
+			mUsingGpuResource = true;
+		}
+	}
+
+	void DescriptorVulkan::closeDescriptorSetLayout(VkDevice logicDevice) {
+		vkDestroyDescriptorSetLayout(logicDevice, mDescriptorSetLayout, nullptr);
+		mDescriptorSetLayout = VK_NULL_HANDLE;
+
+		if (!mValueBufferMap.empty()) {
+			mUsingGpuResource = true;
+		}
 	}
 
 	void DescriptorVulkan::close(VkDevice logicDevice) {
 		closeBuffers(logicDevice);
-
-		vkDestroyDescriptorSetLayout(logicDevice, mDescriptorSetLayout, nullptr);
+		closeDescriptorSetLayout(logicDevice);
 
 		mUsingGpuResource = false;
 	}
