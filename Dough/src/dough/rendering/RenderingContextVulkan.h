@@ -97,6 +97,8 @@ namespace DOH {
 		void closeUiPipelines();
 		VkDescriptorPool createDescriptorPool(std::vector<DescriptorTypeInfo>& descTypes);
 		bool isReady() const;
+
+		//TODO:: return PipelineVaoConveyer for easier and faster vao adding?
 		void createPipeline(
 			const std::string& name,
 			const SwapChainVulkan::ERenderPassType renderPass,
@@ -104,9 +106,12 @@ namespace DOH {
 			const EVertexType vertexType,
 			const bool enabled = true
 		);
+		PipelineRenderableConveyer createPipelineConveyer(
+			const SwapChainVulkan::ERenderPassType renderPass,
+			const std::string& name
+		);
 		void enablePipeline(const SwapChainVulkan::ERenderPassType renderPass, const std::string& name, bool enable);
 		void closePipeline(const SwapChainVulkan::ERenderPassType renderPass, const std::string& name);
-
 
 		inline void onResize(
 			SwapChainSupportDetails& scSupport,
@@ -123,17 +128,18 @@ namespace DOH {
 		inline void setSceneUniformBufferObject(ICamera& camera) { mSceneUbo.ProjectionViewMat = camera.getProjectionViewMatrix(); }
 		inline void setUiProjection(glm::mat4x4& proj) { mAppUiProjection = proj; }
 		
-		//TODO:: a better way of adding to the draw list, maybe have the pipeline create method return a reference
-		inline void addVaoToSceneDrawList(const std::string& name, VertexArrayVulkan& vao) const { 
-			mSceneGraphicsPipelines.at(name)->addVaoToDraw(vao);
+		//TODO:: prefer PipelineRenderableConveyer usage whenever possible
+		inline void addRenderableToSceneDrawList(const std::string& name, IRenderable& renderable) const {
+			mSceneGraphicsPipelines.at(name)->addRenderableToDraw(renderable);
 		}
-		inline void addVaoToUiDrawList(const std::string& name, VertexArrayVulkan& vao) const {
-			mUiGraphicsPipelines.at(name)->addVaoToDraw(vao);
+		inline void addRenderableToUiDrawList(const std::string& name, IRenderable& renderable) const {
+			mUiGraphicsPipelines.at(name)->addRenderableToDraw(renderable);
 		}
 
 		//TODO:: Ability for better control over when GPU resources can be released (e.g. after certain program stages or as soon as possible)
 		inline void addGpuResourceToCloseAfterUse(std::shared_ptr<IGPUResourceVulkan> res) { mToReleaseGpuResources.push_back(res); }
 		void closeGpuResourceImmediately(std::shared_ptr<IGPUResourceVulkan> res);
+		void closeGpuResourceImmediately(IGPUResourceVulkan& res);
 		void releaseGpuResources();
 
 		//TODO:: Prefer grouping commands together then flushing rather than only single commands

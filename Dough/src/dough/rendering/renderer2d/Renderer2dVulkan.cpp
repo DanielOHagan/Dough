@@ -243,7 +243,8 @@ namespace DOH {
 			const uint32_t quadCount = static_cast<uint32_t>(batch.getGeometryCount());
 
 			if (quadCount > 0) {
-				VertexArrayVulkan& vao = *mStorage->getQuadRenderBatchVaos()[index];
+				SimpleRenderable& renderableBatch = *mStorage->getRenderableQuadBatches()[index];
+				VertexArrayVulkan& vao = renderableBatch.getVao();
 
 				vao.getVertexBuffers()[0]->setData(
 					logicDevice,
@@ -252,7 +253,7 @@ namespace DOH {
 				);
 				vao.setDrawCount(quadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT);
 
-				quadPipeline.addVaoToDraw(vao);
+				quadPipeline.addRenderableToDraw(renderableBatch);
 				mDebugInfoDrawCount++;
 
 				batch.reset();
@@ -263,32 +264,31 @@ namespace DOH {
 
 		quadPipeline.recordDrawCommands(imageIndex, cmd);
 
-		quadPipeline.clearVaoToDraw();
+		quadPipeline.clearRenderableToDraw();
 	}
 
 	void Renderer2dVulkan::closeEmptyQuadBatches() {
-		//Since RenderBatches and VAOs are linked through being the at the same index in their respective vector
-		// and batches are filled begining to end, loop through from end to begining closing batch and vao as it goes,
+		//Since RenderBatches and renderables are linked through being the at the same index in their respective vector
+		// and batches are filled begining to end, loop through from end to begining closing batch and renderable's vao as it goes,
 		// stopping when there is a batch with a geo count of at least one
 
 		//TODO:: A better way of "linking" batches and vaos
 		std::vector<RenderBatchQuad>& batches = mStorage->getQuadRenderBatches();
-		std::vector<std::shared_ptr<VertexArrayVulkan>>& vaos = mStorage->getQuadRenderBatchVaos();
+		//std::vector<std::shared_ptr<VertexArrayVulkan>>& vaos = mStorage->getQuadRenderBatchVaos();
+		std::vector<std::shared_ptr<SimpleRenderable>>& renderableQuadBatches = mStorage->getRenderableQuadBatches();
 
-		if (batches.size() != vaos.size()) {
+		if (batches.size() != renderableQuadBatches.size()) {
 			LOG_WARN("Quad batches size doesn't match vaos");
 		}
 
 		for (size_t i = batches.size(); i > 0; i--) {
 			if (batches[i - 1].getGeometryCount() == 0) {
 				batches.pop_back();
-				mContext.closeGpuResourceImmediately(vaos[i - 1]);
-				vaos.pop_back();
+				mContext.closeGpuResourceImmediately(renderableQuadBatches[i - 1]->getVao());
+				renderableQuadBatches.pop_back();
 			} else {
 				break;
 			}
 		}
-
-		int d = 0;
 	}
 }

@@ -12,13 +12,7 @@
 namespace TG {
 
 	TG_AppLogic::TG_AppLogic()
-	:	IApplicationLogic(),
-		mSelectedDemo(EDemo::NONE)
-	{}
-
-	TG_AppLogic::TG_AppLogic(EDemo demo)
-	:	IApplicationLogic(),
-		mSelectedDemo(demo)
+	:	IApplicationLogic()
 	{}
 
 	void TG_AppLogic::init(float aspectRatio) {
@@ -70,63 +64,58 @@ namespace TG {
 			populateTestGrid(mGridDemo.mTestGridSize[0], mGridDemo.mTestGridSize[1]);
 		}
 
-		if (mCubeDemo.Update) {
-			if (mCubeDemo.AutoRotate) {
-				mCubeDemo.Rotation[1] += mCubeDemo.AutoRotateSpeed * delta;
+		if (mObjModelsDemo.Update) {
+			for (const auto& obj : mObjModelsDemo.mRenderableObjects) {
+				TransformationData& transformation = *obj.Transformation;
 
-				if (mCubeDemo.Rotation[1] > 360.0f) {
-					mCubeDemo.Rotation[1] = 0.0f;
-				} else if (mCubeDemo.Rotation[1] < 0.0f) {
-					mCubeDemo.Rotation[1] = 360.0f;
+				//Update translation matrix
+				transformation.Translation = glm::mat4x4(1.0f);
+				transformation.Translation = glm::translate(
+					transformation.Translation,
+					{
+						transformation.Position[0],
+						transformation.Position[1],
+						transformation.Position[2]
+					}
+				);
+				if (transformation.Rotation[0] > 0.0f) {
+					transformation.Translation = glm::rotate(
+						transformation.Translation,
+						glm::radians(transformation.Rotation[0]),
+						{ 1.0f, 0.0f, 0.0f }
+					);
 				}
-			}
+				if (transformation.Rotation[1] > 0.0f) {
+					transformation.Translation = glm::rotate(
+						transformation.Translation,
+						glm::radians(transformation.Rotation[1]),
+						{ 0.0f, 1.0f, 0.0f }
+					);
+				}
+				if (transformation.Rotation[2] > 0.0f) {
+					transformation.Translation = glm::rotate(
+						transformation.Translation,
+						glm::radians(transformation.Rotation[2]),
+						{ 0.0f, 0.0f, 1.0f }
+					);
+				}
 
-			//Update translation matrix
-			mCubeDemo.mTranslation = glm::mat4x4(1.0f);
-			mCubeDemo.mTranslation = glm::translate(
-				mCubeDemo.mTranslation,
-				{
-					mCubeDemo.Position[0],
-					mCubeDemo.Position[1],
-					mCubeDemo.Position[2]
-				}
-			);
-			if (mCubeDemo.Rotation[0] > 0.0f) {
-				mCubeDemo.mTranslation = glm::rotate(
-					mCubeDemo.mTranslation,
-					glm::radians(mCubeDemo.Rotation[0]),
-					{ 1.0f, 0.0f, 0.0f }
+				transformation.Translation = glm::scale(
+					transformation.Translation,
+					{
+						transformation.Scale,
+						transformation.Scale,
+						transformation.Scale
+					}
 				);
 			}
-			if (mCubeDemo.Rotation[1] > 0.0f) {
-				mCubeDemo.mTranslation = glm::rotate(
-					mCubeDemo.mTranslation,
-					glm::radians(mCubeDemo.Rotation[1]),
-					{ 0.0f, 1.0f, 0.0f }
-				);
-			}
-			if (mCubeDemo.Rotation[2] > 0.0f) {
-				mCubeDemo.mTranslation = glm::rotate(
-					mCubeDemo.mTranslation,
-					glm::radians(mCubeDemo.Rotation[2]),
-					{ 0.0f, 0.0f, 1.0f}
-				);
-			}
-
-			mCubeDemo.mTranslation = glm::scale(
-				mCubeDemo.mTranslation,
-				{
-					mCubeDemo.Scale,
-					mCubeDemo.Scale,
-					mCubeDemo.Scale
-				}
-			);
 		}
 	}
 
 	void TG_AppLogic::render() {
 		RendererVulkan& renderer = GET_RENDERER;
-		Renderer2dVulkan& renderer2d = renderer.getContext().getRenderer2d();
+		RenderingContextVulkan& context = renderer.getContext();
+		Renderer2dVulkan& renderer2d = context.getRenderer2d();
 
 		renderer.beginScene(
 			mImGuiSettings.UseOrthographicCamera ?
@@ -134,11 +123,22 @@ namespace TG {
 		);
 
 		if (mCustomDemo.RenderScene) {
-			renderer.getContext().addVaoToSceneDrawList("Custom", *mCustomDemo.mSceneVertexArray);
+			context.addRenderableToSceneDrawList(mCustomDemo.mScenePipelineName, *mCustomDemo.mSceneRenderable);
 		}
 
-		if (mCubeDemo.Render) {
-			renderer.getContext().addVaoToSceneDrawList("Cube", mCubeDemo.mCubeModel->getVao());
+		if (mObjModelsDemo.Render) {
+			PipelineRenderableConveyer objModelConveyer = context.createPipelineConveyer(
+				SwapChainVulkan::ERenderPassType::SCENE,
+				mObjModelsDemo.mScenePipelineName
+			);
+
+			if (objModelConveyer.isValid()) {
+				for (auto& obj : mObjModelsDemo.mRenderableObjects) {
+					if (obj.ShouldRender) {
+						objModelConveyer.addRenderable(obj);
+					}
+				}
+			}
 		}
 
 		if (mGridDemo.Render) {
@@ -172,8 +172,7 @@ namespace TG {
 
 		renderer.beginUi(mCustomDemo.mUiProjMat);
 		if (mCustomDemo.RenderUi) {
-			//renderer.getContext().addVaoToUiDrawList(*mCustomDemo.mUiVao);
-			renderer.getContext().addVaoToUiDrawList("CustomUi", *mCustomDemo.mUiVao);
+			context.addRenderableToUiDrawList(mCustomDemo.mUiPipelineName, *mCustomDemo.mUiRenderable);
 		}
 		renderer.endUi();
 	}
@@ -185,8 +184,6 @@ namespace TG {
 	}
 
 	void TG_AppLogic::imGuiRenderDebugWindow() {
-		//TODO:: Clean up basic layout and styling, maybe add a few imgui helper functions
-
 		RendererVulkan& renderer = GET_RENDERER;
 
 		ImGui::Begin("Debug Window");
@@ -331,17 +328,6 @@ namespace TG {
 
 			ImGui::SetNextItemOpen(mImGuiSettings.CurrentDemoCollapseMenuOpen);
 			if (ImGui::CollapsingHeader("Demo")) {
-				//ImGui::Text("2D: ");
-				//ImGui::SameLine();
-				//ImGui::Checkbox("Grid", &mGridDemo.mEnabled);
-				//ImGui::SameLine();
-				//ImGui::Checkbox("Bouncing Quads", &mBouncingQuadDemo.mEnabled);
-				//ImGui::SameLine();
-				//ImGui::Checkbox("Custom", &mCustomDemo.mEnabled);
-				//ImGui::Text("3D: ");
-				//ImGui::SameLine();
-				//ImGui::Checkbox("Cube", &mCubeDemo.mEnabled);
-
 				if (ImGui::Button("Disable all demos")) {
 					mGridDemo.Render = false;
 					mGridDemo.Update = false;
@@ -353,8 +339,8 @@ namespace TG {
 					mCustomDemo.RenderUi = false;
 					mCustomDemo.Update = false;
 
-					mCubeDemo.Render = false;
-					mCubeDemo.Update = false;
+					mObjModelsDemo.Render = false;
+					mObjModelsDemo.Update = false;
 				}
 
 				ImGui::Text("Demo Settings & Info:");
@@ -420,58 +406,83 @@ namespace TG {
 
 					ImGui::EndTabItem();
 				}
-				if (ImGui::BeginTabItem("Cube")) {
-					ImGui::Checkbox("Render", &mCubeDemo.Render);
-					ImGui::Checkbox("Update", &mCubeDemo.Update);
-
-					ImGui::Checkbox("Auto Rotate", &mCubeDemo.AutoRotate);
-
-					ImGui::DragFloat("Auto Rotate Speed", &mCubeDemo.AutoRotateSpeed, 0.1f, 1.0f, 60.0f);
-
-
-					//Add temp array and set -1 > rotation < 361 to allow for "infinite" drag
-					float tempRotation[3] = {
-						mCubeDemo.Rotation[0],
-						mCubeDemo.Rotation[1],
-						mCubeDemo.Rotation[2]
-					};
-					if (ImGui::DragFloat3("Rotation", tempRotation, 1.0f, -1.0f, 361.0f)) {
-						if (tempRotation[0] > 360.0f) {
-							tempRotation[0] = 0.0f;
-						} else if (tempRotation[0] < 0.0f) {
-							tempRotation[0] = 360.0f;
-						}
-						if (tempRotation[1] > 360.0f) {
-							tempRotation[1] = 0.0f;
-						} else if (tempRotation[1] < 0.0f) {
-							tempRotation[1] = 360.0f;
-						}
-						if (tempRotation[2] > 360.0f) {
-							tempRotation[2] = 0.0f;
-						} else if (tempRotation[2] < 0.0f) {
-							tempRotation[2] = 360.0f;
-						}
-
-						mCubeDemo.Rotation[0] = tempRotation[0];
-						mCubeDemo.Rotation[1] = tempRotation[1];
-						mCubeDemo.Rotation[2] = tempRotation[2];
+				if (ImGui::BeginTabItem("Obj Models")) {
+					ImGui::Checkbox("Render Demo", &mObjModelsDemo.Render);
+					ImGui::Checkbox("Update Demo", &mObjModelsDemo.Update);
+					ImGui::Text("Object Count: %i", mObjModelsDemo.mRenderableObjects.size());
+					if (ImGui::Button("Add Object")) {
+						mObjModelsDemo.mRenderableObjects.emplace_back(
+							mObjModelsDemo.mObjModelFilePaths[0],
+							mObjModelsDemo.mLoadedModels[0],
+							std::make_shared<TransformationData>()
+						);
 					}
 
-					ImGui::DragFloat3("Position", mCubeDemo.Position, 0.05f, -10.0f, 10.0f);
-					ImGui::DragFloat("Uniform Scale", &mCubeDemo.Scale, 0.01f, 0.1f, 5.0f);
+					uint32_t objectIndex = 0;
+					if (ImGui::Begin("Obj Models' Properties")) {
+						for (auto& obj : mObjModelsDemo.mRenderableObjects) {
+							const std::string uniqueImGuiId = "##" + std::to_string(objectIndex);
+							if (ImGui::BeginCombo(("Obj Model" + uniqueImGuiId).c_str(), obj.getName().c_str())) {
+								int modelFilePathIndex = -1;
+								for (const auto& filePath : mObjModelsDemo.mObjModelFilePaths) {
+									bool selected = false;
+									modelFilePathIndex++;
+									if (ImGui::Selectable((filePath.c_str() + uniqueImGuiId).c_str(), &selected)) {
+										obj.Model = mObjModelsDemo.mLoadedModels[modelFilePathIndex];
+										obj.Name = mObjModelsDemo.mObjModelFilePaths[modelFilePathIndex];
+										break;
+									}
+								}
+								ImGui::EndCombo();
+							}
+							ImGui::Checkbox(("Render Object" + uniqueImGuiId).c_str(), &obj.ShouldRender);
 
-					if (ImGui::Button("Reset Cube")) {
-						mCubeDemo.AutoRotate = false;
-						mCubeDemo.AutoRotateSpeed = 15.0f;
-						mCubeDemo.Rotation[0] = 0.0f;
-						mCubeDemo.Rotation[1] = 0.0f;
-						mCubeDemo.Rotation[2] = 0.0f;
-						mCubeDemo.Position[0] = 0.0f;
-						mCubeDemo.Position[1] = 0.0f;
-						mCubeDemo.Position[2] = 0.0f;
-						mCubeDemo.Scale = 1.0f;
+							//Add temp array and set -1 > rotation < 361 to allow for "infinite" drag
+							TransformationData& transformation = *obj.Transformation;
+							float tempRotation[3] = {
+								transformation.Rotation[0],
+								transformation.Rotation[1],
+								transformation.Rotation[2]
+							};
+							if (ImGui::DragFloat3(("Rotation" + uniqueImGuiId).c_str(), tempRotation, 1.0f, -1.0f, 361.0f)) {
+								if (tempRotation[0] > 360.0f) {
+									tempRotation[0] = 0.0f;
+								} else if (tempRotation[0] < 0.0f) {
+									tempRotation[0] = 360.0f;
+								}
+								if (tempRotation[1] > 360.0f) {
+									tempRotation[1] = 0.0f;
+								} else if (tempRotation[1] < 0.0f) {
+									tempRotation[1] = 360.0f;
+								}
+								if (tempRotation[2] > 360.0f) {
+									tempRotation[2] = 0.0f;
+								} else if (tempRotation[2] < 0.0f) {
+									tempRotation[2] = 360.0f;
+								}
+
+								transformation.Rotation[0] = tempRotation[0];
+								transformation.Rotation[1] = tempRotation[1];
+								transformation.Rotation[2] = tempRotation[2];
+							}
+
+							ImGui::DragFloat3(("Position" + uniqueImGuiId).c_str(), transformation.Position, 0.05f, -10.0f, 10.0f);
+							ImGui::DragFloat(("Uniform Scale" + uniqueImGuiId).c_str(), &transformation.Scale, 0.01f, 0.1f, 5.0f);
+
+							if (ImGui::Button(("Reset Object" + uniqueImGuiId).c_str())) {
+								transformation.Rotation[0] = 0.0f;
+								transformation.Rotation[1] = 0.0f;
+								transformation.Rotation[2] = 0.0f;
+								transformation.Position[0] = 0.0f;
+								transformation.Position[1] = 0.0f;
+								transformation.Position[2] = 0.0f;
+								transformation.Scale = 1.0f;
+							}
+
+							objectIndex++;
+						}
+						ImGui::End();
 					}
-
 					ImGui::EndTabItem();
 				}
 				ImGui::EndTabBar();
@@ -544,22 +555,27 @@ namespace TG {
 
 		ImGui::EndTabBar();
 		ImGui::End();
+
+		//DEBUG:: show ImGui stack info, can be helpful when debugging ImGui menus
+		//ImGui::ShowStackToolWindow();
 	}
 
-	void TG_AppLogic::close() {		
+	void TG_AppLogic::close() {
 		RendererVulkan& renderer = GET_RENDERER;
 		
 		//Custom demo
 		renderer.closeGpuResource(mCustomDemo.mSceneShaderProgram);
-		renderer.closeGpuResource(mCustomDemo.mSceneVertexArray);
+		renderer.closeGpuResource(mCustomDemo.mSceneVao);
 		renderer.closeGpuResource(mCustomDemo.mUiShaderProgram);
 		renderer.closeGpuResource(mCustomDemo.mUiVao);
 		renderer.closeGpuResource(mCustomDemo.mTestTexture1);
 		renderer.closeGpuResource(mCustomDemo.mTestTexture2);
 
-		//Cube demo
-		renderer.closeGpuResource(mCubeDemo.mCubeModel);
-		renderer.closeGpuResource(mCubeDemo.mSceneShaderProgram);
+		//Obj Models Demo
+		for (const auto& model : mObjModelsDemo.mLoadedModels) {
+			renderer.closeGpuResource(model);
+		}
+		renderer.closeGpuResource(mObjModelsDemo.mSceneShaderProgram);
 
 		//for (std::shared_ptr<TextureVulkan> texture : mTestTextures) {
 		//	renderer.closeGpuResource(texture);
@@ -576,7 +592,7 @@ namespace TG {
 
 		initBouncingQuadsDemo();
 		initCustomDemo();
-		initCubeDemo();
+		initObjModelsDemo();
 
 		//TODO::
 		// Currently pipeline render order is determined by creation order as depth buffers are not yet supported.
@@ -593,10 +609,10 @@ namespace TG {
 			mCustomDemo.mUiVertexType
 		);
 		context.createPipeline(
-			mCubeDemo.mScenePipelineName,
+			mObjModelsDemo.mScenePipelineName,
 			SwapChainVulkan::ERenderPassType::SCENE,
-			*mCubeDemo.mSceneShaderProgram,
-			mCubeDemo.mSceneVertexType
+			*mObjModelsDemo.mSceneShaderProgram,
+			mObjModelsDemo.mSceneVertexType
 		);
 
 		context.createPipelineUniformObjects();
@@ -621,7 +637,7 @@ namespace TG {
 					{0.0f, 1.0f, 1.0f, 1.0f},
 					0.0f,
 					testTextures[(static_cast<uint32_t>(x + y) + mGridDemo.mTestTexturesIndexOffset) % 8]
-					});
+				});
 				index++;
 			}
 		}
@@ -638,7 +654,7 @@ namespace TG {
 				{0.0f, 1.0f, 1.0f, 1.0f},
 				0.0f,
 				testTextures[rand() % 8]
-				});
+			});
 			mBouncingQuadDemo.mBouncingQuadVelocities.push_back({ (float)(rand() % 800) / 60.0f, (float)(rand() % 800) / 60.0f });
 		}
 	}
@@ -670,7 +686,7 @@ namespace TG {
 		customLayout.setValue(0, sizeof(CustomDemo::UniformBufferObject));
 		customLayout.setTexture(1, { mCustomDemo.mTestTexture1->getImageView(), mCustomDemo.mTestTexture1->getSampler() });
 
-		mCustomDemo.mSceneVertexArray = ObjInit::vertexArray();
+		mCustomDemo.mSceneVao = ObjInit::vertexArray();
 		std::shared_ptr<VertexBufferVulkan> sceneVb = ObjInit::stagedVertexBuffer(
 			mCustomDemo.mSceneVertexType,
 			mCustomDemo.mSceneVertices.data(),
@@ -678,13 +694,14 @@ namespace TG {
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
-		mCustomDemo.mSceneVertexArray->addVertexBuffer(sceneVb);
+		mCustomDemo.mSceneVao->addVertexBuffer(sceneVb);
 		std::shared_ptr<IndexBufferVulkan> sceneIb = ObjInit::stagedIndexBuffer(
 			mCustomDemo.indices.data(),
 			sizeof(uint32_t) * mCustomDemo.indices.size()
 		);
-		mCustomDemo.mSceneVertexArray->setDrawCount(static_cast<uint32_t>(mCustomDemo.indices.size()));
-		mCustomDemo.mSceneVertexArray->setIndexBuffer(sceneIb);
+		mCustomDemo.mSceneVao->setDrawCount(static_cast<uint32_t>(mCustomDemo.indices.size()));
+		mCustomDemo.mSceneVao->setIndexBuffer(sceneIb);
+		mCustomDemo.mSceneRenderable = std::make_shared<SimpleRenderable>(mCustomDemo.mSceneVao);
 
 		mCustomDemo.mUiShaderProgram = ObjInit::shaderProgram(
 			ObjInit::shader(EShaderType::VERTEX, mCustomDemo.mUiShaderVertPath),
@@ -707,24 +724,38 @@ namespace TG {
 		);
 		mCustomDemo.mUiVao->setDrawCount(static_cast<uint32_t>(mCustomDemo.mUiIndices.size()));
 		mCustomDemo.mUiVao->setIndexBuffer(appUiIb);
+		mCustomDemo.mUiRenderable = std::make_shared<SimpleRenderable>(mCustomDemo.mUiVao);
 	}
 
-	void TG_AppLogic::initCubeDemo() {
-		mCubeDemo.mCubeModel = ModelVulkan::createModel(mCubeDemo.testCubeObjFilepath);
-		mCubeDemo.mCubeModel->getVao().setPushConstantPtr(&mCubeDemo.mTranslation);
+	void TG_AppLogic::initObjModelsDemo() {
+		for (const auto& filePath : mObjModelsDemo.mObjModelFilePaths) {
+			mObjModelsDemo.mLoadedModels.push_back(ModelVulkan::createModel(filePath));
+		}
 
-		mCubeDemo.mSceneShaderProgram = ObjInit::shaderProgram(
+		mObjModelsDemo.mRenderableObjects.emplace_back(
+				mObjModelsDemo.mObjModelFilePaths[0],
+				mObjModelsDemo.mLoadedModels[0],
+				std::make_shared<TransformationData>()
+		);
+
+		mObjModelsDemo.mRenderableObjects.emplace_back(
+			mObjModelsDemo.mObjModelFilePaths[1],
+			mObjModelsDemo.mLoadedModels[1],
+			std::make_shared<TransformationData>()
+		);
+
+		mObjModelsDemo.mSceneShaderProgram = ObjInit::shaderProgram(
 			ObjInit::shader(
 				EShaderType::VERTEX,
-				mCubeDemo.flatColourShaderVertPath
+				mObjModelsDemo.flatColourShaderVertPath
 			),
 			ObjInit::shader(
 				EShaderType::FRAGMENT,
-				mCubeDemo.flatColourShaderFragPath
+				mObjModelsDemo.flatColourShaderFragPath
 			)
 		);
-		ShaderUniformLayout& cubeLayout = mCubeDemo.mSceneShaderProgram->getUniformLayout();
-		cubeLayout.setValue(0, sizeof(CubeDemo::UniformBufferObject));
+		ShaderUniformLayout& cubeLayout = mObjModelsDemo.mSceneShaderProgram->getUniformLayout();
+		cubeLayout.setValue(0, sizeof(ObjModelsDemo::UniformBufferObject));
 		//Push constant for transformation matrix
 		cubeLayout.addPushConstant(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::mat4x4));
 	}

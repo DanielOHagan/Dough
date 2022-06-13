@@ -229,10 +229,14 @@ namespace DOH {
 	}
 
 	void GraphicsPipelineVulkan::recordDrawCommands(uint32_t imageIndex, VkCommandBuffer cmd) {
-		for (VertexArrayVulkan& vao : mVaoDrawList) {
-			vao.bind(cmd);
+		for (IRenderable& renderable : mRenderableDrawList) {
+			renderable.getVao().bind(cmd);
 			if (mShaderProgram.getUniformLayout().hasUniforms()) {
-				mShaderProgram.getShaderDescriptor().bindDescriptorSets(cmd, mGraphicsPipelineLayout, imageIndex);
+				mShaderProgram.getShaderDescriptor().bindDescriptorSets(
+					cmd,
+					mGraphicsPipelineLayout,
+					imageIndex
+				);
 			}
 
 			for (const VkPushConstantRange& pushConstant : mShaderProgram.getUniformLayout().getPushConstantRanges()) {
@@ -242,13 +246,13 @@ namespace DOH {
 					pushConstant.stageFlags,
 					pushConstant.offset,
 					pushConstant.size,
-					vao.getPushConstantPtr()
+					renderable.getPushConstantPtr()
 				);
 			}
 
 			vkCmdDrawIndexed(
 				cmd,
-				vao.getDrawCount(),
+				renderable.getVao().getDrawCount(),
 				1,
 				0,
 				0,

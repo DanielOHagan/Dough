@@ -86,15 +86,16 @@ namespace DOH {
 				mPreviousUps = mUps;
 				mUps = 0.0f;
 
-				const bool noLimitFps = mApplication.isFocused() || mRunInBackground;
-				LOG(
-					"FPS: " << mPreviousFps << " (" <<
-					(noLimitFps ? mTargetFps : mTargetBackgroundFps) << ")"
-				);
-				LOGLN(
-					"\tUPS: " << mPreviousUps << " (" <<
-					(noLimitFps ? mTargetUps : mTargetBackgroundUps) << ")"
-				);
+				////Log FPS and UPS each second
+				//const bool noLimitFps = mApplication.isFocused() || mRunInBackground;
+				//LOG(
+				//	"FPS: " << mPreviousFps << " (" <<
+				//	(noLimitFps ? mTargetFps : mTargetBackgroundFps) << ")"
+				//);
+				//LOGLN(
+				//	"\tUPS: " << mPreviousUps << " (" <<
+				//	(noLimitFps ? mTargetUps : mTargetBackgroundUps) << ")"
+				//);
 
 				mPerSecondCountersTimeSpan = 0.0;
 			}

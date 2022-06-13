@@ -16,6 +16,7 @@ namespace DOH {
 
 	void Renderer2dStorageVulkan::init(VkDevice logicDevice) {
 
+		//TODO:: fix this
 		mWhiteTexture = ObjInit::texture(255.0f, 255.0f, 255.0f, 255.0f, false);
 
 		initForQuads(logicDevice);
@@ -36,8 +37,11 @@ namespace DOH {
 			texture->close(logicDevice);
 		}
 
-		for (std::shared_ptr<VertexArrayVulkan> vao : mQuadBatchVaos) {
-			vao->close(logicDevice);
+		//for (std::shared_ptr<VertexArrayVulkan> vao : mQuadBatchVaos) {
+		//	vao->close(logicDevice);
+		//}
+		for (const auto& renderableQuadBatch : mRenderableQuadBatches) {
+			renderableQuadBatch->getVao().close(logicDevice);
 		}
 
 		mQuadSharedIndexBuffer->close(logicDevice);
@@ -76,7 +80,8 @@ namespace DOH {
 			vao->addVertexBuffer(vbo);
 			vao->setIndexBuffer(mQuadSharedIndexBuffer, true);
 
-			mQuadBatchVaos.push_back(vao);
+			//mQuadBatchVaos.push_back(vao);
+			mRenderableQuadBatches.emplace_back(std::make_shared<SimpleRenderable>(vao));
 
 			return mQuadRenderBatches.size() - 1;
 		} else {

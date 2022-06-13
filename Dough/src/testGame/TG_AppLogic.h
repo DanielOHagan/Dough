@@ -6,7 +6,8 @@
 #include "dough/rendering/TextureVulkan.h"
 #include "dough/rendering/Config.h"
 #include "dough/scene/geometry/Quad.h"
-#include "dough/rendering/ModelVulkan.h"
+#include "dough/rendering/renderables/RenderableModel.h"
+#include "dough/rendering/renderables/SimpleRenderable.h"
 
 #include "testGame/TG_OrthoCameraController.h"
 #include "testGame/TG_PerspectiveCameraController.h"
@@ -40,37 +41,35 @@ namespace TG {
 		};
 
 	private:
-		EDemo mSelectedDemo;
-
 		//Cameras
 		std::shared_ptr<TG_OrthoCameraController> TG_mOrthoCameraController;
 		std::shared_ptr<TG_PerspectiveCameraController> mPerspectiveCameraController;
 
-		struct CubeDemo {
+		struct ObjModelsDemo {
 			struct UniformBufferObject {
 				glm::mat4x4 projView;
 			};
 
-			const std::string testCubeObjFilepath = "res/models/testCube.obj";
+			const std::array<std::string, 4> mObjModelFilePaths = {
+				"res/models/testCube.obj",
+				"res/models/spoon.obj",
+				"res/models/teacup.obj",
+				"res/models/teapot.obj"
+			};
+			const uint32_t mDefaultObjFilePathIndex = 0;
+
 			const std::string flatColourShaderVertPath = "res/shaders/spv/FlatColour.vert.spv";
 			const std::string flatColourShaderFragPath = "res/shaders/spv/FlatColour.frag.spv";
-			const std::string mScenePipelineName = "Cube";
+			const std::string mScenePipelineName = "ObjScene";
 			const EVertexType mSceneVertexType = EVertexType::VERTEX_3D;
-
 			std::shared_ptr<ShaderProgramVulkan> mSceneShaderProgram;
-			std::shared_ptr<ModelVulkan> mCubeModel;
-			glm::mat4x4 mTranslation = glm::mat4x4(1.0f);
+
+			std::vector<std::shared_ptr<ModelVulkan>> mLoadedModels;
+			std::vector<RenderableModelVulkan> mRenderableObjects;
 
 			bool Update = false;
 			bool Render = false;
-
-			bool AutoRotate = false;
-			float AutoRotateSpeed = 15.0f;
-			float Rotation[3] = { 0.0f, 0.0f, 0.0f };
-			float Position[3] = { 0.0f, 0.0f, 0.0f };
-			//Only allow for uniform scalling to avoid normal deformation later
-			float Scale = 1.0f;
-		} mCubeDemo;
+		} mObjModelsDemo;
 
 		//Generic custom scene objects (TODO:: should this be its own demo, maybe if it's worked on more)
 		struct CustomDemo {
@@ -118,10 +117,16 @@ namespace TG {
 
 			glm::mat4x4 mUiProjMat = glm::mat4x4(1.0f);
 			std::shared_ptr<ShaderProgramVulkan> mSceneShaderProgram;
-			std::shared_ptr<VertexArrayVulkan> mSceneVertexArray;
+			std::shared_ptr<ShaderProgramVulkan> mUiShaderProgram;
+			
 			std::shared_ptr<TextureVulkan> mTestTexture1;
 			std::shared_ptr<TextureVulkan> mTestTexture2;
-			std::shared_ptr<ShaderProgramVulkan> mUiShaderProgram;
+
+			//Renderables are for an easier API overall, they do not fully "own" an object,
+			// therefore, they are not responsible for clearing up resources
+			std::shared_ptr<SimpleRenderable> mSceneRenderable;
+			std::shared_ptr<VertexArrayVulkan> mSceneVao;
+			std::shared_ptr<SimpleRenderable> mUiRenderable;
 			std::shared_ptr<VertexArrayVulkan> mUiVao;
 
 			const std::string mScenePipelineName = "Custom";
@@ -170,7 +175,6 @@ namespace TG {
 		} mImGuiSettings;
 	public:
 		TG_AppLogic();
-		TG_AppLogic(EDemo demo);
 		TG_AppLogic(const TG_AppLogic& copy) = delete;
 		TG_AppLogic operator=(const TG_AppLogic& assignment) = delete;
 
@@ -194,7 +198,7 @@ namespace TG {
 		//void initGridDemo();
 		void initBouncingQuadsDemo();
 		void initCustomDemo();
-		void initCubeDemo();
+		void initObjModelsDemo();
 
 
 		//ImGui convenience and separated functions

@@ -2,6 +2,7 @@
 
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 #include "dough/rendering/renderer2d/RenderBatchQuad.h"
+#include "dough/rendering/renderables/SimpleRenderable.h"
 #include "dough/rendering/TextureArray.h"
 
 //Currently batching has significantly different performance on different configurations
@@ -32,7 +33,7 @@ namespace DOH {
 		std::shared_ptr<GraphicsPipelineVulkan> mQuadGraphicsPipeline;
 
 		std::vector<RenderBatchQuad> mQuadRenderBatches;
-		std::vector<std::shared_ptr<VertexArrayVulkan>> mQuadBatchVaos;
+		std::vector<std::shared_ptr<SimpleRenderable>> mRenderableQuadBatches;
 		//Quad indices buffer to be shared between Quad VAOs
 		std::shared_ptr<IndexBufferVulkan> mQuadSharedIndexBuffer;
 		std::unique_ptr<TextureArray> mQuadBatchTextureArray;
@@ -76,8 +77,6 @@ namespace DOH {
 
 		void init(VkDevice logicDevice);
 		void close(VkDevice logicDevice);
-		//void closeSwapChainSpecificObjects(VkDevice logicDevice);
-		//void recreateSwapChainSpecificObjects();
 		void onSwapChainResize(VkDevice logicDevice, SwapChainVulkan& swapChain);
 		size_t createNewBatchQuad();
 
@@ -85,7 +84,7 @@ namespace DOH {
 		inline GraphicsPipelineVulkan& getQuadGraphicsPipeline() const { return *mQuadGraphicsPipeline; }
 		inline const TextureVulkan& getWhiteTexture() const { return *mWhiteTexture; }
 		inline std::vector<RenderBatchQuad>& getQuadRenderBatches() { return mQuadRenderBatches; }
-		inline std::vector<std::shared_ptr<VertexArrayVulkan>>& getQuadRenderBatchVaos() { return mQuadBatchVaos; }
+		inline std::vector<std::shared_ptr<SimpleRenderable>>& getRenderableQuadBatches() { return mRenderableQuadBatches; }
 		inline const std::vector<std::shared_ptr<TextureVulkan>>& getTestTextures() const { return mTestTextures; }
 		inline TextureArray& getQuadBatchTextureArray() const { return *mQuadBatchTextureArray; }
 		inline IndexBufferVulkan& getQuadBatchIndexBuffer() const { return *mQuadSharedIndexBuffer; }

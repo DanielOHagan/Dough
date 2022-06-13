@@ -109,7 +109,7 @@ namespace DOH {
 
 	void RenderingContextVulkan::closeScenePipelines() {
 		for (const auto& pipeline : mSceneGraphicsPipelines) {
-			LOG_INFO("Closing Pipeline: " << pipeline.first);
+			//LOG_INFO("Closing Scene Pipeline: " << pipeline.first);
 			pipeline.second->close(mLogicDevice);
 		}
 		mSceneGraphicsPipelines.clear();
@@ -117,7 +117,7 @@ namespace DOH {
 
 	void RenderingContextVulkan::closeUiPipelines() {
 		for (const auto& pipeline : mUiGraphicsPipelines) {
-			LOG_INFO("Closing Pipeline: " << pipeline.first);
+			//LOG_INFO("Closing UI Pipeline: " << pipeline.first);
 			pipeline.second->close(mLogicDevice);
 		}
 		mUiGraphicsPipelines.clear();
@@ -125,6 +125,10 @@ namespace DOH {
 
 	void RenderingContextVulkan::closeGpuResourceImmediately(std::shared_ptr<IGPUResourceVulkan> res) {
 		res->close(mLogicDevice);
+	}
+
+	void RenderingContextVulkan::closeGpuResourceImmediately(IGPUResourceVulkan& res) {
+		res.close(mLogicDevice);
 	}
 
 	void RenderingContextVulkan::releaseGpuResources() {
@@ -242,11 +246,14 @@ namespace DOH {
 
 		mRenderingDebugInfo.updateTotalDrawCallCount();
 
+		//Clear to-draw lists whether or not pipeline is enabled
 		for (const auto& pipeline : mSceneGraphicsPipelines) {
-			pipeline.second->clearVaoToDraw();
+			//pipeline.second->clearVaoToDraw();
+			pipeline.second->clearRenderableToDraw();
 		}
 		for (const auto& pipeline : mUiGraphicsPipelines) {
-			pipeline.second->clearVaoToDraw();
+			//pipeline.second->clearVaoToDraw();
+			pipeline.second->clearRenderableToDraw();
 		}
 
 		endCommandBuffer(cmd);
@@ -485,6 +492,26 @@ namespace DOH {
 
 		map.emplace(name, pipeline);
 	}
+
+	PipelineRenderableConveyer RenderingContextVulkan::createPipelineConveyer(
+		const SwapChainVulkan::ERenderPassType renderPass,
+		const std::string& name
+	) {
+		if (renderPass == SwapChainVulkan::ERenderPassType::IMGUI) {
+			LOG_ERR("Unable to create ImGui pipeline conveyer");
+			return {};
+		}
+
+		auto& map = renderPass == SwapChainVulkan::ERenderPassType::SCENE ? mSceneGraphicsPipelines : mUiGraphicsPipelines;
+		const auto& itr = map.find(name);
+		if (itr != map.end()) {
+			return { *itr->second };
+		} else {
+			LOG_ERR("Pipeline (" << name << ") not found");
+			return {};
+		}
+	}
+
 	void RenderingContextVulkan::enablePipeline(const SwapChainVulkan::ERenderPassType renderPass, const std::string& name, bool enable) {
 		if (renderPass == SwapChainVulkan::ERenderPassType::IMGUI) {
 			LOG_ERR("Unable to enable/disable ImGui pipeline");
