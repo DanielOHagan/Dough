@@ -49,6 +49,9 @@ namespace DOH {
 		inline void setHeight(uint32_t height) {SupportDetails.capabilities.currentExtent.height = height;}
 	};
 
+	//TODO:: Some kind of Vertex Input builder?
+	//	Instead of using pre-defined structs (Vertex2d, Vertex3d, etc...)
+
 	static VkVertexInputBindingDescription createBindingDescription(uint32_t binding, uint32_t stride, VkVertexInputRate inputRate) {
 		VkVertexInputBindingDescription bindDesc = {};
 		bindDesc.binding = binding;

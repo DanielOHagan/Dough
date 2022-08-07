@@ -43,6 +43,17 @@ namespace DOH {
 		mPhysicalDeviceProperties = std::make_unique<VkPhysicalDeviceProperties>();
 		vkGetPhysicalDeviceProperties(mPhysicalDevice, mPhysicalDeviceProperties.get());
 
+		//Physical device info
+		mRenderingDeviceInfo = std::make_unique<RenderingDeviceInfo>(
+			(
+				std::to_string(VK_VERSION_MAJOR(mPhysicalDeviceProperties->apiVersion)) + "." +
+				std::to_string(VK_VERSION_MINOR(mPhysicalDeviceProperties->apiVersion)) + "." +
+				std::to_string(VK_VERSION_PATCH(mPhysicalDeviceProperties->apiVersion))
+			),
+			mPhysicalDeviceProperties->deviceName,
+			std::to_string(mPhysicalDeviceProperties->driverVersion)
+		);
+
 		createQueues(queueFamilyIndices);
 
 		createCommandPool(queueFamilyIndices);
@@ -66,7 +77,7 @@ namespace DOH {
 		imGuiInitInfo.QueueFamily = queueFamilyIndices.GraphicsFamily.value();
 		imGuiInitInfo.RenderPass = mSwapChain->getRenderPass(SwapChainVulkan::ERenderPassType::IMGUI).get();
 		imGuiInitInfo.VulkanInstance = vulkanInstance;
-
+		
 		mImGuiWrapper->init(window, imGuiInitInfo);
 		mImGuiWrapper->uploadFonts(*this);
 	}
@@ -219,10 +230,8 @@ namespace DOH {
 		);
 
 		mRenderer2d->resetDrawCount();
-		mRenderer2d->updateSceneUniformData(mLogicDevice, imageIndex, mSceneUbo.ProjectionViewMat);
 
-		//TODO:: mRenderer2d->uploadSceneData();
-		//TODO:: mRenderer2d->uploadUiData();
+		mRenderer2d->updateRenderer2dUniformData(mLogicDevice, imageIndex, mSceneUbo.ProjectionViewMat);
 
 		VkCommandBuffer cmd = mCommandBuffers[imageIndex];
 		beginCommandBuffer(cmd);
@@ -248,11 +257,9 @@ namespace DOH {
 
 		//Clear to-draw lists whether or not pipeline is enabled
 		for (const auto& pipeline : mSceneGraphicsPipelines) {
-			//pipeline.second->clearVaoToDraw();
 			pipeline.second->clearRenderableToDraw();
 		}
 		for (const auto& pipeline : mUiGraphicsPipelines) {
-			//pipeline.second->clearVaoToDraw();
 			pipeline.second->clearRenderableToDraw();
 		}
 
@@ -465,29 +472,23 @@ namespace DOH {
 
 	void RenderingContextVulkan::createPipeline(
 		const std::string& name,
-		const SwapChainVulkan::ERenderPassType renderPass,
-		ShaderProgramVulkan& shaderProgram,
-		const EVertexType vertexType,
+		GraphicsPipelineInstanceInfo& instanceInfo,
 		const bool enabled
 	) {
-		if (renderPass == SwapChainVulkan::ERenderPassType::IMGUI) {
+		if (instanceInfo.RenderPass == SwapChainVulkan::ERenderPassType::IMGUI) {
 			LOG_ERR("Unable to create ImGui pipeline");
 			return;
 		}
 
-		auto& map = renderPass == SwapChainVulkan::ERenderPassType::SCENE ? mSceneGraphicsPipelines : mUiGraphicsPipelines;
+		auto& map = instanceInfo.RenderPass ==
+			SwapChainVulkan::ERenderPassType::SCENE ? mSceneGraphicsPipelines : mUiGraphicsPipelines;
 		const auto& itr = map.find(name);
 		if (itr != map.end()) {
 			LOG_ERR("Pipeline already exists: " << name);
 			return;
 		}
 
-		const auto pipeline = ObjInit::graphicsPipeline(
-			vertexType,
-			shaderProgram,
-			mSwapChain->getRenderPass(renderPass).get(),
-			mSwapChain->getExtent()
-		);
+		const auto pipeline = createGraphicsPipeline(instanceInfo, mSwapChain->getExtent());
 		pipeline->setEnabled(enabled);
 
 		map.emplace(name, pipeline);
@@ -502,7 +503,8 @@ namespace DOH {
 			return {};
 		}
 
-		auto& map = renderPass == SwapChainVulkan::ERenderPassType::SCENE ? mSceneGraphicsPipelines : mUiGraphicsPipelines;
+		auto& map = renderPass ==
+			SwapChainVulkan::ERenderPassType::SCENE ? mSceneGraphicsPipelines : mUiGraphicsPipelines;
 		const auto& itr = map.find(name);
 		if (itr != map.end()) {
 			return { *itr->second };
@@ -727,13 +729,13 @@ namespace DOH {
 		endSingleTimeCommands(cmdBuffer);
 	}
 
-	VkImageView RenderingContextVulkan::createImageView(VkImage image, VkFormat format) {
+	VkImageView RenderingContextVulkan::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
 		VkImageViewCreateInfo view{};
 		view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		view.image = image;
 		view.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		view.format = format;
-		view.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		view.subresourceRange.aspectMask = aspectFlags;
 		view.subresourceRange.baseMipLevel = 0;
 		view.subresourceRange.levelCount = 1;
 		view.subresourceRange.baseArrayLayer = 0;
@@ -850,13 +852,32 @@ namespace DOH {
 		VkRenderPass renderPass,
 		VkExtent2D extent
 	) {
-		return std::make_shared<GraphicsPipelineVulkan>(
+		//return std::make_shared<GraphicsPipelineVulkan>(
+		//	mLogicDevice,
+		//	vertexType,
+		//	shaderProgram,
+		//	extent,
+		//	renderPass
+		//);
+		LOG_ERR("Shouldn't have been called!!!!!");
+		return nullptr;
+	}
+
+	std::shared_ptr<GraphicsPipelineVulkan> RenderingContextVulkan::createGraphicsPipeline(
+		GraphicsPipelineInstanceInfo& instanceInfo,
+		VkExtent2D extent
+	) {
+		//return std::make_shared<GraphicsPipelineVulkan>(
+		//	mLogicDevice,
+		//	instanceInfo,
+		//	mSwapChain->getRenderPass(instanceInfo.RenderPass),
+		//	extent
+		//);
+		return std::make_unique<GraphicsPipelineVulkan>(
 			mLogicDevice,
-			mCommandPool,
-			vertexType,
-			shaderProgram,
-			extent,
-			renderPass
+			instanceInfo,
+			mSwapChain->getRenderPass(instanceInfo.RenderPass).get(),
+			extent
 		);
 	}
 
@@ -870,7 +891,8 @@ namespace DOH {
 		VkImageLayout finalLayout,
 		VkAttachmentLoadOp loadOp,
 		bool enableClearColour,
-		VkClearValue clearColour
+		VkClearValue clearColour,
+		VkFormat depthFormat
 	) {
 		return std::make_shared<RenderPassVulkan>(
 			mLogicDevice,
@@ -879,7 +901,8 @@ namespace DOH {
 			finalLayout,
 			loadOp,
 			enableClearColour,
-			clearColour
+			clearColour,
+			depthFormat
 		);
 	}
 

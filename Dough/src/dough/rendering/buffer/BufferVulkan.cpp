@@ -156,9 +156,18 @@ namespace DOH {
 
 	void BufferVulkan::setData(VkDevice logicDevice, const void* data, size_t size) {
 		mSize = size;
+		void* mappedData = map(logicDevice, size);
+		memcpy(mappedData, data, size);
+		unmap(logicDevice);
+	}
+
+	void* BufferVulkan::map(VkDevice logicDevice, size_t size) {
 		void* mappedData;
 		vkMapMemory(logicDevice, mBufferMemory, 0, size, 0, &mappedData);
-		memcpy(mappedData, data, size);
+		return mappedData;
+	}
+
+	void BufferVulkan::unmap(VkDevice logicDevice) {
 		vkUnmapMemory(logicDevice, mBufferMemory);
 	}
 

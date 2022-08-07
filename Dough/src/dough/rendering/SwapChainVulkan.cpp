@@ -1,5 +1,4 @@
 #include "dough/application/Application.h"
-#include "dough/rendering/ObjInit.h"
 #include "dough/Logging.h"
 
 namespace DOH {
@@ -105,26 +104,55 @@ namespace DOH {
 
 		createImageViews(logicDevice);
 
-		mSceneRenderPass = ObjInit::renderPass(
+		auto& context = Application::get().getRenderer().getContext();
+
+		//Depth buffers
+		VkFormat depthFormat = RendererVulkan::findSupportedFormat(
+			{ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+			VK_IMAGE_TILING_OPTIMAL,
+			VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+		);
+
+		for (uint32_t i = 1; i < imageCount; i++) {
+			VkImage depthImage = context.createImage(
+				width,
+				height,
+				depthFormat,
+				VK_IMAGE_TILING_OPTIMAL,
+				VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
+			);
+			VkDeviceMemory depthImageMem = context.createImageMemory(
+				depthImage,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+			);
+			VkImageView depthImageView = context.createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+			mSceneDepthImages.push_back({ depthImage, depthImageMem, depthImageView });
+		}
+
+		mSceneRenderPass = context.createRenderPass(
 			mImageFormat,
 			VK_IMAGE_LAYOUT_UNDEFINED,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			VK_ATTACHMENT_LOAD_OP_CLEAR,
-			true
+			true,
+			{ 0.264f, 0.328f, 0.484f, 1.0f }, //TODO:: default clear colour,
+			depthFormat
 		);
-		mAppUiRenderPass = ObjInit::renderPass(
+		mAppUiRenderPass = context.createRenderPass(
 			mImageFormat,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			VK_ATTACHMENT_LOAD_OP_LOAD,
-			false
+			false,
+			{ 0.264f, 0.328f, 0.484f, 1.0f }
 		);
-		mImGuiRenderPass = ObjInit::renderPass(
+		mImGuiRenderPass = context.createRenderPass(
 			mImageFormat,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 			VK_ATTACHMENT_LOAD_OP_LOAD,
-			false
+			false,
+			{ 0.264f, 0.328f, 0.484f, 1.0f }
 		);
 
 		createFrameBuffers(logicDevice);
@@ -134,6 +162,9 @@ namespace DOH {
 		mSceneRenderPass->close(logicDevice);
 		mAppUiRenderPass->close(logicDevice);
 		mImGuiRenderPass->close(logicDevice);
+		for (ImageVulkan& depthImage : mSceneDepthImages) {
+			depthImage.close(logicDevice);
+		}
 
 		destroyFrameBuffers(logicDevice);
 
@@ -146,8 +177,10 @@ namespace DOH {
 	void SwapChainVulkan::createImageViews(VkDevice logicDevice) {
 		mImageViews.resize(mImages.size());
 
+		auto& context = Application::get().getRenderer().getContext();
+
 		for (size_t i = 0; i < mImages.size(); i++) {
-			mImageViews[i] = Application::get().getRenderer().getContext().createImageView(mImages[i], mImageFormat);
+			mImageViews[i] = context.createImageView(mImages[i], mImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 		}
 	}
 
@@ -158,12 +191,12 @@ namespace DOH {
 		mImGuiFrameBuffers.resize(imageCount);
 
 		for (size_t i = 0; i < imageCount; i++) {
-			VkImageView sceneAttachments[] = { mImageViews[i] };
+			std::array<VkImageView, 2> sceneAttachments = { mImageViews[i], mSceneDepthImages[i % (imageCount - 1)].getImageView()};
 			VkFramebufferCreateInfo sceneFrameBufferInfo = {};
 			sceneFrameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			sceneFrameBufferInfo.renderPass = mSceneRenderPass->get();
-			sceneFrameBufferInfo.attachmentCount = 1;
-			sceneFrameBufferInfo.pAttachments = sceneAttachments;
+			sceneFrameBufferInfo.attachmentCount = static_cast<uint32_t>(sceneAttachments.size());
+			sceneFrameBufferInfo.pAttachments = sceneAttachments.data();
 			sceneFrameBufferInfo.width = mExtent.width;
 			sceneFrameBufferInfo.height = mExtent.height;
 			sceneFrameBufferInfo.layers = 1;
@@ -187,7 +220,7 @@ namespace DOH {
 				vkCreateFramebuffer(logicDevice, &appUiFrameBufferInfo, nullptr, &mAppUiFrameBuffers[i]),
 				"Failed to create App Ui FrameBuffer."
 			);
-
+			
 			VkImageView imGuiAttachments[] = { mImageViews[i] };
 			VkFramebufferCreateInfo imGuiFrameBufferInfo = {};
 			imGuiFrameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -197,7 +230,7 @@ namespace DOH {
 			imGuiFrameBufferInfo.width = mExtent.width;
 			imGuiFrameBufferInfo.height = mExtent.height;
 			imGuiFrameBufferInfo.layers = 1;
-
+			
 			VK_TRY(
 				vkCreateFramebuffer(logicDevice, &imGuiFrameBufferInfo, nullptr, &mImGuiFrameBuffers[i]),
 				"Failed to create ImGui FrameBuffer."

@@ -8,15 +8,34 @@
 
 namespace DOH {
 
+	struct GraphicsPipelineInstanceInfo {
+		GraphicsPipelineInstanceInfo(
+			EVertexType vertexType,
+			ShaderProgramVulkan& shaderProgram,
+			SwapChainVulkan::ERenderPassType renderPass
+		) : VertexType(vertexType),
+			ShaderProgram(shaderProgram),
+			RenderPass(renderPass)
+		{}
+
+		//TODO:: More fields, builder class?
+		EVertexType VertexType;
+		ShaderProgramVulkan& ShaderProgram;
+		SwapChainVulkan::ERenderPassType RenderPass;
+
+		VkPolygonMode PolygonMode = VK_POLYGON_MODE_FILL;
+		VkCullModeFlags CullMode = VK_CULL_MODE_BACK_BIT;
+		VkFrontFace FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+	};
+
 	class GraphicsPipelineVulkan {
 
 	private:
 
 		VkPipeline mGraphicsPipeline;
 		VkPipelineLayout mGraphicsPipelineLayout;
-		EVertexType mVertexType;
-		ShaderProgramVulkan& mShaderProgram;
-		std::vector<std::reference_wrapper<IRenderable>> mRenderableDrawList;
+		GraphicsPipelineInstanceInfo& mInstanceInfo;
+		std::vector<std::shared_ptr<IRenderable>> mRenderableDrawList;
 		bool mEnabled;
 
 	public:
@@ -26,11 +45,9 @@ namespace DOH {
 
 		GraphicsPipelineVulkan(
 			VkDevice logicDevice,
-			VkCommandPool cmdPool,
-			EVertexType vertexType,
-			ShaderProgramVulkan& shaderProgram,
-			VkExtent2D extent,
-			VkRenderPass renderPass
+			GraphicsPipelineInstanceInfo& creationInfo,
+			VkRenderPass renderPass,
+			VkExtent2D extent
 		);
 
 		void createUniformObjects(VkDevice logicDevice);
@@ -41,15 +58,15 @@ namespace DOH {
 			VkDescriptorPool descPool
 		);
 		void recordDrawCommands(uint32_t imageIndex, VkCommandBuffer cmd);
-		inline void addRenderableToDraw(IRenderable& renderable) { mRenderableDrawList.push_back(renderable); }
+		inline void addRenderableToDraw(std::shared_ptr<IRenderable> renderable) { mRenderableDrawList.push_back(renderable); }
 		inline void clearRenderableToDraw() { mRenderableDrawList.clear(); }
 		void bind(VkCommandBuffer cmdBuffer);
 		void close(VkDevice logicDevice);
 		void recreate(VkDevice logicDevice, VkExtent2D extent, VkRenderPass renderPass);
 
 		inline VkPipelineLayout getPipelineLayout() const { return mGraphicsPipelineLayout; }
-		inline DescriptorVulkan& getShaderDescriptor() const { return mShaderProgram.getShaderDescriptor(); }
-		inline ShaderProgramVulkan& getShaderProgram() const { return mShaderProgram; }
+		inline DescriptorVulkan& getShaderDescriptor() const { return mInstanceInfo.ShaderProgram.getShaderDescriptor(); }
+		inline ShaderProgramVulkan& getShaderProgram() const { return mInstanceInfo.ShaderProgram; }
 		inline bool isReady() const { return mGraphicsPipeline != VK_NULL_HANDLE; }
 		inline uint32_t getVaoDrawCount() const { return static_cast<uint32_t>(mRenderableDrawList.size()); }
 		inline VkPipeline get() const { return mGraphicsPipeline; }
@@ -79,6 +96,7 @@ namespace DOH {
 		{}
 
 		inline bool isValid() const { return mPipeline.has_value(); }
-		inline void addRenderable(IRenderable& renderable) { mPipeline.value().get().addRenderableToDraw(renderable); }
+		inline void addRenderable(std::shared_ptr<IRenderable> renderable) { mPipeline->get().addRenderableToDraw(renderable); }
+		inline void safeAddRenderable(std::shared_ptr<IRenderable> renderable) { if (mPipeline.has_value()) { mPipeline->get().addRenderableToDraw(renderable); }}
 	};
 }

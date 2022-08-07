@@ -18,7 +18,7 @@ namespace DOH {
 			float bottom,
 			float top,
 			float nearZ	= 0.0f,
-			float farZ = 1.0f
+			float farZ = 100.0f
 		);
 		OrthographicCamera(const OrthographicCamera& copy) = delete;
 		OrthographicCamera operator=(const OrthographicCamera& assignment) = delete;
@@ -36,7 +36,7 @@ namespace DOH {
 			float bottom,
 			float top,
 			float nearZ = 0.0f,
-			float farZ = 1.0f
+			float farZ = 100.0f
 		);
 	};
 }

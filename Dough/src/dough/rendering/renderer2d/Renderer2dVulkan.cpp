@@ -222,7 +222,7 @@ namespace DOH {
 		}
 	}
 
-	void Renderer2dVulkan::updateSceneUniformData(
+	void Renderer2dVulkan::updateRenderer2dUniformData(
 		VkDevice logicDevice,
 		uint32_t currentImage,
 		glm::mat4x4& sceneProjView
@@ -230,6 +230,8 @@ namespace DOH {
 		const uint32_t uboBinding = 0;
 		mStorage->getQuadGraphicsPipeline().getShaderDescriptor().getBuffersFromBinding(uboBinding)[currentImage]->
 			setData(logicDevice, &sceneProjView, sizeof(glm::mat4x4));
+
+		//TODO:: UI
 	}
 
 	void Renderer2dVulkan::flushScene(VkDevice logicDevice, uint32_t imageIndex, VkCommandBuffer cmd) {
@@ -243,8 +245,8 @@ namespace DOH {
 			const uint32_t quadCount = static_cast<uint32_t>(batch.getGeometryCount());
 
 			if (quadCount > 0) {
-				SimpleRenderable& renderableBatch = *mStorage->getRenderableQuadBatches()[index];
-				VertexArrayVulkan& vao = renderableBatch.getVao();
+				const auto& renderableBatch = mStorage->getRenderableQuadBatches()[index];
+				VertexArrayVulkan& vao = renderableBatch->getVao();
 
 				vao.getVertexBuffers()[0]->setData(
 					logicDevice,

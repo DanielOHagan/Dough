@@ -13,11 +13,6 @@ namespace DOH {
 		static const float MIN_TARGET_FPS;
 		static const float MAX_TARGET_UPS;
 		static const float MIN_TARGET_UPS;
-		static const float DEFAULT_TARGET_FPS;
-		static const float DEFAULT_TARGET_BACKGROUND_FPS;
-		static const float DEFAULT_TARGET_UPS;
-		static const float DEFAULT_TARGET_BACKGROUND_UPS;
-		static const bool DEFAULT_RUN_IN_BACKGROUND;
 
 	private:
 		Application& mApplication;
@@ -41,11 +36,6 @@ namespace DOH {
 		bool mRunInBackground;
 
 	public:
-		ApplicationLoop(
-			Application& app,
-			float targetFps,
-			float targetUps
-		);
 		ApplicationLoop(
 			Application& app,
 			float targetFps,

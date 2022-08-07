@@ -2,6 +2,7 @@
 
 #include "dough/Utils.h"
 #include "dough/rendering/IGPUResourceVulkan.h"
+#include "dough/rendering/ImageVulkan.h"
 
 namespace DOH {
 
@@ -13,9 +14,7 @@ namespace DOH {
 		int mHeight;
 		int mChannels;
 
-		VkImage mImage;
-		VkDeviceMemory mImageMemory;
-		VkImageView mImageView;
+		std::unique_ptr<ImageVulkan> mTextureImage;
 		VkSampler mSampler;
 
 	public:
@@ -46,12 +45,9 @@ namespace DOH {
 		inline int getHeight() const { return mHeight; }
 		inline int getChannels() const { return mChannels; }
 		inline int getSize() const { return mWidth * mHeight * 4; }
-		inline VkImage getImage() const { return mImage; }
-		inline VkImageView getImageView() const { return mImageView; }
+		inline VkImage getImage() const { return mTextureImage->get(); }
+		inline VkDeviceMemory getMemory() const { return mTextureImage->getMemory(); }
+		inline VkImageView getImageView() const { return mTextureImage->getImageView(); }
 		inline VkSampler getSampler() const { return mSampler; }
-
-	private:
-		void createImageView();
-		void createSampler();
 	};
 }

@@ -11,7 +11,7 @@
 #include <iostream>
 #define LOG(message) { std::cout << message;}
 #define LOGLN(message) { std::cout << message << std::endl; }
-#define LNLOG(message) {std::cout << std::endl << message;}
+#define LNLOG(message) { std::cout << std::endl << message; }
 #define LOG_ENDL { std::cout << std::endl; }
 
 #if defined (_DEBUG)

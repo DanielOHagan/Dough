@@ -15,7 +15,7 @@ int main() {
 
 	std::shared_ptr<DOH::IApplicationLogic> appLogic = std::make_shared<TG::TG_AppLogic>();
 
-	int code = DOH::Application::start(appLogic);
+	int code = DOH::Application::start(appLogic, {"Test Game", 1920, 1080});
 
 	DEBUG_MEM_DUMP;
 

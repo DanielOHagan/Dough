@@ -30,6 +30,7 @@ namespace DOH {
 		VkDescriptorPool mDescriptorPool;
 
 		std::shared_ptr<ShaderProgramVulkan> mQuadShaderProgram;
+		std::unique_ptr<GraphicsPipelineInstanceInfo> mQuadGraphicsPipelineInstanceInfo;
 		std::shared_ptr<GraphicsPipelineVulkan> mQuadGraphicsPipeline;
 
 		std::vector<RenderBatchQuad> mQuadRenderBatches;

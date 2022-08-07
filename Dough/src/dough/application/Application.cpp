@@ -19,25 +19,23 @@ namespace DOH {
 		mAppInfoTimer->recordInterval("AppLoop.run() end");
 	}
 
-	void Application::init(std::shared_ptr<IApplicationLogic> appLogic) {
+	void Application::init(std::shared_ptr<IApplicationLogic> appLogic, const ApplicationInitSettings& initSettings) {
 		mAppInfoTimer = std::make_unique<IntervalTimer>("Application Info", true);
 		mAppInfoTimer->recordInterval("Application.init() start");
 		mAppLogic = appLogic;
 
-		mWindow = std::make_unique<Window>(1920, 1080, EWindowDisplayMode::WINDOWED);
-		//mWindow = std::make_unique<Window>(2560, 1440, EWindowDisplayMode::BORDERLESS_FULLSCREEN);
-		//mWindow = std::make_unique<Window>(2560, 1440, EWindowDisplayMode::FULLSCREEN);
+		mWindow = std::make_unique<Window>(initSettings.WindowWidth, initSettings.WindowHeight, initSettings.WindowDisplayMode);
 		mAppInfoTimer->recordInterval("Window.init() start");
-		mWindow->init("Dough Engine");
+		mWindow->init(initSettings.ApplicationName);
 		mAppInfoTimer->recordInterval("Window.init() end");
 
 		mAppLoop = std::make_unique<ApplicationLoop>(
 			*this,
-			144.0f,
-			144.0f,
-			false,
-			ApplicationLoop::DEFAULT_TARGET_BACKGROUND_FPS,
-			ApplicationLoop::DEFAULT_TARGET_BACKGROUND_UPS
+			initSettings.TargetForgroundFps,
+			initSettings.TargetForgroundUps,
+			initSettings.RunInBackground,
+			initSettings.TargetBackgroundFps,
+			initSettings.TargetBackgroundUps
 		);
 
 		Input::init();
@@ -73,7 +71,7 @@ namespace DOH {
 		mRenderer->getContext().getImGuiWrapper().newFrame();
 		mAppLogic->imGuiRender();
 
-		//ImGui end frame is now called after it is rendered in RenderingContext::drawFrame(), this is needed for multi-viewport windows
+		//NOTE:: ImGui end frame is now called after it is rendered in RenderingContext::drawFrame(), this is needed for multi-viewport windows
 		//mRenderer->getContext().getImGuiWrapper().endFrame();
 
 		mRenderer->drawFrame();
@@ -90,17 +88,15 @@ namespace DOH {
 
 		mAppInfoTimer->end();
 		mAppInfoTimer->dump();
-
-		delete INSTANCE;
 	}
 
-	int Application::start(std::shared_ptr<IApplicationLogic> appLogic) {
+	int Application::start(std::shared_ptr<IApplicationLogic> appLogic, ApplicationInitSettings initSettings) {
 		INSTANCE = new Application();
 		int returnCode = 0;
 		
 		if (Application::isInstantiated()) {
 			try {
-				INSTANCE->init(appLogic);
+				INSTANCE->init(appLogic, initSettings);
 				INSTANCE->run();
 				returnCode = EXIT_SUCCESS;
 			} catch (const std::exception& e) {
@@ -111,6 +107,8 @@ namespace DOH {
 			}
 
 			INSTANCE->close();
+
+			delete INSTANCE;
 
 		} else {
 			returnCode = EXIT_FAILURE;

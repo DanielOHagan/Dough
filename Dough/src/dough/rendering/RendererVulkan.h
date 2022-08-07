@@ -68,7 +68,19 @@ namespace DOH {
 
 		inline RenderingContextVulkan& getContext() const { return *mRenderingContext; }
 
-		static uint32_t findPhysicalDeviceMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
+		static uint32_t findPhysicalDeviceMemoryType(
+			VkPhysicalDevice physicalDevice,
+			uint32_t typeFilter,
+			VkMemoryPropertyFlags properties
+		);
+		static VkFormat findSupportedFormat(
+			const std::vector<VkFormat>& candidates,
+			VkImageTiling tiling,
+			VkFormatFeatureFlags features
+		);
+		static bool hasStencilComponent(VkFormat format) {
+			return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+		}
 
 	private:
 		//-----Initialisation-----
@@ -86,15 +98,17 @@ namespace DOH {
 		bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 		void createLogicalDevice();
 
+		VkFormat findSupportedFormatImpl(
+			const std::vector<VkFormat>& candidates,
+			VkImageTiling tiling,
+			VkFormatFeatureFlags features
+		);
+
 		static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 			VkDebugUtilsMessageSeverityFlagBitsEXT msgSeverity,
 			VkDebugUtilsMessageTypeFlagsEXT msgType,
 			const VkDebugUtilsMessengerCallbackDataEXT* callbackDataPtr,
 			void* userDataPtr
-		) {
-			std::cerr << "Validation layer: " << callbackDataPtr->pMessage << std::endl;
-
-			return VK_FALSE;
-		}
+		);
 	};
 }

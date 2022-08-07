@@ -34,6 +34,21 @@ namespace DOH {
 			glm::mat4 ProjectionViewMat;
 		} mSceneUbo;
 
+		struct RenderingDeviceInfo {
+			const std::string ApiVersion;
+			const std::string DeviceName;
+			const std::string DeviceDriverVersion;
+
+			RenderingDeviceInfo(
+				const std::string& apiVersion,
+				const std::string& deviceName,
+				const std::string& deviceDriverVersion
+			) : ApiVersion(apiVersion),
+				DeviceName(deviceName),
+				DeviceDriverVersion(deviceDriverVersion)
+			{}
+		};
+
 		//NOTE:: in OpenGL space because glm
 		glm::mat4x4 mAppUiProjection;
 		RenderingDebugInfo mRenderingDebugInfo;
@@ -41,6 +56,7 @@ namespace DOH {
 		//Shared device handles for convenience
 		VkDevice mLogicDevice;
 		VkPhysicalDevice mPhysicalDevice;
+		std::unique_ptr<RenderingDeviceInfo> mRenderingDeviceInfo;
 
 		std::unique_ptr<VkPhysicalDeviceProperties> mPhysicalDeviceProperties;
 		std::unique_ptr<SwapChainCreationInfo> mSwapChainCreationInfo;
@@ -99,11 +115,10 @@ namespace DOH {
 		bool isReady() const;
 
 		//TODO:: return PipelineVaoConveyer for easier and faster vao adding?
+		//	Take in a pipeline builder object?
 		void createPipeline(
 			const std::string& name,
-			const SwapChainVulkan::ERenderPassType renderPass,
-			ShaderProgramVulkan& shaderProgram,
-			const EVertexType vertexType,
+			GraphicsPipelineInstanceInfo& instanceInfo,
 			const bool enabled = true
 		);
 		PipelineRenderableConveyer createPipelineConveyer(
@@ -129,12 +144,14 @@ namespace DOH {
 		inline void setUiProjection(glm::mat4x4& proj) { mAppUiProjection = proj; }
 		
 		//TODO:: prefer PipelineRenderableConveyer usage whenever possible
-		inline void addRenderableToSceneDrawList(const std::string& name, IRenderable& renderable) const {
+		inline void addRenderableToSceneDrawList(const std::string& name, std::shared_ptr<IRenderable> renderable) const {
 			mSceneGraphicsPipelines.at(name)->addRenderableToDraw(renderable);
 		}
-		inline void addRenderableToUiDrawList(const std::string& name, IRenderable& renderable) const {
+		inline void addRenderableToUiDrawList(const std::string& name, std::shared_ptr<IRenderable> renderable) const {
 			mUiGraphicsPipelines.at(name)->addRenderableToDraw(renderable);
 		}
+		inline std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>> getSceneGraphicsPipelines() const { return mSceneGraphicsPipelines; }
+		inline std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>> getUiGraphicsPipelines() const { return mUiGraphicsPipelines; }
 
 		//TODO:: Ability for better control over when GPU resources can be released (e.g. after certain program stages or as soon as possible)
 		inline void addGpuResourceToCloseAfterUse(std::shared_ptr<IGPUResourceVulkan> res) { mToReleaseGpuResources.push_back(res); }
@@ -174,7 +191,7 @@ namespace DOH {
 		inline VkDeviceMemory createImageMemory(VkImage image, VkMemoryPropertyFlags props) {
 			return createImageMemory(mLogicDevice, mPhysicalDevice, image, props);
 		};
-		VkImageView createImageView(VkImage image, VkFormat format);
+		VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 		VkSampler createSampler();
 
 		inline ImGuiWrapper& getImGuiWrapper() const { return *mImGuiWrapper; }
@@ -183,6 +200,7 @@ namespace DOH {
 		inline const RenderingDebugInfo& getRenderingDebugInfo() const { return mRenderingDebugInfo; }
 		inline void setLogicDevice(VkDevice logicDevice) { mLogicDevice = logicDevice; }
 		void setPhysicalDevice(VkPhysicalDevice physicalDevice);
+		inline RenderingDeviceInfo& getRenderingDeviceInfo() const { return *mRenderingDeviceInfo; }
 
 		static VkImage createImage(
 			VkDevice logicDevice,
@@ -201,10 +219,15 @@ namespace DOH {
 		);
 
 		//-----Pipeline-----
+		//TODO:: having a "createPipeline" and "createGraphicsPipeline" is confusing
 		std::shared_ptr<GraphicsPipelineVulkan> createGraphicsPipeline(
 			EVertexType vertexType,
 			ShaderProgramVulkan& shaderProgram,
 			VkRenderPass renderPass,
+			VkExtent2D extent
+		);
+		std::shared_ptr<GraphicsPipelineVulkan> createGraphicsPipeline(
+			GraphicsPipelineInstanceInfo& instanceInfo,
 			VkExtent2D extent
 		);
 
@@ -216,7 +239,8 @@ namespace DOH {
 			VkImageLayout finalLayout,
 			VkAttachmentLoadOp loadOp,
 			bool enableClearColour,
-			VkClearValue clearColour
+			VkClearValue clearColour,
+			VkFormat depthFormat = VK_FORMAT_UNDEFINED
 		);
 
 		//-----VAO & Buffers-----

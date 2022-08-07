@@ -14,11 +14,18 @@ namespace DOH {
 		std::vector<VkDescriptorSet> mDescriptorSets;
 		std::unordered_map<uint32_t, std::vector<std::shared_ptr<BufferVulkan>>> mValueBufferMap;
 
+		//TODO:: Awkward state tracking to protect from multiple creations.
+		// Work around?
+		bool mDescriptorSetLayoutCreated;
+		bool mValueBuffersCreated;
+
 	public:
 		DescriptorVulkan(ShaderUniformLayout& uniformLayout);
 
 		DescriptorVulkan(const DescriptorVulkan& copy) = delete;
 		DescriptorVulkan operator=(const DescriptorVulkan& assignment) = delete;
+
+		bool isUsingGpuResource() const override { return mDescriptorSetLayoutCreated || mValueBuffersCreated; }
 
 		void createDescriptorSetLayout(VkDevice logicDevice);
 		void createValueBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice, uint32_t count);

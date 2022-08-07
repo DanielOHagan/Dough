@@ -1,5 +1,6 @@
 #include "dough/rendering/Config.h"
 #include "dough/rendering/pipeline/RenderPassVulkan.h"
+#include "dough/rendering/ImageVulkan.h"
 
 namespace DOH {
 
@@ -11,13 +12,17 @@ namespace DOH {
 
 		VkSwapchainKHR mSwapChain;
 		std::vector<VkImage> mImages;
+		std::vector<VkImageView> mImageViews;
 		VkFormat mImageFormat;
 		VkExtent2D mExtent;
-		std::vector<VkImageView> mImageViews;
+		
 		std::shared_ptr<RenderPassVulkan> mSceneRenderPass;
 		std::vector<VkFramebuffer> mSceneFrameBuffers;
+		std::vector<ImageVulkan> mSceneDepthImages;
+
 		std::shared_ptr<RenderPassVulkan> mAppUiRenderPass;
 		std::vector<VkFramebuffer> mAppUiFrameBuffers;
+		
 		std::shared_ptr<RenderPassVulkan> mImGuiRenderPass;
 		std::vector<VkFramebuffer> mImGuiFrameBuffers;
 

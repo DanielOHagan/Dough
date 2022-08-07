@@ -15,15 +15,22 @@ namespace DOH {
 
 	void VertexArrayVulkan::bind(VkCommandBuffer cmd) {
 		std::vector<VkBuffer> vertexBuffers;
-		std::vector<VkDeviceSize> offsets{0};
-		for (std::shared_ptr<VertexBufferVulkan> vertexBuffer : mVertexBuffers) {
-			vertexBuffers.push_back(vertexBuffer->getBuffer());
-			offsets.push_back(static_cast<VkDeviceSize>(vertexBuffer->getBufferLayout().getStride()));
+		std::vector<VkDeviceSize> offsets;
+
+		const size_t vbCount = mVertexBuffers.size();
+		vertexBuffers.resize(vbCount);
+		offsets.resize(vbCount + 1);
+		offsets[0] = 0;
+
+		for (size_t i = 0; i < vbCount; i++) {
+			vertexBuffers[i] = mVertexBuffers[i]->getBuffer();
+			offsets[i + 1] = static_cast<VkDeviceSize>(mVertexBuffers[i]->getBufferLayout().getStride());
 		}
+
 		vkCmdBindVertexBuffers(
 			cmd,
 			0,
-			static_cast<uint32_t>(vertexBuffers.size()),
+			static_cast<uint32_t>(vbCount),
 			vertexBuffers.data(),
 			offsets.data()
 		);
@@ -35,13 +42,13 @@ namespace DOH {
 
 	void VertexArrayVulkan::addVertexBuffer(std::shared_ptr<VertexBufferVulkan> vertexBuffer) {
 		const uint32_t vboCount = static_cast<uint32_t>(mVertexBuffers.size());
-		if (vboCount + 1 <= VertexArrayVulkan::MAX_VBO_COUNT) {
-			mVertexBuffers.push_back(vertexBuffer);
-		} else {
+		if (vboCount + 1 > VertexArrayVulkan::MAX_VBO_COUNT) {
 			LOG_WARN(
 				"Failed to add VBO to VAO. Adding another would exceed max of "
 				<< VertexArrayVulkan::MAX_VBO_COUNT
 			);
+		} else {
+			mVertexBuffers.push_back(vertexBuffer);
 		}
 	}
 

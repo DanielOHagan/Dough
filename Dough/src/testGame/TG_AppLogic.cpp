@@ -26,6 +26,8 @@ namespace TG {
 		mPerspectiveCameraController = std::make_shared<TG_PerspectiveCameraController>(aspectRatio);
 
 		mPerspectiveCameraController->setPosition({ 0.0f, 0.0f, 5.0f });
+
+		mImGuiSettings.UseOrthographicCamera = false;
 	}
 
 	void TG_AppLogic::update(float delta) {
@@ -64,52 +66,15 @@ namespace TG {
 			populateTestGrid(mGridDemo.mTestGridSize[0], mGridDemo.mTestGridSize[1]);
 		}
 
-		if (mObjModelsDemo.Update) {
-			for (const auto& obj : mObjModelsDemo.mRenderableObjects) {
-				TransformationData& transformation = *obj.Transformation;
-
-				//Update translation matrix
-				transformation.Translation = glm::mat4x4(1.0f);
-				transformation.Translation = glm::translate(
-					transformation.Translation,
-					{
-						transformation.Position[0],
-						transformation.Position[1],
-						transformation.Position[2]
-					}
-				);
-				if (transformation.Rotation[0] > 0.0f) {
-					transformation.Translation = glm::rotate(
-						transformation.Translation,
-						glm::radians(transformation.Rotation[0]),
-						{ 1.0f, 0.0f, 0.0f }
-					);
-				}
-				if (transformation.Rotation[1] > 0.0f) {
-					transformation.Translation = glm::rotate(
-						transformation.Translation,
-						glm::radians(transformation.Rotation[1]),
-						{ 0.0f, 1.0f, 0.0f }
-					);
-				}
-				if (transformation.Rotation[2] > 0.0f) {
-					transformation.Translation = glm::rotate(
-						transformation.Translation,
-						glm::radians(transformation.Rotation[2]),
-						{ 0.0f, 0.0f, 1.0f }
-					);
-				}
-
-				transformation.Translation = glm::scale(
-					transformation.Translation,
-					{
-						transformation.Scale,
-						transformation.Scale,
-						transformation.Scale
-					}
-				);
-			}
-		}
+		//NOTE:: Obj models aren't updated per Update cycle, done during ImGui render stage, as currently only the ImGui
+		// UI has control over the transform data. And recalculating x number of object's transformation is a lot of wasted
+		// work.
+		// 
+		//if (mObjModelsDemo.Update) {
+		//	for (const auto& obj : mObjModelsDemo.mRenderableObjects) {
+		//		obj->Transformation->updateTranslationMatrix();
+		//	}
+		//}
 	}
 
 	void TG_AppLogic::render() {
@@ -123,7 +88,7 @@ namespace TG {
 		);
 
 		if (mCustomDemo.RenderScene) {
-			context.addRenderableToSceneDrawList(mCustomDemo.mScenePipelineName, *mCustomDemo.mSceneRenderable);
+			context.addRenderableToSceneDrawList(mCustomDemo.mScenePipelineName, mCustomDemo.mSceneRenderable);
 		}
 
 		if (mObjModelsDemo.Render) {
@@ -131,11 +96,18 @@ namespace TG {
 				SwapChainVulkan::ERenderPassType::SCENE,
 				mObjModelsDemo.mScenePipelineName
 			);
+			PipelineRenderableConveyer objWireframeConveyer = context.createPipelineConveyer(
+				SwapChainVulkan::ERenderPassType::SCENE,
+				mObjModelsDemo.mSceneWireframePipelineName
+			);
 
 			if (objModelConveyer.isValid()) {
 				for (auto& obj : mObjModelsDemo.mRenderableObjects) {
-					if (obj.ShouldRender) {
+					if (obj->Render || mObjModelsDemo.RenderAllStandard) {
 						objModelConveyer.addRenderable(obj);
+					}
+					if (obj->RenderWireframe || mObjModelsDemo.RenderAllWireframe) {
+						objWireframeConveyer.addRenderable(obj);
 					}
 				}
 			}
@@ -172,7 +144,7 @@ namespace TG {
 
 		renderer.beginUi(mCustomDemo.mUiProjMat);
 		if (mCustomDemo.RenderUi) {
-			context.addRenderableToUiDrawList(mCustomDemo.mUiPipelineName, *mCustomDemo.mUiRenderable);
+			context.addRenderableToUiDrawList(mCustomDemo.mUiPipelineName, mCustomDemo.mUiRenderable);
 		}
 		renderer.endUi();
 	}
@@ -276,7 +248,7 @@ namespace TG {
 
 				mImGuiSettings.ApplicationCollapseMenuOpen = true;
 			} else {
-			mImGuiSettings.ApplicationCollapseMenuOpen = false;
+				mImGuiSettings.ApplicationCollapseMenuOpen = false;
 			}
 
 			ImGui::SetNextItemOpen(mImGuiSettings.RenderingCollapseMenuOpen);
@@ -288,12 +260,25 @@ namespace TG {
 				ImGui::TableSetupColumn("Draw Call Count");
 				ImGui::TableHeadersRow();
 				ImGui::TableSetColumnIndex(0);
-				imGuiPrintDrawCallTableColumn("Scene", renderInfo.SceneDrawCalls);
-				imGuiPrintDrawCallTableColumn("UI", renderInfo.UiDrawCalls);
+				//Individual scene pipeline draw calls
+				for (const auto& [name, pipeline] : renderer.getContext().getSceneGraphicsPipelines()) {
+					imGuiPrintDrawCallTableColumn(name.c_str(), pipeline->getVaoDrawCount());
+				}
+				//Total scene pipeline draw calls
+				imGuiPrintDrawCallTableColumn("Total Scene", renderInfo.SceneDrawCalls);
+				ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImColor::ImColor(125, 125, 125, 90));
+				//Individual UI pipeline draw calls
+				for (const auto& [name, pipeline] : renderer.getContext().getUiGraphicsPipelines()) {
+					imGuiPrintDrawCallTableColumn(name.c_str(), pipeline->getVaoDrawCount());
+				}
+				//Total UI pipeline draw calls
+				imGuiPrintDrawCallTableColumn("Total UI", renderInfo.UiDrawCalls);
+				ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImColor::ImColor(125, 125, 125, 90));
 				imGuiPrintDrawCallTableColumn("Quad Batch", renderInfo.BatchRendererDrawCalls);
 				imGuiPrintDrawCallTableColumn("Total", renderInfo.TotalDrawCalls);
 				ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImColor::ImColor(128, 128, 255, 100));
 				ImGui::EndTable();
+
 				ImGui::Text("Quad Batch Max Size: %i", Renderer2dStorageVulkan::BatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD);
 				ImGui::Text(
 					"Quad Batch Count: %i of Max %i",
@@ -396,6 +381,30 @@ namespace TG {
 					ImGui::Checkbox("Render", &mBouncingQuadDemo.Render);
 					ImGui::Checkbox("Update", &mBouncingQuadDemo.Update);
 					ImGui::Text("Bouncing Quads Count: %i", mBouncingQuadDemo.mBouncingQuads.size());
+					auto& demo = mBouncingQuadDemo;
+					if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Add").c_str(), &demo.AddNewQuadCount, 5, 5)) {
+						if (demo.AddNewQuadCount < 0) {
+							demo.AddNewQuadCount = 0;
+						} else if (demo.AddNewQuadCount > 1000) {
+							demo.AddNewQuadCount = 1000;
+						}
+					}
+					ImGui::SameLine();
+					if (ImGui::Button("Add Quads")) {
+						bouncingQuadsDemoAddRandomQuads(demo.AddNewQuadCount);
+					}
+					if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop").c_str(), &demo.PopQuadCount, 5, 5)) {
+						if (demo.PopQuadCount < 0) {
+							demo.PopQuadCount = 0;
+						}
+					}
+					ImGui::SameLine();
+					if (ImGui::Button("Pop Quads")) {
+						bouncingQaudsDemoPopQuads(demo.PopQuadCount);
+					}
+					if (ImGui::Button("Clear Quads")) {
+						bouncingQaudsDemoPopQuads(static_cast<int>(demo.mBouncingQuads.size()));
+					}
 
 					ImGui::EndTabItem();
 				}
@@ -407,81 +416,43 @@ namespace TG {
 					ImGui::EndTabItem();
 				}
 				if (ImGui::BeginTabItem("Obj Models")) {
-					ImGui::Checkbox("Render Demo", &mObjModelsDemo.Render);
-					ImGui::Checkbox("Update Demo", &mObjModelsDemo.Update);
-					ImGui::Text("Object Count: %i", mObjModelsDemo.mRenderableObjects.size());
-					if (ImGui::Button("Add Object")) {
-						mObjModelsDemo.mRenderableObjects.emplace_back(
-							mObjModelsDemo.mObjModelFilePaths[0],
-							mObjModelsDemo.mLoadedModels[0],
-							std::make_shared<TransformationData>()
-						);
-					}
+					auto& renderables = mObjModelsDemo.mRenderableObjects;
+					auto& demo = mObjModelsDemo;
 
-					uint32_t objectIndex = 0;
-					if (ImGui::Begin("Obj Models' Properties")) {
-						for (auto& obj : mObjModelsDemo.mRenderableObjects) {
-							const std::string uniqueImGuiId = "##" + std::to_string(objectIndex);
-							if (ImGui::BeginCombo(("Obj Model" + uniqueImGuiId).c_str(), obj.getName().c_str())) {
-								int modelFilePathIndex = -1;
-								for (const auto& filePath : mObjModelsDemo.mObjModelFilePaths) {
-									bool selected = false;
-									modelFilePathIndex++;
-									if (ImGui::Selectable((filePath.c_str() + uniqueImGuiId).c_str(), &selected)) {
-										obj.Model = mObjModelsDemo.mLoadedModels[modelFilePathIndex];
-										obj.Name = mObjModelsDemo.mObjModelFilePaths[modelFilePathIndex];
-										break;
-									}
-								}
-								ImGui::EndCombo();
-							}
-							ImGui::Checkbox(("Render Object" + uniqueImGuiId).c_str(), &obj.ShouldRender);
-
-							//Add temp array and set -1 > rotation < 361 to allow for "infinite" drag
-							TransformationData& transformation = *obj.Transformation;
-							float tempRotation[3] = {
-								transformation.Rotation[0],
-								transformation.Rotation[1],
-								transformation.Rotation[2]
-							};
-							if (ImGui::DragFloat3(("Rotation" + uniqueImGuiId).c_str(), tempRotation, 1.0f, -1.0f, 361.0f)) {
-								if (tempRotation[0] > 360.0f) {
-									tempRotation[0] = 0.0f;
-								} else if (tempRotation[0] < 0.0f) {
-									tempRotation[0] = 360.0f;
-								}
-								if (tempRotation[1] > 360.0f) {
-									tempRotation[1] = 0.0f;
-								} else if (tempRotation[1] < 0.0f) {
-									tempRotation[1] = 360.0f;
-								}
-								if (tempRotation[2] > 360.0f) {
-									tempRotation[2] = 0.0f;
-								} else if (tempRotation[2] < 0.0f) {
-									tempRotation[2] = 360.0f;
-								}
-
-								transformation.Rotation[0] = tempRotation[0];
-								transformation.Rotation[1] = tempRotation[1];
-								transformation.Rotation[2] = tempRotation[2];
-							}
-
-							ImGui::DragFloat3(("Position" + uniqueImGuiId).c_str(), transformation.Position, 0.05f, -10.0f, 10.0f);
-							ImGui::DragFloat(("Uniform Scale" + uniqueImGuiId).c_str(), &transformation.Scale, 0.01f, 0.1f, 5.0f);
-
-							if (ImGui::Button(("Reset Object" + uniqueImGuiId).c_str())) {
-								transformation.Rotation[0] = 0.0f;
-								transformation.Rotation[1] = 0.0f;
-								transformation.Rotation[2] = 0.0f;
-								transformation.Position[0] = 0.0f;
-								transformation.Position[1] = 0.0f;
-								transformation.Position[2] = 0.0f;
-								transformation.Scale = 1.0f;
-							}
-
-							objectIndex++;
+					ImGui::Checkbox("Render", &demo.Render);
+					ImGui::Checkbox("Update", &demo.Update);
+					ImGui::Text("Object Count: %i", renderables.size());
+					if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Add").c_str(), &demo.AddNewObjectsCount, 5, 5)) {
+						if (demo.AddNewObjectsCount < 0) {
+							demo.AddNewObjectsCount = 0;
+						} else if (demo.AddNewObjectsCount > 1000) {
+							demo.AddNewObjectsCount = 1000;
 						}
-						ImGui::End();
+					}
+					ImGui::SameLine();
+					if (ImGui::Button("Add Object")) {
+						for (int i = 0; i < demo.AddNewObjectsCount; i++) {
+							objModelsDemoAddRandomisedObject();
+						}
+					}
+					if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop").c_str(), &demo.PopObjectsCount, 5, 5)) {
+						if (demo.PopObjectsCount < 0) {
+							demo.PopObjectsCount = 0;
+						}
+					}
+					ImGui::SameLine();
+					if (ImGui::Button("Pop Object")) {
+						//Max out pop count to renderables list size
+						const int size = static_cast<int>(demo.mRenderableObjects.size());
+						const int popCount = demo.PopObjectsCount > size ? size : demo.PopObjectsCount;
+
+						for (int i = 0; i < popCount; i++) {
+							demo.mRenderableObjects.pop_back();
+						}
+					}
+					ImGui::Checkbox("Display Renderable Models List", &mImGuiSettings.RenderObjModelsList);
+					if (ImGui::Button("Clear Objects")) {
+						renderables.clear();
 					}
 					ImGui::EndTabItem();
 				}
@@ -512,32 +483,49 @@ namespace TG {
 					ImGui::BulletText("W, A, S, D: Move Camera");
 					ImGui::BulletText("Hold Left Shift: Increase move speed");
 					ImGui::BulletText("Z, X: Zoom Camera In & Out");
+					imGuiDisplayHelpTooltip("NOTE:: Changes top/bottom & left/right orthographic perspective, does not change the Z clipping range");
 					ImGui::BulletText("Right Click Drag Camera");
 					imGuiDisplayHelpTooltip("NOTE:: Drag doesn't work properly at all update rates");
+					
 					ImGui::Text("Camera Position");
-					ImGui::Text("X: %f", TG_mOrthoCameraController->getPosition().x);
-					ImGui::Text("Y: %f", TG_mOrthoCameraController->getPosition().y);
+					const auto& pos = TG_mOrthoCameraController->getPosition();
+					float tempPos[3] = {pos.x, pos.y, pos.z};
+					if (ImGui::DragFloat3("Pos", tempPos)) {
+						TG_mOrthoCameraController->setPosition({ tempPos[0], tempPos[1], tempPos[2] });
+					}
 					ImGui::Text("Zoom: %f", TG_mOrthoCameraController->getZoomLevel());
 					imGuiDisplayHelpTooltip("Higher is more \"zoomed in\" and lower is more \"zoomed out\"");
 				} else {
 					ImGui::Text("Perspective Camera Controls");
-					ImGui::Text("Position");
-					ImGui::Text("X: %f", mPerspectiveCameraController->getPosition().x);
-					ImGui::Text("Y: %f", mPerspectiveCameraController->getPosition().y);
-					ImGui::Text("Z: %f", mPerspectiveCameraController->getPosition().z);
-					ImGui::Text("Direction");
-					ImGui::Text("X: %f", mPerspectiveCameraController->getDirection().x);
-					ImGui::Text("Y: %f", mPerspectiveCameraController->getDirection().y);
-					ImGui::Text("Z: %f", mPerspectiveCameraController->getDirection().z);
+					imGuiBulletTextWrapped("W, A, S, D, C, Space Bar: Move Camera");
+					imGuiBulletTextWrapped("Arrow Left, Arrow Right, Arrow Up, Arrow Down, Z, X, Mouse Right Click & Drag: Change camera looking direction");
+					imGuiBulletTextWrapped("Hold Left Shift: Increase translation speed");
+					
+					const auto pos = mPerspectiveCameraController->getPosition();
+					const auto dir = mPerspectiveCameraController->getDirection();
+					float tempPos[3] = { pos.x, pos.y, pos.z };
+					if (ImGui::DragFloat3("Position", tempPos)) {
+						mPerspectiveCameraController->setPosition({ tempPos[0], tempPos[1], tempPos[2] });
+					}
+					float tempDir[3] = { dir.x, dir.y, dir.z };
+					if (ImGui::DragFloat3("Direction", tempDir)) {
+						mPerspectiveCameraController->setDirection({ tempDir[0], tempDir[1], tempDir[2] });
+					}
 				}
 				if (ImGui::Button("Reset Orthographic Camera")) {
 					TG_mOrthoCameraController->setPosition({ 0.0f, 0.0f, 1.0f });
 					TG_mOrthoCameraController->setZoomLevel(1.0f);
 				}
+				ImGui::SameLine();
 				if (ImGui::Button("Reset Perspective Camera")) {
 					mPerspectiveCameraController->setPosition({ 0.0f, 0.0f, 5.0f });
 					mPerspectiveCameraController->setDirection({ 0.0f, 0.0f, 0.0f });
 				}
+
+				//imGuiPrintMat4x4(TG_mOrthoCameraController->getCamera().getProjectionViewMatrix(), "Ortho ProjView");
+				//imGuiPrintMat4x4(mPerspectiveCameraController->getCamera().getProjectionMatrix(), "Perspec Proj");
+				//imGuiPrintMat4x4(mPerspectiveCameraController->getCamera().getViewMatrix(), "Perspec View");
+				//imGuiPrintMat4x4(mPerspectiveCameraController->getCamera().getProjectionViewMatrix(), "Perspec ProjView");
 
 				mImGuiSettings.CameraCollapseMenuOpen = true;
 			} else {
@@ -553,8 +541,120 @@ namespace TG {
 			ImGui::EndTabItem();
 		}
 
+		if (ImGui::BeginTabItem("Rendering Device Info")) {
+			const auto& deviceInfo = renderer.getContext().getRenderingDeviceInfo();
+			ImGui::Text("Vulkan API Version: ");
+			ImGui::SameLine();
+			ImGui::Text(deviceInfo.ApiVersion.c_str());
+			
+			ImGui::Text("Rendering Device Name: ");
+			ImGui::SameLine();
+			ImGui::Text(deviceInfo.DeviceName.c_str());
+
+			//TODO:: device driver version, these are vendor specific so need to implement a way of extracting it from AMD/NVIDIA/other
+
+			ImGui::EndTabItem();
+		}
+
 		ImGui::EndTabBar();
 		ImGui::End();
+
+		if (mImGuiSettings.RenderObjModelsList) {
+			const auto& renderables = mObjModelsDemo.mRenderableObjects;
+			if (ImGui::Begin("Renderable Models List")) {
+				ImGui::Checkbox("Render All", &mObjModelsDemo.RenderAllStandard);
+				ImGui::SameLine();
+				ImGui::Checkbox("Render All Wireframe", &mObjModelsDemo.RenderAllWireframe);
+
+				uint32_t objectIndex = 0;
+				for (auto objItr = renderables.begin(); objItr != renderables.end(); objItr++) {
+					const std::string uniqueImGuiId = "##" + std::to_string(objectIndex);
+					if (ImGui::BeginCombo(("Obj Model" + uniqueImGuiId).c_str(), objItr->get()->getName().c_str())) {
+						int modelFilePathIndex = -1;
+						for (const auto& filePath : mObjModelsDemo.mObjModelFilePaths) {
+							bool selected = false;
+							modelFilePathIndex++;
+							if (ImGui::Selectable((filePath.c_str() + uniqueImGuiId).c_str(), &selected)) {
+								objItr->get()->Model = mObjModelsDemo.mLoadedModels[modelFilePathIndex];
+								objItr->get()->Name = mObjModelsDemo.mObjModelFilePaths[modelFilePathIndex];
+								break;
+							}
+						}
+						ImGui::EndCombo();
+					}
+					ImGui::Checkbox(("Render" + uniqueImGuiId).c_str(), &objItr->get()->Render);
+					ImGui::SameLine();
+					ImGui::Checkbox(("Wireframe" + uniqueImGuiId).c_str(), &objItr->get()->RenderWireframe);
+
+					//Add temp array and set -1 > rotation < 361 to allow for "infinite" drag
+					TransformationData& transformation = *objItr->get()->Transformation;
+					float tempRotation[3] = {
+						transformation.Rotation[0],
+						transformation.Rotation[1],
+						transformation.Rotation[2]
+					};
+					bool transformed = false;
+					if (ImGui::DragFloat3(
+						("Position" + uniqueImGuiId).c_str(),
+						glm::value_ptr(transformation.Position),
+						0.05f,
+						-10.0f,
+						10.0f
+					)) {
+						transformed = true;
+					}
+					if (ImGui::DragFloat3(("Rotation" + uniqueImGuiId).c_str(), tempRotation, 1.0f, -1.0f, 361.0f)) {
+						if (tempRotation[0] > 360.0f) {
+							tempRotation[0] = 0.0f;
+						} else if (tempRotation[0] < 0.0f) {
+							tempRotation[0] = 360.0f;
+						}
+						if (tempRotation[1] > 360.0f) {
+							tempRotation[1] = 0.0f;
+						} else if (tempRotation[1] < 0.0f) {
+							tempRotation[1] = 360.0f;
+						}
+						if (tempRotation[2] > 360.0f) {
+							tempRotation[2] = 0.0f;
+						} else if (tempRotation[2] < 0.0f) {
+							tempRotation[2] = 360.0f;
+						}
+
+						transformation.Rotation = { tempRotation[0], tempRotation[1], tempRotation[2] };
+
+						transformed = true;
+					}
+					if (ImGui::DragFloat(
+						("Uniform Scale" + uniqueImGuiId).c_str(),
+						&transformation.Scale,
+						0.01f,
+						0.1f,
+						5.0f
+					)) {
+						transformed = true;
+					}
+
+					if (ImGui::Button(("Reset Object" + uniqueImGuiId).c_str())) {
+						transformation.Rotation[0] = 0.0f;
+						transformation.Rotation[1] = 0.0f;
+						transformation.Rotation[2] = 0.0f;
+						transformation.Position[0] = 0.0f;
+						transformation.Position[1] = 0.0f;
+						transformation.Position[2] = 0.0f;
+						transformation.Scale = 1.0f;
+
+						transformed = true;
+					}
+
+					if (transformed && mObjModelsDemo.Update) {
+						transformation.updateTranslationMatrix();
+					}
+
+					objectIndex++;
+				}
+			}
+			ImGui::End();
+		}
 
 		//DEBUG:: show ImGui stack info, can be helpful when debugging ImGui menus
 		//ImGui::ShowStackToolWindow();
@@ -594,25 +694,21 @@ namespace TG {
 		initCustomDemo();
 		initObjModelsDemo();
 
-		//TODO::
-		// Currently pipeline render order is determined by creation order as depth buffers are not yet supported.
 		context.createPipeline(
 			mCustomDemo.mScenePipelineName,
-			SwapChainVulkan::ERenderPassType::SCENE,
-			*mCustomDemo.mSceneShaderProgram,
-			mCustomDemo.mSceneVertexType
+			*mCustomDemo.mScenePipelineInfo
 		);
 		context.createPipeline(
 			mCustomDemo.mUiPipelineName,
-			SwapChainVulkan::ERenderPassType::APP_UI,
-			*mCustomDemo.mUiShaderProgram,
-			mCustomDemo.mUiVertexType
+			*mCustomDemo.mUiPipelineInfo
 		);
 		context.createPipeline(
 			mObjModelsDemo.mScenePipelineName,
-			SwapChainVulkan::ERenderPassType::SCENE,
-			*mObjModelsDemo.mSceneShaderProgram,
-			mObjModelsDemo.mSceneVertexType
+			*mObjModelsDemo.mScenePipelineInfo
+		);
+		context.createPipeline(
+			mObjModelsDemo.mSceneWireframePipelineName,
+			*mObjModelsDemo.mSceneWireframePipelineInfo
 		);
 
 		context.createPipelineUniformObjects();
@@ -644,19 +740,7 @@ namespace TG {
 	}
 
 	void TG_AppLogic::initBouncingQuadsDemo() {
-		const std::vector<std::shared_ptr<TextureVulkan>>& testTextures =
-			GET_RENDERER.getContext().getRenderer2d().getStorage().getTestTextures();
-		for (size_t i = 0; i < mBouncingQuadDemo.mBouncingQuadCount; i++) {
-			mBouncingQuadDemo.mBouncingQuads.push_back({
-				//Semi-random values for starting position, velocitiy and assigned texture
-				{((float)(rand() % 5000) / 500.0f) - 1.0f,((float)(rand() % 5000) / 500.0f) - 1.0f, 0.8f},
-				{mGridDemo.mTestGridQuadSize[0], mGridDemo.mTestGridQuadSize[1]},
-				{0.0f, 1.0f, 1.0f, 1.0f},
-				0.0f,
-				testTextures[rand() % 8]
-			});
-			mBouncingQuadDemo.mBouncingQuadVelocities.push_back({ (float)(rand() % 800) / 60.0f, (float)(rand() % 800) / 60.0f });
-		}
+		bouncingQuadsDemoAddRandomQuads(1000);
 	}
 
 	void TG_AppLogic::initCustomDemo() {
@@ -725,6 +809,17 @@ namespace TG {
 		mCustomDemo.mUiVao->setDrawCount(static_cast<uint32_t>(mCustomDemo.mUiIndices.size()));
 		mCustomDemo.mUiVao->setIndexBuffer(appUiIb);
 		mCustomDemo.mUiRenderable = std::make_shared<SimpleRenderable>(mCustomDemo.mUiVao);
+
+		mCustomDemo.mScenePipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
+			mCustomDemo.mSceneVertexType,
+			*mCustomDemo.mSceneShaderProgram,
+			SwapChainVulkan::ERenderPassType::SCENE
+		);
+		mCustomDemo.mUiPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
+			mCustomDemo.mUiVertexType,
+			*mCustomDemo.mUiShaderProgram,
+			SwapChainVulkan::ERenderPassType::APP_UI
+		);
 	}
 
 	void TG_AppLogic::initObjModelsDemo() {
@@ -732,17 +827,35 @@ namespace TG {
 			mObjModelsDemo.mLoadedModels.push_back(ModelVulkan::createModel(filePath));
 		}
 
-		mObjModelsDemo.mRenderableObjects.emplace_back(
-				mObjModelsDemo.mObjModelFilePaths[0],
-				mObjModelsDemo.mLoadedModels[0],
-				std::make_shared<TransformationData>()
-		);
+		const float padding = 0.5f;
+		for (uint32_t x = 0; x < 10; x++) {
+			for (uint32_t y = 0; y < 10; y++) {
+				//Add an object with a position based off of x & y value from loop, creates a grid like result
+				const uint32_t modelIndex = rand() % mObjModelsDemo.mLoadedModels.size();
+				std::shared_ptr<TransformationData> transform = std::make_shared<TransformationData>(
+					glm::vec3(
+						((float) x + padding) * 3.0f,
+						((float) y + padding) * 3.0f,
+						(float) (rand() % 10)
+					),
+					glm::vec3(
+						(float) (rand() % 360),
+						(float) (rand() % 360),
+						(float) (rand() % 360)
+					),
+					1.0f
+				);
+				transform->updateTranslationMatrix();
+				
+				mObjModelsDemo.mRenderableObjects.push_back(std::make_shared<RenderableModelVulkan>(
+					mObjModelsDemo.mObjModelFilePaths[modelIndex],
+					mObjModelsDemo.mLoadedModels[modelIndex],
+					transform
+				));
 
-		mObjModelsDemo.mRenderableObjects.emplace_back(
-			mObjModelsDemo.mObjModelFilePaths[1],
-			mObjModelsDemo.mLoadedModels[1],
-			std::make_shared<TransformationData>()
-		);
+				//objModelsDemoAddRandomisedObject();
+			}
+		}
 
 		mObjModelsDemo.mSceneShaderProgram = ObjInit::shaderProgram(
 			ObjInit::shader(
@@ -758,6 +871,80 @@ namespace TG {
 		cubeLayout.setValue(0, sizeof(ObjModelsDemo::UniformBufferObject));
 		//Push constant for transformation matrix
 		cubeLayout.addPushConstant(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::mat4x4));
+
+		mObjModelsDemo.mScenePipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
+			mObjModelsDemo.mSceneVertexType,
+			*mObjModelsDemo.mSceneShaderProgram,
+			SwapChainVulkan::ERenderPassType::SCENE
+		);
+		mObjModelsDemo.mSceneWireframePipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
+			mObjModelsDemo.mSceneVertexType,
+			*mObjModelsDemo.mSceneShaderProgram,
+			SwapChainVulkan::ERenderPassType::SCENE
+		);
+
+		mObjModelsDemo.mSceneWireframePipelineInfo->CullMode = VK_CULL_MODE_NONE;
+		mObjModelsDemo.mSceneWireframePipelineInfo->PolygonMode = VK_POLYGON_MODE_LINE;
+	}
+
+	void TG_AppLogic::bouncingQuadsDemoAddRandomQuads(int count) {
+		const std::vector<std::shared_ptr<TextureVulkan>>& testTextures =
+			GET_RENDERER.getContext().getRenderer2d().getStorage().getTestTextures();
+
+		const int size = static_cast<int>(mBouncingQuadDemo.mBouncingQuads.size());
+		//Stop quad count going over MaxCount
+		if (count + size > mBouncingQuadDemo.MaxBouncingQuadCount) {
+			count = mBouncingQuadDemo.MaxBouncingQuadCount - size;
+		}
+
+		for (int i = 0; i < count; i++) {
+			mBouncingQuadDemo.mBouncingQuads.push_back({
+				//Semi-random values for starting position, velocitiy and assigned texture
+				{((float)(rand() % 5000) / 500.0f) - 1.0f,((float)(rand() % 5000) / 500.0f) - 1.0f, 0.8f},
+				{mGridDemo.mTestGridQuadSize[0], mGridDemo.mTestGridQuadSize[1]},
+				{0.0f, 1.0f, 1.0f, 1.0f},
+				0.0f,
+				testTextures[rand() % 8]
+			});
+			mBouncingQuadDemo.mBouncingQuadVelocities.push_back({ (float)(rand() % 800) / 60.0f, (float)(rand() % 800) / 60.0f });
+		}
+	}
+
+	void TG_AppLogic::bouncingQaudsDemoPopQuads(int count) {
+		const int size = static_cast<int>(mBouncingQuadDemo.mBouncingQuads.size());
+		if (count > size) {
+			count = size;
+		}
+
+		for (int i = 0; i < count; i++) {
+			mBouncingQuadDemo.mBouncingQuads.pop_back();
+			mBouncingQuadDemo.mBouncingQuadVelocities.pop_back();
+		}
+	}
+
+	void TG_AppLogic::objModelsDemoAddObject(
+		const uint32_t modelIndex,
+		const float x,
+		const float y,
+		const float z,
+		const float posPadding,
+		const float yaw,
+		const float pitch,
+		const float roll,
+		const float scale
+	) {
+		std::shared_ptr<TransformationData> transform = std::make_shared<TransformationData>(
+			glm::vec3((x + posPadding) * 3.0f, (y + posPadding) * 3.0f, (z + posPadding) * 3.0f),
+			glm::vec3(yaw, pitch, roll),
+			scale
+		);
+		transform->updateTranslationMatrix();
+
+		mObjModelsDemo.mRenderableObjects.push_back(std::make_shared<RenderableModelVulkan>(
+			mObjModelsDemo.mObjModelFilePaths[modelIndex],
+			mObjModelsDemo.mLoadedModels[modelIndex],
+			transform
+		));
 	}
 
 	void TG_AppLogic::imGuiDisplayHelpTooltip(const char* message) {
@@ -772,6 +959,12 @@ namespace TG {
 		}
 	}
 
+	void TG_AppLogic::imGuiBulletTextWrapped(const char* message) {
+		ImGui::Bullet();
+		ImGui::SameLine();
+		ImGui::TextWrapped(message);
+	}
+
 	void TG_AppLogic::imGuiPrintDrawCallTableColumn(const char* pipelineName, uint32_t drawCount) {
 		//IMPORTANT:: Assumes already inside the Draw Call Count debug info table
 		ImGui::TableNextRow();
@@ -779,5 +972,58 @@ namespace TG {
 		ImGui::Text(pipelineName);
 		ImGui::TableNextColumn();
 		ImGui::Text("%i", drawCount);
+	}
+
+	void TG_AppLogic::imGuiPrintMat4x4(const glm::mat4x4& mat, const char* name) {
+		ImGui::Text(name);
+		ImGui::BeginTable(name, 4);
+		ImGui::TableSetupColumn("0");
+		ImGui::TableSetupColumn("1");
+		ImGui::TableSetupColumn("2");
+		ImGui::TableSetupColumn("3");
+		ImGui::TableHeadersRow();
+		ImGui::TableSetColumnIndex(0);
+
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		ImGui::Text("%f", mat[0][0]);
+		ImGui::TableNextColumn();
+		ImGui::Text("%f", mat[0][1]);
+		ImGui::TableNextColumn();
+		ImGui::Text("%f", mat[0][2]);
+		ImGui::TableNextColumn();
+		ImGui::Text("%f", mat[0][3]);
+
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		ImGui::Text("%f", mat[1][0]);
+		ImGui::TableNextColumn();
+		ImGui::Text("%f", mat[1][1]);
+		ImGui::TableNextColumn();
+		ImGui::Text("%f", mat[1][2]);
+		ImGui::TableNextColumn();
+		ImGui::Text("%f", mat[1][3]);
+		
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		ImGui::Text("%f", mat[2][0]);
+		ImGui::TableNextColumn();
+		ImGui::Text("%f", mat[2][1]);
+		ImGui::TableNextColumn();
+		ImGui::Text("%f", mat[2][2]);
+		ImGui::TableNextColumn();
+		ImGui::Text("%f", mat[2][3]);
+
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		ImGui::Text("%f", mat[3][0]);
+		ImGui::TableNextColumn();
+		ImGui::Text("%f", mat[3][1]);
+		ImGui::TableNextColumn();
+		ImGui::Text("%f", mat[3][2]);
+		ImGui::TableNextColumn();
+		ImGui::Text("%f", mat[3][3]);
+
+		ImGui::EndTable();
 	}
 }

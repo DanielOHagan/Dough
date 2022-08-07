@@ -39,6 +39,9 @@ namespace DOH {
 			VkMemoryPropertyFlags props
 		);
 
+		//TODO::mem offset and flags
+		void* map(VkDevice logicDevice, size_t size);
+		void unmap(VkDevice logicDevice);
 		void setData(VkDevice logicDevice, const void* data, size_t size);
 		void setData(VkDevice logicDevice, void* data, size_t size) { setData(logicDevice, (const void*) data, size); }
 		void clearBuffer(VkDevice logicDevice);

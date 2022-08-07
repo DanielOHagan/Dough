@@ -9,7 +9,7 @@ namespace TG {
 
 	TG_PerspectiveCameraController::TG_PerspectiveCameraController(float aspectRatio, float fov)
 	:	mCamera(std::make_unique<PerspectiveCamera>(aspectRatio, fov)),
-		mPosition(0.0f, 0.0f, 1.0f),
+		mPosition(0.0f, 0.0f, 0.0f),
 		mDirectionFacing(0.0f, 0.0f, 0.0f),
 		mCursorLastPosUpdate(0.0f, 0.0f),
 		mClickAndDragActive(false),
@@ -30,7 +30,6 @@ namespace TG {
 	}
 
 	void TG_PerspectiveCameraController::handleInput(float delta) {
-
 		const float translationDelta = Input::isKeyPressed(DOH_KEY_LEFT_SHIFT) ?
 			mTranslationSpeed * 6.0f * delta : mTranslationSpeed * delta;
 

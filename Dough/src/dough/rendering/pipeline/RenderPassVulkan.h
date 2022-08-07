@@ -9,7 +9,7 @@ namespace DOH {
 	private:
 		VkRenderPass mRenderPass;
 		VkClearValue mClearColour;
-		uint32_t mClearCount;
+		bool mUsingDepthBuffer;
 
 	public:
 		RenderPassVulkan(
@@ -19,7 +19,8 @@ namespace DOH {
 			VkImageLayout finalLayout,
 			VkAttachmentLoadOp loadOp,
 			bool enableClearColour,
-			VkClearValue clearColour
+			VkClearValue clearColour,
+			VkFormat depthFormat
 		);
 		RenderPassVulkan(const RenderPassVulkan& copy) = delete;
 		RenderPassVulkan operator=(const RenderPassVulkan& assignment) = delete;

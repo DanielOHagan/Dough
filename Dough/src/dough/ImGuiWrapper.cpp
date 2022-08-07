@@ -8,6 +8,8 @@
 
 namespace DOH {
 
+	const char* ImGuiWrapper::EMPTY_LABEL = "##";
+
 	void ImGuiWrapper::init(Window& window, ImGuiInitInfo& imGuiInit) {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();

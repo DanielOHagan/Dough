@@ -10,6 +10,7 @@
 #include "dough/application/IApplicationLogic.h"
 #include "dough/application/ApplicationLoop.h"
 #include "dough/time/IntervalTimer.h"
+#include "dough/application/ApplicationInitSettings.h"
 
 namespace DOH {
 
@@ -49,13 +50,13 @@ namespace DOH {
 		inline bool isFocused() const { return mFocused; }
 		inline bool isIconified() const { return mIconified; }
 
-		static int start(std::shared_ptr<IApplicationLogic> appLogic);
+		static int start(std::shared_ptr<IApplicationLogic> appLogic, ApplicationInitSettings initSettings);
 		static bool isInstantiated() { return INSTANCE != nullptr; };
 
 	private:
 		Application();
 
-		void init(std::shared_ptr<IApplicationLogic> appLogic);
+		void init(std::shared_ptr<IApplicationLogic> appLogic, const ApplicationInitSettings& initSettings);
 		inline void pollEvents() const { mWindow->pollEvents(); }
 		void update(float delta);
 		void render();

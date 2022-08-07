@@ -9,37 +9,6 @@ namespace DOH {
 	const float ApplicationLoop::MIN_TARGET_FPS = 15.0f;
 	const float ApplicationLoop::MAX_TARGET_UPS = 1000.0f;
 	const float ApplicationLoop::MIN_TARGET_UPS = 15.0f;
-	const float ApplicationLoop::DEFAULT_TARGET_FPS = 120.0f;
-	const float ApplicationLoop::DEFAULT_TARGET_BACKGROUND_FPS = 15.0f;
-	const float ApplicationLoop::DEFAULT_TARGET_UPS = 144.0f;
-	const float ApplicationLoop::DEFAULT_TARGET_BACKGROUND_UPS = 15.0f;
-	const bool ApplicationLoop::DEFAULT_RUN_IN_BACKGROUND = false;
-
-
-	ApplicationLoop::ApplicationLoop(
-		Application& app,
-		float targetFps,
-		float targetUps
-	) : mApplication(app),
-		mTargetFrameTimeSpan(0),
-		mLastCycleTimePoint(Time::getCurrentTimeMillis()),
-		mPerSecondCountersTimeSpan(0.0f),
-		mDeltaRenderTimeSpan(0.0),
-		mTargetUpdateTimeSpan(0),
-		mDeltaUpdateTimeSpan(0.0),
-		mFps(0.0f),
-		mTargetFps(targetFps),
-		mTargetBackgroundFps(DEFAULT_TARGET_BACKGROUND_FPS),
-		mUps(0.0f),
-		mTargetUps(targetUps),
-		mTargetBackgroundUps(DEFAULT_TARGET_BACKGROUND_UPS),
-		mPreviousFps(0.0f),
-		mPreviousUps(0.0f),
-		mRunInBackground(false)
-	{
-		updateTargetUpdateTime(app.isFocused());
-		updateTargetFrameTime(app.isFocused());
-	}
 
 	ApplicationLoop::ApplicationLoop(
 		Application& app,

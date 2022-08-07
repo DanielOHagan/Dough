@@ -32,6 +32,9 @@ namespace DOH {
 		VkDescriptorPool mDescriptorPool = VK_NULL_HANDLE;
 
 	public:
+
+		static const char* EMPTY_LABEL;
+
 		ImGuiWrapper() = default;
 		ImGuiWrapper(const ImGuiWrapper& copy) = delete;
 		ImGuiWrapper operator=(const ImGuiWrapper& assignment) = delete;

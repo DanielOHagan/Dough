@@ -12,7 +12,7 @@ namespace DOH {
 		glm::mat4x4 mProjectionViewMatrix;
 
 	public:
-		PerspectiveCamera(float aspectRatio, float fov = 60.0f, float nearZ = 0.0f, float farZ = 1.0f);
+		PerspectiveCamera(float aspectRatio, float fov = 60.0f, float nearZ = 0.01f, float farZ = 100.0f);
 		PerspectiveCamera(const PerspectiveCamera& copy) = delete;
 		PerspectiveCamera operator=(const PerspectiveCamera& assignment) = delete;
 
@@ -23,6 +23,6 @@ namespace DOH {
 		inline virtual glm::mat4x4& getProjectionViewMatrix() override { return mProjectionViewMatrix; }
 
 		void setView(const glm::vec3 pos, const glm::vec3 direction, const glm::vec3 up);
-		void setProjection(float fovDegrees, float aspectRatio, float nearZ = 0.0f, float farZ = 1.0f);
+		void setProjection(float fovDegrees, float aspectRatio, float nearZ = 0.01f, float farZ = 100.0f);
 	};
 }

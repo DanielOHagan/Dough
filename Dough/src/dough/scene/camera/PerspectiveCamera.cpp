@@ -13,8 +13,7 @@ namespace DOH {
 	}
 
 	void PerspectiveCamera::updateProjectionViewMatrix() {
-		mProjectionViewMatrix = glm::mat4x4(1.0f);
-		mProjectionViewMatrix = mProjectionViewMatrix * mProjectionMatrix;
+		mProjectionViewMatrix = mProjectionMatrix;
 		mProjectionViewMatrix = mProjectionViewMatrix * mViewMatrix;
 	}
 

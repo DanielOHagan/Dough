@@ -308,6 +308,7 @@ namespace DOH {
 
 		VkPhysicalDeviceFeatures deviceFeatures = {};
 		deviceFeatures.samplerAnisotropy = VK_TRUE;
+		deviceFeatures.fillModeNonSolid = VK_TRUE;
 
 		VkDeviceCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -328,25 +329,6 @@ namespace DOH {
 			vkCreateDevice(mPhysicalDevice, &createInfo, nullptr, &mLogicDevice),
 			"Failed to create logical device."
 		);
-	}
-
-	uint32_t RendererVulkan::findPhysicalDeviceMemoryType(
-		VkPhysicalDevice physicalDevice,
-		uint32_t typeFilter,
-		VkMemoryPropertyFlags properties
-	) {
-		VkPhysicalDeviceMemoryProperties memProps = {};
-		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProps);
-
-		for (uint32_t i = 0; i < memProps.memoryTypeCount; i++) {
-			if ((typeFilter & (1 << i)) && (memProps.memoryTypes[i].propertyFlags & properties) == properties) {
-				return i;
-			}
-		}
-
-		THROW("Failed to find suitable memory type.");
-
-		return 0;
 	}
 
 	void RendererVulkan::beginScene(ICamera& camera) {
@@ -374,5 +356,62 @@ namespace DOH {
 		//TODO:: For the batch renderer
 		// Maybe have a list of references to geometry and a list of references to a lists of geometry which are to be
 		// added to batches in renderer2dStorage, possibly by a separate thread
+	}
+
+	uint32_t RendererVulkan::findPhysicalDeviceMemoryType(
+		VkPhysicalDevice physicalDevice,
+		uint32_t typeFilter,
+		VkMemoryPropertyFlags properties
+	) {
+		VkPhysicalDeviceMemoryProperties memProps = {};
+		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProps);
+
+		for (uint32_t i = 0; i < memProps.memoryTypeCount; i++) {
+			if ((typeFilter & (1 << i)) && (memProps.memoryTypes[i].propertyFlags & properties) == properties) {
+				return i;
+			}
+		}
+
+		THROW("Failed to find suitable memory type.");
+
+		return 0;
+	}
+
+	VkFormat RendererVulkan::findSupportedFormat(
+		const std::vector<VkFormat>& candidates,
+		VkImageTiling tiling,
+		VkFormatFeatureFlags features
+	) {
+		return Application::get().getRenderer().findSupportedFormatImpl(candidates, tiling, features);
+	}
+
+	VkFormat RendererVulkan::findSupportedFormatImpl(
+		const std::vector<VkFormat>& candidates,
+		VkImageTiling tiling,
+		VkFormatFeatureFlags features
+	) {
+		for (VkFormat format : candidates) {
+			VkFormatProperties props;
+			vkGetPhysicalDeviceFormatProperties(mPhysicalDevice, format, &props);
+
+			if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
+				return format;
+			} else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
+				return format;
+			}
+		}
+
+		THROW("Failed to find supported format");
+		return VK_FORMAT_UNDEFINED;
+	}
+
+	VKAPI_ATTR VkBool32 VKAPI_CALL RendererVulkan::debugCallback(
+		VkDebugUtilsMessageSeverityFlagBitsEXT msgSeverity,
+		VkDebugUtilsMessageTypeFlagsEXT msgType,
+		const VkDebugUtilsMessengerCallbackDataEXT* callbackDataPtr,
+		void* userDataPtr
+	) {
+		LOG_ERR("Validation layer: " << callbackDataPtr->pMessage);
+		return VK_FALSE;
 	}
 }

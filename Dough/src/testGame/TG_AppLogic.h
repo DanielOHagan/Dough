@@ -8,6 +8,7 @@
 #include "dough/scene/geometry/Quad.h"
 #include "dough/rendering/renderables/RenderableModel.h"
 #include "dough/rendering/renderables/SimpleRenderable.h"
+#include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 
 #include "testGame/TG_OrthoCameraController.h"
 #include "testGame/TG_PerspectiveCameraController.h"
@@ -28,17 +29,6 @@ using namespace DOH;
 namespace TG {
 
 	class TG_AppLogic : public IApplicationLogic {
-
-	public:
-		enum class EDemo {
-			NONE = 0,
-
-			BOUNCING_QUADS,
-			GRID,
-			CUSTOM,
-			CUBE
-
-		};
 
 	private:
 		//Cameras
@@ -61,17 +51,25 @@ namespace TG {
 			const std::string flatColourShaderVertPath = "res/shaders/spv/FlatColour.vert.spv";
 			const std::string flatColourShaderFragPath = "res/shaders/spv/FlatColour.frag.spv";
 			const std::string mScenePipelineName = "ObjScene";
+			const std::string mSceneWireframePipelineName = "ObjWireframe";
 			const EVertexType mSceneVertexType = EVertexType::VERTEX_3D;
 			std::shared_ptr<ShaderProgramVulkan> mSceneShaderProgram;
 
+			std::unique_ptr<GraphicsPipelineInstanceInfo> mScenePipelineInfo;
+			std::unique_ptr<GraphicsPipelineInstanceInfo> mSceneWireframePipelineInfo;
+
 			std::vector<std::shared_ptr<ModelVulkan>> mLoadedModels;
-			std::vector<RenderableModelVulkan> mRenderableObjects;
+			std::vector<std::shared_ptr<RenderableModelVulkan>> mRenderableObjects;
+
+			int AddNewObjectsCount = 0;
+			int PopObjectsCount = 0;
 
 			bool Update = false;
 			bool Render = false;
+			bool RenderAllStandard = true;
+			bool RenderAllWireframe = false;
 		} mObjModelsDemo;
 
-		//Generic custom scene objects (TODO:: should this be its own demo, maybe if it's worked on more)
 		struct CustomDemo {
 
 			struct UniformBufferObject {
@@ -116,7 +114,9 @@ namespace TG {
 			const EVertexType mUiVertexType = EVertexType::VERTEX_2D;
 
 			glm::mat4x4 mUiProjMat = glm::mat4x4(1.0f);
+			std::unique_ptr<GraphicsPipelineInstanceInfo> mScenePipelineInfo;
 			std::shared_ptr<ShaderProgramVulkan> mSceneShaderProgram;
+			std::unique_ptr<GraphicsPipelineInstanceInfo> mUiPipelineInfo;
 			std::shared_ptr<ShaderProgramVulkan> mUiShaderProgram;
 			
 			std::shared_ptr<TextureVulkan> mTestTexture1;
@@ -154,7 +154,10 @@ namespace TG {
 		struct BouncingQuadDemo {
 			std::vector<Quad> mBouncingQuads;
 			std::vector<glm::vec2> mBouncingQuadVelocities;
-			size_t mBouncingQuadCount = BOUNCING_QUAD_COUNT;
+			int MaxBouncingQuadCount = BOUNCING_QUAD_COUNT;
+
+			int AddNewQuadCount = 0;
+			int PopQuadCount = 0;
 			
 			bool Update = false;
 			bool Render = false;
@@ -172,6 +175,8 @@ namespace TG {
 
 			//Camera (switch between orthographic and perspective camera)
 			bool UseOrthographicCamera = true;
+
+			bool RenderObjModelsList = false;
 		} mImGuiSettings;
 	public:
 		TG_AppLogic();
@@ -199,11 +204,40 @@ namespace TG {
 		void initBouncingQuadsDemo();
 		void initCustomDemo();
 		void initObjModelsDemo();
+		void bouncingQuadsDemoAddRandomQuads(int count);
+		void bouncingQaudsDemoPopQuads(int count);
+		void objModelsDemoAddObject(
+			const uint32_t modelIndex = 0,
+			const float x = 0.0f,
+			const float y = 0.0f,
+			const float z = 0.0f,
+			const float posPadding = 0.5f,
+			const float yaw = 0.0f,
+			const float pitch = 0.0f,
+			const float roll = 0.0f,
+			const float scale = 1.0f
+		);
+		inline void objModelsDemoAddRandomisedObject() {
+			objModelsDemoAddObject(
+				rand() % mObjModelsDemo.mLoadedModels.size(),
+				(float) (rand() % 25),
+				(float) (rand() % 25),
+				(float) (rand() % 15) * (rand() % 2 > 0 ? 1.0f : -1.0f),
+				0.5f,
+				(float) (rand() % 360),
+				(float) (rand() % 360),
+				(float) (rand() % 360),
+				1.0f
+			);
+		}
 
 
-		//ImGui convenience and separated functions
+		//ImGui convenience and separated functions, primarly used for debugging and easier ImGui functionality
 		void imGuiDisplayHelpTooltip(const char* message);
+		void imGuiBulletTextWrapped(const char* message);
 		void imGuiRenderDebugWindow();
 		void imGuiPrintDrawCallTableColumn(const char* pipelineName, uint32_t drawCount);
+		void imGuiPrintMat4x4(const glm::mat4x4& mat, const char* name);
+		inline void imGuiPrintMat4x4(const glm::mat4x4& mat, const std::string& name) { imGuiPrintMat4x4(mat, name.c_str()); }
 	};
 }

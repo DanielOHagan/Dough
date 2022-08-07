@@ -9,16 +9,12 @@ namespace DOH {
 
 	GraphicsPipelineVulkan::GraphicsPipelineVulkan(
 		VkDevice logicDevice,
-		VkCommandPool cmdPool,
-		EVertexType vertexType,
-		ShaderProgramVulkan& shaderProgram,
-		VkExtent2D extent,
-		VkRenderPass renderPass
-	) : mGraphicsPipeline(VK_NULL_HANDLE),
+		GraphicsPipelineInstanceInfo& instanceInfo,
+		VkRenderPass renderPass,
+		VkExtent2D extent
+	) :	mGraphicsPipeline(VK_NULL_HANDLE),
 		mGraphicsPipelineLayout(VK_NULL_HANDLE),
-		mVertexType(vertexType),
-		mShaderProgram(shaderProgram),
-		mEnabled(true)
+		mInstanceInfo(instanceInfo)
 	{
 		createUniformObjects(logicDevice);
 		createPipelineLayout(logicDevice);
@@ -29,11 +25,13 @@ namespace DOH {
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutCreateInfo.setLayoutCount = 1;
-		pipelineLayoutCreateInfo.pSetLayouts = &mShaderProgram.getShaderDescriptor().getDescriptorSetLayout();
+		pipelineLayoutCreateInfo.pSetLayouts = &mInstanceInfo.ShaderProgram.getShaderDescriptor().getDescriptorSetLayout();
 
-		if (mShaderProgram.getUniformLayout().hasPushConstant()) {
-			pipelineLayoutCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(mShaderProgram.getUniformLayout().getPushConstantRanges().size());
-			pipelineLayoutCreateInfo.pPushConstantRanges = mShaderProgram.getUniformLayout().getPushConstantRanges().data();
+		if (mInstanceInfo.ShaderProgram.getUniformLayout().hasPushConstant()) {
+			pipelineLayoutCreateInfo.pushConstantRangeCount =
+				static_cast<uint32_t>(mInstanceInfo.ShaderProgram.getUniformLayout().getPushConstantRanges().size());
+			pipelineLayoutCreateInfo.pPushConstantRanges =
+				mInstanceInfo.ShaderProgram.getUniformLayout().getPushConstantRanges().data();
 		} else {
 			pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
 			pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
@@ -50,19 +48,19 @@ namespace DOH {
 		VkExtent2D extent,
 		VkRenderPass renderPass
 	) {
-		mShaderProgram.loadModules(logicDevice);
-		TRY(!mShaderProgram.areShadersLoaded(), "Shader Modules not loaded");
+		mInstanceInfo.ShaderProgram.loadModules(logicDevice);
+		TRY(!mInstanceInfo.ShaderProgram.areShadersLoaded(), "Shader Modules not loaded");
 
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
 		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-		vertShaderStageInfo.module = mShaderProgram.getVertexShader().getShaderModule();
+		vertShaderStageInfo.module = mInstanceInfo.ShaderProgram.getVertexShader().getShaderModule();
 		vertShaderStageInfo.pName = "main";
 
 		VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
 		fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		fragShaderStageInfo.module = mShaderProgram.getFragmentShader().getShaderModule();
+		fragShaderStageInfo.module = mInstanceInfo.ShaderProgram.getFragmentShader().getShaderModule();
 		fragShaderStageInfo.pName = "main";
 
 		VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
@@ -72,8 +70,8 @@ namespace DOH {
 
 		//IMPORTANT:: vertex input binding is always slot 0
 		const uint32_t binding = 0;
-		const auto bindingDesc = getVertexTypeBindingDesc(mVertexType, binding, VK_VERTEX_INPUT_RATE_VERTEX);
-		const auto vertexAttribs = getVertexTypeAsAttribDesc(mVertexType, binding);
+		const auto bindingDesc = getVertexTypeBindingDesc(mInstanceInfo.VertexType, binding, VK_VERTEX_INPUT_RATE_VERTEX);
+		const auto vertexAttribs = getVertexTypeAsAttribDesc(mInstanceInfo.VertexType, binding);
 
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
 		vertexInputInfo.pVertexBindingDescriptions = &bindingDesc;
@@ -88,8 +86,8 @@ namespace DOH {
 		VkViewport viewport = {};
 		viewport.x = 0.0f;
 		viewport.y = 0;
-		viewport.width = (float)extent.width;
-		viewport.height = (float)extent.height;
+		viewport.width = (float) extent.width;
+		viewport.height = (float) extent.height;
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 
@@ -108,10 +106,10 @@ namespace DOH {
 		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 		rasterizer.depthClampEnable = VK_FALSE;
 		rasterizer.rasterizerDiscardEnable = VK_FALSE;
-		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+		rasterizer.polygonMode = mInstanceInfo.PolygonMode;
 		rasterizer.lineWidth = 1.0f;
-		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+		rasterizer.cullMode = mInstanceInfo.CullMode;
+		rasterizer.frontFace = mInstanceInfo.FrontFace;
 		rasterizer.depthBiasEnable = VK_FALSE;
 
 		VkPipelineMultisampleStateCreateInfo multisampling = {};
@@ -125,7 +123,7 @@ namespace DOH {
 			VK_COLOR_COMPONENT_G_BIT |
 			VK_COLOR_COMPONENT_B_BIT |
 			VK_COLOR_COMPONENT_A_BIT;
-		colourBlendAttachment.blendEnable = VK_TRUE;
+		colourBlendAttachment.blendEnable = VK_FALSE;
 		colourBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 		colourBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		colourBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
@@ -138,6 +136,18 @@ namespace DOH {
 		colourBlending.logicOpEnable = VK_FALSE;
 		colourBlending.attachmentCount = 1;
 		colourBlending.pAttachments = &colourBlendAttachment;
+
+		VkPipelineDepthStencilStateCreateInfo depthStencil = {};
+		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+		depthStencil.depthTestEnable = VK_TRUE;
+		depthStencil.depthWriteEnable = VK_TRUE;
+		
+		
+		//depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+		
+		
+		depthStencil.depthBoundsTestEnable = VK_FALSE;
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
 		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -152,13 +162,14 @@ namespace DOH {
 		pipelineCreateInfo.layout = mGraphicsPipelineLayout;
 		pipelineCreateInfo.renderPass = renderPass;
 		pipelineCreateInfo.subpass = 0;
+		pipelineCreateInfo.pDepthStencilState = &depthStencil;
 
 		VK_TRY(
 			vkCreateGraphicsPipelines(logicDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &mGraphicsPipeline),
 			"Failed to create Graphics Pipeline."
 		);
 
-		mShaderProgram.closeModules(logicDevice);
+		mInstanceInfo.ShaderProgram.closeModules(logicDevice);
 	}
 
 	void GraphicsPipelineVulkan::close(VkDevice logicDevice) {
@@ -171,15 +182,15 @@ namespace DOH {
 		VkExtent2D extent,
 		VkRenderPass renderPass
 	) {
-		mShaderProgram.closePipelineSpecificObjects(logicDevice);
+		mInstanceInfo.ShaderProgram.closePipelineSpecificObjects(logicDevice);
 		vkDestroyPipeline(logicDevice, mGraphicsPipeline, nullptr);
 
 		createPipeline(logicDevice, extent, renderPass);
-		mShaderProgram.getShaderDescriptor().createDescriptorSetLayout(logicDevice);
+		mInstanceInfo.ShaderProgram.getShaderDescriptor().createDescriptorSetLayout(logicDevice);
 	}
 
 	void GraphicsPipelineVulkan::createUniformObjects(VkDevice logicDevice) {
-		ShaderUniformLayout& layout = mShaderProgram.getUniformLayout();
+		ShaderUniformLayout& layout = mInstanceInfo.ShaderProgram.getUniformLayout();
 
 		layout.initDescriptorSetLayoutBindings(layout.getTotalUniformCount());
 		//Create values' layout binding
@@ -212,7 +223,7 @@ namespace DOH {
 			);
 		}
 
-		mShaderProgram.getShaderDescriptor().createDescriptorSetLayout(logicDevice);
+		mInstanceInfo.ShaderProgram.getShaderDescriptor().createDescriptorSetLayout(logicDevice);
 	}
 
 	void GraphicsPipelineVulkan::uploadShaderUniforms(
@@ -221,7 +232,7 @@ namespace DOH {
 		uint32_t imageCount,
 		VkDescriptorPool descPool
 	) {
-		DescriptorVulkan& desc = mShaderProgram.getShaderDescriptor();
+		DescriptorVulkan& desc = mInstanceInfo.ShaderProgram.getShaderDescriptor();
 		desc.createValueBuffers(logicDevice, physicalDevice, imageCount);
 		desc.createDescriptorSets(logicDevice, imageCount, descPool);
 
@@ -229,30 +240,30 @@ namespace DOH {
 	}
 
 	void GraphicsPipelineVulkan::recordDrawCommands(uint32_t imageIndex, VkCommandBuffer cmd) {
-		for (IRenderable& renderable : mRenderableDrawList) {
-			renderable.getVao().bind(cmd);
-			if (mShaderProgram.getUniformLayout().hasUniforms()) {
-				mShaderProgram.getShaderDescriptor().bindDescriptorSets(
+		for (const auto& renderable : mRenderableDrawList) {
+			renderable->getVao().bind(cmd);
+			if (mInstanceInfo.ShaderProgram.getUniformLayout().hasUniforms()) {
+				mInstanceInfo.ShaderProgram.getShaderDescriptor().bindDescriptorSets(
 					cmd,
 					mGraphicsPipelineLayout,
 					imageIndex
 				);
 			}
 
-			for (const VkPushConstantRange& pushConstant : mShaderProgram.getUniformLayout().getPushConstantRanges()) {
+			for (const VkPushConstantRange& pushConstant : mInstanceInfo.ShaderProgram.getUniformLayout().getPushConstantRanges()) {
 				vkCmdPushConstants(
 					cmd,
 					mGraphicsPipelineLayout,
 					pushConstant.stageFlags,
 					pushConstant.offset,
 					pushConstant.size,
-					renderable.getPushConstantPtr()
+					renderable->getPushConstantPtr()
 				);
 			}
 
 			vkCmdDrawIndexed(
 				cmd,
-				renderable.getVao().getDrawCount(),
+				renderable->getVao().getDrawCount(),
 				1,
 				0,
 				0,

@@ -37,9 +37,6 @@ namespace DOH {
 			texture->close(logicDevice);
 		}
 
-		//for (std::shared_ptr<VertexArrayVulkan> vao : mQuadBatchVaos) {
-		//	vao->close(logicDevice);
-		//}
 		for (const auto& renderableQuadBatch : mRenderableQuadBatches) {
 			renderableQuadBatch->getVao().close(logicDevice);
 		}
@@ -57,7 +54,7 @@ namespace DOH {
 
 		mQuadGraphicsPipeline->recreate(
 			logicDevice,
-			mContext.getSwapChain().getExtent(),
+			swapChain.getExtent(),
 			swapChain.getRenderPass(SwapChainVulkan::ERenderPassType::SCENE).get()
 		);
 		mContext.createPipelineUniformObjects(*mQuadGraphicsPipeline, mDescriptorPool);
@@ -80,7 +77,6 @@ namespace DOH {
 			vao->addVertexBuffer(vbo);
 			vao->setIndexBuffer(mQuadSharedIndexBuffer, true);
 
-			//mQuadBatchVaos.push_back(vao);
 			mRenderableQuadBatches.emplace_back(std::make_shared<SimpleRenderable>(vao));
 
 			return mQuadRenderBatches.size() - 1;
@@ -113,10 +109,15 @@ namespace DOH {
 		ShaderUniformLayout& layout = mQuadShaderProgram->getUniformLayout();
 		layout.setValue(0, sizeof(glm::mat4x4));
 		layout.setTextureArray(1, *mQuadBatchTextureArray);
-		mQuadGraphicsPipeline = ObjInit::graphicsPipeline(
+
+		mQuadGraphicsPipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 			EVertexType::VERTEX_3D_TEXTURED,
 			*mQuadShaderProgram,
-			mContext.getSwapChain().getRenderPass(SwapChainVulkan::ERenderPassType::SCENE).get(),
+			SwapChainVulkan::ERenderPassType::SCENE
+		);
+
+		mQuadGraphicsPipeline = mContext.createGraphicsPipeline(
+			*mQuadGraphicsPipelineInstanceInfo,
 			mContext.getSwapChain().getExtent()
 		);
 

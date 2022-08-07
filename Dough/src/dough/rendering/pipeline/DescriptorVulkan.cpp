@@ -6,10 +6,16 @@ namespace DOH {
 
 	DescriptorVulkan::DescriptorVulkan(ShaderUniformLayout& uniformLayout)
 	:	mDescriptorSetLayout(VK_NULL_HANDLE),
-		mUniformLayout(uniformLayout)
+		mUniformLayout(uniformLayout),
+		mDescriptorSetLayoutCreated(false),
+		mValueBuffersCreated(false)
 	{}
 
 	void DescriptorVulkan::createDescriptorSetLayout(VkDevice logicDevice) {
+		if (mDescriptorSetLayoutCreated) {
+			return;
+		}
+
 		VkDescriptorSetLayoutCreateInfo dslCreateInfo = {};
 		dslCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		dslCreateInfo.bindingCount = static_cast<uint32_t>(mUniformLayout.getDescriptorSetLayoutBindings().size());
@@ -20,13 +26,16 @@ namespace DOH {
 			"Failed to create descriptor set layout."
 		);
 
-		mUsingGpuResource = true;
+		mDescriptorSetLayoutCreated = true;
 	}
 
 	void DescriptorVulkan::createValueBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice, uint32_t count) {
+		if (mValueBuffersCreated) {
+			return;
+		}
+
 		mValueBufferMap.clear();
 
-		bool bufferCreated = false;
 		for (auto& [binding, value] : mUniformLayout.getValueUniformMap()) {
 			mValueBufferMap.emplace(binding, std::vector<std::shared_ptr<BufferVulkan>>(count));
 
@@ -38,11 +47,7 @@ namespace DOH {
 				);
 			}
 
-			bufferCreated = true;
-		}
-
-		if (bufferCreated) {
-			mUsingGpuResource = true;
+			mValueBuffersCreated = true;
 		}
 	}
 
@@ -62,7 +67,7 @@ namespace DOH {
 			"Failed to allocate descriptor sets."
 		);
 
-		mUsingGpuResource = true;
+		//mUsingGpuResource = true;
 	}
 
 	void DescriptorVulkan::updateDescriptorSets(VkDevice logicDevice, uint32_t imageCount) {
@@ -189,18 +194,13 @@ namespace DOH {
 			}
 		}
 
-		if (mDescriptorSetLayout != VK_NULL_HANDLE) {
-			mUsingGpuResource = true;
-		}
+		mValueBuffersCreated = false;
 	}
 
 	void DescriptorVulkan::closeDescriptorSetLayout(VkDevice logicDevice) {
 		vkDestroyDescriptorSetLayout(logicDevice, mDescriptorSetLayout, nullptr);
 		mDescriptorSetLayout = VK_NULL_HANDLE;
-
-		if (!mValueBufferMap.empty()) {
-			mUsingGpuResource = true;
-		}
+		mDescriptorSetLayoutCreated = false;
 	}
 
 	void DescriptorVulkan::close(VkDevice logicDevice) {
