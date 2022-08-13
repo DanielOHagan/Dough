@@ -3,7 +3,7 @@
 #include "dough/application/IApplicationLogic.h"
 #include "dough/rendering/pipeline/shader/ShaderProgramVulkan.h"
 #include "dough/rendering/buffer/VertexArrayVulkan.h"
-#include "dough/rendering/TextureVulkan.h"
+#include "dough/rendering/textures/TextureVulkan.h"
 #include "dough/rendering/Config.h"
 #include "dough/scene/geometry/Quad.h"
 #include "dough/rendering/renderables/RenderableModel.h"
@@ -141,7 +141,8 @@ namespace TG {
 
 		struct GridDemo {
 			std::vector<std::vector<Quad>> mTexturedTestGrid;
-			uint32_t mTestTexturesIndexOffset = 0;
+			uint32_t mTestTexturesRowOffset = 0;
+			uint32_t mTestTexturesColumnOffset = 0;
 			int mTestGridMaxQuadCount = 0;
 			int mTestGridSize[2] = { 10, 10 };
 			float mTestGridQuadSize[2] = { 0.1f, 0.1f };
@@ -154,7 +155,7 @@ namespace TG {
 		struct BouncingQuadDemo {
 			std::vector<Quad> mBouncingQuads;
 			std::vector<glm::vec2> mBouncingQuadVelocities;
-			int MaxBouncingQuadCount = BOUNCING_QUAD_COUNT;
+			size_t MaxBouncingQuadCount = BOUNCING_QUAD_COUNT;
 
 			int AddNewQuadCount = 0;
 			int PopQuadCount = 0;
@@ -204,8 +205,8 @@ namespace TG {
 		void initBouncingQuadsDemo();
 		void initCustomDemo();
 		void initObjModelsDemo();
-		void bouncingQuadsDemoAddRandomQuads(int count);
-		void bouncingQaudsDemoPopQuads(int count);
+		void bouncingQuadsDemoAddRandomQuads(size_t count);
+		void bouncingQaudsDemoPopQuads(size_t count);
 		void objModelsDemoAddObject(
 			const uint32_t modelIndex = 0,
 			const float x = 0.0f,

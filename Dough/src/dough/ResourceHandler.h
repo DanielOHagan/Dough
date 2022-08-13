@@ -8,9 +8,9 @@ namespace DOH {
 
 	struct TextureCreationData {
 		void* Data;
-		int Width;
-		int Height;
-		int Channels;
+		uint32_t Width;
+		uint32_t Height;
+		uint32_t Channels;
 	};
 
 	struct Model3dCreationData {

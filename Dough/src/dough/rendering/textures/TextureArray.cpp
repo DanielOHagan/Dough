@@ -1,4 +1,4 @@
-#include "dough/rendering/TextureArray.h"
+#include "dough/rendering/textures/TextureArray.h"
 
 namespace DOH {
 

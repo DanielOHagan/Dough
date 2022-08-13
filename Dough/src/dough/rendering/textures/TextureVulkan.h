@@ -8,7 +8,7 @@ namespace DOH {
 
 	class TextureVulkan : public IGPUResourceVulkan {
 
-	private:
+	protected:
 		uint32_t mId;
 		int mWidth;
 		int mHeight;
@@ -28,6 +28,7 @@ namespace DOH {
 			const std::string& filePath
 		);
 
+		//TODO:: fix this
 		TextureVulkan(
 			VkDevice logicDevice,
 			VkPhysicalDevice physicalDevice,

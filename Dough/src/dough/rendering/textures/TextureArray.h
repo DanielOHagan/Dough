@@ -1,7 +1,7 @@
 #pragma once
 
 #include "dough/Core.h"
-#include "dough/rendering/TextureVulkan.h"
+#include "dough/rendering/textures/TextureVulkan.h"
 
 namespace DOH {
 
@@ -33,8 +33,10 @@ namespace DOH {
 		bool hasTextureId(const uint32_t textureId) const;
 		//Search through texture slots for matching texture id, else return 0
 		uint32_t getTextureSlotIndex(const uint32_t textureId) const;
+
 		//TODO:: Sometimes when this is called it is after hasTextureSlotAvailable() has already been called,
 		// decide whether to assume this has already been called or whether to make it so it doesn't completely matter
+
 		// Attemp to add a new texture, if successful return its index, else return 0
 		uint32_t addNewTexture(TextureVulkan& texture);
 

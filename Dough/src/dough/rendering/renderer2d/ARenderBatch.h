@@ -2,7 +2,7 @@
 
 #include "dough/Core.h"
 #include "dough/scene/geometry/AGeometry.h"
-#include "dough/rendering/TextureVulkan.h"
+#include "dough/rendering/textures/TextureVulkan.h"
 
 #include <typeinfo>
 

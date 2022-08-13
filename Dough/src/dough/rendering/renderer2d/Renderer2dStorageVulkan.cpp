@@ -37,6 +37,8 @@ namespace DOH {
 			texture->close(logicDevice);
 		}
 
+		mTestTexturesAtlas->close(logicDevice);
+
 		for (const auto& renderableQuadBatch : mRenderableQuadBatches) {
 			renderableQuadBatch->getVao().close(logicDevice);
 		}
@@ -97,14 +99,23 @@ namespace DOH {
 			*mWhiteTexture
 		);
 
-		for (int i = 0; i < 8; i++) {
-			std::string path = testTexturesPath + "texture" + std::to_string(i) + ".png";
-			std::shared_ptr<TextureVulkan> testTexture = ObjInit::texture(path);
-			mTestTextures.push_back(testTexture);
-			
-			//TODO:: dynamic texture arrays, instead of assigning at initialisation
-			mQuadBatchTextureArray->addNewTexture(*testTexture);
-		}
+		//Commented out after implementation of Texture Atlas,
+		// left as comment to show how to use individual textures
+		//for (int i = 0; i < 8; i++) {
+		//	std::string path = testTexturesPath + "texture" + std::to_string(i) + ".png";
+		//	std::shared_ptr<TextureVulkan> testTexture = ObjInit::texture(path);
+		//	mTestTextures.push_back(testTexture);
+		//	
+		//	//TODO:: dynamic texture arrays, instead of assigning at initialisation
+		//	mQuadBatchTextureArray->addNewTexture(*testTexture);
+		//}
+
+		mTestTexturesAtlas = ObjInit::monoSpaceTextureAtlas(
+			"res/images/test textures/texturesAtlas.png",
+			5,
+			5
+		);
+		mQuadBatchTextureArray->addNewTexture(*mTestTexturesAtlas);
 
 		ShaderUniformLayout& layout = mQuadShaderProgram->getUniformLayout();
 		layout.setValue(0, sizeof(glm::mat4x4));

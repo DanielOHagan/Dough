@@ -221,12 +221,6 @@ namespace DOH {
 		//-----Pipeline-----
 		//TODO:: having a "createPipeline" and "createGraphicsPipeline" is confusing
 		std::shared_ptr<GraphicsPipelineVulkan> createGraphicsPipeline(
-			EVertexType vertexType,
-			ShaderProgramVulkan& shaderProgram,
-			VkRenderPass renderPass,
-			VkExtent2D extent
-		);
-		std::shared_ptr<GraphicsPipelineVulkan> createGraphicsPipeline(
 			GraphicsPipelineInstanceInfo& instanceInfo,
 			VkExtent2D extent
 		);
@@ -239,7 +233,7 @@ namespace DOH {
 			VkImageLayout finalLayout,
 			VkAttachmentLoadOp loadOp,
 			bool enableClearColour,
-			VkClearValue clearColour,
+			VkClearValue clearColour = {},
 			VkFormat depthFormat = VK_FORMAT_UNDEFINED
 		);
 
@@ -300,6 +294,11 @@ namespace DOH {
 		//-----Texture-----
 		std::shared_ptr<TextureVulkan> createTexture(const std::string& filePath);
 		std::shared_ptr<TextureVulkan> createTexture(float r, float g, float b, float a, bool colourRgbaNormalised);
+		std::shared_ptr<MonoSpaceTextureAtlasVulkan> createMonoSpaceTextureAtlas(
+			const std::string& filePath,
+			const uint32_t rowCount,
+			const uint32_t columnCount
+		);
 
 	private:
 		void createQueues(QueueFamilyIndices& queueFamilyIndices);

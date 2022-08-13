@@ -66,8 +66,6 @@ namespace DOH {
 			vkAllocateDescriptorSets(logicDevice, &allocation, mDescriptorSets.data()),
 			"Failed to allocate descriptor sets."
 		);
-
-		//mUsingGpuResource = true;
 	}
 
 	void DescriptorVulkan::updateDescriptorSets(VkDevice logicDevice, uint32_t imageCount) {

@@ -143,16 +143,14 @@ namespace DOH {
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			VK_ATTACHMENT_LOAD_OP_LOAD,
-			false,
-			{ 0.264f, 0.328f, 0.484f, 1.0f }
+			false
 		);
 		mImGuiRenderPass = context.createRenderPass(
 			mImageFormat,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 			VK_ATTACHMENT_LOAD_OP_LOAD,
-			false,
-			{ 0.264f, 0.328f, 0.484f, 1.0f }
+			false
 		);
 
 		createFrameBuffers(logicDevice);

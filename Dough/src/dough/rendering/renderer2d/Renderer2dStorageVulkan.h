@@ -3,7 +3,8 @@
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 #include "dough/rendering/renderer2d/RenderBatchQuad.h"
 #include "dough/rendering/renderables/SimpleRenderable.h"
-#include "dough/rendering/TextureArray.h"
+#include "dough/rendering/textures/TextureArray.h"
+#include "dough/rendering/textures/TextureAtlasVulkan.h"
 
 //Currently batching has significantly different performance on different configurations
 #define MAX_BATCH_QUAD_COUNT
@@ -45,6 +46,7 @@ namespace DOH {
 		//TEMP::
 		const std::string testTexturesPath = "res/images/test textures/";
 		std::vector<std::shared_ptr<TextureVulkan>> mTestTextures;
+		std::shared_ptr<MonoSpaceTextureAtlasVulkan> mTestTexturesAtlas;
 
 		void initForQuads(VkDevice logicDevice);
 
@@ -87,6 +89,7 @@ namespace DOH {
 		inline std::vector<RenderBatchQuad>& getQuadRenderBatches() { return mQuadRenderBatches; }
 		inline std::vector<std::shared_ptr<SimpleRenderable>>& getRenderableQuadBatches() { return mRenderableQuadBatches; }
 		inline const std::vector<std::shared_ptr<TextureVulkan>>& getTestTextures() const { return mTestTextures; }
+		inline const std::shared_ptr<MonoSpaceTextureAtlasVulkan> getTestTextureAtlas() const { return mTestTexturesAtlas; }
 		inline TextureArray& getQuadBatchTextureArray() const { return *mQuadBatchTextureArray; }
 		inline IndexBufferVulkan& getQuadBatchIndexBuffer() const { return *mQuadSharedIndexBuffer; }
 	};

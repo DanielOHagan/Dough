@@ -6,16 +6,6 @@
 
 namespace DOH {
 
-	//-----Pipeline-----
-	std::shared_ptr<GraphicsPipelineVulkan> ObjInit::graphicsPipeline(
-		EVertexType vertexType,
-		ShaderProgramVulkan& shaderProgram,
-		VkRenderPass renderPass,
-		VkExtent2D extent
-	) {
-		return CONTEXT.createGraphicsPipeline(vertexType, shaderProgram, renderPass, extent);
-	}
-
 	//-----Context-----
 	std::shared_ptr<SwapChainVulkan> ObjInit::swapChain(SwapChainCreationInfo& swapChainCreate) {
 		return CONTEXT.createSwapChain(swapChainCreate);
@@ -29,7 +19,14 @@ namespace DOH {
 		bool enableClearColour,
 		VkClearValue clearColour
 	) {
-		return CONTEXT.createRenderPass(imageFormat, initialLayout, finalLayout, loadOp, enableClearColour, clearColour);
+		return CONTEXT.createRenderPass(
+			imageFormat,
+			initialLayout,
+			finalLayout,
+			loadOp,
+			enableClearColour,
+			clearColour
+		);
 	}
 
 
@@ -138,7 +135,6 @@ namespace DOH {
 
 	//-----Shader-----
 	std::shared_ptr<ShaderProgramVulkan> ObjInit::shaderProgram(
-		//TODO:: Maybe use std::move shared ptr here so shader program instance has ownership of shaders
 		std::shared_ptr<ShaderVulkan> vertShader,
 		std::shared_ptr<ShaderVulkan> fragShader
 	) {
@@ -156,5 +152,13 @@ namespace DOH {
 
 	std::shared_ptr<TextureVulkan> ObjInit::texture(float r, float g, float b, float a, bool colourRgbaNormalised) {
 		return CONTEXT.createTexture(r, g, b, a, colourRgbaNormalised);
+	}
+	
+	std::shared_ptr<MonoSpaceTextureAtlasVulkan> ObjInit::monoSpaceTextureAtlas(
+		const std::string& filePath,
+		const uint32_t rowCount,
+		const uint32_t colCount
+	) {
+		return CONTEXT.createMonoSpaceTextureAtlas(filePath, rowCount, colCount);
 	}
 }

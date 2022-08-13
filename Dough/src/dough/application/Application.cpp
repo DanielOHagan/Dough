@@ -68,6 +68,7 @@ namespace DOH {
 
 	void Application::render() {
 		mAppLogic->render();
+
 		mRenderer->getContext().getImGuiWrapper().newFrame();
 		mAppLogic->imGuiRender();
 

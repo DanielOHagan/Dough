@@ -2,7 +2,7 @@
 
 #include "dough/rendering/SwapChainVulkan.h"
 #include "dough/rendering/pipeline/DescriptorVulkan.h"
-#include "dough/rendering/TextureVulkan.h"
+#include "dough/rendering/textures/TextureVulkan.h"
 #include "dough/rendering/renderables/IRenderable.h"
 #include "dough/rendering/pipeline/shader/ShaderProgramVulkan.h"
 

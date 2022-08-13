@@ -360,10 +360,15 @@ namespace TG {
 					//	static being the default values and dynamic being from the variables determined by ths menu
 					// Maybe have the dynamic settings hidden unless dynamic is selected
 
-					int tempTestTextureIndexOffset = mGridDemo.mTestTexturesIndexOffset;
-					if (ImGui::InputInt("Test Texture Offset", &tempTestTextureIndexOffset)) {
-						//Cycle through the 8 test texture indexes
-						mGridDemo.mTestTexturesIndexOffset = tempTestTextureIndexOffset < 0 ? 0 : tempTestTextureIndexOffset % 8;
+					const auto& atlas = renderer.getContext().getRenderer2d().getStorage().getTestTextureAtlas();
+
+					int tempTestTextureRowOffset = mGridDemo.mTestTexturesRowOffset;
+					if (ImGui::InputInt("Test Texture Row Offset", &tempTestTextureRowOffset)) {
+						mGridDemo.mTestTexturesRowOffset = tempTestTextureRowOffset < 0 ? 0 : tempTestTextureRowOffset % atlas->getRowCount();
+					}
+					int tempTestTextureColOffset = mGridDemo.mTestTexturesColumnOffset;
+					if (ImGui::InputInt("Test Texture Col Offset", &tempTestTextureColOffset)) {
+						mGridDemo.mTestTexturesColumnOffset = tempTestTextureColOffset < 0 ? 0 : tempTestTextureColOffset % atlas->getColCount();
 					}
 
 					if (ImGui::Button("Reset Grid")) {
@@ -521,11 +526,6 @@ namespace TG {
 					mPerspectiveCameraController->setPosition({ 0.0f, 0.0f, 5.0f });
 					mPerspectiveCameraController->setDirection({ 0.0f, 0.0f, 0.0f });
 				}
-
-				//imGuiPrintMat4x4(TG_mOrthoCameraController->getCamera().getProjectionViewMatrix(), "Ortho ProjView");
-				//imGuiPrintMat4x4(mPerspectiveCameraController->getCamera().getProjectionMatrix(), "Perspec Proj");
-				//imGuiPrintMat4x4(mPerspectiveCameraController->getCamera().getViewMatrix(), "Perspec View");
-				//imGuiPrintMat4x4(mPerspectiveCameraController->getCamera().getProjectionViewMatrix(), "Perspec ProjView");
 
 				mImGuiSettings.CameraCollapseMenuOpen = true;
 			} else {
@@ -715,24 +715,26 @@ namespace TG {
 	}
 
 	void TG_AppLogic::populateTestGrid(int width, int height) {
-		const std::vector<std::shared_ptr<TextureVulkan>>& testTextures =
-			GET_RENDERER.getContext().getRenderer2d().getStorage().getTestTextures();
+		const auto& storage = GET_RENDERER.getContext().getRenderer2d().getStorage();
+		const auto& atlas = storage.getTestTextureAtlas();
 
 		mGridDemo.mTexturedTestGrid.clear();
-		uint32_t texturesInUseCount = std::max(std::max(width, height), width * height);
-		texturesInUseCount = std::min(texturesInUseCount, static_cast<uint32_t>(testTextures.size()));
-		mGridDemo.mTexturedTestGrid.resize(texturesInUseCount);
+		mGridDemo.mTexturedTestGrid.resize(storage.getQuadBatchTextureArray().getTextureSlots().size());
+		const uint32_t textureSlot = storage.getQuadBatchTextureArray().getTextureSlotIndex(storage.getTestTextureAtlas()->getId());
 
 		uint32_t index = 0;
 		for (float y = 0.0f; y < height; y++) {
 			for (float x = 0.0f; x < width; x++) {
-				uint32_t textureSlot = static_cast<uint32_t>(x + y) % 8;
 				mGridDemo.mTexturedTestGrid[textureSlot].push_back({
 					{x * mGridDemo.mTestGridQuadGapSize[0], y * mGridDemo.mTestGridQuadGapSize[1], 0.5f},
 					{mGridDemo.mTestGridQuadSize[0], mGridDemo.mTestGridQuadSize[1]},
 					{0.0f, 1.0f, 1.0f, 1.0f},
 					0.0f,
-					testTextures[(static_cast<uint32_t>(x + y) + mGridDemo.mTestTexturesIndexOffset) % 8]
+					atlas,
+					atlas->getInnerTextureCoords(
+						(uint32_t) (x+ y) + mGridDemo.mTestTexturesRowOffset,
+						(uint32_t) y + mGridDemo.mTestTexturesColumnOffset
+					)
 				});
 				index++;
 			}
@@ -887,14 +889,12 @@ namespace TG {
 		mObjModelsDemo.mSceneWireframePipelineInfo->PolygonMode = VK_POLYGON_MODE_LINE;
 	}
 
-	void TG_AppLogic::bouncingQuadsDemoAddRandomQuads(int count) {
-		const std::vector<std::shared_ptr<TextureVulkan>>& testTextures =
-			GET_RENDERER.getContext().getRenderer2d().getStorage().getTestTextures();
+	void TG_AppLogic::bouncingQuadsDemoAddRandomQuads(size_t count) {
+		const auto& atlas = GET_RENDERER.getContext().getRenderer2d().getStorage().getTestTextureAtlas();
 
-		const int size = static_cast<int>(mBouncingQuadDemo.mBouncingQuads.size());
 		//Stop quad count going over MaxCount
-		if (count + size > mBouncingQuadDemo.MaxBouncingQuadCount) {
-			count = mBouncingQuadDemo.MaxBouncingQuadCount - size;
+		if (count + mBouncingQuadDemo.mBouncingQuads.size() > mBouncingQuadDemo.MaxBouncingQuadCount) {
+			count = mBouncingQuadDemo.MaxBouncingQuadCount - mBouncingQuadDemo.mBouncingQuads.size();
 		}
 
 		for (int i = 0; i < count; i++) {
@@ -904,14 +904,37 @@ namespace TG {
 				{mGridDemo.mTestGridQuadSize[0], mGridDemo.mTestGridQuadSize[1]},
 				{0.0f, 1.0f, 1.0f, 1.0f},
 				0.0f,
-				testTextures[rand() % 8]
+				//Texture atlas
+				atlas,
+				
+				//Single inner texture
+				atlas->getInnerTextureCoords(
+					rand() % atlas->getRowCount(),
+					rand() % atlas->getColCount()
+				)
+				//atlas->getInnerTextureCoords(4, 4)
+				
+				//Display mutliple inner rows/columns (may result in two 0 values passed which returns all 0 coords)
+				//atlas->getInnerTextureCoords(
+				//	rand() % atlas->getRowCount(),
+				//	rand() % atlas->getRowCount(),
+				//	rand() % atlas->getColCount(),
+				//	rand() % atlas->getColCount()
+				//)
+				//Display whole texture atlas
+				//atlas->getInnerTextureCoords(
+				//	0,
+				//	atlas->getRowCount(),
+				//	0,
+				//	atlas->getColCount()
+				//)
 			});
 			mBouncingQuadDemo.mBouncingQuadVelocities.push_back({ (float)(rand() % 800) / 60.0f, (float)(rand() % 800) / 60.0f });
 		}
 	}
 
-	void TG_AppLogic::bouncingQaudsDemoPopQuads(int count) {
-		const int size = static_cast<int>(mBouncingQuadDemo.mBouncingQuads.size());
+	void TG_AppLogic::bouncingQaudsDemoPopQuads(size_t count) {
+		const size_t size = mBouncingQuadDemo.mBouncingQuads.size();
 		if (count > size) {
 			count = size;
 		}

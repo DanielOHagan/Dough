@@ -4,6 +4,7 @@
 #include "dough/ResourceHandler.h"
 #include "dough/rendering/pipeline/shader/ShaderVulkan.h"
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
+#include "dough/rendering/textures/TextureAtlasVulkan.h"
 
 namespace DOH {
 
@@ -15,14 +16,6 @@ namespace DOH {
 		ObjInit operator=(const ObjInit& assignment) = delete;
 
 	public:
-
-		//-----Pipeline-----
-		static std::shared_ptr<GraphicsPipelineVulkan> graphicsPipeline(
-			EVertexType vertexType,
-			ShaderProgramVulkan& shaderProgram,
-			VkRenderPass renderPass,
-			VkExtent2D extent
-		);
 
 		//-----Context-----
 		static std::shared_ptr<SwapChainVulkan> swapChain(
@@ -46,12 +39,6 @@ namespace DOH {
 
 		static std::shared_ptr<VertexBufferVulkan> vertexBuffer(
 			const std::initializer_list<BufferElement>& elements,
-			VkDeviceSize size,
-			VkBufferUsageFlags usage,
-			VkMemoryPropertyFlags props
-		);
-		static std::shared_ptr<VertexBufferVulkan> vertexBuffer(
-			const std::vector<BufferElement>& elements,
 			VkDeviceSize size,
 			VkBufferUsageFlags usage,
 			VkMemoryPropertyFlags props
@@ -128,6 +115,10 @@ namespace DOH {
 		//-----Texture-----
 		static std::shared_ptr<TextureVulkan> texture(const std::string& filePath);
 		static std::shared_ptr<TextureVulkan> texture(float r, float g, float b, float a, bool colourRgbaNormalised);
-
+		static std::shared_ptr<MonoSpaceTextureAtlasVulkan> monoSpaceTextureAtlas(
+			const std::string& filePath,
+			const uint32_t rowCount,
+			const uint32_t columnCount
+		);
 	};
 }

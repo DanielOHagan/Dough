@@ -520,7 +520,8 @@ namespace DOH {
 			return;
 		}
 
-		auto& map = renderPass == SwapChainVulkan::ERenderPassType::SCENE ? mSceneGraphicsPipelines : mUiGraphicsPipelines;
+		auto& map = renderPass ==
+			SwapChainVulkan::ERenderPassType::SCENE ? mSceneGraphicsPipelines : mUiGraphicsPipelines;
 		const auto& itr = map.find(name);
 		if (itr != map.end()) {
 			itr->second->setEnabled(enable);
@@ -847,32 +848,9 @@ namespace DOH {
 	}
 
 	std::shared_ptr<GraphicsPipelineVulkan> RenderingContextVulkan::createGraphicsPipeline(
-		EVertexType vertexType,
-		ShaderProgramVulkan& shaderProgram,
-		VkRenderPass renderPass,
-		VkExtent2D extent
-	) {
-		//return std::make_shared<GraphicsPipelineVulkan>(
-		//	mLogicDevice,
-		//	vertexType,
-		//	shaderProgram,
-		//	extent,
-		//	renderPass
-		//);
-		LOG_ERR("Shouldn't have been called!!!!!");
-		return nullptr;
-	}
-
-	std::shared_ptr<GraphicsPipelineVulkan> RenderingContextVulkan::createGraphicsPipeline(
 		GraphicsPipelineInstanceInfo& instanceInfo,
 		VkExtent2D extent
 	) {
-		//return std::make_shared<GraphicsPipelineVulkan>(
-		//	mLogicDevice,
-		//	instanceInfo,
-		//	mSwapChain->getRenderPass(instanceInfo.RenderPass),
-		//	extent
-		//);
 		return std::make_unique<GraphicsPipelineVulkan>(
 			mLogicDevice,
 			instanceInfo,
@@ -1010,5 +988,13 @@ namespace DOH {
 
 	std::shared_ptr<TextureVulkan> RenderingContextVulkan::createTexture(float r, float g, float b, float a, bool colourRgbaNormalised) {
 		return std::make_shared<TextureVulkan>(mLogicDevice, mPhysicalDevice, r, g, b, a, colourRgbaNormalised);
+	}
+
+	std::shared_ptr<MonoSpaceTextureAtlasVulkan> RenderingContextVulkan::createMonoSpaceTextureAtlas(
+		const std::string& filePath,
+		const uint32_t rowCount,
+		const uint32_t colCount
+	) {
+		return std::make_shared<MonoSpaceTextureAtlasVulkan>(mLogicDevice, mPhysicalDevice, filePath, rowCount, colCount);
 	}
 }

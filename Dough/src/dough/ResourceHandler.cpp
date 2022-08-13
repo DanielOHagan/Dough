@@ -91,12 +91,17 @@ namespace DOH {
 	}
 
 	TextureCreationData ResourceHandler::loadTextureImpl(const char* filepath) {
+		int width = -1;
+		int height = -1;
+		int channels = -1;
+		stbi_uc* pixels = stbi_load(filepath, &width, &height, &channels, STBI_rgb_alpha);
+
+		TRY(pixels == nullptr || width < 0 || height < 0 || channels < 0, "Failed to load image data");
+
 		TextureCreationData textureData{};
-
-		stbi_uc* pixels = stbi_load(filepath, &textureData.Width, &textureData.Height, &textureData.Channels, STBI_rgb_alpha);
-
-		TRY(pixels == nullptr || textureData.Width < 0 || textureData.Height < 0 || textureData.Channels < 0, "Failed to load image data");
-
+		textureData.Width = static_cast<uint32_t>(width);
+		textureData.Height = static_cast<uint32_t>(height);
+		textureData.Channels = static_cast<uint32_t>(channels);
 		textureData.Data = static_cast<void*>(pixels);
 		return textureData;
 	}

@@ -1,4 +1,4 @@
-#include "dough/rendering/TextureVulkan.h"
+#include "dough/rendering/textures/TextureVulkan.h"
 
 #include "dough/application/Application.h"
 #include "dough/rendering/ObjInit.h"
