@@ -14,6 +14,35 @@
 
 namespace DOH {
 
+	struct AppDebugInfo {
+		const static int FrameTimesCount = 1000;
+
+		float FrameTimesMillis[FrameTimesCount] = {};
+		
+		double LastFrameTimeMillis = 0.0;
+		double LastUpdateTimeMillis = 0.0;
+		double LastRenderTimeMillis = 0.0;
+
+		int FrameTimeIndex = 0;
+		bool FrameTimesFullArray = false;
+
+		uint32_t SceneDrawCalls = 0;
+		uint32_t UiDrawCalls = 0;
+		uint32_t BatchRendererDrawCalls = 0;
+
+		uint32_t TotalDrawCalls = 0;
+
+		inline void updateTotalDrawCallCount() {
+			TotalDrawCalls = SceneDrawCalls + UiDrawCalls + BatchRendererDrawCalls;
+		}
+
+		inline void resetDrawCalls() {
+			SceneDrawCalls = 0;
+			UiDrawCalls = 0;
+			BatchRendererDrawCalls = 0;
+		}
+	};
+
 	class Application {
 
 		friend class ApplicationLoop;
@@ -26,6 +55,7 @@ namespace DOH {
 		std::unique_ptr<RendererVulkan> mRenderer;
 		std::shared_ptr<IApplicationLogic> mAppLogic;
 		std::unique_ptr<IntervalTimer> mAppInfoTimer;
+		std::unique_ptr<AppDebugInfo> mAppDebugInfo;
 		bool mRunning;
 		bool mFocused;
 		bool mIconified;
@@ -46,6 +76,7 @@ namespace DOH {
 		inline Window& getWindow() const { return *mWindow; }
 		inline ApplicationLoop& getLoop() const { return *mAppLoop; }
 		inline IntervalTimer& getAppInfoTimer() const { return *mAppInfoTimer; }
+		inline AppDebugInfo& getDebugInfo() const { return *mAppDebugInfo; }
 		inline bool isRunning() const { return mRunning; }
 		inline bool isFocused() const { return mFocused; }
 		inline bool isIconified() const { return mIconified; }
@@ -59,7 +90,7 @@ namespace DOH {
 		void init(std::shared_ptr<IApplicationLogic> appLogic, const ApplicationInitSettings& initSettings);
 		inline void pollEvents() const { mWindow->pollEvents(); }
 		void update(float delta);
-		void render();
+		void render(float delta);
 		void close();
 	};
 }

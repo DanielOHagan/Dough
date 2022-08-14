@@ -149,13 +149,13 @@ namespace TG {
 		renderer.endUi();
 	}
 
-	void TG_AppLogic::imGuiRender() {
+	void TG_AppLogic::imGuiRender(float delta) {
 		if (mImGuiSettings.RenderDebugWindow) {
-			imGuiRenderDebugWindow();
+			imGuiRenderDebugWindow(delta);
 		}
 	}
 
-	void TG_AppLogic::imGuiRenderDebugWindow() {
+	void TG_AppLogic::imGuiRenderDebugWindow(float delta) {
 		RendererVulkan& renderer = GET_RENDERER;
 
 		ImGui::Begin("Debug Window");
@@ -242,8 +242,27 @@ namespace TG {
 				}
 				imGuiDisplayHelpTooltip("When hidden press F1 to start rendering ImGui again");
 
-				if (ImGui::Button("Quit Application")) {
-					Application::get().stop();
+				const static float quitHoldTimeRequired = 1.5f;
+				static float quitButtonHoldTime = 0.0f;
+				if (ImGui::Button("Quit Application") || ImGui::IsItemActive()) {
+					quitButtonHoldTime += delta;
+
+					//Close app when releasing mouse button after holding for required time
+					if (quitButtonHoldTime >= quitHoldTimeRequired && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+						Application::get().stop();
+					}
+				} else {
+					quitButtonHoldTime = 0.0f;
+				}
+				//Draw a rectangle to show how long to hold for
+				if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
+					ImGui::BeginTooltip();
+
+					ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 1.0f, 0.0f, 0.0f, 1.0f });
+					ImGui::ProgressBar((quitButtonHoldTime / quitHoldTimeRequired), {200.0f, 20.0f});
+					ImGui::PopStyleColor(1);
+
+					ImGui::EndTooltip();
 				}
 
 				mImGuiSettings.ApplicationCollapseMenuOpen = true;
@@ -253,8 +272,31 @@ namespace TG {
 
 			ImGui::SetNextItemOpen(mImGuiSettings.RenderingCollapseMenuOpen);
 			if (ImGui::CollapsingHeader("Rendering")) {
-				//TODO:: ImGui::Checkbox("Render Wireframes", &mRenderWireframes);
-				const RenderingDebugInfo& renderInfo = renderer.getContext().getRenderingDebugInfo();
+				AppDebugInfo& debugInfo = Application::get().getDebugInfo();
+
+				const double frameTime = debugInfo.LastUpdateTimeMillis + debugInfo.LastRenderTimeMillis;
+
+				if (debugInfo.FrameTimeIndex == AppDebugInfo::FrameTimesCount) {
+					debugInfo.FrameTimeIndex = 0;
+					debugInfo.FrameTimesFullArray = true;
+				}
+				debugInfo.FrameTimesMillis[debugInfo.FrameTimeIndex] = (float) frameTime;
+				debugInfo.FrameTimeIndex++;
+
+				ImGui::PlotLines(
+					"Frame Times (ms)",
+					debugInfo.FrameTimesMillis,
+					debugInfo.FrameTimesFullArray ? AppDebugInfo::FrameTimesCount : debugInfo.FrameTimeIndex
+				);
+
+				//Milliseconds
+				ImGui::Text("Frame: %lfms", frameTime);
+				ImGui::Text("Update: %lfms", debugInfo.LastUpdateTimeMillis);
+				ImGui::Text("Render: %lfms", debugInfo.LastRenderTimeMillis);
+				//Seconds
+				//ImGui::Text("Frame: %fs", Time::convertMillisToSeconds(frameTime));
+				//ImGui::Text("Update: %fs", Time::convertMillisToSeconds(debugInfo.LastUpdateTimeMillis));
+				//ImGui::Text("Render: %fs", Time::convertMillisToSeconds(debugInfo.LastRenderTimeMillis));
 				ImGui::BeginTable("Draw Call Info", 2);
 				ImGui::TableSetupColumn("Pipeline");
 				ImGui::TableSetupColumn("Draw Call Count");
@@ -265,17 +307,17 @@ namespace TG {
 					imGuiPrintDrawCallTableColumn(name.c_str(), pipeline->getVaoDrawCount());
 				}
 				//Total scene pipeline draw calls
-				imGuiPrintDrawCallTableColumn("Total Scene", renderInfo.SceneDrawCalls);
+				imGuiPrintDrawCallTableColumn("Total Scene", debugInfo.SceneDrawCalls);
 				ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImColor::ImColor(125, 125, 125, 90));
 				//Individual UI pipeline draw calls
 				for (const auto& [name, pipeline] : renderer.getContext().getUiGraphicsPipelines()) {
 					imGuiPrintDrawCallTableColumn(name.c_str(), pipeline->getVaoDrawCount());
 				}
 				//Total UI pipeline draw calls
-				imGuiPrintDrawCallTableColumn("Total UI", renderInfo.UiDrawCalls);
+				imGuiPrintDrawCallTableColumn("Total UI", debugInfo.UiDrawCalls);
 				ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImColor::ImColor(125, 125, 125, 90));
-				imGuiPrintDrawCallTableColumn("Quad Batch", renderInfo.BatchRendererDrawCalls);
-				imGuiPrintDrawCallTableColumn("Total", renderInfo.TotalDrawCalls);
+				imGuiPrintDrawCallTableColumn("Quad Batch", debugInfo.BatchRendererDrawCalls);
+				imGuiPrintDrawCallTableColumn("Total", debugInfo.TotalDrawCalls);
 				ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImColor::ImColor(128, 128, 255, 100));
 				ImGui::EndTable();
 
@@ -732,7 +774,7 @@ namespace TG {
 					0.0f,
 					atlas,
 					atlas->getInnerTextureCoords(
-						(uint32_t) (x+ y) + mGridDemo.mTestTexturesRowOffset,
+						(uint32_t) x + mGridDemo.mTestTexturesRowOffset,
 						(uint32_t) y + mGridDemo.mTestTexturesColumnOffset
 					)
 				});

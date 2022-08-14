@@ -17,8 +17,8 @@ namespace DOH {
 
 	public:
 
-		static long long getCurrentTimeNanos() { return std::chrono::high_resolution_clock::now().time_since_epoch().count(); }
-		static long getCurrentTimeMicro() { return (long) getCurrentTimeNanos() / (long) 1000.0; }
+		static uint64_t getCurrentTimeNanos() { return std::chrono::high_resolution_clock::now().time_since_epoch().count(); }
+		static uint64_t getCurrentTimeMicro() { return getCurrentTimeNanos() / 1000ll; }
 		static double getCurrentTimeMillis() { return (double) getCurrentTimeNanos() / 1000000.0; }
 		static float getCurrentTimeSeconds() { return (float) (getCurrentTimeNanos() / 1000000000.0); }
 
@@ -39,9 +39,9 @@ namespace DOH {
 		static long convertMillisToMicros(double millis) { return (long) millis * 1000; }
 		static long convertSecondsToMicros(float seconds) { return (long) seconds * 1000000; }
 
-		static long long convertMicrosToNanos(long micros) { return (long long) micros * 1000; }
-		static long long convertMillisToNanos(double millis) { return (long long) millis * 1000000; }
-		static long long convertSecondsToNanos(float seconds) { return (long long) seconds * 1000000000; }
+		static uint64_t convertMicrosToNanos(long micros) { return (long long) micros * 1000; }
+		static uint64_t convertMillisToNanos(double millis) { return (long long) millis * 1000000; }
+		static uint64_t convertSecondsToNanos(float seconds) { return (long long) seconds * 1000000000; }
 
 	};
 

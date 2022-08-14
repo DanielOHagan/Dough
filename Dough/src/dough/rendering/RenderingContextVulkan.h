@@ -8,23 +8,28 @@
 
 namespace DOH {
 
-	struct RenderingDebugInfo {
-		uint32_t SceneDrawCalls;
-		uint32_t UiDrawCalls;
-		uint32_t BatchRendererDrawCalls;
-
-		uint32_t TotalDrawCalls;
-
-		inline void updateTotalDrawCallCount() {
-			TotalDrawCalls = SceneDrawCalls + UiDrawCalls + BatchRendererDrawCalls;
-		}
-
-		inline void reset() {
-			SceneDrawCalls = 0;
-			UiDrawCalls = 0;
-			BatchRendererDrawCalls = 0;
-		}
-	};
+	//struct RenderingDebugInfo {
+	//	long LastDrawTime;
+	//	long LastFrameTime;
+	//
+	//	uint32_t SceneDrawCalls;
+	//	uint32_t UiDrawCalls;
+	//	uint32_t BatchRendererDrawCalls;
+	//
+	//	uint32_t TotalDrawCalls;
+	//
+	//	inline void updateTotalDrawCallCount() {
+	//		TotalDrawCalls = SceneDrawCalls + UiDrawCalls + BatchRendererDrawCalls;
+	//	}
+	//
+	//	inline void reset() {
+	//		LastDrawTime = 0l;
+	//		LastFrameTime = 0l;
+	//		SceneDrawCalls = 0;
+	//		UiDrawCalls = 0;
+	//		BatchRendererDrawCalls = 0;
+	//	}
+	//};
 
 	class RenderingContextVulkan {
 
@@ -51,7 +56,6 @@ namespace DOH {
 
 		//NOTE:: in OpenGL space because glm
 		glm::mat4x4 mAppUiProjection;
-		RenderingDebugInfo mRenderingDebugInfo;
 
 		//Shared device handles for convenience
 		VkDevice mLogicDevice;
@@ -197,7 +201,6 @@ namespace DOH {
 		inline ImGuiWrapper& getImGuiWrapper() const { return *mImGuiWrapper; }
 		inline SwapChainVulkan& getSwapChain() const { return *mSwapChain; }
 		inline Renderer2dVulkan& getRenderer2d() const { return *mRenderer2d; }
-		inline const RenderingDebugInfo& getRenderingDebugInfo() const { return mRenderingDebugInfo; }
 		inline void setLogicDevice(VkDevice logicDevice) { mLogicDevice = logicDevice; }
 		void setPhysicalDevice(VkPhysicalDevice physicalDevice);
 		inline RenderingDeviceInfo& getRenderingDeviceInfo() const { return *mRenderingDeviceInfo; }

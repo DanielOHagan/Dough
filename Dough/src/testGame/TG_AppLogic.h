@@ -187,7 +187,7 @@ namespace TG {
 		virtual void init(float aspectRatio) override;
 		virtual void update(float delta) override;
 		virtual void render() override;
-		virtual void imGuiRender() override;
+		virtual void imGuiRender(float delta) override;
 		virtual void close() override;
 
 		virtual void onResize(float aspectRatio) override;
@@ -236,7 +236,7 @@ namespace TG {
 		//ImGui convenience and separated functions, primarly used for debugging and easier ImGui functionality
 		void imGuiDisplayHelpTooltip(const char* message);
 		void imGuiBulletTextWrapped(const char* message);
-		void imGuiRenderDebugWindow();
+		void imGuiRenderDebugWindow(float delta);
 		void imGuiPrintDrawCallTableColumn(const char* pipelineName, uint32_t drawCount);
 		void imGuiPrintMat4x4(const glm::mat4x4& mat, const char* name);
 		inline void imGuiPrintMat4x4(const glm::mat4x4& mat, const std::string& name) { imGuiPrintMat4x4(mat, name.c_str()); }

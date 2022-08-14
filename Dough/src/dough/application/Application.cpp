@@ -20,6 +20,7 @@ namespace DOH {
 	}
 
 	void Application::init(std::shared_ptr<IApplicationLogic> appLogic, const ApplicationInitSettings& initSettings) {
+		mAppDebugInfo = std::make_unique<AppDebugInfo>();
 		mAppInfoTimer = std::make_unique<IntervalTimer>("Application Info", true);
 		mAppInfoTimer->recordInterval("Application.init() start");
 		mAppLogic = appLogic;
@@ -59,23 +60,33 @@ namespace DOH {
 	}
 
 	void Application::update(float delta) {
+		//const long preUpdateMicros = Time::getCurrentTimeMicro();
+		const double preUpdate = Time::getCurrentTimeMillis();
+
 		mWindow->pollEvents();
 
 		mAppLogic->update(delta);
 
 		Input::get().resetCycleData();
+
+		mAppDebugInfo->LastUpdateTimeMillis = Time::getCurrentTimeMillis() - preUpdate;
 	}
 
-	void Application::render() {
+	void Application::render(float delta) {
+		//const long preRenderMicros = Time::getCurrentTimeMicro();
+		const double preRender = Time::getCurrentTimeMillis();
+
 		mAppLogic->render();
 
 		mRenderer->getContext().getImGuiWrapper().newFrame();
-		mAppLogic->imGuiRender();
+		mAppLogic->imGuiRender(delta);
 
 		//NOTE:: ImGui end frame is now called after it is rendered in RenderingContext::drawFrame(), this is needed for multi-viewport windows
 		//mRenderer->getContext().getImGuiWrapper().endFrame();
 
 		mRenderer->drawFrame();
+
+		mAppDebugInfo->LastRenderTimeMillis = Time::getCurrentTimeMillis() - preRender;
 	}
 
 	void Application::close() {

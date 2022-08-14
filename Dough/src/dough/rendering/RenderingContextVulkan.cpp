@@ -2,6 +2,8 @@
 #include "dough/rendering/RendererVulkan.h"
 #include "dough/rendering/ObjInit.h"
 #include "dough/Logging.h"
+#include "dough/time/Time.h"
+#include "dough/application/Application.h"
 
 #include <chrono>
 #include <glm/gtc/matrix_transform.hpp>
@@ -21,7 +23,6 @@ namespace DOH {
 		mDescriptorPool(VK_NULL_HANDLE),
 		mCommandPool(VK_NULL_HANDLE),
 		mSceneUbo({ glm::mat4x4(1.0f) }),
-		mRenderingDebugInfo(),
 		mAppUiProjection(1.0f)
 	{}
 
@@ -120,7 +121,6 @@ namespace DOH {
 
 	void RenderingContextVulkan::closeScenePipelines() {
 		for (const auto& pipeline : mSceneGraphicsPipelines) {
-			//LOG_INFO("Closing Scene Pipeline: " << pipeline.first);
 			pipeline.second->close(mLogicDevice);
 		}
 		mSceneGraphicsPipelines.clear();
@@ -128,7 +128,6 @@ namespace DOH {
 
 	void RenderingContextVulkan::closeUiPipelines() {
 		for (const auto& pipeline : mUiGraphicsPipelines) {
-			//LOG_INFO("Closing UI Pipeline: " << pipeline.first);
 			pipeline.second->close(mLogicDevice);
 		}
 		mUiGraphicsPipelines.clear();
@@ -221,7 +220,7 @@ namespace DOH {
 
 	//Draw then Present rendered frame
 	void RenderingContextVulkan::drawFrame() {
-		mRenderingDebugInfo.reset();
+		Application::get().getDebugInfo().resetDrawCalls();
 
 		uint32_t imageIndex = mSwapChain->aquireNextImageIndex(
 			mLogicDevice,
@@ -253,7 +252,7 @@ namespace DOH {
 
 		mImGuiWrapper->endFrame();
 
-		mRenderingDebugInfo.updateTotalDrawCallCount();
+		//mRenderingDebugInfo.updateTotalDrawCallCount();
 
 		//Clear to-draw lists whether or not pipeline is enabled
 		for (const auto& pipeline : mSceneGraphicsPipelines) {
@@ -272,6 +271,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::drawScene(uint32_t imageIndex, VkCommandBuffer cmd) {
+		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
+
 		mSwapChain->beginRenderPass(SwapChainVulkan::ERenderPassType::SCENE, imageIndex, cmd);
 		for (const auto& pipeline : mSceneGraphicsPipelines) {
 			if (pipeline.second->isEnabled()) {
@@ -283,17 +284,19 @@ namespace DOH {
 
 				pipeline.second->bind(cmd);
 				pipeline.second->recordDrawCommands(imageIndex, cmd);
-				mRenderingDebugInfo.SceneDrawCalls += pipeline.second->getVaoDrawCount();
+				debugInfo.SceneDrawCalls += pipeline.second->getVaoDrawCount();
 			}
 		}
 		
 		//Batch VAOs should have only one VAO and if the batch has at least one quad then there is a draw call
 		mRenderer2d->flushScene(mLogicDevice, imageIndex, cmd);
-		mRenderingDebugInfo.BatchRendererDrawCalls = mRenderer2d->getDrawCount();
+		debugInfo.BatchRendererDrawCalls = mRenderer2d->getDrawCount();
 		mSwapChain->endRenderPass(cmd);
 	}
 
 	void RenderingContextVulkan::drawUi(uint32_t imageIndex, VkCommandBuffer cmd) {
+		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
+
 		mSwapChain->beginRenderPass(SwapChainVulkan::ERenderPassType::APP_UI, imageIndex, cmd);
 
 		for (const auto& pipeline : mUiGraphicsPipelines) {
@@ -306,7 +309,7 @@ namespace DOH {
 
 				pipeline.second->bind(cmd);
 				pipeline.second->recordDrawCommands(imageIndex, cmd);
-				mRenderingDebugInfo.UiDrawCalls += pipeline.second->getVaoDrawCount();
+				debugInfo.UiDrawCalls += pipeline.second->getVaoDrawCount();
 			}
 		}
 

@@ -79,7 +79,7 @@ namespace DOH {
 				//NOTE:: When Iconified the app doesn't call any render functions even though
 				//	it is called here and the FPS increments here
 				if (!mApplication.isIconified()) {
-					mApplication.render();
+					mApplication.render(Time::convertMillisToSeconds(mDeltaRenderTimeSpan));
 					mFps++;
 					mDeltaRenderTimeSpan = 0.0;
 				}
