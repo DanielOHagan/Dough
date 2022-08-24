@@ -6,9 +6,9 @@
 
 using namespace DOH;
 
-namespace TG {
+namespace DOH::EDITOR {
 
-	class TG_PerspectiveCameraController : public ICameraController {
+	class EditorPerspectiveCameraController : public ICameraController {
 
 	private:
 		std::unique_ptr<PerspectiveCamera> mCamera;
@@ -21,9 +21,9 @@ namespace TG {
 		float mTranslationSpeed;
 
 	public:
-		TG_PerspectiveCameraController(float aspectRatio, float fov = 60.0f);
-		TG_PerspectiveCameraController(const TG_PerspectiveCameraController& copy) = delete;
-		TG_PerspectiveCameraController operator=(const TG_PerspectiveCameraController& assignment) = delete;
+		EditorPerspectiveCameraController(float aspectRatio, float fov = 60.0f);
+		EditorPerspectiveCameraController(const EditorPerspectiveCameraController& copy) = delete;
+		EditorPerspectiveCameraController operator=(const EditorPerspectiveCameraController& assignment) = delete;
 
 		virtual void onUpdate(float delta) override;
 		virtual void onViewportResize(float aspectRatio) override;

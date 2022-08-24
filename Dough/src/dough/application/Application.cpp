@@ -60,7 +60,6 @@ namespace DOH {
 	}
 
 	void Application::update(float delta) {
-		//const long preUpdateMicros = Time::getCurrentTimeMicro();
 		const double preUpdate = Time::getCurrentTimeMillis();
 
 		mWindow->pollEvents();
@@ -73,7 +72,6 @@ namespace DOH {
 	}
 
 	void Application::render(float delta) {
-		//const long preRenderMicros = Time::getCurrentTimeMicro();
 		const double preRender = Time::getCurrentTimeMillis();
 
 		mAppLogic->render();
@@ -151,7 +149,7 @@ namespace DOH {
 					e.getWidth(),
 					e.getHeight()
 				);
-				mAppLogic->onResize((float)e.getWidth() / e.getHeight());
+				mAppLogic->onResize(static_cast<float>(e.getWidth()) / e.getHeight());
 				LOGLN("Window Resized: " << e.getWidth() << "x" << e.getHeight());
 				return;
 			}

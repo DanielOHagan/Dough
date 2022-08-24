@@ -10,8 +10,8 @@
 #include "dough/rendering/renderables/SimpleRenderable.h"
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 
-#include "testGame/TG_OrthoCameraController.h"
-#include "testGame/TG_PerspectiveCameraController.h"
+#include "editor/EditorOrthoCameraController.h"
+#include "editor/EditorPerspectiveCameraController.h"
 
 #define BOUNCING_QUAD_COUNT
 #if defined (_DEBUG)
@@ -26,14 +26,14 @@
 
 using namespace DOH;
 
-namespace TG {
+namespace DOH::EDITOR {
 
-	class TG_AppLogic : public IApplicationLogic {
+	class EditorAppLogic : public IApplicationLogic {
 
 	private:
 		//Cameras
-		std::shared_ptr<TG_OrthoCameraController> TG_mOrthoCameraController;
-		std::shared_ptr<TG_PerspectiveCameraController> mPerspectiveCameraController;
+		std::shared_ptr<EditorOrthoCameraController> mOrthoCameraController;
+		std::shared_ptr<EditorPerspectiveCameraController> mPerspectiveCameraController;
 
 		struct ObjModelsDemo {
 			struct UniformBufferObject {
@@ -66,8 +66,8 @@ namespace TG {
 
 			bool Update = false;
 			bool Render = false;
-			bool RenderAllStandard = true;
-			bool RenderAllWireframe = false;
+			bool RenderAllStandard = false; //Force all models to be rendered normally (ignores individual model Render bool)
+			bool RenderAllWireframe = false; //Force all models to be rendered as wireframe (ignores individual model Wireframe bool)
 		} mObjModelsDemo;
 
 		struct CustomDemo {
@@ -164,7 +164,27 @@ namespace TG {
 			bool Render = false;
 		} mBouncingQuadDemo;
 
+		struct ImGuiTextureViewerWindow {
+			const TextureVulkan& Texture;
+			bool Display;
+			bool MatchWindowSize;
+			float Scale;
+
+			ImGuiTextureViewerWindow(
+				TextureVulkan& texture,
+				const bool display,
+				const bool matchWindowSize,
+				const float scale
+			) : Texture(texture),
+				Display(display),
+				MatchWindowSize(matchWindowSize),
+				Scale(scale)
+			{}
+		};
+
 		struct ImGuiSettings {
+			std::unordered_map<uint32_t, ImGuiTextureViewerWindow> TextureViewerWindows;
+			
 			//ImGui window rendering controls
 			bool RenderDebugWindow = true;
 
@@ -180,9 +200,9 @@ namespace TG {
 			bool RenderObjModelsList = false;
 		} mImGuiSettings;
 	public:
-		TG_AppLogic();
-		TG_AppLogic(const TG_AppLogic& copy) = delete;
-		TG_AppLogic operator=(const TG_AppLogic& assignment) = delete;
+		EditorAppLogic();
+		EditorAppLogic(const EditorAppLogic& copy) = delete;
+		EditorAppLogic operator=(const EditorAppLogic& assignment) = delete;
 
 		virtual void init(float aspectRatio) override;
 		virtual void update(float delta) override;
@@ -221,17 +241,22 @@ namespace TG {
 		inline void objModelsDemoAddRandomisedObject() {
 			objModelsDemoAddObject(
 				rand() % mObjModelsDemo.mLoadedModels.size(),
-				(float) (rand() % 25),
-				(float) (rand() % 25),
-				(float) (rand() % 15) * (rand() % 2 > 0 ? 1.0f : -1.0f),
+				static_cast<float>(rand() % 25),
+				static_cast<float>(rand() % 25),
+				static_cast<float>(rand() % 15) * (rand() % 2 > 0 ? 1.0f : -1.0f),
 				0.5f,
-				(float) (rand() % 360),
-				(float) (rand() % 360),
-				(float) (rand() % 360),
+				static_cast<float>(rand() % 360),
+				static_cast<float>(rand() % 360),
+				static_cast<float>(rand() % 360),
 				1.0f
 			);
 		}
+		void imGuiDrawObjDemoItem(DOH::RenderableModelVulkan& model, const std::string& uniqueImGuiId);
 
+		//Draw a window displaying a texture
+		void imGuiDrawTextureViewerWindow(ImGuiTextureViewerWindow& textureWindow);
+		//void imGuiDrawTextureAtlasViewerWindow(ImGuiTextureAtlasViewerWindow& textureAtlasWindow);
+		void imGuiRemoveHiddenTextureViewerWindows();
 
 		//ImGui convenience and separated functions, primarly used for debugging and easier ImGui functionality
 		void imGuiDisplayHelpTooltip(const char* message);

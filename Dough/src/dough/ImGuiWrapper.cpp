@@ -2,6 +2,7 @@
 #include "dough/Utils.h"
 #include "dough/rendering/RenderingContextVulkan.h"
 #include "dough/Window.h"
+#include "dough/Logging.h"
 
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_vulkan.h>
@@ -63,6 +64,8 @@ namespace DOH {
 		ImGui_ImplVulkan_Init(&initInfo, imGuiInit.RenderPass);
 
 		mUsingGpuResource = true;
+
+		mLoadedTextures = {};
 	}
 
 	void ImGuiWrapper::close(VkDevice logicDevice) {
@@ -105,5 +108,46 @@ namespace DOH {
 
 	void ImGuiWrapper::onWindowResize(int width, int height) const {
 		ImGui::GetIO().DisplaySize = ImVec2((float) width, (float)height);
+	}
+
+	void ImGuiWrapper::drawTexture(const TextureVulkan& texture, glm::vec2 size, glm::vec2 uv0, glm::vec2 uv1) {
+		const auto& begin = mLoadedTextures.find(texture.getId());
+		VkDescriptorSet descSet = VK_NULL_HANDLE;
+
+		if (begin != mLoadedTextures.end()) {
+			descSet = begin->second;
+		} else {
+			descSet = addTextureVulkan(
+				texture.getSampler(),
+				texture.getImageView(),
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+			);
+
+			if (descSet == VK_NULL_HANDLE) {
+				LOG_ERR("Failed to add texture to ImGui");
+				return;
+			}
+
+			mLoadedTextures.emplace(texture.getId(), descSet);
+		}
+
+		//TODO:: add a default texture to display in the event the desired texture cannot be displayed?
+		// Or log/display text
+
+		if (descSet == VK_NULL_HANDLE) {
+			LOG_ERR("Unable to draw texture in ImGui");
+			return;
+		}
+
+		ImGui::Image(
+			descSet,
+			ImVec2(size.x, size.y),
+			ImVec2(uv0.x, uv0.y),
+			ImVec2(uv1.x, uv1.y)
+		);
+	}
+
+	VkDescriptorSet ImGuiWrapper::addTextureVulkan(VkSampler sampler, VkImageView imageView, VkImageLayout imageLayout) {
+		return ImGui_ImplVulkan_AddTexture(sampler, imageView, imageLayout);
 	}
 }

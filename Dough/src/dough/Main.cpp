@@ -1,5 +1,5 @@
 #include "dough/application/Application.h"
-#include "testGame/TG_AppLogic.h"
+#include "editor/EditorAppLogic.h"
 
 #define DEBUG_MEM_DUMP
 
@@ -13,9 +13,9 @@
 
 int main() {
 
-	std::shared_ptr<DOH::IApplicationLogic> appLogic = std::make_shared<TG::TG_AppLogic>();
+	std::shared_ptr<DOH::IApplicationLogic> appLogic = std::make_shared<DOH::EDITOR::EditorAppLogic>();
 
-	int code = DOH::Application::start(appLogic, {"Test Game", 1920, 1080});
+	int code = DOH::Application::start(appLogic, {"Dough Editor", 1920, 1080});
 
 	DEBUG_MEM_DUMP;
 

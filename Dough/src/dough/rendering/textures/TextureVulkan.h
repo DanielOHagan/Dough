@@ -45,7 +45,7 @@ namespace DOH {
 		inline int getWidth() const { return mWidth; }
 		inline int getHeight() const { return mHeight; }
 		inline int getChannels() const { return mChannels; }
-		inline int getSize() const { return mWidth * mHeight * 4; }
+		inline int getSize() const { return mWidth * mHeight * mChannels; }
 		inline VkImage getImage() const { return mTextureImage->get(); }
 		inline VkDeviceMemory getMemory() const { return mTextureImage->getMemory(); }
 		inline VkImageView getImageView() const { return mTextureImage->getImageView(); }

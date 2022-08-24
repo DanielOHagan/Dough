@@ -159,6 +159,10 @@ namespace DOH {
 	void Renderer2dVulkan::drawQuadArraySameTextureScene(std::vector<Quad>& quadArr) {
 		size_t addedCount = 0;
 		const size_t arrSize = quadArr.size();
+		if (!quadArr[0].hasTexture()) {
+			LOG_ERR("Quad array does not have texture");
+			return;
+		}
 		const uint32_t textureId = quadArr[0].getTexture().getId();
 		TextureArray& texArr = mStorage->getQuadBatchTextureArray();
 

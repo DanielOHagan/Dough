@@ -1,4 +1,5 @@
-#include "TG_OrthoCameraController.h"
+#include "editor/EditorOrthoCameraController.h"
+
 #include "dough/input/Input.h"
 #include "dough/input/InputCodes.h"
 
@@ -6,9 +7,9 @@
 
 using namespace DOH;
 
-namespace TG {
+namespace DOH::EDITOR {
 
-	TG_OrthoCameraController::TG_OrthoCameraController(float aspectRatio)
+	EditorOrthoCameraController::EditorOrthoCameraController(float aspectRatio)
 	:	mCamera(std::make_unique<OrthographicCamera>(
 			-aspectRatio,
 			aspectRatio,
@@ -27,23 +28,23 @@ namespace TG {
 		mTranslationSpeed(0.3f)
 	{}
 
-	void TG_OrthoCameraController::onUpdate(float delta) {
+	void EditorOrthoCameraController::onUpdate(float delta) {
 		handleInput(delta);
 		updateViewMatrices();
 	}
 
-	void TG_OrthoCameraController::onViewportResize(float aspectRatio) {
+	void EditorOrthoCameraController::onViewportResize(float aspectRatio) {
 		mAspectRatio = aspectRatio;
 		updateProjectionMatrix();
 	}
 
-	void TG_OrthoCameraController::translate(glm::vec3& translation) {
+	void EditorOrthoCameraController::translate(glm::vec3& translation) {
 		mPosition.x += translation.x * mTranslationSpeed;
 		mPosition.y += translation.y * mTranslationSpeed;
 		mPosition.z += translation.z * mTranslationSpeed;
 	}
 
-	void TG_OrthoCameraController::zoom(float zoomAmount) {
+	void EditorOrthoCameraController::zoom(float zoomAmount) {
 		mZoomLevel -= zoomAmount;
 
 		mZoomLevel = std::clamp(mZoomLevel, mZoomMin, mZoomMax);
@@ -51,12 +52,12 @@ namespace TG {
 		updateProjectionMatrix();
 	}
 
-	void TG_OrthoCameraController::updateViewMatrices() {
+	void EditorOrthoCameraController::updateViewMatrices() {
 		mCamera->setView(mPosition, mRotation);
 		mCamera->updateProjectionViewMatrix();
 	}
 
-	void TG_OrthoCameraController::handleInput(float delta) {
+	void EditorOrthoCameraController::handleInput(float delta) {
 		const float translationDelta = Input::isKeyPressed(DOH_KEY_LEFT_SHIFT) ?
 			mTranslationSpeed * 6.0f * delta : mTranslationSpeed * delta;
 

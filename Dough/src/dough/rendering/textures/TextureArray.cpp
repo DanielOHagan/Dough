@@ -68,7 +68,7 @@ namespace DOH {
 		return slotIndex;
 	}
 
-	const int TextureArray::isTextureInUse(uint32_t textureId) const {
+	const int TextureArray::isTextureInUse(const uint32_t textureId) const {
 		for (int i = 0; i < mTextureSlots.size(); i++) {
 			if (mTextureSlots[i].get().getId() == textureId) {
 				return i;

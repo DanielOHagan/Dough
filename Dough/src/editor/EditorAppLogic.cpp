@@ -1,4 +1,4 @@
-#include "testGame/TG_AppLogic.h"
+#include "editor/EditorAppLogic.h"
 
 #include "dough/rendering/ObjInit.h"
 #include "dough/application/Application.h"
@@ -9,35 +9,36 @@
 
 #define GET_RENDERER Application::get().getRenderer()
 
-namespace TG {
+namespace DOH::EDITOR {
 
-	TG_AppLogic::TG_AppLogic()
+	EditorAppLogic::EditorAppLogic()
 	:	IApplicationLogic()
 	{}
 
-	void TG_AppLogic::init(float aspectRatio) {
+	void EditorAppLogic::init(float aspectRatio) {
 		mGridDemo.mTestGridMaxQuadCount = Renderer2dStorageVulkan::MAX_BATCH_COUNT_QUAD * Renderer2dStorageVulkan::BATCH_MAX_GEO_COUNT_QUAD;
 
 		initDemos();
 
 		setUiProjection(aspectRatio);
 
-		TG_mOrthoCameraController = std::make_shared<TG_OrthoCameraController>(aspectRatio);
-		mPerspectiveCameraController = std::make_shared<TG_PerspectiveCameraController>(aspectRatio);
+		mOrthoCameraController = std::make_shared<EditorOrthoCameraController>(aspectRatio);
+		mPerspectiveCameraController = std::make_shared<EditorPerspectiveCameraController>(aspectRatio);
 
 		mPerspectiveCameraController->setPosition({ 0.0f, 0.0f, 5.0f });
 
 		mImGuiSettings.UseOrthographicCamera = false;
+		mImGuiSettings.TextureViewerWindows = {};
 	}
 
-	void TG_AppLogic::update(float delta) {
+	void EditorAppLogic::update(float delta) {
 		//Handle input first
 		if (Input::isKeyPressed(DOH_KEY_F1)) {
 			mImGuiSettings.RenderDebugWindow = true;
 		}
 
 		if (mImGuiSettings.UseOrthographicCamera) {
-			TG_mOrthoCameraController->onUpdate(delta);
+			mOrthoCameraController->onUpdate(delta);
 		} else {
 			mPerspectiveCameraController->onUpdate(delta);
 		}
@@ -77,14 +78,14 @@ namespace TG {
 		//}
 	}
 
-	void TG_AppLogic::render() {
+	void EditorAppLogic::render() {
 		RendererVulkan& renderer = GET_RENDERER;
 		RenderingContextVulkan& context = renderer.getContext();
 		Renderer2dVulkan& renderer2d = context.getRenderer2d();
 
 		renderer.beginScene(
 			mImGuiSettings.UseOrthographicCamera ?
-				TG_mOrthoCameraController->getCamera() : mPerspectiveCameraController->getCamera()
+				mOrthoCameraController->getCamera() : mPerspectiveCameraController->getCamera()
 		);
 
 		if (mCustomDemo.RenderScene) {
@@ -149,16 +150,23 @@ namespace TG {
 		renderer.endUi();
 	}
 
-	void TG_AppLogic::imGuiRender(float delta) {
+	void EditorAppLogic::imGuiRender(float delta) {
+		
+		//NOTE:: ImGui Debug info windows
+		//ImGui::ShowMetricsWindow();
+		//ImGui::ShowStackToolWindow();
+		//ImGui::ShowDemoWindow();
+
 		if (mImGuiSettings.RenderDebugWindow) {
 			imGuiRenderDebugWindow(delta);
 		}
 	}
 
-	void TG_AppLogic::imGuiRenderDebugWindow(float delta) {
+	void EditorAppLogic::imGuiRenderDebugWindow(float delta) {
 		RendererVulkan& renderer = GET_RENDERER;
+		ImGuiWrapper& imGuiWrapper = renderer.getContext().getImGuiWrapper();
 
-		ImGui::Begin("Debug Window");
+		ImGui::Begin("Debug Window", &mImGuiSettings.RenderDebugWindow);
 		ImGui::BeginTabBar("Main Tab Bar");
 		if (ImGui::BeginTabItem("Debug")) {
 
@@ -211,26 +219,40 @@ namespace TG {
 				ImGui::SameLine();
 				ImGui::TextColored(focused ? ImVec4(0, 1, 0, 1) : ImVec4(1, 0, 0, 1), focused ? "FOCUSED" : "NOT FOCUSED");
 				ImGui::Text("Current and Target FPS/UPS");
-				ImGui::Text("FPS: %i \t(Fore: %i, Back: %i)", (int)loop.getFps(), (int)loop.getTargetFps(), (int)loop.getTargetBackgroundFps());
+				ImGui::Text
+				("FPS: %i \t(Fore: %i, Back: %i)",
+					static_cast<int>(loop.getFps()),
+					static_cast<int>(loop.getTargetFps()),
+					static_cast<int>(loop.getTargetBackgroundFps())
+				);
 				imGuiDisplayHelpTooltip("Max: Current Target UPS or 360, whichever is lower. Min: 15\nFPS displayed is the count of frames in the last full second interval");
-				ImGui::Text("UPS: %i \t(Fore: %i, Back: %i)", (int)loop.getUps(), (int)loop.getTargetUps(), (int)loop.getTargetBackgroundUps());
+				ImGui::Text(
+					"UPS: %i \t(Fore: %i, Back: %i)",
+					static_cast<int>(loop.getUps()),
+					static_cast<int>(loop.getTargetUps()),
+					static_cast<int>(loop.getTargetBackgroundUps())
+				);
 				imGuiDisplayHelpTooltip("Max: 1000. Min: Current Target FPS or 15, whichever is higher.\nUPS displayed is the count of frames in the last full second interval");
-				int tempTargetFps = (int)loop.getTargetFps();
+				int tempTargetFps = static_cast<int>(loop.getTargetFps());
 				if (ImGui::InputInt("Target FPS", &tempTargetFps)) {
-					if (loop.isValidTargetFps((float)tempTargetFps)) {
-						loop.setTargetFps((float)tempTargetFps);
+					if (loop.isValidTargetFps(static_cast<float>(tempTargetFps))) {
+						loop.setTargetFps(static_cast<float>(tempTargetFps));
 					}
 				}
-				int tempTargetUps = (int)loop.getTargetUps();
+				int tempTargetUps = static_cast<int>(loop.getTargetUps());
 				if (ImGui::InputInt("Target UPS", &tempTargetUps)) {
-					if (loop.isValidTargetUps((float)tempTargetUps)) {
-						loop.setTargetUps((float)tempTargetUps);
+					if (loop.isValidTargetUps(static_cast<float>(tempTargetUps))) {
+						loop.setTargetUps(static_cast<float>(tempTargetUps));
 					}
 				}
 
 				{
 					const glm::vec2 cursorPos = Input::getCursorPos();
-					ImGui::Text("Cursor Position: X: %i, Y: %i", (int)cursorPos.x, (int)cursorPos.y);
+					ImGui::Text(
+						"Cursor Position: X: %i, Y: %i",
+						static_cast<int>(cursorPos.x),
+						static_cast<int>(cursorPos.y)
+					);
 				}
 
 				bool runInBackground = loop.isRunningInBackground();
@@ -273,6 +295,7 @@ namespace TG {
 			ImGui::SetNextItemOpen(mImGuiSettings.RenderingCollapseMenuOpen);
 			if (ImGui::CollapsingHeader("Rendering")) {
 				AppDebugInfo& debugInfo = Application::get().getDebugInfo();
+				MonoSpaceTextureAtlasVulkan& atlas = *renderer.getContext().getRenderer2d().getStorage().getTestTextureAtlas();
 
 				const double frameTime = debugInfo.LastUpdateTimeMillis + debugInfo.LastRenderTimeMillis;
 
@@ -280,7 +303,7 @@ namespace TG {
 					debugInfo.FrameTimeIndex = 0;
 					debugInfo.FrameTimesFullArray = true;
 				}
-				debugInfo.FrameTimesMillis[debugInfo.FrameTimeIndex] = (float) frameTime;
+				debugInfo.FrameTimesMillis[debugInfo.FrameTimeIndex] = static_cast<float>(frameTime);
 				debugInfo.FrameTimeIndex++;
 
 				ImGui::PlotLines(
@@ -343,6 +366,30 @@ namespace TG {
 					0,
 					renderer.getContext().getRenderer2d().getStorage().getQuadBatchTextureArray().getTextureSlots().size()
 				);
+				if (ImGui::Button("View atlas texture")) {
+					const auto& itr = mImGuiSettings.TextureViewerWindows.find(atlas.getId());
+					if (itr != mImGuiSettings.TextureViewerWindows.end()) {
+						itr->second.Display = true;
+					} else {
+						mImGuiSettings.TextureViewerWindows.emplace(
+							atlas.getId(),
+							ImGuiTextureViewerWindow(
+								atlas,
+								true,
+								false,
+								1.0f
+							)
+						);
+					}
+				}
+				imGuiDisplayHelpTooltip("Display Texture Altas texture inside a separate window.");
+
+				////NOTE:: Opening the window here makes it a child of the current window
+				//if (mImGuiSettings.TextureViewerWindows.find(atlas.getId()) != mImGuiSettings.TextureViewerWindows.end()) {
+				//	//imGuiDrawTextureWindow(atlas, 0.4f, false);
+				//	imGuiDrawTextureViewerWindow(mImGuiSettings.TextureViewerWindows[atlas.getId()]);
+				//}
+				
 				if (ImGui::Button("Close All Empty Quad Batches")) {
 					renderer.getContext().getRenderer2d().closeEmptyQuadBatches();
 				}
@@ -402,15 +449,15 @@ namespace TG {
 					//	static being the default values and dynamic being from the variables determined by ths menu
 					// Maybe have the dynamic settings hidden unless dynamic is selected
 
-					const auto& atlas = renderer.getContext().getRenderer2d().getStorage().getTestTextureAtlas();
+					MonoSpaceTextureAtlasVulkan& atlas = *renderer.getContext().getRenderer2d().getStorage().getTestTextureAtlas();
 
 					int tempTestTextureRowOffset = mGridDemo.mTestTexturesRowOffset;
 					if (ImGui::InputInt("Test Texture Row Offset", &tempTestTextureRowOffset)) {
-						mGridDemo.mTestTexturesRowOffset = tempTestTextureRowOffset < 0 ? 0 : tempTestTextureRowOffset % atlas->getRowCount();
+						mGridDemo.mTestTexturesRowOffset = tempTestTextureRowOffset < 0 ? 0 : tempTestTextureRowOffset % atlas.getRowCount();
 					}
 					int tempTestTextureColOffset = mGridDemo.mTestTexturesColumnOffset;
 					if (ImGui::InputInt("Test Texture Col Offset", &tempTestTextureColOffset)) {
-						mGridDemo.mTestTexturesColumnOffset = tempTestTextureColOffset < 0 ? 0 : tempTestTextureColOffset % atlas->getColCount();
+						mGridDemo.mTestTexturesColumnOffset = tempTestTextureColOffset < 0 ? 0 : tempTestTextureColOffset % atlas.getColCount();
 					}
 
 					if (ImGui::Button("Reset Grid")) {
@@ -465,11 +512,13 @@ namespace TG {
 				if (ImGui::BeginTabItem("Obj Models")) {
 					auto& renderables = mObjModelsDemo.mRenderableObjects;
 					auto& demo = mObjModelsDemo;
+					static const std::string addLabel = std::string(ImGuiWrapper::EMPTY_LABEL) + "Add";
+					static const std::string popLabel = std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop";
 
 					ImGui::Checkbox("Render", &demo.Render);
 					ImGui::Checkbox("Update", &demo.Update);
 					ImGui::Text("Object Count: %i", renderables.size());
-					if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Add").c_str(), &demo.AddNewObjectsCount, 5, 5)) {
+					if (ImGui::InputInt(addLabel.c_str(), &demo.AddNewObjectsCount, 5, 5)) {
 						if (demo.AddNewObjectsCount < 0) {
 							demo.AddNewObjectsCount = 0;
 						} else if (demo.AddNewObjectsCount > 1000) {
@@ -482,7 +531,7 @@ namespace TG {
 							objModelsDemoAddRandomisedObject();
 						}
 					}
-					if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop").c_str(), &demo.PopObjectsCount, 5, 5)) {
+					if (ImGui::InputInt(popLabel.c_str(), &demo.PopObjectsCount, 5, 5)) {
 						if (demo.PopObjectsCount < 0) {
 							demo.PopObjectsCount = 0;
 						}
@@ -535,12 +584,12 @@ namespace TG {
 					imGuiDisplayHelpTooltip("NOTE:: Drag doesn't work properly at all update rates");
 					
 					ImGui::Text("Camera Position");
-					const auto& pos = TG_mOrthoCameraController->getPosition();
+					const auto& pos = mOrthoCameraController->getPosition();
 					float tempPos[3] = {pos.x, pos.y, pos.z};
 					if (ImGui::DragFloat3("Pos", tempPos)) {
-						TG_mOrthoCameraController->setPosition({ tempPos[0], tempPos[1], tempPos[2] });
+						mOrthoCameraController->setPosition({ tempPos[0], tempPos[1], tempPos[2] });
 					}
-					ImGui::Text("Zoom: %f", TG_mOrthoCameraController->getZoomLevel());
+					ImGui::Text("Zoom: %f", mOrthoCameraController->getZoomLevel());
 					imGuiDisplayHelpTooltip("Higher is more \"zoomed in\" and lower is more \"zoomed out\"");
 				} else {
 					ImGui::Text("Perspective Camera Controls");
@@ -560,8 +609,8 @@ namespace TG {
 					}
 				}
 				if (ImGui::Button("Reset Orthographic Camera")) {
-					TG_mOrthoCameraController->setPosition({ 0.0f, 0.0f, 1.0f });
-					TG_mOrthoCameraController->setZoomLevel(1.0f);
+					mOrthoCameraController->setPosition({ 0.0f, 0.0f, 1.0f });
+					mOrthoCameraController->setZoomLevel(1.0f);
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Reset Perspective Camera")) {
@@ -608,101 +657,39 @@ namespace TG {
 				ImGui::SameLine();
 				ImGui::Checkbox("Render All Wireframe", &mObjModelsDemo.RenderAllWireframe);
 
-				uint32_t objectIndex = 0;
-				for (auto objItr = renderables.begin(); objItr != renderables.end(); objItr++) {
-					const std::string uniqueImGuiId = "##" + std::to_string(objectIndex);
-					if (ImGui::BeginCombo(("Obj Model" + uniqueImGuiId).c_str(), objItr->get()->getName().c_str())) {
-						int modelFilePathIndex = -1;
-						for (const auto& filePath : mObjModelsDemo.mObjModelFilePaths) {
-							bool selected = false;
-							modelFilePathIndex++;
-							if (ImGui::Selectable((filePath.c_str() + uniqueImGuiId).c_str(), &selected)) {
-								objItr->get()->Model = mObjModelsDemo.mLoadedModels[modelFilePathIndex];
-								objItr->get()->Name = mObjModelsDemo.mObjModelFilePaths[modelFilePathIndex];
-								break;
+				const int size = static_cast<int>(renderables.size());
+				if (size > 0) {
+					ImGui::TreePush();
+					ImGui::Unindent();
+					
+					int objIndex = 0;
+					const int objectsPerNode = 10;
+					for (int nodeIterator = objIndex; nodeIterator < size; nodeIterator += objectsPerNode) {
+						if (ImGui::TreeNode(std::to_string(objIndex).c_str())) {
+							for (int i = objIndex; i < nodeIterator + objectsPerNode && i < size; i++) {
+								std::string uniqueImGuiId = "##" + std::to_string(i);
+								imGuiDrawObjDemoItem(*renderables[i], uniqueImGuiId);
 							}
+					
+							ImGui::TreePop();
 						}
-						ImGui::EndCombo();
-					}
-					ImGui::Checkbox(("Render" + uniqueImGuiId).c_str(), &objItr->get()->Render);
-					ImGui::SameLine();
-					ImGui::Checkbox(("Wireframe" + uniqueImGuiId).c_str(), &objItr->get()->RenderWireframe);
-
-					//Add temp array and set -1 > rotation < 361 to allow for "infinite" drag
-					TransformationData& transformation = *objItr->get()->Transformation;
-					float tempRotation[3] = {
-						transformation.Rotation[0],
-						transformation.Rotation[1],
-						transformation.Rotation[2]
-					};
-					bool transformed = false;
-					if (ImGui::DragFloat3(
-						("Position" + uniqueImGuiId).c_str(),
-						glm::value_ptr(transformation.Position),
-						0.05f,
-						-10.0f,
-						10.0f
-					)) {
-						transformed = true;
-					}
-					if (ImGui::DragFloat3(("Rotation" + uniqueImGuiId).c_str(), tempRotation, 1.0f, -1.0f, 361.0f)) {
-						if (tempRotation[0] > 360.0f) {
-							tempRotation[0] = 0.0f;
-						} else if (tempRotation[0] < 0.0f) {
-							tempRotation[0] = 360.0f;
-						}
-						if (tempRotation[1] > 360.0f) {
-							tempRotation[1] = 0.0f;
-						} else if (tempRotation[1] < 0.0f) {
-							tempRotation[1] = 360.0f;
-						}
-						if (tempRotation[2] > 360.0f) {
-							tempRotation[2] = 0.0f;
-						} else if (tempRotation[2] < 0.0f) {
-							tempRotation[2] = 360.0f;
-						}
-
-						transformation.Rotation = { tempRotation[0], tempRotation[1], tempRotation[2] };
-
-						transformed = true;
-					}
-					if (ImGui::DragFloat(
-						("Uniform Scale" + uniqueImGuiId).c_str(),
-						&transformation.Scale,
-						0.01f,
-						0.1f,
-						5.0f
-					)) {
-						transformed = true;
+						objIndex += objectsPerNode;
 					}
 
-					if (ImGui::Button(("Reset Object" + uniqueImGuiId).c_str())) {
-						transformation.Rotation[0] = 0.0f;
-						transformation.Rotation[1] = 0.0f;
-						transformation.Rotation[2] = 0.0f;
-						transformation.Position[0] = 0.0f;
-						transformation.Position[1] = 0.0f;
-						transformation.Position[2] = 0.0f;
-						transformation.Scale = 1.0f;
-
-						transformed = true;
-					}
-
-					if (transformed && mObjModelsDemo.Update) {
-						transformation.updateTranslationMatrix();
-					}
-
-					objectIndex++;
+					ImGui::TreePop();
 				}
 			}
 			ImGui::End();
 		}
 
-		//DEBUG:: show ImGui stack info, can be helpful when debugging ImGui menus
-		//ImGui::ShowStackToolWindow();
+		for (auto& textureViewer : mImGuiSettings.TextureViewerWindows) {
+			if (textureViewer.second.Display) {
+				imGuiDrawTextureViewerWindow(textureViewer.second);
+			}
+		}
 	}
 
-	void TG_AppLogic::close() {
+	void EditorAppLogic::close() {
 		RendererVulkan& renderer = GET_RENDERER;
 		
 		//Custom demo
@@ -724,12 +711,12 @@ namespace TG {
 		//}
 	}
 
-	void TG_AppLogic::onResize(float aspectRatio) {
-		TG_mOrthoCameraController->onViewportResize(aspectRatio);
+	void EditorAppLogic::onResize(float aspectRatio) {
+		mOrthoCameraController->onViewportResize(aspectRatio);
 		setUiProjection(aspectRatio);
 	}
 
-	void TG_AppLogic::initDemos() {
+	void EditorAppLogic::initDemos() {
 		RenderingContextVulkan& context = GET_RENDERER.getContext();
 
 		initBouncingQuadsDemo();
@@ -756,13 +743,13 @@ namespace TG {
 		context.createPipelineUniformObjects();
 	}
 
-	void TG_AppLogic::populateTestGrid(int width, int height) {
+	void EditorAppLogic::populateTestGrid(int width, int height) {
 		const auto& storage = GET_RENDERER.getContext().getRenderer2d().getStorage();
 		const auto& atlas = storage.getTestTextureAtlas();
 
 		mGridDemo.mTexturedTestGrid.clear();
 		mGridDemo.mTexturedTestGrid.resize(storage.getQuadBatchTextureArray().getTextureSlots().size());
-		const uint32_t textureSlot = storage.getQuadBatchTextureArray().getTextureSlotIndex(storage.getTestTextureAtlas()->getId());
+		const uint32_t textureSlot = storage.getQuadBatchTextureArray().getTextureSlotIndex(atlas->getId());
 
 		uint32_t index = 0;
 		for (float y = 0.0f; y < height; y++) {
@@ -783,11 +770,11 @@ namespace TG {
 		}
 	}
 
-	void TG_AppLogic::initBouncingQuadsDemo() {
-		bouncingQuadsDemoAddRandomQuads(1000);
+	void EditorAppLogic::initBouncingQuadsDemo() {
+		bouncingQuadsDemoAddRandomQuads(5000);
 	}
 
-	void TG_AppLogic::initCustomDemo() {
+	void EditorAppLogic::initCustomDemo() {
 		mCustomDemo.mTestTexture1 = ObjInit::texture(mCustomDemo.testTexturePath);
 		mCustomDemo.mTestTexture2 = ObjInit::texture(mCustomDemo.testTexture2Path);
 
@@ -866,7 +853,7 @@ namespace TG {
 		);
 	}
 
-	void TG_AppLogic::initObjModelsDemo() {
+	void EditorAppLogic::initObjModelsDemo() {
 		for (const auto& filePath : mObjModelsDemo.mObjModelFilePaths) {
 			mObjModelsDemo.mLoadedModels.push_back(ModelVulkan::createModel(filePath));
 		}
@@ -878,14 +865,14 @@ namespace TG {
 				const uint32_t modelIndex = rand() % mObjModelsDemo.mLoadedModels.size();
 				std::shared_ptr<TransformationData> transform = std::make_shared<TransformationData>(
 					glm::vec3(
-						((float) x + padding) * 3.0f,
-						((float) y + padding) * 3.0f,
-						(float) (rand() % 10)
+						(static_cast<float>(x) + padding) * 3.0f,
+						(static_cast<float>(y) + padding) * 3.0f,
+						static_cast<float>(rand() % 10)
 					),
 					glm::vec3(
-						(float) (rand() % 360),
-						(float) (rand() % 360),
-						(float) (rand() % 360)
+						static_cast<float>(rand() % 360),
+						static_cast<float>(rand() % 360),
+						static_cast<float>(rand() % 360)
 					),
 					1.0f
 				);
@@ -931,7 +918,7 @@ namespace TG {
 		mObjModelsDemo.mSceneWireframePipelineInfo->PolygonMode = VK_POLYGON_MODE_LINE;
 	}
 
-	void TG_AppLogic::bouncingQuadsDemoAddRandomQuads(size_t count) {
+	void EditorAppLogic::bouncingQuadsDemoAddRandomQuads(size_t count) {
 		const auto& atlas = GET_RENDERER.getContext().getRenderer2d().getStorage().getTestTextureAtlas();
 
 		//Stop quad count going over MaxCount
@@ -942,7 +929,10 @@ namespace TG {
 		for (int i = 0; i < count; i++) {
 			mBouncingQuadDemo.mBouncingQuads.push_back({
 				//Semi-random values for starting position, velocitiy and assigned texture
-				{((float)(rand() % 5000) / 500.0f) - 1.0f,((float)(rand() % 5000) / 500.0f) - 1.0f, 0.8f},
+				{
+					(static_cast<float>((rand() % 5000)) / 500.0f) - 1.0f,
+					(static_cast<float>((rand() % 5000)) / 500.0f) - 1.0f, 0.8f
+				},
 				{mGridDemo.mTestGridQuadSize[0], mGridDemo.mTestGridQuadSize[1]},
 				{0.0f, 1.0f, 1.0f, 1.0f},
 				0.0f,
@@ -971,11 +961,14 @@ namespace TG {
 				//	atlas->getColCount()
 				//)
 			});
-			mBouncingQuadDemo.mBouncingQuadVelocities.push_back({ (float)(rand() % 800) / 60.0f, (float)(rand() % 800) / 60.0f });
+			mBouncingQuadDemo.mBouncingQuadVelocities.push_back({
+				static_cast<float>((rand() % 800) / 60.0f),
+				static_cast<float>((rand() % 800) / 60.0f)
+			});
 		}
 	}
 
-	void TG_AppLogic::bouncingQaudsDemoPopQuads(size_t count) {
+	void EditorAppLogic::bouncingQaudsDemoPopQuads(size_t count) {
 		const size_t size = mBouncingQuadDemo.mBouncingQuads.size();
 		if (count > size) {
 			count = size;
@@ -987,7 +980,7 @@ namespace TG {
 		}
 	}
 
-	void TG_AppLogic::objModelsDemoAddObject(
+	void EditorAppLogic::objModelsDemoAddObject(
 		const uint32_t modelIndex,
 		const float x,
 		const float y,
@@ -1012,7 +1005,142 @@ namespace TG {
 		));
 	}
 
-	void TG_AppLogic::imGuiDisplayHelpTooltip(const char* message) {
+	void EditorAppLogic::imGuiDrawObjDemoItem(DOH::RenderableModelVulkan& model, const std::string& uniqueImGuiId) {
+		if (ImGui::BeginCombo(("Obj Model" + uniqueImGuiId).c_str(), model.getName().c_str())) {
+			int modelFilePathIndex = -1;
+			
+			for (const auto& filePath : mObjModelsDemo.mObjModelFilePaths) {
+				bool selected = false;
+				modelFilePathIndex++;
+				
+				if (ImGui::Selectable((filePath.c_str() + uniqueImGuiId).c_str(), &selected)) {
+					model.Model = mObjModelsDemo.mLoadedModels[modelFilePathIndex];
+					model.Name = mObjModelsDemo.mObjModelFilePaths[modelFilePathIndex];
+					break;
+				}
+			}
+			
+			ImGui::EndCombo();
+		}
+		
+		ImGui::Checkbox(("Render" + uniqueImGuiId).c_str(), &model.Render);
+		ImGui::SameLine();
+		ImGui::Checkbox(("Wireframe" + uniqueImGuiId).c_str(), &model.RenderWireframe);
+					
+		//Add temp array and set -1 > rotation < 361 to allow for "infinite" drag
+		TransformationData& transformation = *model.Transformation;
+		float tempRotation[3] = {
+			transformation.Rotation[0],
+			transformation.Rotation[1],
+			transformation.Rotation[2]
+		};
+		bool transformed = false;
+		if (ImGui::DragFloat3(
+			("Position" + uniqueImGuiId).c_str(),
+			glm::value_ptr(transformation.Position),
+			0.05f,
+			-10.0f,
+			10.0f
+		)) {
+			transformed = true;
+		}
+		if (ImGui::DragFloat3(("Rotation" + uniqueImGuiId).c_str(), tempRotation, 1.0f, -1.0f, 361.0f)) {
+			if (tempRotation[0] > 360.0f) {
+				tempRotation[0] = 0.0f;
+			} else if (tempRotation[0] < 0.0f) {
+				tempRotation[0] = 360.0f;
+			}
+			if (tempRotation[1] > 360.0f) {
+				tempRotation[1] = 0.0f;
+			} else if (tempRotation[1] < 0.0f) {
+				tempRotation[1] = 360.0f;
+			}
+			if (tempRotation[2] > 360.0f) {
+				tempRotation[2] = 0.0f;
+			} else if (tempRotation[2] < 0.0f) {
+				tempRotation[2] = 360.0f;
+			}
+			
+			transformation.Rotation = { tempRotation[0], tempRotation[1], tempRotation[2] };
+					
+			transformed = true;
+		}
+		if (ImGui::DragFloat(
+			("Uniform Scale" + uniqueImGuiId).c_str(),
+			&transformation.Scale,
+			0.01f,
+			0.1f,
+			5.0f
+		)) {
+			transformed = true;
+		}
+
+		if (ImGui::Button(("Reset Object" + uniqueImGuiId).c_str())) {
+			transformation.Rotation[0] = 0.0f;
+			transformation.Rotation[1] = 0.0f;
+			transformation.Rotation[2] = 0.0f;
+			transformation.Position[0] = 0.0f;
+			transformation.Position[1] = 0.0f;
+			transformation.Position[2] = 0.0f;
+			transformation.Scale = 1.0f;
+		
+			transformed = true;
+		}
+
+		if (transformed && mObjModelsDemo.Update) {
+			transformation.updateTranslationMatrix();
+		}
+	}
+
+	void EditorAppLogic::imGuiDrawTextureViewerWindow(ImGuiTextureViewerWindow& textureViewer) {
+		auto& imGuiWrapper = GET_RENDERER.getContext().getImGuiWrapper();
+
+		const std::string title = "Texture ID: " + std::to_string(textureViewer.Texture.getId());
+		const int paddingWidth = 5;
+		const int paddingHeight = 5;
+
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(paddingWidth, paddingHeight));
+
+		if (ImGui::Begin(
+			title.c_str(),
+			&textureViewer.Display,
+			textureViewer.MatchWindowSize ? ImGuiWindowFlags_None : ImGuiWindowFlags_HorizontalScrollbar
+		)) {
+			ImGui::Text("Size: %i, %i", textureViewer.Texture.getWidth(), textureViewer.Texture.getHeight());
+			ImGui::Checkbox("Match To Window Size", &textureViewer.MatchWindowSize);
+			imGuiDisplayHelpTooltip("Match texture displayed width & height to window. Still affected by scale.");
+			ImGui::DragFloat("Scale", &textureViewer.Scale, 0.005f, 0.01f, 2.0f);
+
+			glm::vec2 displaySize = { 0.0f, 0.0f };
+
+			if (textureViewer.MatchWindowSize) {
+				ImVec2 regionAvail = ImGui::GetContentRegionAvail();
+
+				displaySize.x = regionAvail.x * textureViewer.Scale;
+				displaySize.y = regionAvail.y * textureViewer.Scale;
+			} else {
+				displaySize.x = textureViewer.Texture.getWidth() * textureViewer.Scale;
+				displaySize.y = textureViewer.Texture.getHeight() * textureViewer.Scale;
+			}
+
+			if (displaySize.y > 0.0f) {
+				imGuiWrapper.drawTexture(textureViewer.Texture, displaySize);
+			}
+		}
+
+		ImGui::PopStyleVar(1);
+		ImGui::End();
+	}
+
+	void EditorAppLogic::imGuiRemoveHiddenTextureViewerWindows() {
+		for (auto& textureViewer : mImGuiSettings.TextureViewerWindows) {
+			if (!textureViewer.second.Display) {
+				mImGuiSettings.TextureViewerWindows.erase(textureViewer.first);
+			}
+		}
+	}
+
+	void EditorAppLogic::imGuiDisplayHelpTooltip(const char* message) {
 		ImGui::SameLine();
 		ImGui::Text("(?)");
 		if (ImGui::IsItemHovered()) {
@@ -1024,13 +1152,13 @@ namespace TG {
 		}
 	}
 
-	void TG_AppLogic::imGuiBulletTextWrapped(const char* message) {
+	void EditorAppLogic::imGuiBulletTextWrapped(const char* message) {
 		ImGui::Bullet();
 		ImGui::SameLine();
 		ImGui::TextWrapped(message);
 	}
 
-	void TG_AppLogic::imGuiPrintDrawCallTableColumn(const char* pipelineName, uint32_t drawCount) {
+	void EditorAppLogic::imGuiPrintDrawCallTableColumn(const char* pipelineName, uint32_t drawCount) {
 		//IMPORTANT:: Assumes already inside the Draw Call Count debug info table
 		ImGui::TableNextRow();
 		ImGui::TableNextColumn();
@@ -1039,7 +1167,7 @@ namespace TG {
 		ImGui::Text("%i", drawCount);
 	}
 
-	void TG_AppLogic::imGuiPrintMat4x4(const glm::mat4x4& mat, const char* name) {
+	void EditorAppLogic::imGuiPrintMat4x4(const glm::mat4x4& mat, const char* name) {
 		ImGui::Text(name);
 		ImGui::BeginTable(name, 4);
 		ImGui::TableSetupColumn("0");

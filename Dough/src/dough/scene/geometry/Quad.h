@@ -29,17 +29,21 @@ namespace DOH {
 			std::shared_ptr<TextureVulkan> texture = nullptr,
 			std::array<float, 8> texCoords = { 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f }
 		) : AGeometry(pos, size, rotationRads),
-			Texture(*texture),
+			Texture(std::nullopt),
 			Colour(1.0f, 0.0f, 1.0f, 1.0f),
 			TextureCoords(texCoords)
-		{}
+		{
+			if (texture != nullptr) {
+				Texture.emplace(*texture);
+			}
+		}
 
 		glm::vec4 Colour;
 		std::array<float, 8> TextureCoords; //Interlaced ordering
 
 		inline void setColour(glm::vec4 colour) { Colour = colour; }
-		inline void setColourRGB(float r, float g, float b) { Colour.x = r; Colour.y = g; Colour.z = b; }
-		inline void setColourRGBA(float r, float g, float b, float a) { Colour.x = r; Colour.y = g; Colour.z = b; Colour.w = a; }
+		inline void setColourRGB(float r, float g, float b) { Colour = { r, g, b, Colour.z }; }
+		inline void setColourRGBA(float r, float g, float b, float a) { Colour = { r, g, b, a }; }
 		inline bool hasTexture() const { return Texture.has_value(); }
 		inline TextureVulkan& getTexture() const { return Texture.value(); }
 		inline void setTexture(std::reference_wrapper<TextureVulkan> texture) { Texture.emplace(texture); }

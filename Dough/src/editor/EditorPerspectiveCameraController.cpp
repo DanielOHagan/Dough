@@ -1,13 +1,13 @@
-#include "testGame/TG_PerspectiveCameraController.h"
+#include "editor/EditorPerspectiveCameraController.h"
 
 #include "dough/input/Input.h"
 #include "dough/input/InputCodes.h"
 
 using namespace DOH;
 
-namespace TG {
+namespace DOH::EDITOR {
 
-	TG_PerspectiveCameraController::TG_PerspectiveCameraController(float aspectRatio, float fov)
+	EditorPerspectiveCameraController::EditorPerspectiveCameraController(float aspectRatio, float fov)
 	:	mCamera(std::make_unique<PerspectiveCamera>(aspectRatio, fov)),
 		mPosition(0.0f, 0.0f, 0.0f),
 		mDirectionFacing(0.0f, 0.0f, 0.0f),
@@ -18,18 +18,18 @@ namespace TG {
 		mTranslationSpeed(0.3f)
 	{}
 
-	void TG_PerspectiveCameraController::onUpdate(float delta) {
+	void EditorPerspectiveCameraController::onUpdate(float delta) {
 		handleInput(delta);
 		updateViewMatrices();
 	}
 
-	void TG_PerspectiveCameraController::onViewportResize(float aspectRatio) {
+	void EditorPerspectiveCameraController::onViewportResize(float aspectRatio) {
 		mAspectRatio = aspectRatio;
 		mCamera->setProjection(mFov, mAspectRatio);
 		updateViewMatrices();
 	}
 
-	void TG_PerspectiveCameraController::handleInput(float delta) {
+	void EditorPerspectiveCameraController::handleInput(float delta) {
 		const float translationDelta = Input::isKeyPressed(DOH_KEY_LEFT_SHIFT) ?
 			mTranslationSpeed * 6.0f * delta : mTranslationSpeed * delta;
 
@@ -88,7 +88,7 @@ namespace TG {
 		mCursorLastPosUpdate = Input::getCursorPos();
 	}
 
-	void TG_PerspectiveCameraController::updateViewMatrices() {
+	void EditorPerspectiveCameraController::updateViewMatrices() {
 		mCamera->setView(mPosition, mDirectionFacing, { 0.0f, 1.0f, 0.0f });
 		mCamera->updateProjectionViewMatrix();
 	}

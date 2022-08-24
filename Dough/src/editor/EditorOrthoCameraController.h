@@ -6,9 +6,9 @@
 
 using namespace DOH;
 
-namespace TG {
+namespace DOH::EDITOR {
 
-	class TG_OrthoCameraController : public ICameraController {
+	class EditorOrthoCameraController : public ICameraController {
 
 		//TODO:: mMaxTranslation and/or mMaxPosition ?
 
@@ -26,9 +26,9 @@ namespace TG {
 		float mTranslationSpeed;
 
 	public:
-		TG_OrthoCameraController(float aspectRatio);
-		TG_OrthoCameraController(const TG_OrthoCameraController& copy) = delete;
-		TG_OrthoCameraController operator=(const TG_OrthoCameraController& assignment) = delete;
+		EditorOrthoCameraController(float aspectRatio);
+		EditorOrthoCameraController(const EditorOrthoCameraController& copy) = delete;
+		EditorOrthoCameraController operator=(const EditorOrthoCameraController& assignment) = delete;
 
 		virtual void onUpdate(float delta) override;
 		virtual void onViewportResize(float aspectRatio) override;

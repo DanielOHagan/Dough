@@ -163,9 +163,9 @@ namespace DOH {
 			const GLFWvidmode* vidMode = glfwGetVideoMode(mSelectedMonitor);
 			WindowMonitorChangeEvent monitorChange{
 				*reinterpret_cast<Window*>(glfwGetWindowUserPointer(mWindowPtr)),
-				(uint32_t) vidMode->width,
-				(uint32_t) vidMode->height,
-				(uint32_t) vidMode->refreshRate,
+				static_cast<uint32_t>(vidMode->width),
+				static_cast<uint32_t>(vidMode->height),
+				static_cast<uint32_t>(vidMode->refreshRate),
 				mCurrentDisplayMode
 			};
 			Application::get().onWindowEvent(monitorChange);
@@ -296,7 +296,10 @@ namespace DOH {
 		});
 
 		glfwSetCursorPosCallback(mWindowPtr, [](GLFWwindow* windowPtr, double posX, double posY) {
-			MouseMoveEvent move((float)posX, (float)posY);
+			MouseMoveEvent move(
+				static_cast<float>(posX),
+				static_cast<float>(posY)
+			);
 			Application::get().onMouseEvent(move);
 		});
 
@@ -321,7 +324,10 @@ namespace DOH {
 		});
 
 		glfwSetScrollCallback(mWindowPtr, [](GLFWwindow* windowPtr, double offsetX, double offsetY) {
-			MouseScrollEvent scroll((float)offsetX, (float)offsetY);
+			MouseScrollEvent scroll(
+				static_cast<float>(offsetX),
+				static_cast<float>(offsetY)
+			);
 			Application::get().onMouseEvent(scroll);
 		});
 

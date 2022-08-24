@@ -4,6 +4,7 @@
 #include "dough/Core.h"
 #include "dough/Window.h"
 #include "dough/rendering/IGPUResourceVulkan.h"
+#include "dough/rendering/textures/TextureVulkan.h"
 
 namespace DOH {
 
@@ -27,9 +28,16 @@ namespace DOH {
 		//
 		// Handle events that happen when ImGui is focused (sometimes it might be preferable
 		//	that imgui is focused and allow for certain functions in app e.g. camera movement)
-	
+
 	private:
 		VkDescriptorPool mDescriptorPool = VK_NULL_HANDLE;
+		std::unordered_map<uint32_t, VkDescriptorSet> mLoadedTextures;
+
+		//IMPORTANT:: ImGui has not confirmed exactly how this works in vulkan, currently images are drawn from
+		// a descriptor set created by ImGui
+		//TODO:: using the descriptor sets created by the DOH renderer would require a massive overhaul of the
+		// descriptor, uniform and VAO layout systems
+		VkDescriptorSet addTextureVulkan(VkSampler sampler, VkImageView imageView, VkImageLayout imageLayout);
 
 	public:
 
@@ -46,5 +54,7 @@ namespace DOH {
 		void endFrame();
 		void render(VkCommandBuffer cmd);
 		void onWindowResize(int width, int height) const;
+
+		void drawTexture(const TextureVulkan& texture, glm::vec2 size, glm::vec2 uv0 = { 0.0f, 0.0f }, glm::vec2 uv1 = { 1.0f, 1.0f });
 	};
 }

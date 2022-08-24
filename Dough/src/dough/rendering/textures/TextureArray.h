@@ -54,6 +54,6 @@ namespace DOH {
 	private:
 		//Internal function to find whether a texture is in use
 		// returns texture slot index as int, or -1 if not found
-		const int isTextureInUse(uint32_t textureId) const;
+		const int isTextureInUse(const uint32_t textureId) const;
 	};
 }
