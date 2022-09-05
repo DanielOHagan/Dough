@@ -5,11 +5,6 @@
 
 namespace DOH {
 
-	const float ApplicationLoop::MAX_TARGET_FPS = 360.0f;
-	const float ApplicationLoop::MIN_TARGET_FPS = 15.0f;
-	const float ApplicationLoop::MAX_TARGET_UPS = 1000.0f;
-	const float ApplicationLoop::MIN_TARGET_UPS = 15.0f;
-
 	ApplicationLoop::ApplicationLoop(
 		Application& app,
 		float targetFps,

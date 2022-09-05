@@ -14,9 +14,9 @@ namespace DOH {
 		EWindowDisplayMode WindowDisplayMode = EWindowDisplayMode::WINDOWED;
 
 		//Application Loop
-		float TargetForgroundFps = 144.0f;
-		float TargetForgroundUps = 144.0f;
-		bool RunInBackground = false;
+		float TargetForgroundFps = 60.0f;
+		float TargetForgroundUps = 60.0f;
+		bool RunInBackground = true;
 		float TargetBackgroundFps = 15.0f;
 		float TargetBackgroundUps = 15.0f;
 

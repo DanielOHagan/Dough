@@ -50,6 +50,11 @@ namespace DOH {
 		bool added = false;
 		TextureArray& texArr = mStorage->getQuadBatchTextureArray();
 
+		if (!quad.hasTexture()) {
+			LOG_ERR("Quad does not have texture");
+			return;
+		}
+
 		for (RenderBatchQuad& batch : mStorage->getQuadRenderBatches()) {
 			if (batch.hasSpace(1)) {
 				if (texArr.hasTextureId(quad.getTexture().getId())) {
@@ -159,7 +164,11 @@ namespace DOH {
 	void Renderer2dVulkan::drawQuadArraySameTextureScene(std::vector<Quad>& quadArr) {
 		size_t addedCount = 0;
 		const size_t arrSize = quadArr.size();
-		if (!quadArr[0].hasTexture()) {
+		if (arrSize == 0) {
+			//TODO:: Is this worth a warning?
+			//LOG_WARN("drawQuadArraySameTextureScene() quadArr size = 0");
+			return;
+		} else if (!quadArr[0].hasTexture()) {
 			LOG_ERR("Quad array does not have texture");
 			return;
 		}

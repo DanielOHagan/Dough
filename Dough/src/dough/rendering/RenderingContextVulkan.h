@@ -8,29 +8,6 @@
 
 namespace DOH {
 
-	//struct RenderingDebugInfo {
-	//	long LastDrawTime;
-	//	long LastFrameTime;
-	//
-	//	uint32_t SceneDrawCalls;
-	//	uint32_t UiDrawCalls;
-	//	uint32_t BatchRendererDrawCalls;
-	//
-	//	uint32_t TotalDrawCalls;
-	//
-	//	inline void updateTotalDrawCallCount() {
-	//		TotalDrawCalls = SceneDrawCalls + UiDrawCalls + BatchRendererDrawCalls;
-	//	}
-	//
-	//	inline void reset() {
-	//		LastDrawTime = 0l;
-	//		LastFrameTime = 0l;
-	//		SceneDrawCalls = 0;
-	//		UiDrawCalls = 0;
-	//		BatchRendererDrawCalls = 0;
-	//	}
-	//};
-
 	class RenderingContextVulkan {
 
 	private:
@@ -296,7 +273,7 @@ namespace DOH {
 
 		//-----Texture-----
 		std::shared_ptr<TextureVulkan> createTexture(const std::string& filePath);
-		std::shared_ptr<TextureVulkan> createTexture(float r, float g, float b, float a, bool colourRgbaNormalised);
+		std::shared_ptr<TextureVulkan> createTexture(float r, float g, float b, float a, bool colourRgbaNormalised = false);
 		std::shared_ptr<MonoSpaceTextureAtlasVulkan> createMonoSpaceTextureAtlas(
 			const std::string& filePath,
 			const uint32_t rowCount,

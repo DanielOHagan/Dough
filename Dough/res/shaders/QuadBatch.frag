@@ -10,5 +10,9 @@ layout (location = 2) in float vTexIndex;
 layout (location = 0) out vec4 outColour;
 
 void main() {
-	outColour = texture(samplers[int(vTexIndex)], vTexCoord);
+	if (vTexIndex > 0) {
+		outColour = texture(samplers[int(vTexIndex)], vTexCoord);
+	} else {
+		outColour = vFragColour;
+	}
 }

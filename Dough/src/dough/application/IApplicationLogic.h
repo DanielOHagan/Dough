@@ -19,5 +19,4 @@ namespace DOH {
 
 		virtual void onResize(float aspectRatio) = 0;
 	};
-
 }

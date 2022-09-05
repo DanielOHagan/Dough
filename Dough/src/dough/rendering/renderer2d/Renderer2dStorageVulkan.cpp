@@ -16,7 +16,6 @@ namespace DOH {
 
 	void Renderer2dStorageVulkan::init(VkDevice logicDevice) {
 
-		//TODO:: fix this
 		mWhiteTexture = ObjInit::texture(255.0f, 255.0f, 255.0f, 255.0f, false);
 
 		initForQuads(logicDevice);
@@ -99,6 +98,8 @@ namespace DOH {
 			*mWhiteTexture
 		);
 
+		mQuadBatchTextureArray->addNewTexture(*mWhiteTexture);
+
 		//Commented out after implementation of Texture Atlas,
 		// left as comment to show how to use individual textures
 		//for (int i = 0; i < 8; i++) {
@@ -109,7 +110,7 @@ namespace DOH {
 		//	//TODO:: dynamic texture arrays, instead of assigning at initialisation
 		//	mQuadBatchTextureArray->addNewTexture(*testTexture);
 		//}
-
+		
 		mTestTexturesAtlas = ObjInit::monoSpaceTextureAtlas(
 			"res/images/test textures/texturesAtlas.png",
 			5,

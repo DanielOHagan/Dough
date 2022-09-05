@@ -16,6 +16,7 @@ namespace DOH {
 		mHeight = textureData.Height;
 		mChannels = textureData.Channels;
 
+		//IMPORTANT:: Textures used in the engine are assumed to have 4 channels when used.
 		VkDeviceSize imageSize = textureData.Width * textureData.Height * 4;
 
 		std::shared_ptr<BufferVulkan> imageStagingBuffer = ObjInit::stagedBuffer(
@@ -75,22 +76,44 @@ namespace DOH {
 		float g,
 		float b,
 		float a,
-		bool colourRgbaNormalised
+		bool rgbaNormalised
 	) : mWidth(1),
 		mHeight(1),
 		mChannels(4)
 	{
-		if (colourRgbaNormalised) {
-			r *= 255;
-			g *= 255;
-			b *= 255;
-			a *= 255;
+		if (!rgbaNormalised) {
+			r = 1.0f / TextureVulkan::COLOUR_MAX_VALUE;
+			g = 1.0f / TextureVulkan::COLOUR_MAX_VALUE;
+			b = 1.0f / TextureVulkan::COLOUR_MAX_VALUE;
+			a = 1.0f / TextureVulkan::COLOUR_MAX_VALUE;
 		}
 
-		std::array<float, 4> colourData = { a, r, g, b };
+		r = std::min(r, 1.0f);
+		r = std::min(g, 1.0f);
+		r = std::min(b, 1.0f);
+		r = std::min(a, 1.0f);
+
+		const size_t textureSize = mWidth * mHeight * mChannels;
+		const size_t length = mWidth * mHeight;
+
+		//TODO::
+		// Some kind of conversion system for other Vulkan formats?
+
+		//Lossy compress 4 uint32_t to VK_FORMAT_R8G8B8A8_SRGB and create array to represent texture
+		uint32_t colour = 
+			(static_cast<uint32_t>(r) << 24) |
+			(static_cast<uint32_t>(g) << 16) |
+			(static_cast<uint32_t>(b) << 8) |
+			static_cast<uint32_t>(r);
+		std::vector<uint32_t> colourData = {};
+		colourData.resize(length);
+		for (size_t i = 0; i < length; i++) {
+			colourData[i] = colour;
+		}
+
 		std::shared_ptr<BufferVulkan> imageStagingBuffer = ObjInit::stagedBuffer(
 			colourData.data(),
-			sizeof(colourData),
+			static_cast<VkDeviceSize>(textureSize),
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 		);

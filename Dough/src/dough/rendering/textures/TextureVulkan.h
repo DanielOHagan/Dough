@@ -18,6 +18,9 @@ namespace DOH {
 		VkSampler mSampler;
 
 	public:
+		//TODO:: Keep this here or place somewhere else in another class?
+		static constexpr float COLOUR_MAX_VALUE = 255.0f;
+
 		TextureVulkan() = delete;
 		TextureVulkan(const TextureVulkan& copy) = delete;
 		TextureVulkan operator=(const TextureVulkan& assignment) = delete;
@@ -28,7 +31,8 @@ namespace DOH {
 			const std::string& filePath
 		);
 
-		//TODO:: fix this
+		//TODO:: Custom width & height with limits.
+		//	bool for use of a staging buffer?
 		TextureVulkan(
 			VkDevice logicDevice,
 			VkPhysicalDevice physicalDevice,
@@ -36,8 +40,18 @@ namespace DOH {
 			float g,
 			float b,
 			float a,
-			bool colourRgbaNormalised = false
+			bool rgbaNormalised
 		);
+
+		//TODO:: 
+		//TextureVulkan(
+		//	VkDevice logicDevice,
+		//	VkPhysicalDevice physicalDevice,
+		//	uint32_t width,
+		//	uint32_t height,
+		//	const void* data,
+		//	size_t size
+		//);
 
 		virtual void close(VkDevice logicDevice) override;
 

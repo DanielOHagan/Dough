@@ -15,7 +15,18 @@ int main() {
 
 	std::shared_ptr<DOH::IApplicationLogic> appLogic = std::make_shared<DOH::EDITOR::EditorAppLogic>();
 
-	int code = DOH::Application::start(appLogic, {"Dough Editor", 1920, 1080});
+	int code = DOH::Application::start(appLogic, {
+		//Title
+		"Dough Editor",
+		//Resolution
+		1920, 1080,
+		//Window display mode
+		DOH::EWindowDisplayMode::WINDOWED,
+		//Target forground FPS
+		144.0f,
+		//Target foground UPS
+		144.0f
+	});
 
 	DEBUG_MEM_DUMP;
 

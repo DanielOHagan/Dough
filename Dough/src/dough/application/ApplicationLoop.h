@@ -9,10 +9,10 @@ namespace DOH {
 
 	public:
 		
-		static const float MAX_TARGET_FPS;
-		static const float MIN_TARGET_FPS;
-		static const float MAX_TARGET_UPS;
-		static const float MIN_TARGET_UPS;
+		static constexpr float MAX_TARGET_FPS = 360.0f;
+		static constexpr float MIN_TARGET_FPS = 15.0f;
+		static constexpr float MAX_TARGET_UPS = 1000.0f;
+		static constexpr float MIN_TARGET_UPS = 15.0f;
 
 	private:
 		Application& mApplication;

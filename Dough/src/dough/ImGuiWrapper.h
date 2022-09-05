@@ -35,8 +35,7 @@ namespace DOH {
 
 		//IMPORTANT:: ImGui has not confirmed exactly how this works in vulkan, currently images are drawn from
 		// a descriptor set created by ImGui
-		//TODO:: using the descriptor sets created by the DOH renderer would require a massive overhaul of the
-		// descriptor, uniform and VAO layout systems
+		// Nor is it obvious how it handles removing of said textures as there is no ...removeTexture() or ...destroyDescPool
 		VkDescriptorSet addTextureVulkan(VkSampler sampler, VkImageView imageView, VkImageLayout imageLayout);
 
 	public:

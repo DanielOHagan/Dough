@@ -12,6 +12,8 @@ namespace DOH {
 
 	private:
 		//TODO:: Material member to handle texture or solid/pattern/gradient/vertex colour
+		//	I think it best if the end result is a "GameObject" class which contains Quad for purely spacial properties
+		//	& a material class for Colour, Texture, etc...
 		std::optional<std::reference_wrapper<TextureVulkan>> Texture;
 
 	public:
@@ -30,7 +32,7 @@ namespace DOH {
 			std::array<float, 8> texCoords = { 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f }
 		) : AGeometry(pos, size, rotationRads),
 			Texture(std::nullopt),
-			Colour(1.0f, 0.0f, 1.0f, 1.0f),
+			Colour(colour),
 			TextureCoords(texCoords)
 		{
 			if (texture != nullptr) {

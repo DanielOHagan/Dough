@@ -37,29 +37,29 @@ namespace DOH::EDITOR {
 
 		struct ObjModelsDemo {
 			struct UniformBufferObject {
-				glm::mat4x4 projView;
+				glm::mat4x4 ProjView;
 			};
 
-			const std::array<std::string, 4> mObjModelFilePaths = {
+			const std::array<std::string, 4> ObjModelFilePaths = {
 				"res/models/testCube.obj",
 				"res/models/spoon.obj",
 				"res/models/teacup.obj",
 				"res/models/teapot.obj"
 			};
-			const uint32_t mDefaultObjFilePathIndex = 0;
+			const uint32_t DefaultObjFilePathIndex = 0;
 
-			const std::string flatColourShaderVertPath = "res/shaders/spv/FlatColour.vert.spv";
-			const std::string flatColourShaderFragPath = "res/shaders/spv/FlatColour.frag.spv";
-			const std::string mScenePipelineName = "ObjScene";
-			const std::string mSceneWireframePipelineName = "ObjWireframe";
-			const EVertexType mSceneVertexType = EVertexType::VERTEX_3D;
-			std::shared_ptr<ShaderProgramVulkan> mSceneShaderProgram;
+			const std::string FlatColourShaderVertPath = "res/shaders/spv/FlatColour.vert.spv";
+			const std::string FlatColourShaderFragPath = "res/shaders/spv/FlatColour.frag.spv";
+			const std::string ScenePipelineName = "ObjScene";
+			const std::string SceneWireframePipelineName = "ObjWireframe";
+			const EVertexType SceneVertexType = EVertexType::VERTEX_3D;
+			std::shared_ptr<ShaderProgramVulkan> SceneShaderProgram;
 
-			std::unique_ptr<GraphicsPipelineInstanceInfo> mScenePipelineInfo;
-			std::unique_ptr<GraphicsPipelineInstanceInfo> mSceneWireframePipelineInfo;
+			std::unique_ptr<GraphicsPipelineInstanceInfo> ScenePipelineInfo;
+			std::unique_ptr<GraphicsPipelineInstanceInfo> SceneWireframePipelineInfo;
 
-			std::vector<std::shared_ptr<ModelVulkan>> mLoadedModels;
-			std::vector<std::shared_ptr<RenderableModelVulkan>> mRenderableObjects;
+			std::vector<std::shared_ptr<ModelVulkan>> LoadedModels;
+			std::vector<std::shared_ptr<RenderableModelVulkan>> RenderableObjects;
 
 			int AddNewObjectsCount = 0;
 			int PopObjectsCount = 0;
@@ -73,14 +73,14 @@ namespace DOH::EDITOR {
 		struct CustomDemo {
 
 			struct UniformBufferObject {
-				glm::mat4 projView;
+				glm::mat4 ProjView;
 			};
 
-			const std::string texturedShaderVertPath = "res/shaders/spv/Textured.vert.spv";
-			const std::string texturedShaderFragPath = "res/shaders/spv/Textured.frag.spv";
-			const std::string testTexturePath = "res/images/testTexture.jpg";
-			const std::string testTexture2Path = "res/images/testTexture2.jpg";
-			const std::vector<Vertex3dTextured> mSceneVertices = {
+			const std::string TexturedShaderVertPath = "res/shaders/spv/Textured.vert.spv";
+			const std::string TexturedShaderFragPath = "res/shaders/spv/Textured.frag.spv";
+			const std::string TestTexturePath = "res/images/testTexture.jpg";
+			const std::string TestTexture2Path = "res/images/testTexture2.jpg";
+			const std::vector<Vertex3dTextured> SceneVertices = {
 				//	x		y		z		r		g		b		a		u		v		texIndex
 				{{	-0.5f,	-0.5f,	0.0f},	{1.0f,	0.0f,	0.0f,	1.0f},	{0.0f,	1.0f},	{0.0f}},
 				{{	 0.5f,	-0.5f,	0.0f},	{0.0f,	0.0f,	0.0f,	1.0f},	{1.0f,	1.0f},	{0.0f}},
@@ -92,45 +92,45 @@ namespace DOH::EDITOR {
 				{{1.00f,	1.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{1.0f,	0.0f},	{1.0f}},
 				{{0.00f,	1.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{0.0f,	0.0f},	{1.0f}}
 			};
-			const std::vector<uint32_t> indices{
+			const std::vector<uint32_t> Indices{
 				0, 1, 2, 2, 3, 0,
 				4, 5, 6, 6, 7, 4
 			};
 
-			const std::string mUiShaderVertPath = "res/shaders/spv/SimpleUi.vert.spv";
-			const std::string mUiShaderFragPath = "res/shaders/spv/SimpleUi.frag.spv";
-			const std::vector<Vertex2d> mUiVertices = {
+			const std::string UiShaderVertPath = "res/shaders/spv/SimpleUi.vert.spv";
+			const std::string UiShaderFragPath = "res/shaders/spv/SimpleUi.frag.spv";
+			const std::vector<Vertex2d> UiVertices = {
 				//	x		y			r		g		b		a
 				{{	-1.0f,	-0.90f},	{0.0f,	1.0f,	0.0f,	1.0f}}, //bot-left
 				{{	-0.75f,	-0.90f},	{0.0f,	0.5f,	0.5f,	1.0f}}, //bot-right
 				{{	-0.75f,	-0.65f},	{0.0f,	0.0f,	1.0f,	1.0f}}, //top-right
 				{{	-1.0f,	-0.65f},	{0.0f,	0.5f,	0.5f,	1.0f}}  //top-left
 			};
-			const std::vector<uint32_t> mUiIndices{
+			const std::vector<uint32_t> UiIndices{
 				0, 1, 2, 2, 3, 0
 			};
 
-			const EVertexType mSceneVertexType = EVertexType::VERTEX_3D_TEXTURED;
-			const EVertexType mUiVertexType = EVertexType::VERTEX_2D;
+			const EVertexType SceneVertexType = EVertexType::VERTEX_3D_TEXTURED;
+			const EVertexType UiVertexType = EVertexType::VERTEX_2D;
 
-			glm::mat4x4 mUiProjMat = glm::mat4x4(1.0f);
-			std::unique_ptr<GraphicsPipelineInstanceInfo> mScenePipelineInfo;
-			std::shared_ptr<ShaderProgramVulkan> mSceneShaderProgram;
-			std::unique_ptr<GraphicsPipelineInstanceInfo> mUiPipelineInfo;
-			std::shared_ptr<ShaderProgramVulkan> mUiShaderProgram;
+			glm::mat4x4 UiProjMat = glm::mat4x4(1.0f);
+			std::unique_ptr<GraphicsPipelineInstanceInfo> ScenePipelineInfo;
+			std::shared_ptr<ShaderProgramVulkan> SceneShaderProgram;
+			std::unique_ptr<GraphicsPipelineInstanceInfo> UiPipelineInfo;
+			std::shared_ptr<ShaderProgramVulkan> UiShaderProgram;
 			
-			std::shared_ptr<TextureVulkan> mTestTexture1;
-			std::shared_ptr<TextureVulkan> mTestTexture2;
+			std::shared_ptr<TextureVulkan> TestTexture1;
+			std::shared_ptr<TextureVulkan> TestTexture2;
 
 			//Renderables are for an easier API overall, they do not fully "own" an object,
 			// therefore, they are not responsible for clearing up resources
-			std::shared_ptr<SimpleRenderable> mSceneRenderable;
-			std::shared_ptr<VertexArrayVulkan> mSceneVao;
-			std::shared_ptr<SimpleRenderable> mUiRenderable;
-			std::shared_ptr<VertexArrayVulkan> mUiVao;
+			std::shared_ptr<SimpleRenderable> SceneRenderable;
+			std::shared_ptr<VertexArrayVulkan> SceneVao;
+			std::shared_ptr<SimpleRenderable> UiRenderable;
+			std::shared_ptr<VertexArrayVulkan> UiVao;
 
-			const std::string mScenePipelineName = "Custom";
-			const std::string mUiPipelineName = "CustomUi";
+			const std::string ScenePipelineName = "Custom";
+			const std::string UiPipelineName = "CustomUi";
 
 			bool Update = false;
 			bool RenderScene = false;
@@ -140,22 +140,25 @@ namespace DOH::EDITOR {
 		//std::vector<std::shared_ptr<TextureVulkan>> mTestTextures;
 
 		struct GridDemo {
-			std::vector<std::vector<Quad>> mTexturedTestGrid;
-			uint32_t mTestTexturesRowOffset = 0;
-			uint32_t mTestTexturesColumnOffset = 0;
-			int mTestGridMaxQuadCount = 0;
-			int mTestGridSize[2] = { 10, 10 };
-			float mTestGridQuadSize[2] = { 0.1f, 0.1f };
-			float mTestGridQuadGapSize[2] = { mTestGridQuadSize[0] * 1.5f, mTestGridQuadSize[1] * 1.5f };
+			std::vector<std::vector<Quad>> TexturedTestGrid;
+			glm::vec4 QuadColour = { 1.0f, 1.0f, 1.0f, 1.0f };
+			bool QuadDrawColour = false;
+			uint32_t TestTexturesRowOffset = 0;
+			uint32_t TestTexturesColumnOffset = 0;
+			int TestGridMaxQuadCount = 0;
+			int TestGridSize[2] = { 10, 10 };
+			float TestGridQuadSize[2] = { 0.1f, 0.1f };
+			float TestGridQuadGapSize[2] = { TestGridQuadSize[0] * 1.5f, TestGridQuadSize[1] * 1.5f };
 
 			bool Update = false;
 			bool Render = false;
 		} mGridDemo;
 
 		struct BouncingQuadDemo {
-			std::vector<Quad> mBouncingQuads;
-			std::vector<glm::vec2> mBouncingQuadVelocities;
+			std::vector<Quad> BouncingQuads;
+			std::vector<glm::vec2> BouncingQuadVelocities;
 			size_t MaxBouncingQuadCount = BOUNCING_QUAD_COUNT;
+			bool QuadDrawColour = false;
 
 			int AddNewQuadCount = 0;
 			int PopQuadCount = 0;
@@ -183,6 +186,7 @@ namespace DOH::EDITOR {
 		};
 
 		struct ImGuiSettings {
+			//Map for texture windows, using the texture's ID as the key
 			std::unordered_map<uint32_t, ImGuiTextureViewerWindow> TextureViewerWindows;
 			
 			//ImGui window rendering controls
@@ -198,6 +202,10 @@ namespace DOH::EDITOR {
 			bool UseOrthographicCamera = true;
 
 			bool RenderObjModelsList = false;
+
+			//Close App
+			const float QuitHoldTimeRequired = 1.5f;
+			float QuitButtonHoldTime = 0.0f;
 		} mImGuiSettings;
 	public:
 		EditorAppLogic();
@@ -214,11 +222,11 @@ namespace DOH::EDITOR {
 
 	private:
 		inline void setUiProjection(float aspectRatio) {
-			mCustomDemo.mUiProjMat = glm::ortho(-aspectRatio, aspectRatio, -1.0f, 1.0f, -1.0f, 1.0f);
-			mCustomDemo.mUiProjMat[1][1] *= -1;
+			mCustomDemo.UiProjMat = glm::ortho(-aspectRatio, aspectRatio, -1.0f, 1.0f, -1.0f, 1.0f);
+			mCustomDemo.UiProjMat[1][1] *= -1;
 		}
 
-		void populateTestGrid(int width, int height);
+		void populateTestGrid(uint32_t width, uint32_t height);
 
 		void initDemos();
 		//void initGridDemo();
@@ -240,7 +248,7 @@ namespace DOH::EDITOR {
 		);
 		inline void objModelsDemoAddRandomisedObject() {
 			objModelsDemoAddObject(
-				rand() % mObjModelsDemo.mLoadedModels.size(),
+				rand() % mObjModelsDemo.LoadedModels.size(),
 				static_cast<float>(rand() % 25),
 				static_cast<float>(rand() % 25),
 				static_cast<float>(rand() % 15) * (rand() % 2 > 0 ? 1.0f : -1.0f),
