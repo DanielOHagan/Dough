@@ -3,14 +3,14 @@
 
 namespace DOH {
 
-	IntervalTimer::IntervalTimer(const std::string& name, bool start)
-	:	Timer(name, start),
+	IntervalTimer::IntervalTimer(bool start)
+	:	Timer(start),
 		mRecordedIntervalsMillis({})
 	{}
 
 	void IntervalTimer::recordInterval(const std::string& label) {
 		if (mTicking) {
-			mRecordedIntervalsMillis.emplace(getCurrentTickingTimeMillis(), label);
+			mRecordedIntervalsMillis.emplace_back(getCurrentTickingTimeMillis(), label);
 		} else {
 			LOGLN("Can't record interval when timer isn't ticking.");
 		}
@@ -23,9 +23,9 @@ namespace DOH {
 		mRecordedIntervalsMillis.clear();
 	}
 
-	void IntervalTimer::dump() {
+	void IntervalTimer::dump(const std::string& label) {
 		LOGLN_UNDERLINED(
-			"IntervalTimer dump: \"" << mName << "\" Total ticking time: " 
+			"\"" << label << "\" Interval Timer dump: Total ticking time: "
 			<< Time::convertMillisToSeconds(getTotalTickingTimeMillis()) << "s"
 		);
 		if (hasIntervalsRecorded()) {

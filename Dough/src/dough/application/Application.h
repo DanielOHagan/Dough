@@ -15,16 +15,15 @@
 namespace DOH {
 
 	struct AppDebugInfo {
-		const static int FrameTimesCount = 1000;
+		static constexpr int FrameTimesCount = 1000;
 
 		float FrameTimesMillis[FrameTimesCount] = {};
-		
-		double LastFrameTimeMillis = 0.0;
+
 		double LastUpdateTimeMillis = 0.0;
 		double LastRenderTimeMillis = 0.0;
 
 		int FrameTimeIndex = 0;
-		bool FrameTimesFullArray = false;
+		bool FrameTimesArrayIsFull = false;
 
 		uint32_t SceneDrawCalls = 0;
 		uint32_t UiDrawCalls = 0;
@@ -36,7 +35,7 @@ namespace DOH {
 			TotalDrawCalls = SceneDrawCalls + UiDrawCalls + BatchRendererDrawCalls;
 		}
 
-		inline void resetDrawCalls() {
+		inline void resetDrawCallsCount() {
 			SceneDrawCalls = 0;
 			UiDrawCalls = 0;
 			BatchRendererDrawCalls = 0;

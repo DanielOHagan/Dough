@@ -8,7 +8,9 @@ namespace DOH {
 
 	Renderer2dVulkan::Renderer2dVulkan(RenderingContextVulkan& context)
 	:	mContext(context),
-		mDebugInfoDrawCount(0)
+		mDebugInfoDrawCount(0),
+		mDrawnQuadCount(0),
+		mTruncatedQuadCount(0)
 	{}
 
 	void Renderer2dVulkan::init(VkDevice logicDevice) {
@@ -30,6 +32,7 @@ namespace DOH {
 			if (batch.hasSpace(1)) {
 				batch.add(quad, 0);
 				added = true;
+				mDrawnQuadCount++;
 				break;
 			}
 		}
@@ -38,11 +41,15 @@ namespace DOH {
 			const size_t batchIndex = mStorage->createNewBatchQuad();
 			if (batchIndex == -1) {
 				LOG_ERR("Failed to add new Quad Batch");
+				mTruncatedQuadCount++;
 				return;
 			} else {
 				RenderBatchQuad& batch = mStorage->getQuadRenderBatches()[batchIndex];
 				batch.add(quad, 0);
+				mDrawnQuadCount++;
 			}
+		} else {
+			mTruncatedQuadCount++;
 		}
 	}
 
@@ -60,11 +67,13 @@ namespace DOH {
 				if (texArr.hasTextureId(quad.getTexture().getId())) {
 					batch.add(quad, texArr.getTextureSlotIndex(quad.getTexture().getId()));
 					added = true;
+					mDrawnQuadCount++;
 					break;
 				} else if (texArr.hasTextureSlotAvailable()) {
 					const uint32_t textureSlot = texArr.addNewTexture(quad.getTexture());
 					batch.add(quad, textureSlot);
 					added = true;
+					mDrawnQuadCount++;
 					break;
 				}
 			}
@@ -82,7 +91,9 @@ namespace DOH {
 				}
 				batch.add(quad, textureSlot);
 				added = true;
+				mDrawnQuadCount++;
 			} else {
+				mTruncatedQuadCount++;
 				return;
 			}
 		}
@@ -103,6 +114,7 @@ namespace DOH {
 				if (batch.hasSpace(1)) {
 					batch.add(quad, 0);
 					added = true;
+					mDrawnQuadCount += static_cast<uint32_t>(addedCount);
 					break;
 				} else {
 					quadBatchStartIndex++;
@@ -113,8 +125,10 @@ namespace DOH {
 				const size_t batchIndex = mStorage->createNewBatchQuad();
 				if (batchIndex != -1) {
 					mStorage->getQuadRenderBatches()[batchIndex].add(quad, 0);
+					mDrawnQuadCount += static_cast<uint32_t>(addedCount);
 				} else {
-					LOG_WARN(arrSize - addedCount << " Quads unable to be drawn");
+					//LOG_WARN(arrSize - addedCount << " Quads unable to be drawn");
+					mTruncatedQuadCount += static_cast<uint32_t>(arrSize - addedCount);
 					break;
 				}
 			}
@@ -143,6 +157,7 @@ namespace DOH {
 				if (batch.hasSpace(1)) {
 					batch.add(quad, textureSlotIndex);
 					added = true;
+					mDrawnQuadCount += static_cast<uint32_t>(addedCount);
 					break;
 				} else {
 					quadBatchStartIndex++;
@@ -153,8 +168,10 @@ namespace DOH {
 				const size_t batchIndex = mStorage->createNewBatchQuad();
 				if (batchIndex != -1) {
 					mStorage->getQuadRenderBatches()[batchIndex].add(quad, textureSlotIndex);
+					mDrawnQuadCount += static_cast<uint32_t>(addedCount);
 				} else {
-					LOG_WARN(arrSize - addedCount << " Quads unable to be drawn");
+					//LOG_WARN(arrSize - addedCount << " Quads unable to be drawn");
+					mTruncatedQuadCount += static_cast<uint32_t>(arrSize - addedCount);
 					break;
 				}
 			}
@@ -199,6 +216,7 @@ namespace DOH {
 						texArr.getTextureSlotIndex(textureId)
 					);
 					addedCount += toAddCount;
+					mDrawnQuadCount += static_cast<uint32_t>(toAddCount);
 					break;
 				} else if (remainingSpace > 0) {
 					batch.addAll(
@@ -208,6 +226,7 @@ namespace DOH {
 						texArr.getTextureSlotIndex(textureId)
 					);
 					addedCount += remainingSpace;
+					mDrawnQuadCount += static_cast<uint32_t>(remainingSpace);
 				} else {
 					quadBatchStartIndex++;
 				}
@@ -222,13 +241,16 @@ namespace DOH {
 					if (remainingSpace >= toAddCount) {
 						batch.addAll(quadArr, 0, toAddCount, textureSlotIndex);
 						addedCount += toAddCount;
+						mDrawnQuadCount += static_cast<uint32_t>(toAddCount);
 						break;
 					} else {
 						batch.addAll(quadArr, addedCount, addedCount + remainingSpace, textureSlotIndex);
 						addedCount += remainingSpace;
+						mDrawnQuadCount += static_cast<uint32_t>(remainingSpace);
 					}
 				} else {
-					LOG_WARN(arrSize - addedCount << " Quads unable to be drawn");
+					//LOG_WARN(arrSize - addedCount << " Quads unable to be drawn");
+					mTruncatedQuadCount += static_cast<uint32_t>(arrSize - addedCount);
 					break;
 				}
 			}
@@ -280,6 +302,9 @@ namespace DOH {
 		quadPipeline.recordDrawCommands(imageIndex, cmd);
 
 		quadPipeline.clearRenderableToDraw();
+
+		mDrawnQuadCount = 0;
+		mTruncatedQuadCount = 0;
 	}
 
 	void Renderer2dVulkan::closeEmptyQuadBatches() {

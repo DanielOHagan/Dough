@@ -21,7 +21,7 @@ namespace DOH {
 
 	void Application::init(std::shared_ptr<IApplicationLogic> appLogic, const ApplicationInitSettings& initSettings) {
 		mAppDebugInfo = std::make_unique<AppDebugInfo>();
-		mAppInfoTimer = std::make_unique<IntervalTimer>("Application Info", true);
+		mAppInfoTimer = std::make_unique<IntervalTimer>(true);
 		mAppInfoTimer->recordInterval("Application.init() start");
 		mAppLogic = appLogic;
 
@@ -97,7 +97,7 @@ namespace DOH {
 		mAppInfoTimer->recordInterval("Closing end");
 
 		mAppInfoTimer->end();
-		mAppInfoTimer->dump();
+		mAppInfoTimer->dump("Application Info");
 	}
 
 	int Application::start(std::shared_ptr<IApplicationLogic> appLogic, ApplicationInitSettings initSettings) {

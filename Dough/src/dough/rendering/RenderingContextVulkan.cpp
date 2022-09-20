@@ -220,7 +220,8 @@ namespace DOH {
 
 	//Draw then Present rendered frame
 	void RenderingContextVulkan::drawFrame() {
-		Application::get().getDebugInfo().resetDrawCalls();
+		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
+		debugInfo.resetDrawCallsCount();
 
 		uint32_t imageIndex = mSwapChain->aquireNextImageIndex(
 			mLogicDevice,
@@ -252,8 +253,6 @@ namespace DOH {
 
 		mImGuiWrapper->endFrame();
 
-		//mRenderingDebugInfo.updateTotalDrawCallCount();
-
 		//Clear to-draw lists whether or not pipeline is enabled
 		for (const auto& pipeline : mSceneGraphicsPipelines) {
 			pipeline.second->clearRenderableToDraw();
@@ -266,8 +265,10 @@ namespace DOH {
 
 		present(imageIndex, cmd);
 
-		//TODO:: does this still need to be here?
+		//TODO:: A way of closing/removing last frame specific gpu resources
 		//releaseGpuResources();
+
+		debugInfo.updateTotalDrawCallCount();
 	}
 
 	void RenderingContextVulkan::drawScene(uint32_t imageIndex, VkCommandBuffer cmd) {
@@ -328,16 +329,16 @@ namespace DOH {
 		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-		VkSemaphore waitSemaphores[] = { mImageAvailableSemaphores[mCurrentFrame] };
+		VkSemaphore imageReadySemaphores[] = { mImageAvailableSemaphores[mCurrentFrame] };
 		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-		VkSemaphore signalSemaphores[] = { mRenderFinishedSemaphores[mCurrentFrame] };
+		VkSemaphore commandsCompletedSemaphores[] = { mRenderFinishedSemaphores[mCurrentFrame] };
 		submitInfo.waitSemaphoreCount = 1;
-		submitInfo.pWaitSemaphores = waitSemaphores;
+		submitInfo.pWaitSemaphores = imageReadySemaphores;
 		submitInfo.pWaitDstStageMask = waitStages;
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &cmd;
 		submitInfo.signalSemaphoreCount = 1;
-		submitInfo.pSignalSemaphores = signalSemaphores;
+		submitInfo.pSignalSemaphores = commandsCompletedSemaphores;
 
 		vkResetFences(mLogicDevice, 1, &mFramesInFlightFences[mCurrentFrame]);
 
@@ -349,7 +350,7 @@ namespace DOH {
 		VkPresentInfoKHR present = {};
 		present.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 		present.waitSemaphoreCount = 1;
-		present.pWaitSemaphores = signalSemaphores;
+		present.pWaitSemaphores = commandsCompletedSemaphores;
 
 		VkSwapchainKHR swapChains[] = { mSwapChain->get() };
 		present.swapchainCount = 1;

@@ -44,5 +44,4 @@ namespace DOH {
 		static uint64_t convertSecondsToNanos(float seconds) { return (long long) seconds * 1000000000; }
 
 	};
-
 }

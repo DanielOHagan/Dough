@@ -1,3 +1,9 @@
+
+//TODO:: More comprehensive platform checking that works not just in Logging.h
+#if defined (_WIN64)
+	#define DOH_PLATFORM_WINDOWS_64
+#endif
+
 //TODO:: 
 //	Make DOH_LOG_XXX for short term, for namespace clashing risks
 //	
@@ -15,23 +21,45 @@
 #define LOG_ENDL { std::cout << std::endl; }
 
 #if defined (_DEBUG)
-	#define TEXT_UNDERLINE(message)			"\033[4m" << message << "\033[0m"
-	#define TEXT_BLACK(message)				"\033[30m" << message << "\033[0m"
-	#define TEXT_RED(message)				"\033[31m" << message << "\033[0m"
-	#define TEXT_GREEN(message)				"\033[32m" << message << "\033[0m"
-	#define TEXT_YELLOW(message)			"\033[33m" << message << "\033[0m"
-	#define TEXT_BLUE(message)				"\033[34m" << message << "\033[0m"
-	#define TEXT_MAGENTA(message)			"\033[35m" << message << "\033[0m"
-	#define TEXT_CYAN(message)				"\033[36m" << message << "\033[0m"
-	#define TEXT_WHITE(message)				"\033[37m" << message << "\033[0m"
-	#define TEXT_BRIGHT_BLACK(message)		"\033[90m" << message << "\033[0m"
-	#define TEXT_BRIGHT_RED(message)		"\033[91m" << message << "\033[0m"
-	#define TEXT_BRIGHT_GREEN(message)		"\033[92m" << message << "\033[0m"
-	#define TEXT_BRIGHT_YELLOW(message)		"\033[93m" << message << "\033[0m"
-	#define TEXT_BRIGHT_BLUE(message)		"\033[94m" << message << "\033[0m"
-	#define TEXT_BRIGHT_MAGENTA(message)	"\033[95m" << message << "\033[0m"
-	#define TEXT_BRIGHT_CYAN(message)		"\033[96m" << message << "\033[0m"
-	#define TEXT_BRIGHT_WHITE(message)		"\033[97m" << message << "\033[0m"
+
+	//Add colour prefixes & suffixes to log messages on windows terminals
+	#if defined (DOH_PLATFORM_WINDOWS_64)
+		#define TEXT_UNDERLINE(message)			"\033[4m" << message << "\033[0m"
+		#define TEXT_BLACK(message)				"\033[30m" << message << "\033[0m"
+		#define TEXT_RED(message)				"\033[31m" << message << "\033[0m"
+		#define TEXT_GREEN(message)				"\033[32m" << message << "\033[0m"
+		#define TEXT_YELLOW(message)			"\033[33m" << message << "\033[0m"
+		#define TEXT_BLUE(message)				"\033[34m" << message << "\033[0m"
+		#define TEXT_MAGENTA(message)			"\033[35m" << message << "\033[0m"
+		#define TEXT_CYAN(message)				"\033[36m" << message << "\033[0m"
+		#define TEXT_WHITE(message)				"\033[37m" << message << "\033[0m"
+		#define TEXT_BRIGHT_BLACK(message)		"\033[90m" << message << "\033[0m"
+		#define TEXT_BRIGHT_RED(message)		"\033[91m" << message << "\033[0m"
+		#define TEXT_BRIGHT_GREEN(message)		"\033[92m" << message << "\033[0m"
+		#define TEXT_BRIGHT_YELLOW(message)		"\033[93m" << message << "\033[0m"
+		#define TEXT_BRIGHT_BLUE(message)		"\033[94m" << message << "\033[0m"
+		#define TEXT_BRIGHT_MAGENTA(message)	"\033[95m" << message << "\033[0m"
+		#define TEXT_BRIGHT_CYAN(message)		"\033[96m" << message << "\033[0m"
+		#define TEXT_BRIGHT_WHITE(message)		"\033[97m" << message << "\033[0m"
+	#else 
+		#define TEXT_UNDERLINE(message)			message
+		#define TEXT_BLACK(message)				message
+		#define TEXT_RED(message)				message
+		#define TEXT_GREEN(message)				message
+		#define TEXT_YELLOW(message)			message
+		#define TEXT_BLUE(message)				message
+		#define TEXT_MAGENTA(message)			message
+		#define TEXT_CYAN(message)				message
+		#define TEXT_WHITE(message)				message
+		#define TEXT_BRIGHT_BLACK(message)		message
+		#define TEXT_BRIGHT_RED(message)		message
+		#define TEXT_BRIGHT_GREEN(message)		message
+		#define TEXT_BRIGHT_YELLOW(message)		message
+		#define TEXT_BRIGHT_BLUE(message)		message
+		#define TEXT_BRIGHT_MAGENTA(message)	message
+		#define TEXT_BRIGHT_CYAN(message)		message
+		#define TEXT_BRIGHT_WHITE(message)		message
+	#endif
 
 	#define LOG_UNDERLINED(message) LOG(TEXT_UNDERLINE(message))
 	#define LOGLN_UNDERLINED(message) LOGLN(TEXT_UNDERLINE(message))

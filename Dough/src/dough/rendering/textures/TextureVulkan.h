@@ -49,6 +49,7 @@ namespace DOH {
 		//	VkPhysicalDevice physicalDevice,
 		//	uint32_t width,
 		//	uint32_t height,
+		//	Format format,
 		//	const void* data,
 		//	size_t size
 		//);

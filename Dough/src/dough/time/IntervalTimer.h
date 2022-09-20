@@ -2,7 +2,7 @@
 
 #include "dough/time/Timer.h"
 
-#include <unordered_map>
+#include <vector>
 #include <string>
 
 namespace DOH {
@@ -10,17 +10,16 @@ namespace DOH {
 	class IntervalTimer : public Timer {
 
 	private:
-		std::unordered_map<double, const std::string> mRecordedIntervalsMillis;
+		std::vector<std::pair<double, const std::string>> mRecordedIntervalsMillis;
 
 	public:
-		IntervalTimer(const std::string& name, bool start = false);
+		IntervalTimer(bool start = false);
 
 		void recordInterval(const std::string& label);
 		virtual void reset() override;
-		virtual void dump() override;
+		virtual void dump(const std::string& label) override;
 
 		inline bool hasIntervalsRecorded() const { return mRecordedIntervalsMillis.size() > 0; }
-		inline std::unordered_map<double, const std::string> getRecordedIntervalsMillis() const { return mRecordedIntervalsMillis; }
-
+		inline const std::vector<std::pair<double, const std::string>>& getRecordedIntervalsMillis() const { return mRecordedIntervalsMillis; }
 	};
 }

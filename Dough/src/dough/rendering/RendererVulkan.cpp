@@ -64,7 +64,7 @@ namespace DOH {
 
 		setupDebugMessenger();
 
-		mSurface = Application::get().getWindow().createVulkanSurface(mInstance);
+		mSurface = window.createVulkanSurface(mInstance);
 
 		pickPhysicalDevice();
 		createLogicalDevice();

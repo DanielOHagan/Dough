@@ -13,6 +13,7 @@ namespace DOH {
 		float targetBackgroundFps,
 		float targetBackgroundUps
 	) : mApplication(app),
+		mCurrentFrame(0),
 		mTargetFrameTimeSpan(0),
 		mLastCycleTimePoint(Time::getCurrentTimeMillis()),
 		mPerSecondCountersTimeSpan(0.0f),
@@ -75,6 +76,7 @@ namespace DOH {
 				//	it is called here and the FPS increments here
 				if (!mApplication.isIconified()) {
 					mApplication.render(Time::convertMillisToSeconds(mDeltaRenderTimeSpan));
+					mCurrentFrame++;
 					mFps++;
 					mDeltaRenderTimeSpan = 0.0;
 				}

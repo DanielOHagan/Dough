@@ -17,6 +17,8 @@ namespace DOH {
 	private:
 		Application& mApplication;
 
+		uint64_t mCurrentFrame;
+
 		double mTargetFrameTimeSpan;
 		double mLastCycleTimePoint;
 		double mPerSecondCountersTimeSpan;
@@ -68,20 +70,13 @@ namespace DOH {
 		void setTargetBackgroundFps(float targetBackgroundFps);
 		inline float getFps() const { return mPreviousFps; } //Number of renders in last second-long interval
 		inline bool isValidTargetFps(const float targetFps) const {
-			if (targetFps > MAX_TARGET_FPS) return false;
-			if (targetFps < MIN_TARGET_FPS) return false;
-			if (targetFps > mTargetUps) return false;
-
-			return true;
+			return !(targetFps > MAX_TARGET_FPS || targetFps < MIN_TARGET_FPS || targetFps > mTargetUps);
 		}
 		inline bool isValidTargetUps(const float targetUps) const {
-			if (targetUps > MAX_TARGET_UPS) return false;
-			if (targetUps < MIN_TARGET_UPS) return false;
-			if (targetUps < mTargetFps) return false;
-
-			return true;
+			return !(targetUps > MAX_TARGET_UPS || targetUps < MIN_TARGET_UPS || targetUps < mTargetFps);
 		}
 
+		inline uint64_t getCurrentFrame() const { return mCurrentFrame; }
 		inline float getTargetUps() const { return mTargetUps; }
 		void setTargetUps(float targetUps, bool includeTargetBackroundUps = false);
 		inline float getTargetBackgroundUps() const { return mTargetBackgroundUps; }

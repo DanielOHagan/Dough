@@ -82,7 +82,6 @@ namespace DOH {
 
 			return mQuadRenderBatches.size() - 1;
 		} else {
-			LOG_WARN("Max Quad Batch Count reached");
 			return -1;
 		}
 	}

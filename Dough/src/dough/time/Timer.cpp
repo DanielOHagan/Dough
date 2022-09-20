@@ -3,9 +3,8 @@
 
 namespace DOH {
 	
-	Timer::Timer(const std::string& name, bool start)
-	:	mName(name),
-		mStartTimeMillis(start ? Time::getCurrentTimeMillis() : 0.0),
+	Timer::Timer(bool start)
+	:	mStartTimeMillis(start ? Time::getCurrentTimeMillis() : 0.0),
 		mEndTimeMillis(0.0),
 		mTicking(start)
 	{}
@@ -34,7 +33,7 @@ namespace DOH {
 		mTicking = false;
 	}
 
-	void Timer::dump() {
-		LOGLN("Total ticking time: " << Time::convertMillisToSeconds(getTotalTickingTimeMillis()) << "s");
+	void Timer::dump(const std::string& label) {
+		LOGLN("\"" << label << "\" Total ticking time: " << Time::convertMillisToSeconds(getTotalTickingTimeMillis()) << "s");
 	}
 }

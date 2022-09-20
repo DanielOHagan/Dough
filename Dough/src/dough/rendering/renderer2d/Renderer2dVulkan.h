@@ -16,6 +16,8 @@ namespace DOH {
 		RenderingContextVulkan& mContext;
 		std::unique_ptr<Renderer2dStorageVulkan> mStorage;
 		uint32_t mDebugInfoDrawCount;
+		uint32_t mDrawnQuadCount;
+		uint32_t mTruncatedQuadCount;
 
 	public:
 		Renderer2dVulkan(RenderingContextVulkan& context);
@@ -47,6 +49,8 @@ namespace DOH {
 		inline Renderer2dStorageVulkan& getStorage() const { return *mStorage; }
 		inline size_t getQuadBatchCount() const { return mStorage->getQuadRenderBatches().size(); }
 		inline uint32_t getDrawCount() const { return mDebugInfoDrawCount; }
+		inline uint32_t getDrawnQuadCount() const { return mDrawnQuadCount; }
+		inline uint32_t getTruncatedQuadCount() const { return mTruncatedQuadCount; }
 		inline void resetDrawCount() { mDebugInfoDrawCount = 0; }
 	};
 

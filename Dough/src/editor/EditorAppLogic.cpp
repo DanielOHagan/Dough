@@ -182,6 +182,7 @@ namespace DOH::EDITOR {
 
 	void EditorAppLogic::imGuiRenderDebugWindow(float delta) {
 		RendererVulkan& renderer = GET_RENDERER;
+		Renderer2dVulkan& renderer2d = renderer.getContext().getRenderer2d();
 		ImGuiWrapper& imGuiWrapper = renderer.getContext().getImGuiWrapper();
 
 		ImGui::Begin("Debug Window", &mImGuiSettings.RenderDebugWindow);
@@ -295,7 +296,7 @@ namespace DOH::EDITOR {
 				//Draw a rectangle to show how long to hold for
 				if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
 					ImGui::BeginTooltip();
-
+					
 					ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 1.0f, 0.0f, 0.0f, 1.0f });
 					ImGui::ProgressBar((mImGuiSettings.QuitButtonHoldTime / mImGuiSettings.QuitHoldTimeRequired), {200.0f, 20.0f});
 					ImGui::PopStyleColor(1);
@@ -317,7 +318,7 @@ namespace DOH::EDITOR {
 
 				if (debugInfo.FrameTimeIndex == AppDebugInfo::FrameTimesCount) {
 					debugInfo.FrameTimeIndex = 0;
-					debugInfo.FrameTimesFullArray = true;
+					debugInfo.FrameTimesArrayIsFull = true;
 				}
 				debugInfo.FrameTimesMillis[debugInfo.FrameTimeIndex] = static_cast<float>(frameTime);
 				debugInfo.FrameTimeIndex++;
@@ -325,7 +326,7 @@ namespace DOH::EDITOR {
 				ImGui::PlotLines(
 					"Frame Times (ms)",
 					debugInfo.FrameTimesMillis,
-					debugInfo.FrameTimesFullArray ? AppDebugInfo::FrameTimesCount : debugInfo.FrameTimeIndex
+					debugInfo.FrameTimesArrayIsFull ? AppDebugInfo::FrameTimesCount : debugInfo.FrameTimeIndex
 				);
 
 				//Milliseconds
@@ -360,6 +361,8 @@ namespace DOH::EDITOR {
 				ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImColor::ImColor(128, 128, 255, 100));
 				ImGui::EndTable();
 
+				ImGui::Text("Quads Drawn: %i", renderer2d.getDrawnQuadCount());
+				ImGui::Text("Quads Truncated: %i", renderer2d.getTruncatedQuadCount());
 				ImGui::Text("Quad Batch Max Size: %i", Renderer2dStorageVulkan::BatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD);
 				ImGui::Text(
 					"Quad Batch Count: %i of Max %i",
@@ -604,7 +607,7 @@ namespace DOH::EDITOR {
 						mOrthoCameraController->setPosition({ tempPos[0], tempPos[1], tempPos[2] });
 					}
 					ImGui::Text("Zoom: %f", mOrthoCameraController->getZoomLevel());
-					imGuiDisplayHelpTooltip("Higher is more \"zoomed in\" and lower is more \"zoomed out\"");
+					imGuiDisplayHelpTooltip("Higher is more \"zoomed out\" and lower is more \"zoomed in\"");
 				} else {
 					ImGui::Text("Perspective Camera Controls");
 					imGuiBulletTextWrapped("W, A, S, D, C, Space Bar: Move Camera");
@@ -648,7 +651,7 @@ namespace DOH::EDITOR {
 
 		if (ImGui::BeginTabItem("Rendering Device Info")) {
 			const auto& deviceInfo = renderer.getContext().getRenderingDeviceInfo();
-			ImGui::Text("Vulkan API Version: ");
+			ImGui::Text("Vulkan SDK Version: ");
 			ImGui::SameLine();
 			ImGui::Text(deviceInfo.ApiVersion.c_str());
 			
