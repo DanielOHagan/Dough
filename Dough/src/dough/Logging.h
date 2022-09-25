@@ -1,3 +1,4 @@
+#pragma once
 
 //TODO:: More comprehensive platform checking that works not just in Logging.h
 #if defined (_WIN64)

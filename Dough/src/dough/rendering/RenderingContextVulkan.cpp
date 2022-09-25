@@ -474,14 +474,14 @@ namespace DOH {
 		}
 	}
 
-	void RenderingContextVulkan::createPipeline(
+	PipelineRenderableConveyer RenderingContextVulkan::createPipeline(
 		const std::string& name,
 		GraphicsPipelineInstanceInfo& instanceInfo,
 		const bool enabled
 	) {
 		if (instanceInfo.RenderPass == SwapChainVulkan::ERenderPassType::IMGUI) {
 			LOG_ERR("Unable to create ImGui pipeline");
-			return;
+			return {};
 		}
 
 		auto& map = instanceInfo.RenderPass ==
@@ -489,13 +489,15 @@ namespace DOH {
 		const auto& itr = map.find(name);
 		if (itr != map.end()) {
 			LOG_ERR("Pipeline already exists: " << name);
-			return;
+			return {};
 		}
 
 		const auto pipeline = createGraphicsPipeline(instanceInfo, mSwapChain->getExtent());
 		pipeline->setEnabled(enabled);
 
 		map.emplace(name, pipeline);
+
+		return { *pipeline };
 	}
 
 	PipelineRenderableConveyer RenderingContextVulkan::createPipelineConveyer(

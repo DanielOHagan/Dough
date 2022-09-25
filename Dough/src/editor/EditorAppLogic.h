@@ -9,6 +9,7 @@
 #include "dough/rendering/renderables/RenderableModel.h"
 #include "dough/rendering/renderables/SimpleRenderable.h"
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
+#include "dough/time/PausableTimer.h"
 
 #include "editor/EditorOrthoCameraController.h"
 #include "editor/EditorPerspectiveCameraController.h"
@@ -28,19 +29,24 @@ using namespace DOH;
 
 namespace DOH::EDITOR {
 
+	//TODO:: Allow for stopping which resets the scene (re-init everything app-specific)
+	enum class EInnerAppState {
+		NONE = 0,
+
+		PAUSED,
+		PLAYING,
+		STOPPED
+	};
+
 	class EditorAppLogic : public IApplicationLogic {
 
 	private:
-		//Cameras
-		std::shared_ptr<EditorOrthoCameraController> mOrthoCameraController;
-		std::shared_ptr<EditorPerspectiveCameraController> mPerspectiveCameraController;
-
 		struct ObjModelsDemo {
 			struct UniformBufferObject {
 				glm::mat4x4 ProjView;
 			};
 
-			const std::array<std::string, 4> ObjModelFilePaths = {
+			const std::array<const char*, 4> ObjModelFilePaths = {
 				"res/models/testCube.obj",
 				"res/models/spoon.obj",
 				"res/models/teacup.obj",
@@ -48,10 +54,11 @@ namespace DOH::EDITOR {
 			};
 			const uint32_t DefaultObjFilePathIndex = 0;
 
+			//TODO:: Loading shaders with const char* crashes, strings work, FIX
 			const std::string FlatColourShaderVertPath = "res/shaders/spv/FlatColour.vert.spv";
 			const std::string FlatColourShaderFragPath = "res/shaders/spv/FlatColour.frag.spv";
-			const std::string ScenePipelineName = "ObjScene";
-			const std::string SceneWireframePipelineName = "ObjWireframe";
+			const char* ScenePipelineName = "ObjScene";
+			const char* SceneWireframePipelineName = "ObjWireframe";
 			const EVertexType SceneVertexType = EVertexType::VERTEX_3D;
 			std::shared_ptr<ShaderProgramVulkan> SceneShaderProgram;
 
@@ -61,6 +68,9 @@ namespace DOH::EDITOR {
 			std::vector<std::shared_ptr<ModelVulkan>> LoadedModels;
 			std::vector<std::shared_ptr<RenderableModelVulkan>> RenderableObjects;
 
+			PipelineRenderableConveyer ScenePipelineConveyer;
+			PipelineRenderableConveyer WireframePipelineConveyer;
+
 			int AddNewObjectsCount = 0;
 			int PopObjectsCount = 0;
 
@@ -68,18 +78,17 @@ namespace DOH::EDITOR {
 			bool Render = false;
 			bool RenderAllStandard = false; //Force all models to be rendered normally (ignores individual model Render bool)
 			bool RenderAllWireframe = false; //Force all models to be rendered as wireframe (ignores individual model Wireframe bool)
-		} mObjModelsDemo;
+		};
 
 		struct CustomDemo {
-
 			struct UniformBufferObject {
 				glm::mat4 ProjView;
 			};
 
 			const std::string TexturedShaderVertPath = "res/shaders/spv/Textured.vert.spv";
 			const std::string TexturedShaderFragPath = "res/shaders/spv/Textured.frag.spv";
-			const std::string TestTexturePath = "res/images/testTexture.jpg";
-			const std::string TestTexture2Path = "res/images/testTexture2.jpg";
+			const char* TestTexturePath = "res/images/testTexture.jpg";
+			const char* TestTexture2Path = "res/images/testTexture2.jpg";
 			const std::vector<Vertex3dTextured> SceneVertices = {
 				//	x		y		z		r		g		b		a		u		v		texIndex
 				{{	-0.5f,	-0.5f,	0.0f},	{1.0f,	0.0f,	0.0f,	1.0f},	{0.0f,	1.0f},	{0.0f}},
@@ -118,7 +127,7 @@ namespace DOH::EDITOR {
 			std::shared_ptr<ShaderProgramVulkan> SceneShaderProgram;
 			std::unique_ptr<GraphicsPipelineInstanceInfo> UiPipelineInfo;
 			std::shared_ptr<ShaderProgramVulkan> UiShaderProgram;
-			
+
 			std::shared_ptr<TextureVulkan> TestTexture1;
 			std::shared_ptr<TextureVulkan> TestTexture2;
 
@@ -129,15 +138,16 @@ namespace DOH::EDITOR {
 			std::shared_ptr<SimpleRenderable> UiRenderable;
 			std::shared_ptr<VertexArrayVulkan> UiVao;
 
-			const std::string ScenePipelineName = "Custom";
-			const std::string UiPipelineName = "CustomUi";
+			PipelineRenderableConveyer CustomSceneConveyer;
+			PipelineRenderableConveyer CustomUiConveyer;
+
+			const char* ScenePipelineName = "Custom";
+			const char* UiPipelineName = "CustomUi";
 
 			bool Update = false;
 			bool RenderScene = false;
 			bool RenderUi = false;
-		} mCustomDemo;
-		//const std::string testTexturesPath = "res/images/test textures/";
-		//std::vector<std::shared_ptr<TextureVulkan>> mTestTextures;
+		};
 
 		struct GridDemo {
 			std::vector<std::vector<Quad>> TexturedTestGrid;
@@ -152,7 +162,7 @@ namespace DOH::EDITOR {
 
 			bool Update = false;
 			bool Render = false;
-		} mGridDemo;
+		};
 
 		struct BouncingQuadDemo {
 			std::vector<Quad> BouncingQuads;
@@ -162,10 +172,10 @@ namespace DOH::EDITOR {
 
 			int AddNewQuadCount = 0;
 			int PopQuadCount = 0;
-			
+
 			bool Update = false;
 			bool Render = false;
-		} mBouncingQuadDemo;
+		};
 
 		struct ImGuiTextureViewerWindow {
 			const TextureVulkan& Texture;
@@ -188,12 +198,13 @@ namespace DOH::EDITOR {
 		struct ImGuiSettings {
 			//Map for texture windows, using the texture's ID as the key
 			std::unordered_map<uint32_t, ImGuiTextureViewerWindow> TextureViewerWindows;
-			
+
 			//ImGui window rendering controls
 			bool RenderDebugWindow = true;
 
 			//ImGui menu
-			bool ApplicationCollapseMenuOpen = true;
+			bool EditorCollapseMenuOpen = true;
+			bool InnerAppCollapseMenu = true;
 			bool RenderingCollapseMenuOpen = true;
 			bool CameraCollapseMenuOpen = true;
 			bool CurrentDemoCollapseMenuOpen = true;
@@ -206,7 +217,26 @@ namespace DOH::EDITOR {
 			//Close App
 			const float QuitHoldTimeRequired = 1.5f;
 			float QuitButtonHoldTime = 0.0f;
-		} mImGuiSettings;
+		};
+
+		//Cameras
+		std::shared_ptr<EditorOrthoCameraController> mOrthoCameraController;
+		std::shared_ptr<EditorPerspectiveCameraController> mPerspectiveCameraController;
+
+		//Demos
+		std::unique_ptr<ObjModelsDemo> mObjModelsDemo;
+		std::unique_ptr<CustomDemo> mCustomDemo;
+		std::unique_ptr<GridDemo> mGridDemo;
+		std::unique_ptr<BouncingQuadDemo> mBouncingQuadDemo;
+
+		//Editor settings
+		std::unique_ptr<ImGuiSettings> mImGuiSettings;
+		std::unique_ptr<PausableTimer> mInnerAppTimer;
+		EInnerAppState mInnerAppState;
+
+		//const char* testTexturesPath = "res/images/test textures/";
+		//std::vector<std::shared_ptr<TextureVulkan>> mTestTextures;
+
 	public:
 		EditorAppLogic();
 		EditorAppLogic(const EditorAppLogic& copy) = delete;
@@ -222,8 +252,8 @@ namespace DOH::EDITOR {
 
 	private:
 		inline void setUiProjection(float aspectRatio) {
-			mCustomDemo.UiProjMat = glm::ortho(-aspectRatio, aspectRatio, -1.0f, 1.0f, -1.0f, 1.0f);
-			mCustomDemo.UiProjMat[1][1] *= -1;
+			mCustomDemo->UiProjMat = glm::ortho(-aspectRatio, aspectRatio, -1.0f, 1.0f, -1.0f, 1.0f);
+			mCustomDemo->UiProjMat[1][1] *= -1;
 		}
 
 		void populateTestGrid(uint32_t width, uint32_t height);
@@ -248,7 +278,7 @@ namespace DOH::EDITOR {
 		);
 		inline void objModelsDemoAddRandomisedObject() {
 			objModelsDemoAddObject(
-				rand() % mObjModelsDemo.LoadedModels.size(),
+				rand() % mObjModelsDemo->LoadedModels.size(),
 				static_cast<float>(rand() % 25),
 				static_cast<float>(rand() % 25),
 				static_cast<float>(rand() % 15) * (rand() % 2 > 0 ? 1.0f : -1.0f),
@@ -269,7 +299,7 @@ namespace DOH::EDITOR {
 		//ImGui convenience and separated functions, primarly used for debugging and easier ImGui functionality
 		void imGuiDisplayHelpTooltip(const char* message);
 		void imGuiBulletTextWrapped(const char* message);
-		void imGuiRenderDebugWindow(float delta);
+		void imGuiRenderDebugWindow(float delta); //This renders the Editor windows
 		void imGuiPrintDrawCallTableColumn(const char* pipelineName, uint32_t drawCount);
 		void imGuiPrintMat4x4(const glm::mat4x4& mat, const char* name);
 		inline void imGuiPrintMat4x4(const glm::mat4x4& mat, const std::string& name) { imGuiPrintMat4x4(mat, name.c_str()); }

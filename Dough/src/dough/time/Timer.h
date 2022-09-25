@@ -16,15 +16,14 @@ namespace DOH {
 	public:
 		Timer(bool start = false);
 
-		void start();
-		void end();
-
+		virtual void start();
+		virtual void end();
 		virtual void reset();
 		virtual void dump(const std::string& label);
+		virtual double getCurrentTickingTimeMillis() const;
 
 		inline double getStartTimeMillis() const { return mStartTimeMillis; }
 		inline double getEndTimeMillis() const { return mEndTimeMillis; }
-		inline double getCurrentTickingTimeMillis() const { return (Time::getCurrentTimeMillis() - mStartTimeMillis); }
 		inline double getTotalTickingTimeMillis() const { return mEndTimeMillis - mStartTimeMillis; }
 		inline bool isTicking() const { return mTicking; }
 	};

@@ -97,6 +97,6 @@ namespace DOH {
 
 		inline bool isValid() const { return mPipeline.has_value(); }
 		inline void addRenderable(std::shared_ptr<IRenderable> renderable) { mPipeline->get().addRenderableToDraw(renderable); }
-		inline void safeAddRenderable(std::shared_ptr<IRenderable> renderable) { if (mPipeline.has_value()) { mPipeline->get().addRenderableToDraw(renderable); }}
+		inline void safeAddRenderable(std::shared_ptr<IRenderable> renderable) { if (isValid()) { mPipeline->get().addRenderableToDraw(renderable); }}
 	};
 }

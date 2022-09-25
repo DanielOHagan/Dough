@@ -97,7 +97,7 @@ namespace DOH {
 
 		//TODO:: return PipelineVaoConveyer for easier and faster vao adding?
 		//	Take in a pipeline builder object?
-		void createPipeline(
+		PipelineRenderableConveyer createPipeline(
 			const std::string& name,
 			GraphicsPipelineInstanceInfo& instanceInfo,
 			const bool enabled = true
@@ -125,12 +125,12 @@ namespace DOH {
 		inline void setUiProjection(glm::mat4x4& proj) { mAppUiProjection = proj; }
 		
 		//TODO:: prefer PipelineRenderableConveyer usage whenever possible
-		inline void addRenderableToSceneDrawList(const std::string& name, std::shared_ptr<IRenderable> renderable) const {
-			mSceneGraphicsPipelines.at(name)->addRenderableToDraw(renderable);
-		}
-		inline void addRenderableToUiDrawList(const std::string& name, std::shared_ptr<IRenderable> renderable) const {
-			mUiGraphicsPipelines.at(name)->addRenderableToDraw(renderable);
-		}
+		//inline void addRenderableToSceneDrawList(const std::string& name, std::shared_ptr<IRenderable> renderable) const {
+		//	mSceneGraphicsPipelines.at(name)->addRenderableToDraw(renderable);
+		//}
+		//inline void addRenderableToUiDrawList(const std::string& name, std::shared_ptr<IRenderable> renderable) const {
+		//	mUiGraphicsPipelines.at(name)->addRenderableToDraw(renderable);
+		//}
 		inline std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>> getSceneGraphicsPipelines() const { return mSceneGraphicsPipelines; }
 		inline std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>> getUiGraphicsPipelines() const { return mUiGraphicsPipelines; }
 

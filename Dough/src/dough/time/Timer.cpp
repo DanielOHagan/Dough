@@ -36,4 +36,8 @@ namespace DOH {
 	void Timer::dump(const std::string& label) {
 		LOGLN("\"" << label << "\" Total ticking time: " << Time::convertMillisToSeconds(getTotalTickingTimeMillis()) << "s");
 	}
+
+	double Timer::getCurrentTickingTimeMillis() const {
+		return (Time::getCurrentTimeMillis() - mStartTimeMillis);
+	}
 }

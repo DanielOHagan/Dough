@@ -25,8 +25,8 @@ namespace DOH {
 	private:
 		RenderingContextVulkan& mContext;
 
-		const static std::string QUAD_SHADER_PATH_VERT;
-		const static std::string QUAD_SHADER_PATH_FRAG;
+		static const std::string QUAD_SHADER_PATH_VERT;
+		static const std::string QUAD_SHADER_PATH_FRAG;
 
 		VkDescriptorPool mDescriptorPool;
 
@@ -44,7 +44,7 @@ namespace DOH {
 		std::shared_ptr<TextureVulkan> mWhiteTexture;
 
 		//TEMP::
-		const std::string testTexturesPath = "res/images/test textures/";
+		const char* testTexturesPath = "res/images/test textures/";
 		std::vector<std::shared_ptr<TextureVulkan>> mTestTextures;
 		std::shared_ptr<MonoSpaceTextureAtlasVulkan> mTestTexturesAtlas;
 
