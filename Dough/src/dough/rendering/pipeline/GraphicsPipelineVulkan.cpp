@@ -12,7 +12,7 @@ namespace DOH {
 		GraphicsPipelineInstanceInfo& instanceInfo,
 		VkRenderPass renderPass,
 		VkExtent2D extent
-	) :	mGraphicsPipeline(VK_NULL_HANDLE),
+	) : mGraphicsPipeline(VK_NULL_HANDLE),
 		mGraphicsPipelineLayout(VK_NULL_HANDLE),
 		mInstanceInfo(instanceInfo)
 	{

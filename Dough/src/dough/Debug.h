@@ -25,8 +25,6 @@
 			LOG_ERR("Has memory leak! Check Output-Debug for further details")\
 		else LOG_INFO("No memory leak");
 
-	//#define DEBUG_HEADER_DEFINED
-
 //NOTE:: Since not all static members aren't guaranteed to have been allocated before new/delete overloading then they may not be tracked.
 // This may result in tracking the freeing of an object but not the allocation & vice versa.
 // To prevent this make sure all heap allocated static members allocated after the memory tracker starts are deleted before it ends.
@@ -114,10 +112,20 @@
 		memTracker.TotalFreeCount++;
 	}
 
+	inline uint32_t getCurrentTotalAllocCountDifference() {
+		const DOH::MemoryTracker& memTracker = DOH::getMemoryTracker();
+		return memTracker.TotalAllocCount - memTracker.TotalFreeCount;
+	}
+
+	inline size_t getCurrentTotalAllocSizeDifference() {
+		const DOH::MemoryTracker& memTracker = DOH::getMemoryTracker();
+		return memTracker.TotalAllocSize - memTracker.TotalFreeSize;
+	}
+
 	void dumpMemAllocInfo() {
 		DOH::MemoryTracker& memTracker = DOH::getMemoryTracker();
 
-		LOGLN_CYAN("Memory Tracker info dump:");
+		LOGLN_UNDERLINED("Memory Tracker info dump:");
 		LOGLN_WHITE("Total Alloc Count: " << memTracker.TotalAllocCount);
 		LOGLN_WHITE("Total Alloc Size (Bytes): " << memTracker.TotalAllocSize);
 		LOGLN_WHITE("Total Free Count: " << memTracker.TotalFreeCount);
@@ -128,15 +136,17 @@
 		DOH::MemoryTracker& memTracker = DOH::getMemoryTracker();
 
 		if (memTracker.TotalAllocCount != memTracker.TotalFreeCount || memTracker.TotalAllocSize != memTracker.TotalFreeSize) {
-			LOGLN_BRIGHT_RED("Possible mem leak detected!");
-			LOGLN_BRIGHT_RED("Alloc-Free count difference: " << memTracker.TotalAllocCount - memTracker.TotalFreeCount <<
-				" (" << memTracker.TotalAllocSize - memTracker.TotalFreeSize << " bytes)");
+			LOG_WARN("Possible mem leak detected!");
+			LOG_WARN(
+				"Alloc-Free count difference: " << getCurrentTotalAllocCountDifference() <<
+				" (" << getCurrentTotalAllocSizeDifference() << " bytes)"
+			);
 		} else {
 			LOGLN_GREEN("No mem leak detected");
 		}
 	}
 
-	//Tracking starts when getMemoryTracker() is first called
+	//Tracking starts when getMemoryTracker() is first called, calling it again does NOT reset the tracker
 	#undef DEBUG_MEM_TRACK_START
 	#define DEBUG_MEM_TRACK_START getMemoryTracker();
 

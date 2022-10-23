@@ -15,6 +15,8 @@ namespace DOH {
 	private:
 		RenderingContextVulkan& mContext;
 		std::unique_ptr<Renderer2dStorageVulkan> mStorage;
+
+		//-----Debug information-----
 		uint32_t mDebugInfoDrawCount;
 		uint32_t mDrawnQuadCount;
 		uint32_t mTruncatedQuadCount;

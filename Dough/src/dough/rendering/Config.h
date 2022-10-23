@@ -68,10 +68,10 @@ namespace DOH {
 		constexpr static const uint32_t BYTE_SIZE = COMPONENT_COUNT * DataType::getDataTypeSize(EDataType::FLOAT);
 
 		static std::vector<VkVertexInputAttributeDescription> asAttributeDescriptions(uint32_t binding) {
-			std::vector<VkVertexInputAttributeDescription> attribDesc = {};
-			attribDesc.push_back({ 0, binding, VK_FORMAT_R32G32_SFLOAT		, offsetof(Vertex2d, Pos) });
-			attribDesc.push_back({ 1, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex2d, Colour) });
-			return attribDesc;
+			return {
+				{ 0, binding, VK_FORMAT_R32G32_SFLOAT		, offsetof(Vertex2d, Pos) },
+				{ 1, binding, VK_FORMAT_R32G32B32A32_SFLOAT	, offsetof(Vertex2d, Colour) }
+			};
 		}
 
 		static std::initializer_list<BufferElement> asBufferElements() {
@@ -91,10 +91,10 @@ namespace DOH {
 		constexpr static const uint32_t BYTE_SIZE = COMPONENT_COUNT * DataType::getDataTypeSize(EDataType::FLOAT);
 
 		static std::vector<VkVertexInputAttributeDescription> asAttributeDescriptions(uint32_t binding) {
-			std::vector<VkVertexInputAttributeDescription> attribDesc = {};
-			attribDesc.push_back({ 0, binding, VK_FORMAT_R32G32B32_SFLOAT	, offsetof(Vertex3d, Pos) });
-			attribDesc.push_back({ 1, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex3d, Colour) });
-			return attribDesc;
+			return {
+				{ 0, binding, VK_FORMAT_R32G32B32_SFLOAT	, offsetof(Vertex3d, Pos) },
+				{ 1, binding, VK_FORMAT_R32G32B32A32_SFLOAT	, offsetof(Vertex3d, Colour) }
+			};
 		}
 
 		static std::initializer_list<BufferElement> asBufferElements() {
@@ -117,12 +117,12 @@ namespace DOH {
 		constexpr static const uint32_t BYTE_SIZE = COMPONENT_COUNT * DataType::getDataTypeSize(EDataType::FLOAT);
 
 		static std::vector<VkVertexInputAttributeDescription> asAttributeDescriptions(uint32_t binding) {
-			std::vector<VkVertexInputAttributeDescription> attribDesc = {};
-			attribDesc.push_back({ 0, binding, VK_FORMAT_R32G32B32_SFLOAT	, offsetof(Vertex3dTextured, Pos) });
-			attribDesc.push_back({ 1, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex3dTextured, Colour) });
-			attribDesc.push_back({ 2, binding, VK_FORMAT_R32G32_SFLOAT		, offsetof(Vertex3dTextured, TexCoord) });
-			attribDesc.push_back({ 3, binding, VK_FORMAT_R32_SFLOAT			, offsetof(Vertex3dTextured, TexIndex) });
-			return attribDesc;
+			return {
+				{ 0, binding, VK_FORMAT_R32G32B32_SFLOAT	, offsetof(Vertex3dTextured, Pos) },
+				{ 1, binding, VK_FORMAT_R32G32B32A32_SFLOAT	, offsetof(Vertex3dTextured, Colour) },
+				{ 2, binding, VK_FORMAT_R32G32_SFLOAT		, offsetof(Vertex3dTextured, TexCoord) },
+				{ 3, binding, VK_FORMAT_R32_SFLOAT			, offsetof(Vertex3dTextured, TexIndex) },
+			};
 		}
 
 		static std::initializer_list<BufferElement> asBufferElements() {
@@ -144,12 +144,12 @@ namespace DOH {
 		constexpr static const uint32_t BYTE_SIZE = COMPONENT_COUNT * DataType::getDataTypeSize(EDataType::FLOAT);
 
 		static std::vector<VkVertexInputAttributeDescription> asAttributeDescriptions(uint32_t binding) {
-			std::vector<VkVertexInputAttributeDescription> attribDesc = {};
-			attribDesc.push_back({ 0, binding, VK_FORMAT_R32G32B32_SFLOAT	, offsetof(Vertex3dLitTextured, Pos) });
-			attribDesc.push_back({ 1, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex3dLitTextured, Colour) });
-			attribDesc.push_back({ 2, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex3dLitTextured, Normal) });
-			attribDesc.push_back({ 3, binding, VK_FORMAT_R32G32_SFLOAT		, offsetof(Vertex3dLitTextured, TexCoord) });
-			return attribDesc;
+			return {
+				{ 0, binding, VK_FORMAT_R32G32B32_SFLOAT	, offsetof(Vertex3dLitTextured, Pos) },
+				{ 1, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex3dLitTextured, Colour) },
+				{ 2, binding, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex3dLitTextured, Normal) },
+				{ 3, binding, VK_FORMAT_R32G32_SFLOAT		, offsetof(Vertex3dLitTextured, TexCoord) }
+			};
 		}
 
 		static std::initializer_list<BufferElement> asBufferElements() {
@@ -231,7 +231,8 @@ namespace DOH {
 	static VkVertexInputBindingDescription getVertexTypeBindingDesc(EVertexType vertexType, uint32_t binding, VkVertexInputRate inputRate) {
 		VkVertexInputBindingDescription bindDesc = {};
 		bindDesc.binding = binding;
-		bindDesc.stride = static_cast<uint32_t>(getVertexTypeSize(vertexType));
+		//bindDesc.stride = static_cast<uint32_t>(getVertexTypeSize(vertexType));
+		bindDesc.stride = static_cast<uint32_t>(vertexType);
 		bindDesc.inputRate = inputRate;
 		return bindDesc;
 	}

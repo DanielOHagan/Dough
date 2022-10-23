@@ -32,7 +32,7 @@ namespace DOH {
 		for (int i = 0; i < monitorCount; i++) {
 			std::string monitorName = glfwGetMonitorName(*(monitors + i));
 			monitorName.append(" (" + std::to_string(i) + ")");
-			mAvailableMonitors.push_back({ *(monitors + i), monitorName });
+			mAvailableMonitors.emplace_back(*(monitors + i), monitorName );
 		}
 
 		mSelectedMonitor = glfwGetPrimaryMonitor();
@@ -41,7 +41,7 @@ namespace DOH {
 		const GLFWvidmode* vidMode = glfwGetVideoModes(mSelectedMonitor, &vidModeCount);
 		std::vector<int> refreshRates;
 		for (int i = 0; i < vidModeCount; i++) {
-			refreshRates.push_back((vidMode + i)->refreshRate);
+			refreshRates.emplace_back((vidMode + i)->refreshRate);
 		}
 
 		if (mCurrentDisplayMode == EWindowDisplayMode::BORDERLESS_FULLSCREEN) {
@@ -190,7 +190,7 @@ namespace DOH {
 		std::vector<std::string> names;
 
 		for (const auto& monitor : mAvailableMonitors) {
-			names.push_back(monitor.second);
+			names.emplace_back(monitor.second);
 		}
 
 		return names;
@@ -219,7 +219,7 @@ namespace DOH {
 		std::vector<const char*> extensionNames(glfwExtensionNames, glfwExtensionNames + glfwExtensionCount);
 
 		if (validationLayersEnabled) {
-			extensionNames.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+			extensionNames.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		}
 
 		return extensionNames;

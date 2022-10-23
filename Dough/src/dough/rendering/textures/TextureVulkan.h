@@ -9,13 +9,13 @@ namespace DOH {
 	class TextureVulkan : public IGPUResourceVulkan {
 
 	protected:
+		std::unique_ptr<ImageVulkan> mTextureImage;
+		VkSampler mSampler;
+
 		uint32_t mId;
 		int mWidth;
 		int mHeight;
 		int mChannels;
-
-		std::unique_ptr<ImageVulkan> mTextureImage;
-		VkSampler mSampler;
 
 	public:
 		//TODO:: Keep this here or place somewhere else in another class?
@@ -43,13 +43,13 @@ namespace DOH {
 			bool rgbaNormalised
 		);
 
-		//TODO:: 
+		//TODO::
 		//TextureVulkan(
 		//	VkDevice logicDevice,
 		//	VkPhysicalDevice physicalDevice,
 		//	uint32_t width,
 		//	uint32_t height,
-		//	Format format,
+		//	EFormat format,
 		//	const void* data,
 		//	size_t size
 		//);

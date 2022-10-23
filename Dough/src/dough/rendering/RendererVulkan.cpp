@@ -8,7 +8,6 @@
 
 #include <set>
 #include <string>
-#include <fstream>
 
 namespace DOH {
 
@@ -303,7 +302,7 @@ namespace DOH {
 			queueCreateInfo.queueCount = 1;
 			queueCreateInfo.pQueuePriorities = &queuePriority;
 
-			queueCreateInfos.push_back(queueCreateInfo);
+			queueCreateInfos.emplace_back(queueCreateInfo);
 		}
 
 		VkPhysicalDeviceFeatures deviceFeatures = {};
@@ -412,6 +411,9 @@ namespace DOH {
 		void* userDataPtr
 	) {
 		LOG_ERR("Validation layer: " << callbackDataPtr->pMessage);
+		#if defined (DOH_BREAK_ON_VK_VALIDATION_ERR)
+			int breakableStatement = 0;
+		#endif
 		return VK_FALSE;
 	}
 }

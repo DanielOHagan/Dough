@@ -123,19 +123,12 @@ namespace DOH {
 		void drawFrame();
 		inline void setSceneUniformBufferObject(ICamera& camera) { mSceneUbo.ProjectionViewMat = camera.getProjectionViewMatrix(); }
 		inline void setUiProjection(glm::mat4x4& proj) { mAppUiProjection = proj; }
-		
-		//TODO:: prefer PipelineRenderableConveyer usage whenever possible
-		//inline void addRenderableToSceneDrawList(const std::string& name, std::shared_ptr<IRenderable> renderable) const {
-		//	mSceneGraphicsPipelines.at(name)->addRenderableToDraw(renderable);
-		//}
-		//inline void addRenderableToUiDrawList(const std::string& name, std::shared_ptr<IRenderable> renderable) const {
-		//	mUiGraphicsPipelines.at(name)->addRenderableToDraw(renderable);
-		//}
+
 		inline std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>> getSceneGraphicsPipelines() const { return mSceneGraphicsPipelines; }
 		inline std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>> getUiGraphicsPipelines() const { return mUiGraphicsPipelines; }
 
 		//TODO:: Ability for better control over when GPU resources can be released (e.g. after certain program stages or as soon as possible)
-		inline void addGpuResourceToCloseAfterUse(std::shared_ptr<IGPUResourceVulkan> res) { mToReleaseGpuResources.push_back(res); }
+		inline void addGpuResourceToCloseAfterUse(std::shared_ptr<IGPUResourceVulkan> res) { mToReleaseGpuResources.emplace_back(res); }
 		void closeGpuResourceImmediately(std::shared_ptr<IGPUResourceVulkan> res);
 		void closeGpuResourceImmediately(IGPUResourceVulkan& res);
 		void releaseGpuResources();
@@ -154,11 +147,21 @@ namespace DOH {
 
 		//TODO:: These functions call begin and end single time commands individually
 		void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
-		void transitionImageLayout(
+		void transitionStagedImageLayout(
 			VkImage image,
 			VkImageLayout oldLayout,
 			VkImageLayout newLayout,
 			VkImageAspectFlags aspectFlags
+		);
+		void transitionImageLayout(
+			VkImage image,
+			VkImageLayout oldLayout,
+			VkImageLayout newLayout,
+			VkImageAspectFlags aspectFlags,
+			VkPipelineStageFlags srcStage,
+			VkPipelineStageFlags dstStage,
+			VkAccessFlags srcAccessMask,
+			VkAccessFlags dstAccessMask
 		);
 		inline VkImage createImage(
 			uint32_t width,
@@ -181,6 +184,7 @@ namespace DOH {
 		inline void setLogicDevice(VkDevice logicDevice) { mLogicDevice = logicDevice; }
 		void setPhysicalDevice(VkPhysicalDevice physicalDevice);
 		inline RenderingDeviceInfo& getRenderingDeviceInfo() const { return *mRenderingDeviceInfo; }
+		inline size_t getCurrentFrame() const { return mCurrentFrame; }
 
 		static VkImage createImage(
 			VkDevice logicDevice,
@@ -207,15 +211,6 @@ namespace DOH {
 
 		//-----Context-----
 		std::shared_ptr<SwapChainVulkan> createSwapChain(SwapChainCreationInfo& swapChainCreate);
-		std::shared_ptr<RenderPassVulkan> createRenderPass(
-			VkFormat imageFormat,
-			VkImageLayout initialLayout,
-			VkImageLayout finalLayout,
-			VkAttachmentLoadOp loadOp,
-			bool enableClearColour,
-			VkClearValue clearColour = {},
-			VkFormat depthFormat = VK_FORMAT_UNDEFINED
-		);
 
 		//-----VAO & Buffers-----
 		std::shared_ptr<VertexArrayVulkan> createVertexArray();

@@ -49,7 +49,6 @@ namespace DOH {
 		inline bool hasSpace(size_t geoCount) const { return mGeometryCount + geoCount <= MAX_GEOMETRY_COUNT; }
 		inline size_t getRemainingGeometrySpace() const { return MAX_GEOMETRY_COUNT - mGeometryCount; }
 		inline size_t getGeometryCount() const { return mGeometryCount; }
-		inline const std::vector<float> getData() const { return mData; }
+		inline const std::vector<float>& getData() const { return mData; }
 	};
-
 }

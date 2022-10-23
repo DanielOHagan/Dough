@@ -48,7 +48,7 @@ namespace DOH {
 				<< VertexArrayVulkan::MAX_VBO_COUNT
 			);
 		} else {
-			mVertexBuffers.push_back(vertexBuffer);
+			mVertexBuffers.emplace_back(vertexBuffer);
 		}
 	}
 

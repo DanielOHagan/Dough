@@ -5,10 +5,7 @@
 namespace DOH {
 
 	ShaderUniformLayout::ShaderUniformLayout()
-	:	mValueUniformMap(std::make_unique<std::unordered_map<uint32_t, ValueUniformInfo>>()),
-		mTextureUniformMap(std::make_unique<std::unordered_map<uint32_t, TextureUniformInfo>>()),
-		mTextureArrayUniformMap(std::make_unique<std::unordered_map<uint32_t, std::reference_wrapper<TextureArray>>>()),
-		mHasUniforms(false)
+	:	mHasUniforms(false)
 	{}
 
 	void ShaderUniformLayout::initDescriptorSetLayoutBindings(uint32_t count) {
@@ -19,18 +16,15 @@ namespace DOH {
 	}
 
 	bool ShaderUniformLayout::isBindingAvailable(uint32_t binding) const {
-		std::unordered_map<uint32_t, ValueUniformInfo>::iterator valueIt = mValueUniformMap->find(binding);
-		if (valueIt != mValueUniformMap->end()) {
+		if (mValueUniformMap.find(binding) != mValueUniformMap.end()) {
 			return false;
 		}
 
-		std::unordered_map<uint32_t, TextureUniformInfo>::iterator textureIt = mTextureUniformMap->find(binding);
-		if (textureIt != mTextureUniformMap->end()) {
+		if (mTextureUniformMap.find(binding) != mTextureUniformMap.end()) {
 			return false;
 		}
 
-		std::unordered_map<uint32_t, std::reference_wrapper<TextureArray>>::iterator textureArrIt = mTextureArrayUniformMap->find(binding);
-		if (textureArrIt != mTextureArrayUniformMap->end()) {
+		if (mTextureArrayUniformMap.find(binding) != mTextureArrayUniformMap.end()) {
 			return false;
 		}
 
@@ -39,21 +33,21 @@ namespace DOH {
 
 	void ShaderUniformLayout::setValue(uint32_t binding, ValueUniformInfo value) {
 		if (isBindingAvailable(binding)) {
-			mValueUniformMap->emplace(binding, value);
+			mValueUniformMap.emplace(binding, value);
 			mHasUniforms = true;
 		}
 	}
 
 	void ShaderUniformLayout::setTexture(uint32_t binding, TextureUniformInfo textureInfo) {
 		if (isBindingAvailable(binding)) {
-			mTextureUniformMap->emplace(binding, textureInfo);
+			mTextureUniformMap.emplace(binding, textureInfo);
 			mHasUniforms = true;
 		}
 	}
 
 	void ShaderUniformLayout::setTextureArray(uint32_t binding, TextureArray& texArr) {
 		if (isBindingAvailable(binding)) {
-			mTextureArrayUniformMap->emplace(binding, texArr);
+			mTextureArrayUniformMap.emplace(binding, texArr);
 			mHasUniforms = true;
 		} else {
 			LOG_WARN("Binding: " << binding << " not available for texture array");
@@ -74,7 +68,7 @@ namespace DOH {
 		pushConstant.size = size;
 		pushConstant.offset = offset;
 
-		mPushConstantRanges.push_back(pushConstant);
+		mPushConstantRanges.emplace_back(pushConstant);
 	}
 
 	void ShaderUniformLayout::clearDescriptorSetLayoutBindings() {
@@ -82,13 +76,13 @@ namespace DOH {
 	}
 
 	void ShaderUniformLayout::clearTextureUniforms() {
-		mTextureUniformMap->clear();
-		mTextureArrayUniformMap->clear();
+		mTextureUniformMap.clear();
+		mTextureArrayUniformMap.clear();
 		mHasUniforms = getTotalValueCount() > 0 ? true : false;
 	}
 
 	void ShaderUniformLayout::clearUniforms() {
-		mValueUniformMap->clear();
+		mValueUniformMap.clear();
 		clearTextureUniforms();
 		mPushConstantRanges.clear();
 		mHasUniforms = false;
@@ -102,7 +96,7 @@ namespace DOH {
 	std::vector<DescriptorTypeInfo> ShaderUniformLayout::asDescriptorTypes() const {
 		std::vector<DescriptorTypeInfo> descTypes = {};
 		for (const VkDescriptorSetLayoutBinding& layoutBinding : mDescriptorSetLayoutBindings) {
-			descTypes.push_back({ layoutBinding.descriptorType, layoutBinding.descriptorCount});
+			descTypes.emplace_back(layoutBinding.descriptorType, layoutBinding.descriptorCount);
 		}
 
 		return descTypes;
@@ -120,8 +114,7 @@ namespace DOH {
 	const uint32_t ShaderUniformLayout::getTotalTextureCountInTextureArrayMap() const {
 		uint32_t count = 0;
 
-		std::unordered_map<uint32_t, std::reference_wrapper<TextureArray>>::iterator textureArrIt;
-		for (textureArrIt = mTextureArrayUniformMap->begin(); textureArrIt != mTextureArrayUniformMap->end(); textureArrIt++) {
+		for (auto textureArrIt = mTextureArrayUniformMap.begin(); textureArrIt != mTextureArrayUniformMap.end(); textureArrIt++) {
 			count += textureArrIt->second.get().getMaxTextureCount();
 		}
 

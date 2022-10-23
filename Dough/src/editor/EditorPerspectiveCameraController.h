@@ -15,10 +15,10 @@ namespace DOH::EDITOR {
 		glm::vec3 mPosition;
 		glm::vec3 mDirectionFacing;
 		glm::vec2 mCursorLastPosUpdate;
-		bool mClickAndDragActive;
 		float mAspectRatio;
 		float mFov;
 		float mTranslationSpeed;
+		bool mClickAndDragActive;
 
 	public:
 		EditorPerspectiveCameraController(float aspectRatio, float fov = 60.0f);

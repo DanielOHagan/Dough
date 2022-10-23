@@ -104,7 +104,7 @@ namespace DOH {
 		//for (int i = 0; i < 8; i++) {
 		//	std::string path = testTexturesPath + "texture" + std::to_string(i) + ".png";
 		//	std::shared_ptr<TextureVulkan> testTexture = ObjInit::texture(path);
-		//	mTestTextures.push_back(testTexture);
+		//	mTestTextures.emplace_back(ObjInit::texture(path));
 		//	
 		//	//TODO:: dynamic texture arrays, instead of assigning at initialisation
 		//	mQuadBatchTextureArray->addNewTexture(*testTexture);

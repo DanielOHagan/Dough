@@ -5,7 +5,7 @@ namespace DOH {
 
 	SwapChainVulkan::SwapChainVulkan(
 		VkDevice logicDevice,
-		SwapChainSupportDetails scsd,
+		SwapChainSupportDetails& scsd,
 		VkSurfaceKHR surface,
 		QueueFamilyIndices& indices,
 		uint32_t width,
@@ -69,7 +69,7 @@ namespace DOH {
 		createInfo.imageArrayLayers = 1;
 		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-		uint32_t queueFamilyIndices[] = {indices.GraphicsFamily.value(), indices.PresentFamily.value()};
+		uint32_t queueFamilyIndices[] = { indices.GraphicsFamily.value(), indices.PresentFamily.value() };
 
 		if (indices.GraphicsFamily != indices.PresentFamily) {
 			createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -126,32 +126,75 @@ namespace DOH {
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 			);
 			VkImageView depthImageView = context.createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
-			mSceneDepthImages.push_back({ depthImage, depthImageMem, depthImageView });
+			mSceneDepthImages.emplace_back(depthImage, depthImageMem, depthImageView);
 		}
 
-		mSceneRenderPass = context.createRenderPass(
-			mImageFormat,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_ATTACHMENT_LOAD_OP_CLEAR,
-			true,
-			{ 0.264f, 0.328f, 0.484f, 1.0f }, //TODO:: default clear colour,
-			depthFormat
-		);
-		mAppUiRenderPass = context.createRenderPass(
-			mImageFormat,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_ATTACHMENT_LOAD_OP_LOAD,
-			false
-		);
-		mImGuiRenderPass = context.createRenderPass(
-			mImageFormat,
-			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-			VK_ATTACHMENT_LOAD_OP_LOAD,
-			false
-		);
+		{
+			SubPassVulkan sceneSubPass = {
+				VK_PIPELINE_BIND_POINT_GRAPHICS,
+				{//Colour attachments
+					{
+						ERenderPassAttachmentType::COLOUR,
+						mImageFormat,
+						VK_ATTACHMENT_LOAD_OP_CLEAR,
+						VK_ATTACHMENT_STORE_OP_STORE,
+						VK_IMAGE_LAYOUT_UNDEFINED,
+						VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+						{{ 0.264f, 0.328f, 0.484f, 1.0f }}
+					}
+				},
+				{//optional depth stencil
+					{
+						ERenderPassAttachmentType::DEPTH,
+						depthFormat,
+						VK_ATTACHMENT_LOAD_OP_CLEAR,
+						VK_ATTACHMENT_STORE_OP_DONT_CARE,
+						VK_IMAGE_LAYOUT_UNDEFINED,
+						VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+						{{ 1.0f, 0 }}
+					}
+				}
+			};
+
+			mSceneRenderPass = std::make_shared<RenderPassVulkan>(logicDevice, sceneSubPass);
+		}
+
+		{
+			SubPassVulkan uiSubPass = {
+				VK_PIPELINE_BIND_POINT_GRAPHICS,
+				{
+					{
+						ERenderPassAttachmentType::COLOUR,
+						mImageFormat,
+						VK_ATTACHMENT_LOAD_OP_LOAD,
+						VK_ATTACHMENT_STORE_OP_STORE,
+						VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+						VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+						{{ 0.264f, 0.328f, 0.484f, 1.0f }}
+					}
+				}
+			};
+
+			mAppUiRenderPass = std::make_shared<RenderPassVulkan>(logicDevice, uiSubPass);
+		}
+
+		{
+			SubPassVulkan imGuiSubPass = {
+				VK_PIPELINE_BIND_POINT_GRAPHICS,
+				{
+					{
+						ERenderPassAttachmentType::COLOUR,
+						mImageFormat,
+						VK_ATTACHMENT_LOAD_OP_LOAD,
+						VK_ATTACHMENT_STORE_OP_STORE,
+						VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+						VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+					}
+				}
+			};
+
+			mImGuiRenderPass = std::make_shared<RenderPassVulkan>(logicDevice, imGuiSubPass);
+		}
 
 		createFrameBuffers(logicDevice);
 	}
@@ -189,7 +232,7 @@ namespace DOH {
 		mImGuiFrameBuffers.resize(imageCount);
 
 		for (size_t i = 0; i < imageCount; i++) {
-			std::array<VkImageView, 2> sceneAttachments = { mImageViews[i], mSceneDepthImages[i % (imageCount - 1)].getImageView()};
+			std::array<VkImageView, 2> sceneAttachments = { mImageViews[i], mSceneDepthImages[i % (imageCount - 1)].getImageView() };
 			VkFramebufferCreateInfo sceneFrameBufferInfo = {};
 			sceneFrameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			sceneFrameBufferInfo.renderPass = mSceneRenderPass->get();
@@ -265,10 +308,6 @@ namespace DOH {
 				LOG_ERR("Unknown render pass type");
 				break;
 		}
-	}
-
-	void SwapChainVulkan::endRenderPass(VkCommandBuffer cmd) {
-		vkCmdEndRenderPass(cmd);
 	}
 
 	uint32_t SwapChainVulkan::aquireNextImageIndex(

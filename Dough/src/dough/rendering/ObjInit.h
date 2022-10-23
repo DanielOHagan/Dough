@@ -22,14 +22,14 @@ namespace DOH {
 			SwapChainCreationInfo& swapChainCreate
 		);
 
-		static std::shared_ptr<RenderPassVulkan> renderPass(
-			VkFormat imageFormat,
-			VkImageLayout initialLayout,
-			VkImageLayout finalLayout,
-			VkAttachmentLoadOp loadOp,
-			bool enableClearColour,
-			VkClearValue clearColour = {0.264f, 0.328f, 0.484f, 1.0f}
-		);
+		//static std::shared_ptr<RenderPassVulkan> renderPass(
+		//	VkFormat imageFormat,
+		//	VkImageLayout initialLayout,
+		//	VkImageLayout finalLayout,
+		//	VkAttachmentLoadOp loadOp,
+		//	bool enableClearColour,
+		//	VkClearValue clearColour = {0.264f, 0.328f, 0.484f, 1.0f}
+		//);
 
 
 		//-----VAO-----

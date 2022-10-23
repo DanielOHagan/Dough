@@ -8,7 +8,7 @@ namespace DOH {
 
 	private:
 
-		SwapChainSupportDetails mSwapChainSupportDetails;
+		SwapChainSupportDetails& mSwapChainSupportDetails;
 
 		VkSwapchainKHR mSwapChain;
 		std::vector<VkImage> mImages;
@@ -37,7 +37,7 @@ namespace DOH {
 
 		SwapChainVulkan(
 			VkDevice logicDevice,
-			SwapChainSupportDetails scsd,
+			SwapChainSupportDetails& scsd,
 			VkSurfaceKHR surface,
 			QueueFamilyIndices& indices,
 			uint32_t width,
@@ -65,7 +65,7 @@ namespace DOH {
 			VkSemaphore imageAvailableSemaphore
 		);
 		void beginRenderPass(ERenderPassType type, size_t frameBufferIndex, VkCommandBuffer cmd);
-		void endRenderPass(VkCommandBuffer cmd);
+		void resize();
 
 		inline void setResizable(bool resizable) { mResizable = resizable; }
 		inline bool isResizable() const { return mResizable; }

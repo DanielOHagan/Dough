@@ -29,8 +29,8 @@ namespace std {
 	template<>
 	struct hash<DOH::Vertex3dTextured> {
 		size_t operator()(DOH::Vertex3dTextured const& vertex) const {
-			return (
-				(((((hash<glm::vec3>()(vertex.Pos) ^
+			return ((((((
+				hash<glm::vec3>()(vertex.Pos) ^
 					(hash<glm::vec4>()(vertex.Colour) << 1)
 				) >> 1)) ^
 					(hash<glm::vec2>()(vertex.TexCoord) << 1)
@@ -42,8 +42,8 @@ namespace std {
 	template<>
 	struct hash<DOH::Vertex3dLitTextured> {
 		size_t operator()(DOH::Vertex3dLitTextured const& vertex) const {
-			return (
-				(((((hash<glm::vec3>()(vertex.Pos) ^
+			return ((((((
+					hash<glm::vec3>()(vertex.Pos) ^
 					(hash<glm::vec4>()(vertex.Colour) << 1)
 				) >> 1)) ^
 					(hash<glm::vec3>()(vertex.Normal) << 1)

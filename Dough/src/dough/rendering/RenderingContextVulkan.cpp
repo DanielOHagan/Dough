@@ -167,7 +167,7 @@ namespace DOH {
 				usingDescPool = true;
 				
 				for (const auto& descType : pipeline.second->getShaderProgram().getUniformLayout().asDescriptorTypes()) {
-					descTypes.push_back(descType);
+					descTypes.emplace_back(descType);
 				}
 			}
 
@@ -175,7 +175,7 @@ namespace DOH {
 				usingDescPool = true;
 
 				for (const auto& descType : pipeline.second->getShaderProgram().getUniformLayout().asDescriptorTypes()) {
-					descTypes.push_back(descType);
+					descTypes.emplace_back(descType);
 				}
 			}
 
@@ -243,13 +243,16 @@ namespace DOH {
 		//Draw scene
 		drawScene(imageIndex, cmd);
 
+		//NOTE:: If using subpasses to separate rendering scene/UI, increment subpass index
+		//vkCmdNextSubpass(cmd, VK_SUBPASS_CONTENTS_INLINE);
+
 		//Draw Application UI
 		drawUi(imageIndex, cmd);
 
 		//Draw ImGui
 		mSwapChain->beginRenderPass(SwapChainVulkan::ERenderPassType::IMGUI, imageIndex, cmd);
 		mImGuiWrapper->render(cmd);
-		mSwapChain->endRenderPass(cmd);
+		RenderPassVulkan::endRenderPass(cmd);
 
 		mImGuiWrapper->endFrame();
 
@@ -266,7 +269,7 @@ namespace DOH {
 		present(imageIndex, cmd);
 
 		//TODO:: A way of closing/removing last frame specific gpu resources
-		//releaseGpuResources();
+		//releaseFrameSpecificGpuResources(lastFrameIndex);
 
 		debugInfo.updateTotalDrawCallCount();
 	}
@@ -275,6 +278,7 @@ namespace DOH {
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 
 		mSwapChain->beginRenderPass(SwapChainVulkan::ERenderPassType::SCENE, imageIndex, cmd);
+
 		for (const auto& pipeline : mSceneGraphicsPipelines) {
 			if (pipeline.second->isEnabled()) {
 
@@ -292,7 +296,8 @@ namespace DOH {
 		//Batch VAOs should have only one VAO and if the batch has at least one quad then there is a draw call
 		mRenderer2d->flushScene(mLogicDevice, imageIndex, cmd);
 		debugInfo.BatchRendererDrawCalls = mRenderer2d->getDrawCount();
-		mSwapChain->endRenderPass(cmd);
+
+		RenderPassVulkan::endRenderPass(cmd);
 	}
 
 	void RenderingContextVulkan::drawUi(uint32_t imageIndex, VkCommandBuffer cmd) {
@@ -314,8 +319,7 @@ namespace DOH {
 			}
 		}
 
-		//Renderer2d::get().flushUi();
-		mSwapChain->endRenderPass(cmd);
+		RenderPassVulkan::endRenderPass(cmd);
 	}
 
 	void RenderingContextVulkan::present(uint32_t imageIndex, VkCommandBuffer cmd) {
@@ -557,14 +561,14 @@ namespace DOH {
 		uint32_t pipelineCount = 0;
 		for (const auto& pipeline : mSceneGraphicsPipelines) {
 			for (const auto& descType : pipeline.second->getShaderProgram().getUniformLayout().asDescriptorTypes()) {
-				descTypes.push_back(descType);
+				descTypes.emplace_back(descType);
 			}
 			pipelineCount++;
 		}
 
 		for (const auto& pipeline : mUiGraphicsPipelines) {
 			for (const auto& descType : pipeline.second->getShaderProgram().getUniformLayout().asDescriptorTypes()) {
-				descTypes.push_back(descType);
+				descTypes.emplace_back(descType);
 			}
 			pipelineCount++;
 		}
@@ -679,12 +683,54 @@ namespace DOH {
 		endSingleTimeCommands(cmdBuffer);
 	}
 
-	//TODO:: contains a single time command that executes on function end
-	void RenderingContextVulkan::transitionImageLayout(
+	void RenderingContextVulkan::transitionStagedImageLayout(
 		VkImage image,
 		VkImageLayout oldLayout,
 		VkImageLayout newLayout,
 		VkImageAspectFlags aspectFlags
+	) {
+		VkPipelineStageFlags srcStage;
+		VkPipelineStageFlags dstStage;
+		VkAccessFlags srcAccessMask;
+		VkAccessFlags dstAccessMask;
+
+		if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+			srcAccessMask = 0;
+			dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+			srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+		} else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+			srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+			srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		} else {
+			THROW("Layout transition not supported");
+		}
+
+		transitionImageLayout(
+			image,
+			oldLayout,
+			newLayout,
+			aspectFlags,
+			srcStage,
+			dstStage,
+			srcAccessMask,
+			dstAccessMask
+		);
+	}
+
+	void RenderingContextVulkan::transitionImageLayout(
+		VkImage image,
+		VkImageLayout oldLayout,
+		VkImageLayout newLayout,
+		VkImageAspectFlags aspectFlags,
+		VkPipelineStageFlags srcStage,
+		VkPipelineStageFlags dstStage,
+		VkAccessFlags srcAccessMask,
+		VkAccessFlags dstAccessMask
 	) {
 		VkCommandBuffer cmdBuffer = beginSingleTimeCommands();
 
@@ -700,25 +746,8 @@ namespace DOH {
 		barrier.subresourceRange.levelCount = 1;
 		barrier.subresourceRange.baseArrayLayer = 0;
 		barrier.subresourceRange.layerCount = 1;
-
-		VkPipelineStageFlags srcStage;
-		VkPipelineStageFlags dstStage;
-
-		if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
-			barrier.srcAccessMask = 0;
-			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-			srcStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-			dstStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-		} else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-			srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-			dstStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-		} else {
-			THROW("Layout transition not supported");
-		}
+		barrier.srcAccessMask = srcAccessMask;
+		barrier.dstAccessMask = dstAccessMask;
 
 		vkCmdPipelineBarrier(
 			cmdBuffer,
@@ -867,27 +896,6 @@ namespace DOH {
 
 	std::shared_ptr<SwapChainVulkan> RenderingContextVulkan::createSwapChain(SwapChainCreationInfo& swapChainCreate) {
 		return std::make_shared<SwapChainVulkan>(mLogicDevice, swapChainCreate);
-	}
-
-	std::shared_ptr<RenderPassVulkan> RenderingContextVulkan::createRenderPass(
-		VkFormat imageFormat,
-		VkImageLayout initialLayout,
-		VkImageLayout finalLayout,
-		VkAttachmentLoadOp loadOp,
-		bool enableClearColour,
-		VkClearValue clearColour,
-		VkFormat depthFormat
-	) {
-		return std::make_shared<RenderPassVulkan>(
-			mLogicDevice,
-			imageFormat,
-			initialLayout,
-			finalLayout,
-			loadOp,
-			enableClearColour,
-			clearColour,
-			depthFormat
-		);
 	}
 
 	std::shared_ptr<VertexArrayVulkan> RenderingContextVulkan::createVertexArray() {

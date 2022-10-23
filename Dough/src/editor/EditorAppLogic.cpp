@@ -315,68 +315,6 @@ namespace DOH::EDITOR {
 				}
 			}
 
-			ImGui::SetNextItemOpen(mImGuiSettings->InnerAppCollapseMenu);
-			if (mImGuiSettings->InnerAppCollapseMenu = ImGui::CollapsingHeader("Inner App")) {
-				if (mInnerAppState == EInnerAppState::PLAYING || mInnerAppState == EInnerAppState::PAUSED) {
-					ImGui::Text("Inner App Runtime: %fs", Time::convertMillisToSeconds(mInnerAppTimer->getCurrentTickingTimeMillis()));
-				} else {
-					ImGui::Text("Inner App");
-				}
-
-				ImGui::SameLine();
-				switch (mInnerAppState) {
-					case EInnerAppState::PAUSED:
-						ImGui::Text("Paused");
-
-						if (ImGui::Button("Continue")) {
-							mInnerAppState = EInnerAppState::PLAYING;
-
-							mInnerAppTimer->unPause();
-						}
-						ImGui::SameLine();
-						if (ImGui::Button("STOP")) {
-							mInnerAppState = EInnerAppState::STOPPED;
-
-							mInnerAppTimer->end();
-							//TODO:: resetInnerApp();
-						}
-						break;
-
-					case EInnerAppState::PLAYING:
-						ImGui::Text("Playing");
-
-						if (ImGui::Button("Pause")) {
-							mInnerAppState = EInnerAppState::PAUSED;
-
-							mInnerAppTimer->pause();
-						}
-						ImGui::SameLine();
-						if (ImGui::Button("STOP")) {
-							mInnerAppState = EInnerAppState::STOPPED;
-
-							mInnerAppTimer->end();
-							//TODO:: resetInnerApp();
-						}
-						break;
-
-					case EInnerAppState::STOPPED:
-						ImGui::Text("Stopped");
-
-						if (ImGui::Button("Play")) {
-							//TODO:: re-initialise/reset inner app 
-							mInnerAppState = EInnerAppState::PLAYING;
-
-							mInnerAppTimer->start();
-						}
-						break;
-
-					case EInnerAppState::NONE:
-					default:
-						LOG_ERR("Inner App state Unknown or NONE");
-						break;
-				}
-			}
-
 			ImGui::SetNextItemOpen(mImGuiSettings->RenderingCollapseMenuOpen);
 			if (mImGuiSettings->RenderingCollapseMenuOpen = ImGui::CollapsingHeader("Rendering")) {
 				AppDebugInfo& debugInfo = Application::get().getDebugInfo();
@@ -477,163 +415,225 @@ namespace DOH::EDITOR {
 				imGuiDisplayHelpTooltip("Close Empty Quad Batches. This can help clean-up when 1 or more batches have geo counts of 0");
 			}
 
-			ImGui::SetNextItemOpen(mImGuiSettings->CurrentDemoCollapseMenuOpen);
-			if (mImGuiSettings->CurrentDemoCollapseMenuOpen = ImGui::CollapsingHeader("Demo")) {
-				if (ImGui::Button("Disable all demos")) {
-					mGridDemo->Render = false;
-					mGridDemo->Update = false;
-
-					mBouncingQuadDemo->Render = false;
-					mBouncingQuadDemo->Update = false;
-
-					mCustomDemo->RenderScene = false;
-					mCustomDemo->RenderUi = false;
-					mCustomDemo->Update = false;
-
-					mObjModelsDemo->Render = false;
-					mObjModelsDemo->Update = false;
+			ImGui::SetNextItemOpen(mImGuiSettings->InnerAppCollapseMenu);
+			if (mImGuiSettings->InnerAppCollapseMenu = ImGui::CollapsingHeader("Inner App")) {
+				if (mInnerAppState == EInnerAppState::PLAYING || mInnerAppState == EInnerAppState::PAUSED) {
+					ImGui::Text("Inner App Runtime: %fs", Time::convertMillisToSeconds(mInnerAppTimer->getCurrentTickingTimeMillis()));
+				} else {
+					ImGui::Text("Inner App");
 				}
 
-				ImGui::Text("Demo Settings & Info:");
+				ImGui::SameLine();
+				switch (mInnerAppState) {
+					case EInnerAppState::PAUSED:
+						ImGui::Text("Paused");
 
-				ImGui::BeginTabBar("Demo Tab Bar");
-				if (ImGui::BeginTabItem("Grid")) {
-					ImGui::Checkbox("Render", &mGridDemo->Render);
-					ImGui::Checkbox("Update", &mGridDemo->Update);
-					ImGui::Checkbox("Draw Colour", &mGridDemo->QuadDrawColour);
-					ImGui::Text("Grid Quad Count: %i of Max %i", mGridDemo->TestGridSize[0] * mGridDemo->TestGridSize[1], mGridDemo->TestGridMaxQuadCount);
-					int tempTestGridSize[2] = { mGridDemo->TestGridSize[0], mGridDemo->TestGridSize[1] };
-					if (ImGui::InputInt2("Grid Size", tempTestGridSize)) {
-						if (tempTestGridSize[0] > 0 && tempTestGridSize[1] > 0) {
-							const int tempGridQuadCount = tempTestGridSize[0] * tempTestGridSize[1];
-							if (tempGridQuadCount <= mGridDemo->TestGridMaxQuadCount) {
-								mGridDemo->TestGridSize[0] = tempTestGridSize[0];
-								mGridDemo->TestGridSize[1] = tempTestGridSize[1];
-							} else {
-								LOG_WARN(
-									"New grid size of " << tempTestGridSize[0] << "x" << tempTestGridSize[1] <<
-									" (" << tempTestGridSize[0] * tempTestGridSize[1] <<
-									") is too large, max quad count is " << mGridDemo->TestGridMaxQuadCount
-								);
+						if (ImGui::Button("Continue")) {
+							mInnerAppState = EInnerAppState::PLAYING;
+
+							mInnerAppTimer->unPause();
+						}
+						ImGui::SameLine();
+						if (ImGui::Button("STOP")) {
+							mInnerAppState = EInnerAppState::STOPPED;
+
+							mInnerAppTimer->end();
+							//TODO:: resetInnerApp();
+						}
+						break;
+
+					case EInnerAppState::PLAYING:
+						ImGui::Text("Playing");
+
+						if (ImGui::Button("Pause")) {
+							mInnerAppState = EInnerAppState::PAUSED;
+
+							mInnerAppTimer->pause();
+						}
+						ImGui::SameLine();
+						if (ImGui::Button("STOP")) {
+							mInnerAppState = EInnerAppState::STOPPED;
+
+							mInnerAppTimer->end();
+							//TODO:: resetInnerApp();
+						}
+						break;
+
+					case EInnerAppState::STOPPED:
+						ImGui::Text("Stopped");
+
+						if (ImGui::Button("Play")) {
+							//TODO:: re-initialise/reset inner app 
+							mInnerAppState = EInnerAppState::PLAYING;
+
+							mInnerAppTimer->start();
+						}
+						break;
+
+					case EInnerAppState::NONE:
+					default:
+						LOG_ERR("Inner App state Unknown or NONE");
+						break;
+				}
+
+				ImGui::SetNextItemOpen(mImGuiSettings->CurrentDemoCollapseMenuOpen);
+				if (mImGuiSettings->CurrentDemoCollapseMenuOpen = ImGui::CollapsingHeader("Demo")) {
+					if (ImGui::Button("Disable all demos")) {
+						mGridDemo->Render = false;
+						mGridDemo->Update = false;
+
+						mBouncingQuadDemo->Render = false;
+						mBouncingQuadDemo->Update = false;
+
+						mCustomDemo->RenderScene = false;
+						mCustomDemo->RenderUi = false;
+						mCustomDemo->Update = false;
+
+						mObjModelsDemo->Render = false;
+						mObjModelsDemo->Update = false;
+					}
+
+					ImGui::Text("Demo Settings & Info:");
+
+					ImGui::BeginTabBar("Demo Tab Bar");
+					if (ImGui::BeginTabItem("Grid")) {
+						ImGui::Checkbox("Render", &mGridDemo->Render);
+						ImGui::Checkbox("Update", &mGridDemo->Update);
+						ImGui::Checkbox("Draw Colour", &mGridDemo->QuadDrawColour);
+						ImGui::Text("Grid Quad Count: %i of Max %i", mGridDemo->TestGridSize[0] * mGridDemo->TestGridSize[1], mGridDemo->TestGridMaxQuadCount);
+						int tempTestGridSize[2] = { mGridDemo->TestGridSize[0], mGridDemo->TestGridSize[1] };
+						if (ImGui::InputInt2("Grid Size", tempTestGridSize)) {
+							if (tempTestGridSize[0] > 0 && tempTestGridSize[1] > 0) {
+								const int tempGridQuadCount = tempTestGridSize[0] * tempTestGridSize[1];
+								if (tempGridQuadCount <= mGridDemo->TestGridMaxQuadCount) {
+									mGridDemo->TestGridSize[0] = tempTestGridSize[0];
+									mGridDemo->TestGridSize[1] = tempTestGridSize[1];
+								} else {
+									LOG_WARN(
+										"New grid size of " << tempTestGridSize[0] << "x" << tempTestGridSize[1] <<
+										" (" << tempTestGridSize[0] * tempTestGridSize[1] <<
+										") is too large, max quad count is " << mGridDemo->TestGridMaxQuadCount
+									);
+								}
 							}
 						}
+						bool gridDemoQuadSizeChanged = ImGui::DragFloat2("Quad Size", mGridDemo->TestGridQuadSize, 0.001f, 0.01f, 0.5f);
+						bool gridDemoQuadGapSizeChanged = ImGui::DragFloat2("Quad Gap Size", mGridDemo->TestGridQuadGapSize, 0.001f, 0.01f, 0.5f);
+						//ImGui::DragFloat2("Test Grid Origin Pos", );
+						//ImGui::Text("UI Quad Count: %i", renderer.getContext().getRenderer2d().getStorage().getUiQuadCount());
+
+						//TOOD:: maybe have radio buttons for RenderStaticGrid or RenderDynamicGrid,
+						//	static being the default values and dynamic being from the variables determined by ths menu
+						// Maybe have the dynamic settings hidden unless dynamic is selected
+
+						MonoSpaceTextureAtlasVulkan& atlas = *renderer.getContext().getRenderer2d().getStorage().getTestTextureAtlas();
+
+						int tempTestTextureRowOffset = mGridDemo->TestTexturesRowOffset;
+						if (ImGui::InputInt("Test Texture Row Offset", &tempTestTextureRowOffset)) {
+							mGridDemo->TestTexturesRowOffset = tempTestTextureRowOffset < 0 ? 0 : tempTestTextureRowOffset % atlas.getRowCount();
+						}
+						int tempTestTextureColOffset = mGridDemo->TestTexturesColumnOffset;
+						if (ImGui::InputInt("Test Texture Col Offset", &tempTestTextureColOffset)) {
+							mGridDemo->TestTexturesColumnOffset = tempTestTextureColOffset < 0 ? 0 : tempTestTextureColOffset % atlas.getColCount();
+						}
+
+						ImGui::ColorPicker4("Grid Colour", &mGridDemo->QuadColour.x);
+
+						if (ImGui::Button("Reset Grid")) {
+							mGridDemo->TestGridSize[0] = 10;
+							mGridDemo->TestGridSize[1] = 10;
+							mGridDemo->TestGridQuadSize[0] = 0.1f;
+							mGridDemo->TestGridQuadSize[1] = 0.1f;
+							mGridDemo->TestGridQuadGapSize[0] = mGridDemo->TestGridQuadSize[0] * 1.5f;
+							mGridDemo->TestGridQuadGapSize[1] = mGridDemo->TestGridQuadSize[1] * 1.5f;
+						}
+
+						ImGui::EndTabItem();
 					}
-					bool gridDemoQuadSizeChanged = ImGui::DragFloat2("Quad Size", mGridDemo->TestGridQuadSize, 0.001f, 0.01f, 0.5f);
-					bool gridDemoQuadGapSizeChanged = ImGui::DragFloat2("Quad Gap Size", mGridDemo->TestGridQuadGapSize, 0.001f, 0.01f, 0.5f);
-					//ImGui::DragFloat2("Test Grid Origin Pos", );
-					//ImGui::Text("UI Quad Count: %i", renderer.getContext().getRenderer2d().getStorage().getUiQuadCount());
+					if (ImGui::BeginTabItem("Bouncing Quads")) {
+						ImGui::Checkbox("Render", &mBouncingQuadDemo->Render);
+						ImGui::Checkbox("Update", &mBouncingQuadDemo->Update);
+						ImGui::Checkbox("Draw Colour", &mBouncingQuadDemo->QuadDrawColour);
+						ImGui::Text("Bouncing Quads Count: %i", mBouncingQuadDemo->BouncingQuads.size());
+						auto& demo = mBouncingQuadDemo;
+						if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Add").c_str(), &demo->AddNewQuadCount, 5, 5)) {
+							if (demo->AddNewQuadCount < 0) {
+								demo->AddNewQuadCount = 0;
+							} else if (demo->AddNewQuadCount > 1000) {
+								demo->AddNewQuadCount = 1000;
+							}
+						}
+						ImGui::SameLine();
+						if (ImGui::Button("Add Quads")) {
+							bouncingQuadsDemoAddRandomQuads(demo->AddNewQuadCount);
+						}
+						if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop").c_str(), &demo->PopQuadCount, 5, 5)) {
+							if (demo->PopQuadCount < 0) {
+								demo->PopQuadCount = 0;
+							}
+						}
+						ImGui::SameLine();
+						if (ImGui::Button("Pop Quads")) {
+							bouncingQaudsDemoPopQuads(demo->PopQuadCount);
+						}
+						if (ImGui::Button("Clear Quads")) {
+							bouncingQaudsDemoPopQuads(static_cast<int>(demo->BouncingQuads.size()));
+						}
 
-					//TOOD:: maybe have radio buttons for RenderStaticGrid or RenderDynamicGrid,
-					//	static being the default values and dynamic being from the variables determined by ths menu
-					// Maybe have the dynamic settings hidden unless dynamic is selected
-
-					MonoSpaceTextureAtlasVulkan& atlas = *renderer.getContext().getRenderer2d().getStorage().getTestTextureAtlas();
-					
-					int tempTestTextureRowOffset = mGridDemo->TestTexturesRowOffset;
-					if (ImGui::InputInt("Test Texture Row Offset", &tempTestTextureRowOffset)) {
-						mGridDemo->TestTexturesRowOffset = tempTestTextureRowOffset < 0 ? 0 : tempTestTextureRowOffset % atlas.getRowCount();
+						ImGui::EndTabItem();
 					}
-					int tempTestTextureColOffset = mGridDemo->TestTexturesColumnOffset;
-					if (ImGui::InputInt("Test Texture Col Offset", &tempTestTextureColOffset)) {
-						mGridDemo->TestTexturesColumnOffset = tempTestTextureColOffset < 0 ? 0 : tempTestTextureColOffset % atlas.getColCount();
+					if (ImGui::BeginTabItem("Custom")) {
+						ImGui::Checkbox("Render Scene", &mCustomDemo->RenderScene);
+						ImGui::Checkbox("Render UI", &mCustomDemo->RenderUi);
+						ImGui::Checkbox("Update", &mCustomDemo->Update);
+
+						ImGui::EndTabItem();
 					}
+					if (ImGui::BeginTabItem("Obj Models")) {
+						auto& renderables = mObjModelsDemo->RenderableObjects;
+						auto& demo = mObjModelsDemo;
+						static const std::string addLabel = std::string(ImGuiWrapper::EMPTY_LABEL) + "Add";
+						static const std::string popLabel = std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop";
 
-					ImGui::ColorPicker4("Grid Colour", &mGridDemo->QuadColour.x);
+						ImGui::Checkbox("Render", &demo->Render);
+						ImGui::Checkbox("Update", &demo->Update);
+						ImGui::Text("Object Count: %i", renderables.size());
+						if (ImGui::InputInt(addLabel.c_str(), &demo->AddNewObjectsCount, 5, 5)) {
+							if (demo->AddNewObjectsCount < 0) {
+								demo->AddNewObjectsCount = 0;
+							} else if (demo->AddNewObjectsCount > 1000) {
+								demo->AddNewObjectsCount = 1000;
+							}
+						}
+						ImGui::SameLine();
+						if (ImGui::Button("Add Object")) {
+							for (int i = 0; i < demo->AddNewObjectsCount; i++) {
+								objModelsDemoAddRandomisedObject();
+							}
+						}
+						if (ImGui::InputInt(popLabel.c_str(), &demo->PopObjectsCount, 5, 5)) {
+							if (demo->PopObjectsCount < 0) {
+								demo->PopObjectsCount = 0;
+							}
+						}
+						ImGui::SameLine();
+						if (ImGui::Button("Pop Object")) {
+							//Max out pop count to renderables list size
+							const int size = static_cast<int>(demo->RenderableObjects.size());
+							const int popCount = demo->PopObjectsCount > size ? size : demo->PopObjectsCount;
 
-					if (ImGui::Button("Reset Grid")) {
-						mGridDemo->TestGridSize[0] = 10;
-						mGridDemo->TestGridSize[1] = 10;
-						mGridDemo->TestGridQuadSize[0] = 0.1f;
-						mGridDemo->TestGridQuadSize[1] = 0.1f;
-						mGridDemo->TestGridQuadGapSize[0] = mGridDemo->TestGridQuadSize[0] * 1.5f;
-						mGridDemo->TestGridQuadGapSize[1] = mGridDemo->TestGridQuadSize[1] * 1.5f;
+							for (int i = 0; i < popCount; i++) {
+								demo->RenderableObjects.pop_back();
+							}
+						}
+						ImGui::Checkbox("Display Renderable Models List", &mImGuiSettings->RenderObjModelsList);
+						if (ImGui::Button("Clear Objects")) {
+							renderables.clear();
+						}
+						ImGui::EndTabItem();
 					}
-
-					ImGui::EndTabItem();
+					ImGui::EndTabBar();
 				}
-				if (ImGui::BeginTabItem("Bouncing Quads")) {
-					ImGui::Checkbox("Render", &mBouncingQuadDemo->Render);
-					ImGui::Checkbox("Update", &mBouncingQuadDemo->Update);
-					ImGui::Checkbox("Draw Colour", &mBouncingQuadDemo->QuadDrawColour);
-					ImGui::Text("Bouncing Quads Count: %i", mBouncingQuadDemo->BouncingQuads.size());
-					auto& demo = mBouncingQuadDemo;
-					if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Add").c_str(), &demo->AddNewQuadCount, 5, 5)) {
-						if (demo->AddNewQuadCount < 0) {
-							demo->AddNewQuadCount = 0;
-						} else if (demo->AddNewQuadCount > 1000) {
-							demo->AddNewQuadCount = 1000;
-						}
-					}
-					ImGui::SameLine();
-					if (ImGui::Button("Add Quads")) {
-						bouncingQuadsDemoAddRandomQuads(demo->AddNewQuadCount);
-					}
-					if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop").c_str(), &demo->PopQuadCount, 5, 5)) {
-						if (demo->PopQuadCount < 0) {
-							demo->PopQuadCount = 0;
-						}
-					}
-					ImGui::SameLine();
-					if (ImGui::Button("Pop Quads")) {
-						bouncingQaudsDemoPopQuads(demo->PopQuadCount);
-					}
-					if (ImGui::Button("Clear Quads")) {
-						bouncingQaudsDemoPopQuads(static_cast<int>(demo->BouncingQuads.size()));
-					}
-
-					ImGui::EndTabItem();
-				}
-				if (ImGui::BeginTabItem("Custom")) {
-					ImGui::Checkbox("Render Scene", &mCustomDemo->RenderScene);
-					ImGui::Checkbox("Render UI", &mCustomDemo->RenderUi);
-					ImGui::Checkbox("Update", &mCustomDemo->Update);
-
-					ImGui::EndTabItem();
-				}
-				if (ImGui::BeginTabItem("Obj Models")) {
-					auto& renderables = mObjModelsDemo->RenderableObjects;
-					auto& demo = mObjModelsDemo;
-					static const std::string addLabel = std::string(ImGuiWrapper::EMPTY_LABEL) + "Add";
-					static const std::string popLabel = std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop";
-
-					ImGui::Checkbox("Render", &demo->Render);
-					ImGui::Checkbox("Update", &demo->Update);
-					ImGui::Text("Object Count: %i", renderables.size());
-					if (ImGui::InputInt(addLabel.c_str(), &demo->AddNewObjectsCount, 5, 5)) {
-						if (demo->AddNewObjectsCount < 0) {
-							demo->AddNewObjectsCount = 0;
-						} else if (demo->AddNewObjectsCount > 1000) {
-							demo->AddNewObjectsCount = 1000;
-						}
-					}
-					ImGui::SameLine();
-					if (ImGui::Button("Add Object")) {
-						for (int i = 0; i < demo->AddNewObjectsCount; i++) {
-							objModelsDemoAddRandomisedObject();
-						}
-					}
-					if (ImGui::InputInt(popLabel.c_str(), &demo->PopObjectsCount, 5, 5)) {
-						if (demo->PopObjectsCount < 0) {
-							demo->PopObjectsCount = 0;
-						}
-					}
-					ImGui::SameLine();
-					if (ImGui::Button("Pop Object")) {
-						//Max out pop count to renderables list size
-						const int size = static_cast<int>(demo->RenderableObjects.size());
-						const int popCount = demo->PopObjectsCount > size ? size : demo->PopObjectsCount;
-
-						for (int i = 0; i < popCount; i++) {
-							demo->RenderableObjects.pop_back();
-						}
-					}
-					ImGui::Checkbox("Display Renderable Models List", &mImGuiSettings->RenderObjModelsList);
-					if (ImGui::Button("Clear Objects")) {
-						renderables.clear();
-					}
-					ImGui::EndTabItem();
-				}
-				ImGui::EndTabBar();
 			}
 
 			//TODO:: Use different formats, currently looks bad
@@ -935,11 +935,11 @@ namespace DOH::EDITOR {
 
 	void EditorAppLogic::initObjModelsDemo() {
 		for (const auto& filePath : mObjModelsDemo->ObjModelFilePaths) {
-			mObjModelsDemo->LoadedModels.push_back(ModelVulkan::createModel(filePath));
+			mObjModelsDemo->LoadedModels.emplace_back(ModelVulkan::createModel(filePath));
 		}
 
 		
-		//mObjModelsDemo->LoadedModels.push_back(ModelVulkan::createModel(mObjModelsDemo->ObjModelFilePaths[0]));
+		//mObjModelsDemo->LoadedModels.emplace_back(ModelVulkan::createModel(mObjModelsDemo->ObjModelFilePaths[0]));
 
 		const float padding = 0.5f;
 		for (uint32_t x = 0; x < 10; x++) {
@@ -961,7 +961,7 @@ namespace DOH::EDITOR {
 				);
 				transform->updateTranslationMatrix();
 				
-				mObjModelsDemo->RenderableObjects.push_back(std::make_shared<RenderableModelVulkan>(
+				mObjModelsDemo->RenderableObjects.emplace_back(std::make_shared<RenderableModelVulkan>(
 					mObjModelsDemo->ObjModelFilePaths[modelIndex],
 					mObjModelsDemo->LoadedModels[modelIndex],
 					transform
@@ -1062,10 +1062,10 @@ namespace DOH::EDITOR {
 				//)
 			});
 
-			mBouncingQuadDemo->BouncingQuadVelocities.push_back({
+			mBouncingQuadDemo->BouncingQuadVelocities.emplace_back(
 				static_cast<float>((rand() % 800) / 60.0f),
 				static_cast<float>((rand() % 800) / 60.0f)
-			});
+			);
 		}
 	}
 
@@ -1099,7 +1099,7 @@ namespace DOH::EDITOR {
 		);
 		transform->updateTranslationMatrix();
 
-		mObjModelsDemo->RenderableObjects.push_back(std::make_shared<RenderableModelVulkan>(
+		mObjModelsDemo->RenderableObjects.emplace_back(std::make_shared<RenderableModelVulkan>(
 			mObjModelsDemo->ObjModelFilePaths[modelIndex],
 			mObjModelsDemo->LoadedModels[modelIndex],
 			transform

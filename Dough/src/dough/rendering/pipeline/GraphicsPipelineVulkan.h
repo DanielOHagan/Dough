@@ -58,7 +58,7 @@ namespace DOH {
 			VkDescriptorPool descPool
 		);
 		void recordDrawCommands(uint32_t imageIndex, VkCommandBuffer cmd);
-		inline void addRenderableToDraw(std::shared_ptr<IRenderable> renderable) { mRenderableDrawList.push_back(renderable); }
+		inline void addRenderableToDraw(std::shared_ptr<IRenderable> renderable) { mRenderableDrawList.emplace_back(renderable); }
 		inline void clearRenderableToDraw() { mRenderableDrawList.clear(); }
 		void bind(VkCommandBuffer cmdBuffer);
 		void close(VkDevice logicDevice);

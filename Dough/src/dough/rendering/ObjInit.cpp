@@ -11,23 +11,8 @@ namespace DOH {
 		return CONTEXT.createSwapChain(swapChainCreate);
 	}
 
-	std::shared_ptr<RenderPassVulkan> ObjInit::renderPass(
-		VkFormat imageFormat,
-		VkImageLayout initialLayout,
-		VkImageLayout finalLayout,
-		VkAttachmentLoadOp loadOp,
-		bool enableClearColour,
-		VkClearValue clearColour
-	) {
-		return CONTEXT.createRenderPass(
-			imageFormat,
-			initialLayout,
-			finalLayout,
-			loadOp,
-			enableClearColour,
-			clearColour
-		);
-	}
+	//TODO:: Provide a render pass creation method here?
+	//std::shared_ptr<RenderPassVulkan> ObjInit::renderPass()
 
 
 	//-----VAO-----

@@ -127,7 +127,6 @@ namespace DOH {
 					mStorage->getQuadRenderBatches()[batchIndex].add(quad, 0);
 					mDrawnQuadCount += static_cast<uint32_t>(addedCount);
 				} else {
-					//LOG_WARN(arrSize - addedCount << " Quads unable to be drawn");
 					mTruncatedQuadCount += static_cast<uint32_t>(arrSize - addedCount);
 					break;
 				}
@@ -170,7 +169,6 @@ namespace DOH {
 					mStorage->getQuadRenderBatches()[batchIndex].add(quad, textureSlotIndex);
 					mDrawnQuadCount += static_cast<uint32_t>(addedCount);
 				} else {
-					//LOG_WARN(arrSize - addedCount << " Quads unable to be drawn");
 					mTruncatedQuadCount += static_cast<uint32_t>(arrSize - addedCount);
 					break;
 				}
@@ -249,7 +247,6 @@ namespace DOH {
 						mDrawnQuadCount += static_cast<uint32_t>(remainingSpace);
 					}
 				} else {
-					//LOG_WARN(arrSize - addedCount << " Quads unable to be drawn");
 					mTruncatedQuadCount += static_cast<uint32_t>(arrSize - addedCount);
 					break;
 				}
