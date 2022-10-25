@@ -349,14 +349,14 @@ namespace DOH::EDITOR {
 				ImGui::TableHeadersRow();
 				ImGui::TableSetColumnIndex(0);
 				//Individual scene pipeline draw calls
-				for (const auto& [name, pipeline] : renderer.getContext().getSceneGraphicsPipelines()) {
+				for (const auto& [name, pipeline] : renderer.getContext().getAppSceneGraphicsPipelines()) {
 					imGuiPrintDrawCallTableColumn(name.c_str(), pipeline->getVaoDrawCount());
 				}
 				//Total scene pipeline draw calls
 				imGuiPrintDrawCallTableColumn("Total Scene", debugInfo.SceneDrawCalls);
 				ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImColor::ImColor(125, 125, 125, 90));
 				//Individual UI pipeline draw calls
-				for (const auto& [name, pipeline] : renderer.getContext().getUiGraphicsPipelines()) {
+				for (const auto& [name, pipeline] : renderer.getContext().getAppUiGraphicsPipelines()) {
 					imGuiPrintDrawCallTableColumn(name.c_str(), pipeline->getVaoDrawCount());
 				}
 				//Total UI pipeline draw calls
@@ -914,12 +914,12 @@ namespace DOH::EDITOR {
 		mCustomDemo->ScenePipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 			mCustomDemo->SceneVertexType,
 			*mCustomDemo->SceneShaderProgram,
-			SwapChainVulkan::ERenderPassType::SCENE
+			ERenderPass::APP_SCENE
 		);
 		mCustomDemo->UiPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 			mCustomDemo->UiVertexType,
 			*mCustomDemo->UiShaderProgram,
-			SwapChainVulkan::ERenderPassType::APP_UI
+			ERenderPass::APP_UI
 		);
 
 		auto& context = Application::get().getRenderer().getContext();
@@ -989,12 +989,12 @@ namespace DOH::EDITOR {
 		mObjModelsDemo->ScenePipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 			mObjModelsDemo->SceneVertexType,
 			*mObjModelsDemo->SceneShaderProgram,
-			SwapChainVulkan::ERenderPassType::SCENE
+			ERenderPass::APP_SCENE
 		);
 		mObjModelsDemo->SceneWireframePipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 			mObjModelsDemo->SceneVertexType,
 			*mObjModelsDemo->SceneShaderProgram,
-			SwapChainVulkan::ERenderPassType::SCENE
+			ERenderPass::APP_SCENE
 		);
 
 		mObjModelsDemo->SceneWireframePipelineInfo->CullMode = VK_CULL_MODE_NONE;

@@ -331,7 +331,7 @@ namespace DOH {
 	}
 
 	void RendererVulkan::beginScene(ICamera& camera) {
-		mRenderingContext->setSceneUniformBufferObject(camera);
+		mRenderingContext->setAppSceneUniformBufferObject(camera);
 	}
 
 	void RendererVulkan::endScene() {
@@ -345,7 +345,7 @@ namespace DOH {
 	}
 
 	void RendererVulkan::beginUi(glm::mat4x4& proj) {
-		mRenderingContext->setUiProjection(proj);
+		mRenderingContext->setAppUiProjection(proj);
 	}
 
 	void RendererVulkan::endUi() {

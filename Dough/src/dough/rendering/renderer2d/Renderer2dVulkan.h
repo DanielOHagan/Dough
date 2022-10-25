@@ -3,6 +3,7 @@
 #include "dough/Utils.h"
 #include "dough/scene/geometry/Quad.h"
 #include "dough/rendering/renderer2d/Renderer2dStorageVulkan.h"
+#include "dough/rendering/SwapChainVulkan.h"
 
 #include <vulkan/vulkan_core.h>
 

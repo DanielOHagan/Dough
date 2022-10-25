@@ -57,7 +57,7 @@ namespace DOH {
 		void onResize(int width, int height);
 
 		void drawFrame();
-		inline void closeCustomPipelines() { mRenderingContext->closeCustomPipelines(); };
+		inline void closeAppPipelines() { mRenderingContext->closeAppPipelines(); };
 		void beginScene(ICamera& camera);
 		void endScene();
 		void beginUi(glm::mat4x4& proj);

@@ -5,6 +5,7 @@
 #include "dough/rendering/renderables/SimpleRenderable.h"
 #include "dough/rendering/textures/TextureArray.h"
 #include "dough/rendering/textures/TextureAtlasVulkan.h"
+#include "dough/rendering/SwapChainVulkan.h"
 
 //Currently batching has significantly different performance on different configurations
 #define MAX_BATCH_QUAD_COUNT

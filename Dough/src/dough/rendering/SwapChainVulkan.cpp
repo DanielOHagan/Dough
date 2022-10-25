@@ -103,112 +103,9 @@ namespace DOH {
 		mExtent = extent;
 
 		createImageViews(logicDevice);
-
-		auto& context = Application::get().getRenderer().getContext();
-
-		//Depth buffers
-		VkFormat depthFormat = RendererVulkan::findSupportedFormat(
-			{ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
-			VK_IMAGE_TILING_OPTIMAL,
-			VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-		);
-
-		for (uint32_t i = 1; i < imageCount; i++) {
-			VkImage depthImage = context.createImage(
-				width,
-				height,
-				depthFormat,
-				VK_IMAGE_TILING_OPTIMAL,
-				VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
-			);
-			VkDeviceMemory depthImageMem = context.createImageMemory(
-				depthImage,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-			);
-			VkImageView depthImageView = context.createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
-			mSceneDepthImages.emplace_back(depthImage, depthImageMem, depthImageView);
-		}
-
-		{
-			SubPassVulkan sceneSubPass = {
-				VK_PIPELINE_BIND_POINT_GRAPHICS,
-				{//Colour attachments
-					{
-						ERenderPassAttachmentType::COLOUR,
-						mImageFormat,
-						VK_ATTACHMENT_LOAD_OP_CLEAR,
-						VK_ATTACHMENT_STORE_OP_STORE,
-						VK_IMAGE_LAYOUT_UNDEFINED,
-						VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-						{{ 0.264f, 0.328f, 0.484f, 1.0f }}
-					}
-				},
-				{//optional depth stencil
-					{
-						ERenderPassAttachmentType::DEPTH,
-						depthFormat,
-						VK_ATTACHMENT_LOAD_OP_CLEAR,
-						VK_ATTACHMENT_STORE_OP_DONT_CARE,
-						VK_IMAGE_LAYOUT_UNDEFINED,
-						VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-						{{ 1.0f, 0 }}
-					}
-				}
-			};
-
-			mSceneRenderPass = std::make_shared<RenderPassVulkan>(logicDevice, sceneSubPass);
-		}
-
-		{
-			SubPassVulkan uiSubPass = {
-				VK_PIPELINE_BIND_POINT_GRAPHICS,
-				{
-					{
-						ERenderPassAttachmentType::COLOUR,
-						mImageFormat,
-						VK_ATTACHMENT_LOAD_OP_LOAD,
-						VK_ATTACHMENT_STORE_OP_STORE,
-						VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-						VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-						{{ 0.264f, 0.328f, 0.484f, 1.0f }}
-					}
-				}
-			};
-
-			mAppUiRenderPass = std::make_shared<RenderPassVulkan>(logicDevice, uiSubPass);
-		}
-
-		{
-			SubPassVulkan imGuiSubPass = {
-				VK_PIPELINE_BIND_POINT_GRAPHICS,
-				{
-					{
-						ERenderPassAttachmentType::COLOUR,
-						mImageFormat,
-						VK_ATTACHMENT_LOAD_OP_LOAD,
-						VK_ATTACHMENT_STORE_OP_STORE,
-						VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-						VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-					}
-				}
-			};
-
-			mImGuiRenderPass = std::make_shared<RenderPassVulkan>(logicDevice, imGuiSubPass);
-		}
-
-		createFrameBuffers(logicDevice);
 	}
 
 	void SwapChainVulkan::close(VkDevice logicDevice) {
-		mSceneRenderPass->close(logicDevice);
-		mAppUiRenderPass->close(logicDevice);
-		mImGuiRenderPass->close(logicDevice);
-		for (ImageVulkan& depthImage : mSceneDepthImages) {
-			depthImage.close(logicDevice);
-		}
-
-		destroyFrameBuffers(logicDevice);
-
 		for (auto imageView : mImageViews) {
 			vkDestroyImageView(logicDevice, imageView, nullptr);
 		}
@@ -225,90 +122,7 @@ namespace DOH {
 		}
 	}
 
-	void SwapChainVulkan::createFrameBuffers(VkDevice logicDevice) {
-		const uint32_t imageCount = getImageCount();
-		mSceneFrameBuffers.resize(imageCount);
-		mAppUiFrameBuffers.resize(imageCount);
-		mImGuiFrameBuffers.resize(imageCount);
-
-		for (size_t i = 0; i < imageCount; i++) {
-			std::array<VkImageView, 2> sceneAttachments = { mImageViews[i], mSceneDepthImages[i % (imageCount - 1)].getImageView() };
-			VkFramebufferCreateInfo sceneFrameBufferInfo = {};
-			sceneFrameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			sceneFrameBufferInfo.renderPass = mSceneRenderPass->get();
-			sceneFrameBufferInfo.attachmentCount = static_cast<uint32_t>(sceneAttachments.size());
-			sceneFrameBufferInfo.pAttachments = sceneAttachments.data();
-			sceneFrameBufferInfo.width = mExtent.width;
-			sceneFrameBufferInfo.height = mExtent.height;
-			sceneFrameBufferInfo.layers = 1;
-			
-			VK_TRY(
-				vkCreateFramebuffer(logicDevice, &sceneFrameBufferInfo, nullptr, &mSceneFrameBuffers[i]),
-				"Failed to create Scene FrameBuffer."
-			);
-
-			VkImageView appUiAttachments[] = { mImageViews[i] };
-			VkFramebufferCreateInfo appUiFrameBufferInfo = {};
-			appUiFrameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			appUiFrameBufferInfo.renderPass = mAppUiRenderPass->get();
-			appUiFrameBufferInfo.attachmentCount = 1;
-			appUiFrameBufferInfo.pAttachments = appUiAttachments;
-			appUiFrameBufferInfo.width = mExtent.width;
-			appUiFrameBufferInfo.height = mExtent.height;
-			appUiFrameBufferInfo.layers = 1;
-			
-			VK_TRY(
-				vkCreateFramebuffer(logicDevice, &appUiFrameBufferInfo, nullptr, &mAppUiFrameBuffers[i]),
-				"Failed to create App Ui FrameBuffer."
-			);
-			
-			VkImageView imGuiAttachments[] = { mImageViews[i] };
-			VkFramebufferCreateInfo imGuiFrameBufferInfo = {};
-			imGuiFrameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			imGuiFrameBufferInfo.renderPass = mImGuiRenderPass->get();
-			imGuiFrameBufferInfo.attachmentCount = 1;
-			imGuiFrameBufferInfo.pAttachments = imGuiAttachments;
-			imGuiFrameBufferInfo.width = mExtent.width;
-			imGuiFrameBufferInfo.height = mExtent.height;
-			imGuiFrameBufferInfo.layers = 1;
-			
-			VK_TRY(
-				vkCreateFramebuffer(logicDevice, &imGuiFrameBufferInfo, nullptr, &mImGuiFrameBuffers[i]),
-				"Failed to create ImGui FrameBuffer."
-			);
-		}
-	}
-
-	void SwapChainVulkan::destroyFrameBuffers(VkDevice logicDevice) {
-		for (VkFramebuffer frameBuffer : mSceneFrameBuffers) {
-			vkDestroyFramebuffer(logicDevice, frameBuffer, nullptr);
-		}
-
-		for (VkFramebuffer frameBuffer : mAppUiFrameBuffers) {
-			vkDestroyFramebuffer(logicDevice, frameBuffer, nullptr);
-		}
-
-		for (VkFramebuffer frameBuffer : mImGuiFrameBuffers) {
-			vkDestroyFramebuffer(logicDevice, frameBuffer, nullptr);
-		}
-	}
 	
-	void SwapChainVulkan::beginRenderPass(ERenderPassType type, size_t frameBufferIndex, VkCommandBuffer cmd) {
-		switch (type) {
-			case ERenderPassType::SCENE:
-				mSceneRenderPass->begin(mSceneFrameBuffers[frameBufferIndex], mExtent, cmd);
-				break;
-			case ERenderPassType::APP_UI:
-				mAppUiRenderPass->begin(mAppUiFrameBuffers[frameBufferIndex], mExtent, cmd);
-				break;
-			case ERenderPassType::IMGUI:
-				mImGuiRenderPass->begin(mImGuiFrameBuffers[frameBufferIndex], mExtent, cmd);
-				break;
-			default:
-				LOG_ERR("Unknown render pass type");
-				break;
-		}
-	}
 
 	uint32_t SwapChainVulkan::aquireNextImageIndex(
 		VkDevice logicDevice,
@@ -328,28 +142,6 @@ namespace DOH {
 		);
 
 		return imageIndex;
-	}
-
-	RenderPassVulkan& SwapChainVulkan::getRenderPass(ERenderPassType type) const {
-		switch (type) {
-			case ERenderPassType::SCENE:
-				if (mSceneRenderPass == nullptr) {
-					THROW("Scene render pass is null");
-				}
-				return *mSceneRenderPass;
-			case ERenderPassType::APP_UI:
-				if (mAppUiRenderPass == nullptr) {
-					THROW("App UI render pass is null");
-				}
-				return *mAppUiRenderPass;
-			case ERenderPassType::IMGUI:
-				if (mImGuiRenderPass == nullptr) {
-					THROW("ImGui render pass is null");
-				}
-				return *mImGuiRenderPass;
-		}
-
-		THROW("Unknown render pass type");
 	}
 
 	SwapChainSupportDetails SwapChainVulkan::querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface) {

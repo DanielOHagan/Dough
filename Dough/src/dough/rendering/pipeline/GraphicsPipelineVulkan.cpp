@@ -4,6 +4,7 @@
 #include "dough/rendering/pipeline/shader/ShaderVulkan.h"
 #include "dough/rendering/ObjInit.h"
 #include "dough/Logging.h"
+#include "dough/rendering/RenderingContextVulkan.h"
 
 namespace DOH {
 

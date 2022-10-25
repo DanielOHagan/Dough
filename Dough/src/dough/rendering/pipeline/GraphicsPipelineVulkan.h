@@ -1,6 +1,5 @@
 #pragma once
 
-#include "dough/rendering/SwapChainVulkan.h"
 #include "dough/rendering/pipeline/DescriptorVulkan.h"
 #include "dough/rendering/textures/TextureVulkan.h"
 #include "dough/rendering/renderables/IRenderable.h"
@@ -8,11 +7,13 @@
 
 namespace DOH {
 
+	enum class ERenderPass;
+
 	struct GraphicsPipelineInstanceInfo {
 		GraphicsPipelineInstanceInfo(
 			EVertexType vertexType,
 			ShaderProgramVulkan& shaderProgram,
-			SwapChainVulkan::ERenderPassType renderPass
+			ERenderPass renderPass
 		) : VertexType(vertexType),
 			ShaderProgram(shaderProgram),
 			RenderPass(renderPass)
@@ -21,7 +22,7 @@ namespace DOH {
 		//TODO:: More fields, builder class?
 		EVertexType VertexType;
 		ShaderProgramVulkan& ShaderProgram;
-		SwapChainVulkan::ERenderPassType RenderPass;
+		ERenderPass RenderPass;
 
 		VkPolygonMode PolygonMode = VK_POLYGON_MODE_FILL;
 		VkCullModeFlags CullMode = VK_CULL_MODE_BACK_BIT;

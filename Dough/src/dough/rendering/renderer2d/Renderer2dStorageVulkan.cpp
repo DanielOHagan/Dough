@@ -56,7 +56,7 @@ namespace DOH {
 		mQuadGraphicsPipeline->recreate(
 			logicDevice,
 			swapChain.getExtent(),
-			swapChain.getRenderPass(SwapChainVulkan::ERenderPassType::SCENE).get()
+			mContext.getRenderPass(ERenderPass::APP_SCENE).get()
 		);
 		mContext.createPipelineUniformObjects(*mQuadGraphicsPipeline, mDescriptorPool);
 	}
@@ -124,7 +124,7 @@ namespace DOH {
 		mQuadGraphicsPipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 			EVertexType::VERTEX_3D_TEXTURED,
 			*mQuadShaderProgram,
-			SwapChainVulkan::ERenderPassType::SCENE
+			ERenderPass::APP_SCENE
 		);
 
 		mQuadGraphicsPipeline = mContext.createGraphicsPipeline(

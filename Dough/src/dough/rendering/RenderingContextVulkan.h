@@ -5,8 +5,15 @@
 #include "dough/scene/camera/ICamera.h"
 #include "dough/ImGuiWrapper.h"
 #include "dough/rendering/renderer2d/Renderer2dVulkan.h"
+#include "dough/rendering/SwapChainVulkan.h"
 
 namespace DOH {
+
+	enum class ERenderPass {
+		APP_SCENE,
+		APP_UI,
+		IMGUI
+	};
 
 	class RenderingContextVulkan {
 
@@ -14,7 +21,7 @@ namespace DOH {
 
 		struct UniformBufferObject {
 			glm::mat4 ProjectionViewMat;
-		} mSceneUbo;
+		} mAppSceneUbo;
 
 		struct RenderingDeviceInfo {
 			const std::string ApiVersion;
@@ -48,11 +55,24 @@ namespace DOH {
 
 		std::shared_ptr<SwapChainVulkan> mSwapChain;
 
-		std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>> mSceneGraphicsPipelines;
-		std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>> mUiGraphicsPipelines;
+		std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>> mAppSceneGraphicsPipelines;
+		std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>> mAppUiGraphicsPipelines;
 
 		std::unique_ptr<Renderer2dVulkan> mRenderer2d;
 		std::unique_ptr<ImGuiWrapper> mImGuiWrapper;
+
+		std::vector<VkFramebuffer> mAppSceneFrameBuffers;
+		std::vector<VkFramebuffer> mAppUiFrameBuffers;
+
+		std::shared_ptr<RenderPassVulkan> mAppSceneRenderPass;
+		std::shared_ptr<RenderPassVulkan> mAppUiRenderPass;
+
+		std::vector<ImageVulkan> mAppSceneDepthImages;
+
+		//TODO:: put into ImGuiWrapper ?
+		// ImGuiWrapper requires Renderpass to been created before init()
+		std::vector<VkFramebuffer> mImGuiFrameBuffers;
+		std::shared_ptr<RenderPassVulkan> mImGuiRenderPass;
 
 		//Used by Scene and UI pipelines
 		//TODO::
@@ -72,6 +92,8 @@ namespace DOH {
 		std::vector<VkFence> mFramesInFlightFences;
 		std::vector<VkFence> mImageFencesInFlight;
 
+		VkFormat mDepthFormat;
+
 	public:
 		RenderingContextVulkan(VkDevice logicDevice, VkPhysicalDevice physicalDevice);
 
@@ -89,9 +111,9 @@ namespace DOH {
 		//Finalise the creation of custom pipelines
 		void createPipelineUniformObjects(GraphicsPipelineVulkan& pipeline, VkDescriptorPool descPool);
 		void createPipelineUniformObjects();
-		void closeCustomPipelines();
-		void closeScenePipelines();
-		void closeUiPipelines();
+		void closeAppPipelines();
+		void closeAppScenePipelines();
+		void closeAppUiPipelines();
 		VkDescriptorPool createDescriptorPool(std::vector<DescriptorTypeInfo>& descTypes);
 		bool isReady() const;
 
@@ -103,11 +125,11 @@ namespace DOH {
 			const bool enabled = true
 		);
 		PipelineRenderableConveyer createPipelineConveyer(
-			const SwapChainVulkan::ERenderPassType renderPass,
+			const ERenderPass renderPass,
 			const std::string& name
 		);
-		void enablePipeline(const SwapChainVulkan::ERenderPassType renderPass, const std::string& name, bool enable);
-		void closePipeline(const SwapChainVulkan::ERenderPassType renderPass, const std::string& name);
+		void enablePipeline(const ERenderPass renderPass, const std::string& name, bool enable);
+		void closePipeline(const ERenderPass renderPass, const std::string& name);
 
 		inline void onResize(
 			SwapChainSupportDetails& scSupport,
@@ -121,11 +143,12 @@ namespace DOH {
 		};
 
 		void drawFrame();
-		inline void setSceneUniformBufferObject(ICamera& camera) { mSceneUbo.ProjectionViewMat = camera.getProjectionViewMatrix(); }
-		inline void setUiProjection(glm::mat4x4& proj) { mAppUiProjection = proj; }
+		inline void setAppSceneUniformBufferObject(ICamera& camera) { mAppSceneUbo.ProjectionViewMat = camera.getProjectionViewMatrix(); }
+		inline void setAppUiProjection(glm::mat4x4& proj) { mAppUiProjection = proj; }
 
-		inline std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>> getSceneGraphicsPipelines() const { return mSceneGraphicsPipelines; }
-		inline std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>> getUiGraphicsPipelines() const { return mUiGraphicsPipelines; }
+		inline std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>> getAppSceneGraphicsPipelines() const { return mAppSceneGraphicsPipelines; }
+		inline std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>> getAppUiGraphicsPipelines() const { return mAppUiGraphicsPipelines; }
+		RenderPassVulkan& getRenderPass(const ERenderPass renderPass) const;
 
 		//TODO:: Ability for better control over when GPU resources can be released (e.g. after certain program stages or as soon as possible)
 		inline void addGpuResourceToCloseAfterUse(std::shared_ptr<IGPUResourceVulkan> res) { mToReleaseGpuResources.emplace_back(res); }
@@ -178,6 +201,7 @@ namespace DOH {
 		VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 		VkSampler createSampler();
 
+		inline uint32_t getAppFrameBufferCount() const { return static_cast<uint32_t>(mAppSceneFrameBuffers.size() + mAppUiFrameBuffers.size()); }
 		inline ImGuiWrapper& getImGuiWrapper() const { return *mImGuiWrapper; }
 		inline SwapChainVulkan& getSwapChain() const { return *mSwapChain; }
 		inline Renderer2dVulkan& getRenderer2d() const { return *mRenderer2d; }
@@ -281,6 +305,12 @@ namespace DOH {
 		void createCommandBuffers();
 		void createSyncObjects();
 		void closeSyncObjects();
+		void createAppSceneDepthResources();
+		void closeAppSceneDepthResources();
+		void createRenderPasses();
+		void closeRenderPasses();
+		void createFrameBuffers();
+		void closeFrameBuffers();
 		void resizeSwapChain(
 			SwapChainSupportDetails& scSupport,
 			VkSurfaceKHR surface,

@@ -5,6 +5,7 @@
 #include "dough/rendering/pipeline/shader/ShaderVulkan.h"
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 #include "dough/rendering/textures/TextureAtlasVulkan.h"
+#include "dough/rendering/SwapChainVulkan.h"
 
 namespace DOH {
 
@@ -21,15 +22,6 @@ namespace DOH {
 		static std::shared_ptr<SwapChainVulkan> swapChain(
 			SwapChainCreationInfo& swapChainCreate
 		);
-
-		//static std::shared_ptr<RenderPassVulkan> renderPass(
-		//	VkFormat imageFormat,
-		//	VkImageLayout initialLayout,
-		//	VkImageLayout finalLayout,
-		//	VkAttachmentLoadOp loadOp,
-		//	bool enableClearColour,
-		//	VkClearValue clearColour = {0.264f, 0.328f, 0.484f, 1.0f}
-		//);
 
 
 		//-----VAO-----
