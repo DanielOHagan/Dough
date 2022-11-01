@@ -162,6 +162,8 @@ namespace DOH::EDITOR {
 
 			bool Update = false;
 			bool Render = false;
+
+			bool IsUpToDate = false;
 		};
 
 		struct BouncingQuadDemo {
@@ -195,7 +197,7 @@ namespace DOH::EDITOR {
 			{}
 		};
 
-		struct ImGuiSettings {
+		struct EditorSettings {
 			//Map for texture windows, using the texture's ID as the key
 			std::unordered_map<uint32_t, ImGuiTextureViewerWindow> TextureViewerWindows;
 
@@ -230,7 +232,7 @@ namespace DOH::EDITOR {
 		std::unique_ptr<BouncingQuadDemo> mBouncingQuadDemo;
 
 		//Editor settings
-		std::unique_ptr<ImGuiSettings> mImGuiSettings;
+		std::unique_ptr<EditorSettings> mEditorSettings;
 		std::unique_ptr<PausableTimer> mInnerAppTimer;
 		EInnerAppState mInnerAppState;
 

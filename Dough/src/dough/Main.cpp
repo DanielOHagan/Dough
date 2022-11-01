@@ -2,17 +2,19 @@
 #include "editor/EditorAppLogic.h"
 
 #ifdef _DEBUG
-	//#define DEBUG_MEM_USE_CRT
-	#define DEBUG_MEM_USE_DOH
-	//#define DEBUG_MEM_PREFER_CRT
-	//#define DEBUG_MEM_PREFER_DOH
+	//#define DOH_DEBUG_MEM_USE_CRT
+	#define DOH_DEBUG_MEM_USE_DOH
+	//#define DOH_DEBUG_MEM_PREFER_CRT
+	//#define DOH_DEBUG_MEM_PREFER_DOH
 
 	#include "dough/Debug.h"
+#else
+	#include "dough/EmptyDefines.h"
 #endif
 
 int main() {
 
-	DEBUG_MEM_TRACK_START;
+	DOH_DEBUG_MEM_TRACK_START;
 
 	int code = DOH::Application::start(
 		std::make_shared<DOH::EDITOR::EditorAppLogic>(),
@@ -30,10 +32,10 @@ int main() {
 		}
 	);
 
-	DEBUG_MEM_TRACK_END;
+	DOH_DEBUG_MEM_TRACK_END;
 
-	DEBUG_MEM_DUMP_TRACK;
-	DEBUG_MEM_DUMP_LEAKS;
+	DOH_DEBUG_MEM_DUMP_TRACK;
+	DOH_DEBUG_MEM_DUMP_LEAKS;
 
 	return code;
 }

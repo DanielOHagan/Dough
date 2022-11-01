@@ -6,6 +6,8 @@
 #include "dough/rendering/IGPUResourceVulkan.h"
 #include "dough/rendering/textures/TextureVulkan.h"
 
+#include <imgui/imgui.h>
+
 namespace DOH {
 
 	class RenderingContextVulkan;
@@ -21,6 +23,13 @@ namespace DOH {
 		VkRenderPass RenderPass;
 	};
 
+	enum class EImGuiConfigFlag {
+		NONE = 0,
+
+		DOCKING = ImGuiConfigFlags_DockingEnable,
+		VIEWPORTS = ImGuiConfigFlags_ViewportsEnable
+	};
+
 	class ImGuiWrapper : public IGPUResourceVulkan {
 
 		//TODO:: 
@@ -28,6 +37,9 @@ namespace DOH {
 		//
 		// Handle events that happen when ImGui is focused (sometimes it might be preferable
 		//	that imgui is focused and allow for certain functions in app e.g. camera movement)
+		//
+		// If Viewports are enabled and one is dragged out of the main window, therefore, creating a new window,
+		//	and then the main window display mode is changed to fullscreen, the program crashes.
 
 	private:
 		VkDescriptorPool mDescriptorPool = VK_NULL_HANDLE;
@@ -53,6 +65,7 @@ namespace DOH {
 		void endFrame();
 		void render(VkCommandBuffer cmd);
 		void onWindowResize(int width, int height) const;
+		void setEnabledConfigFlag(const EImGuiConfigFlag configFlag, const bool enabled);
 
 		void drawTexture(const TextureVulkan& texture, glm::vec2 size, glm::vec2 uv0 = { 0.0f, 0.0f }, glm::vec2 uv1 = { 1.0f, 1.0f });
 	};

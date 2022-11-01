@@ -3,24 +3,24 @@
 #include "dough/Logging.h"
 
 //NOTE:: static members that alloc heap memory do not free it before DEBUG_MEM_DUMP is called in Main.cpp
-#ifdef DEBUG_MEM_USE_CRT
+#ifdef DOH_DEBUG_MEM_USE_CRT
 	#define _CRTDBG_MAP_ALLOC
 	#include <stdlib.h>
 	#include <crtdbg.h>
 
-	#undef DEBUG_MEM_TRACK_START
-	#define DEBUG_MEM_TRACK_START _CrtMemState start; _CrtMemCheckpoint(&start);
-	#undef DEBUG_MEM_TRACK_END
-	#define DEBUG_MEM_TRACK_END _CrtMemState end; _CrtMemCheckpoint(&end);
+	#undef DOH_DEBUG_MEM_TRACK_START
+	#define DOH_DEBUG_MEM_TRACK_START _CrtMemState start; _CrtMemCheckpoint(&start);
+	#undef DOH_DEBUG_MEM_TRACK_END
+	#define DOH_DEBUG_MEM_TRACK_END _CrtMemState end; _CrtMemCheckpoint(&end);
 
 	//Dump tracked memory alloc/free info
 	//MUST have two _CrtMemState objects named start and end. Generally this should be done by using DEBUG_MEM_TRACK_START and DEBUG_MEM_TRACK_END
-	#undef DEBUG_MEM_DUMP_TRACK
-	#define DEBUG_MEM_DUMP_TRACK _CrtMemState diff; if (_CrtMemDifference(&diff, &start, &end) == 1) _CrtMemDumpStatistics(&diff);
+	#undef DOH_DEBUG_MEM_DUMP_TRACK
+	#define DOH_DEBUG_MEM_DUMP_TRACK _CrtMemState diff; if (_CrtMemDifference(&diff, &start, &end) == 1) _CrtMemDumpStatistics(&diff);
 
 	//Dump tracked memory leak info
-	#undef DEBUG_MEM_DUMP_LEAKS
-	#define DEBUG_MEM_DUMP_LEAKS\
+	#undef DOH_DEBUG_MEM_DUMP_LEAKS
+	#define DOH_DEBUG_MEM_DUMP_LEAKS\
 		if (_CrtDumpMemoryLeaks() == 1)\
 			LOG_ERR("Has memory leak! Check Output-Debug for further details")\
 		else LOG_INFO("No memory leak");
@@ -30,7 +30,7 @@
 // To prevent this make sure all heap allocated static members allocated after the memory tracker starts are deleted before it ends.
 // For example Application::INSTANCE is allocated in its init function, which is guaranteed to call the getMemoryTracker method.
 // Whereas, static std::string members are released after the executable stops, at which point the tracker has already dumped its info.
-#elif defined DEBUG_MEM_USE_DOH
+#elif defined DOH_DEBUG_MEM_USE_DOH
 	#include <cstdint>
 	#include <cstdlib>
 	#include <iostream>
@@ -147,16 +147,16 @@
 	}
 
 	//Tracking starts when getMemoryTracker() is first called, calling it again does NOT reset the tracker
-	#undef DEBUG_MEM_TRACK_START
-	#define DEBUG_MEM_TRACK_START getMemoryTracker();
+	#undef DOH_DEBUG_MEM_TRACK_START
+	#define DOH_DEBUG_MEM_TRACK_START getMemoryTracker();
 
 	//TODO:: currently nothing really stopping mem tracking, since currently only one tracker can exist it might be best to keep it alive constantly
-	#undef DEBUG_MEM_TRACK_END
-	#define DEBUG_MEM_TRACK_END
+	#undef DOH_DEBUG_MEM_TRACK_END
+	#define DOH_DEBUG_MEM_TRACK_END
 
-	#undef DEBUG_MEM_DUMP_TRACK
-	#define DEBUG_MEM_DUMP_TRACK dumpMemAllocInfo();
+	#undef DOH_DEBUG_MEM_DUMP_TRACK
+	#define DOH_DEBUG_MEM_DUMP_TRACK dumpMemAllocInfo();
 
-	#undef DEBUG_MEM_DUMP_LEAKS
-	#define DEBUG_MEM_DUMP_LEAKS dumpMemLeakInfo();
+	#undef DOH_DEBUG_MEM_DUMP_LEAKS
+	#define DOH_DEBUG_MEM_DUMP_LEAKS dumpMemLeakInfo();
 #endif

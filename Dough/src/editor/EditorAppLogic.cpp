@@ -22,7 +22,7 @@ namespace DOH::EDITOR {
 		mGridDemo = std::make_unique<GridDemo>();
 		mBouncingQuadDemo = std::make_unique<BouncingQuadDemo>();
 
-		mImGuiSettings = std::make_unique<ImGuiSettings>();
+		mEditorSettings = std::make_unique<EditorSettings>();
 	}
 
 	void EditorAppLogic::init(float aspectRatio) {
@@ -37,17 +37,17 @@ namespace DOH::EDITOR {
 
 		mPerspectiveCameraController->setPosition({ 0.0f, 0.0f, 5.0f });
 
-		mImGuiSettings->UseOrthographicCamera = false;
-		mImGuiSettings->TextureViewerWindows = {};
+		mEditorSettings->UseOrthographicCamera = false;
+		mEditorSettings->TextureViewerWindows = {};
 	}
 
 	void EditorAppLogic::update(float delta) {
 		//Handle input first
 		if (Input::isKeyPressed(DOH_KEY_F1)) {
-			mImGuiSettings->RenderDebugWindow = true;
+			mEditorSettings->RenderDebugWindow = true;
 		}
 
-		if (mImGuiSettings->UseOrthographicCamera) {
+		if (mEditorSettings->UseOrthographicCamera) {
 			mOrthoCameraController->onUpdate(delta);
 		} else {
 			mPerspectiveCameraController->onUpdate(delta);
@@ -79,7 +79,7 @@ namespace DOH::EDITOR {
 			}
 		}
 
-		if (mGridDemo->Update) {
+		if (mGridDemo->Update && !mGridDemo->IsUpToDate) {
 			//Repopulate entire array each update, not very efficient but the test grid is just an example
 			populateTestGrid(static_cast<uint32_t>(mGridDemo->TestGridSize[0]), static_cast<uint32_t>(mGridDemo->TestGridSize[1]));
 		}
@@ -101,7 +101,7 @@ namespace DOH::EDITOR {
 		Renderer2dVulkan& renderer2d = context.getRenderer2d();
 
 		renderer.beginScene(
-			mImGuiSettings->UseOrthographicCamera ?
+			mEditorSettings->UseOrthographicCamera ?
 				mOrthoCameraController->getCamera() : mPerspectiveCameraController->getCamera()
 		);
 
@@ -185,7 +185,7 @@ namespace DOH::EDITOR {
 		//ImGui::ShowStackToolWindow();
 		//ImGui::ShowDemoWindow();
 
-		if (mImGuiSettings->RenderDebugWindow) {
+		if (mEditorSettings->RenderDebugWindow) {
 			imGuiRenderDebugWindow(delta);
 		}
 	}
@@ -195,12 +195,12 @@ namespace DOH::EDITOR {
 		Renderer2dVulkan& renderer2d = renderer.getContext().getRenderer2d();
 		ImGuiWrapper& imGuiWrapper = renderer.getContext().getImGuiWrapper();
 
-		ImGui::Begin("Dough Editor Window", &mImGuiSettings->RenderDebugWindow);
+		ImGui::Begin("Dough Editor Window", &mEditorSettings->RenderDebugWindow);
 		ImGui::BeginTabBar("Main Tab Bar");
 		if (ImGui::BeginTabItem("Dough Editor")) {
 
-			ImGui::SetNextItemOpen(mImGuiSettings->EditorCollapseMenuOpen);
-			if (mImGuiSettings->EditorCollapseMenuOpen = ImGui::CollapsingHeader("Editor")) {
+			ImGui::SetNextItemOpen(mEditorSettings->EditorCollapseMenuOpen);
+			if (mEditorSettings->EditorCollapseMenuOpen = ImGui::CollapsingHeader("Editor")) {
 				ApplicationLoop& loop = Application::get().getLoop();
 				Window& window = Application::get().getWindow();
 				bool focused = Application::get().isFocused();
@@ -289,34 +289,34 @@ namespace DOH::EDITOR {
 					loop.setRunInBackground(runInBackground);
 				}
 				if (ImGui::Button("Stop Rendering ImGui Windows")) {
-					mImGuiSettings->RenderDebugWindow = false;
+					mEditorSettings->RenderDebugWindow = false;
 				}
 				imGuiDisplayHelpTooltip("When hidden press F1 to start rendering ImGui again");
 
 				if (ImGui::Button("Quit Application") || ImGui::IsItemActive()) {
-					mImGuiSettings->QuitButtonHoldTime += delta;
+					mEditorSettings->QuitButtonHoldTime += delta;
 
 					//Close app when releasing mouse button after holding for required time
-					if (mImGuiSettings->QuitButtonHoldTime >= mImGuiSettings->QuitHoldTimeRequired && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+					if (mEditorSettings->QuitButtonHoldTime >= mEditorSettings->QuitHoldTimeRequired && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 						Application::get().stop();
 					}
 				} else {
-					mImGuiSettings->QuitButtonHoldTime = 0.0f;
+					mEditorSettings->QuitButtonHoldTime = 0.0f;
 				}
 				//Draw a rectangle to show how long to hold for
 				if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
 					ImGui::BeginTooltip();
-					
+
 					ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 1.0f, 0.0f, 0.0f, 1.0f });
-					ImGui::ProgressBar((mImGuiSettings->QuitButtonHoldTime / mImGuiSettings->QuitHoldTimeRequired), {200.0f, 20.0f});
+					ImGui::ProgressBar((mEditorSettings->QuitButtonHoldTime / mEditorSettings->QuitHoldTimeRequired), { 200.0f, 20.0f });
 					ImGui::PopStyleColor(1);
 
 					ImGui::EndTooltip();
 				}
 			}
 
-			ImGui::SetNextItemOpen(mImGuiSettings->RenderingCollapseMenuOpen);
-			if (mImGuiSettings->RenderingCollapseMenuOpen = ImGui::CollapsingHeader("Rendering")) {
+			ImGui::SetNextItemOpen(mEditorSettings->RenderingCollapseMenuOpen);
+			if (mEditorSettings->RenderingCollapseMenuOpen = ImGui::CollapsingHeader("Rendering")) {
 				AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 				MonoSpaceTextureAtlasVulkan& atlas = *renderer.getContext().getRenderer2d().getStorage().getTestTextureAtlas();
 
@@ -392,11 +392,11 @@ namespace DOH::EDITOR {
 					renderer.getContext().getRenderer2d().getStorage().getQuadBatchTextureArray().getTextureSlots().size()
 				);
 				if (ImGui::Button("View atlas texture")) {
-					const auto& itr = mImGuiSettings->TextureViewerWindows.find(atlas.getId());
-					if (itr != mImGuiSettings->TextureViewerWindows.end()) {
+					const auto& itr = mEditorSettings->TextureViewerWindows.find(atlas.getId());
+					if (itr != mEditorSettings->TextureViewerWindows.end()) {
 						itr->second.Display = true;
 					} else {
-						mImGuiSettings->TextureViewerWindows.emplace(
+						mEditorSettings->TextureViewerWindows.emplace(
 							atlas.getId(),
 							ImGuiTextureViewerWindow(
 								atlas,
@@ -408,15 +408,15 @@ namespace DOH::EDITOR {
 					}
 				}
 				imGuiDisplayHelpTooltip("Display Texture Altas texture inside a separate window.");
-				
+
 				if (ImGui::Button("Close All Empty Quad Batches")) {
 					renderer.getContext().getRenderer2d().closeEmptyQuadBatches();
 				}
 				imGuiDisplayHelpTooltip("Close Empty Quad Batches. This can help clean-up when 1 or more batches have geo counts of 0");
 			}
 
-			ImGui::SetNextItemOpen(mImGuiSettings->InnerAppCollapseMenu);
-			if (mImGuiSettings->InnerAppCollapseMenu = ImGui::CollapsingHeader("Inner App")) {
+			ImGui::SetNextItemOpen(mEditorSettings->InnerAppCollapseMenu);
+			if (mEditorSettings->InnerAppCollapseMenu = ImGui::CollapsingHeader("Inner App")) {
 				if (mInnerAppState == EInnerAppState::PLAYING || mInnerAppState == EInnerAppState::PAUSED) {
 					ImGui::Text("Inner App Runtime: %fs", Time::convertMillisToSeconds(mInnerAppTimer->getCurrentTickingTimeMillis()));
 				} else {
@@ -476,8 +476,8 @@ namespace DOH::EDITOR {
 						break;
 				}
 
-				ImGui::SetNextItemOpen(mImGuiSettings->CurrentDemoCollapseMenuOpen);
-				if (mImGuiSettings->CurrentDemoCollapseMenuOpen = ImGui::CollapsingHeader("Demo")) {
+				ImGui::SetNextItemOpen(mEditorSettings->CurrentDemoCollapseMenuOpen);
+				if (mEditorSettings->CurrentDemoCollapseMenuOpen = ImGui::CollapsingHeader("Demo")) {
 					if (ImGui::Button("Disable all demos")) {
 						mGridDemo->Render = false;
 						mGridDemo->Update = false;
@@ -508,6 +508,7 @@ namespace DOH::EDITOR {
 								if (tempGridQuadCount <= mGridDemo->TestGridMaxQuadCount) {
 									mGridDemo->TestGridSize[0] = tempTestGridSize[0];
 									mGridDemo->TestGridSize[1] = tempTestGridSize[1];
+									mGridDemo->IsUpToDate = false;
 								} else {
 									LOG_WARN(
 										"New grid size of " << tempTestGridSize[0] << "x" << tempTestGridSize[1] <<
@@ -517,8 +518,12 @@ namespace DOH::EDITOR {
 								}
 							}
 						}
-						bool gridDemoQuadSizeChanged = ImGui::DragFloat2("Quad Size", mGridDemo->TestGridQuadSize, 0.001f, 0.01f, 0.5f);
-						bool gridDemoQuadGapSizeChanged = ImGui::DragFloat2("Quad Gap Size", mGridDemo->TestGridQuadGapSize, 0.001f, 0.01f, 0.5f);
+						if (ImGui::DragFloat2("Quad Size", mGridDemo->TestGridQuadSize, 0.001f, 0.01f, 0.5f)) {
+							mGridDemo->IsUpToDate = false;
+						}
+						if (ImGui::DragFloat2("Quad Gap Size", mGridDemo->TestGridQuadGapSize, 0.001f, 0.01f, 0.5f)) {
+							mGridDemo->IsUpToDate = false;
+						}
 						//ImGui::DragFloat2("Test Grid Origin Pos", );
 						//ImGui::Text("UI Quad Count: %i", renderer.getContext().getRenderer2d().getStorage().getUiQuadCount());
 
@@ -531,13 +536,17 @@ namespace DOH::EDITOR {
 						int tempTestTextureRowOffset = mGridDemo->TestTexturesRowOffset;
 						if (ImGui::InputInt("Test Texture Row Offset", &tempTestTextureRowOffset)) {
 							mGridDemo->TestTexturesRowOffset = tempTestTextureRowOffset < 0 ? 0 : tempTestTextureRowOffset % atlas.getRowCount();
+							mGridDemo->IsUpToDate = false;
 						}
 						int tempTestTextureColOffset = mGridDemo->TestTexturesColumnOffset;
 						if (ImGui::InputInt("Test Texture Col Offset", &tempTestTextureColOffset)) {
 							mGridDemo->TestTexturesColumnOffset = tempTestTextureColOffset < 0 ? 0 : tempTestTextureColOffset % atlas.getColCount();
+							mGridDemo->IsUpToDate = false;
 						}
 
-						ImGui::ColorPicker4("Grid Colour", &mGridDemo->QuadColour.x);
+						if (ImGui::ColorPicker4("Grid Colour", &mGridDemo->QuadColour.x)) {
+							mGridDemo->IsUpToDate = false;
+						}
 
 						if (ImGui::Button("Reset Grid")) {
 							mGridDemo->TestGridSize[0] = 10;
@@ -546,6 +555,7 @@ namespace DOH::EDITOR {
 							mGridDemo->TestGridQuadSize[1] = 0.1f;
 							mGridDemo->TestGridQuadGapSize[0] = mGridDemo->TestGridQuadSize[0] * 1.5f;
 							mGridDemo->TestGridQuadGapSize[1] = mGridDemo->TestGridQuadSize[1] * 1.5f;
+							mGridDemo->IsUpToDate = false;
 						}
 
 						ImGui::EndTabItem();
@@ -626,7 +636,7 @@ namespace DOH::EDITOR {
 								demo->RenderableObjects.pop_back();
 							}
 						}
-						ImGui::Checkbox("Display Renderable Models List", &mImGuiSettings->RenderObjModelsList);
+						ImGui::Checkbox("Display Renderable Models List", &mEditorSettings->RenderObjModelsList);
 						if (ImGui::Button("Clear Objects")) {
 							renderables.clear();
 						}
@@ -637,21 +647,21 @@ namespace DOH::EDITOR {
 			}
 
 			//TODO:: Use different formats, currently looks bad
-			ImGui::SetNextItemOpen(mImGuiSettings->CameraCollapseMenuOpen);
-			if (mImGuiSettings->CameraCollapseMenuOpen = ImGui::CollapsingHeader("Camera")) {
-				const bool orthoCameraActive = mImGuiSettings->UseOrthographicCamera;
+			ImGui::SetNextItemOpen(mEditorSettings->CameraCollapseMenuOpen);
+			if (mEditorSettings->CameraCollapseMenuOpen = ImGui::CollapsingHeader("Camera")) {
+				const bool orthoCameraActive = mEditorSettings->UseOrthographicCamera;
 				const bool perspectiveCameraActive = !orthoCameraActive;
 				if (ImGui::RadioButton("Orthographic Camera", orthoCameraActive)) {
-					mImGuiSettings->UseOrthographicCamera = true;
+					mEditorSettings->UseOrthographicCamera = true;
 				}
 				ImGui::SameLine();
 				if (ImGui::RadioButton("Perspective Camera", perspectiveCameraActive)) {
-					mImGuiSettings->UseOrthographicCamera = false;
+					mEditorSettings->UseOrthographicCamera = false;
 				}
 				ImGui::Text("Current Camera: ");
 				ImGui::SameLine();
-				ImGui::Text(mImGuiSettings->UseOrthographicCamera ? "Orthographic" : "Perspective");
-				if (mImGuiSettings->UseOrthographicCamera) {
+				ImGui::Text(mEditorSettings->UseOrthographicCamera ? "Orthographic" : "Perspective");
+				if (mEditorSettings->UseOrthographicCamera) {
 					ImGui::Text("Orthographic Camera Controls");
 					ImGui::BulletText("W, A, S, D: Move Camera");
 					ImGui::BulletText("Hold Left Shift: Increase move speed");
@@ -723,7 +733,7 @@ namespace DOH::EDITOR {
 		ImGui::EndTabBar();
 		ImGui::End();
 
-		if (mImGuiSettings->RenderObjModelsList) {
+		if (mEditorSettings->RenderObjModelsList) {
 			const auto& renderables = mObjModelsDemo->RenderableObjects;
 			if (ImGui::Begin("Renderable Models List")) {
 				ImGui::Checkbox("Render All", &mObjModelsDemo->RenderAllStandard);
@@ -755,7 +765,7 @@ namespace DOH::EDITOR {
 			ImGui::End();
 		}
 
-		for (auto& textureViewer : mImGuiSettings->TextureViewerWindows) {
+		for (auto& textureViewer : mEditorSettings->TextureViewerWindows) {
 			if (textureViewer.second.Display) {
 				imGuiDrawTextureViewerWindow(textureViewer.second);
 			}
@@ -838,6 +848,8 @@ namespace DOH::EDITOR {
 				index++;
 			}
 		}
+
+		mGridDemo->IsUpToDate = true;
 	}
 
 	void EditorAppLogic::initBouncingQuadsDemo() {
@@ -1236,9 +1248,9 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorAppLogic::imGuiRemoveHiddenTextureViewerWindows() {
-		for (auto& textureViewer : mImGuiSettings->TextureViewerWindows) {
+		for (auto& textureViewer : mEditorSettings->TextureViewerWindows) {
 			if (!textureViewer.second.Display) {
-				mImGuiSettings->TextureViewerWindows.erase(textureViewer.first);
+				mEditorSettings->TextureViewerWindows.erase(textureViewer.first);
 			}
 		}
 	}

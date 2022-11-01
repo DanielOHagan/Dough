@@ -175,6 +175,18 @@ namespace DOH {
 				return;
 			}
 
+			case EEventType::WINDOW_DISPLAY_MODE_CHANGE:
+			{
+				WindowDisplayModeChangeEvent& e = (WindowDisplayModeChangeEvent&) windowEvent;
+
+				if (e.getDisplayMode() == EWindowDisplayMode::FULLSCREEN) {
+					mRenderer->getContext().getImGuiWrapper().setEnabledConfigFlag(EImGuiConfigFlag::VIEWPORTS, false);
+				} else {
+					mRenderer->getContext().getImGuiWrapper().setEnabledConfigFlag(EImGuiConfigFlag::VIEWPORTS, true);
+				}
+				return;
+			}
+
 			default:
 				LOG_WARN("Unknown window event type");
 				return;

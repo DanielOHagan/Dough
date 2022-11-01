@@ -361,6 +361,9 @@ namespace DOH {
 			1080,
 			videoMode->refreshRate
 		);
+
+		WindowDisplayModeChangeEvent displayModeChange{ *this, EWindowDisplayMode::WINDOWED };
+		Application::get().onWindowEvent(displayModeChange);
 	}
 
 	void Window::changeToDisplayModeBorderlessFullscreen() {
@@ -383,7 +386,11 @@ namespace DOH {
 			videoMode->height,
 			videoMode->refreshRate
 		);
+
+		WindowDisplayModeChangeEvent displayModeChange{ *this, EWindowDisplayMode::BORDERLESS_FULLSCREEN };
+		Application::get().onWindowEvent(displayModeChange);
 	}
+
 	void Window::changeToDisplayModeFullscreen() {
 		const GLFWvidmode* videoMode = glfwGetVideoMode(mSelectedMonitor);
 		glfwWindowHint(GLFW_RED_BITS, videoMode->redBits);
@@ -405,5 +412,8 @@ namespace DOH {
 			videoMode->height,
 			videoMode->refreshRate
 		);
+
+		WindowDisplayModeChangeEvent displayModeChange{ *this, EWindowDisplayMode::FULLSCREEN };
+		Application::get().onWindowEvent(displayModeChange);
 	}
 }

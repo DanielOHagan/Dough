@@ -1,4 +1,5 @@
 #include "dough/ImGuiWrapper.h"
+
 #include "dough/Utils.h"
 #include "dough/rendering/RenderingContextVulkan.h"
 #include "dough/Window.h"
@@ -56,8 +57,12 @@ namespace DOH {
 		initInfo.DescriptorPool = mDescriptorPool;
 
 		ImGuiIO& io = ImGui::GetIO();
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+		//io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+		//setEnabledConfigFlag(ImGuiConfigFlags_DockingEnable, true);
+		setEnabledConfigFlag(EImGuiConfigFlag::DOCKING, true);
+		//io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+		//setEnabledConfigFlag(ImGuiConfigFlags_ViewportsEnable, true);
+		setEnabledConfigFlag(EImGuiConfigFlag::VIEWPORTS, true);
 		io.ConfigDockingWithShift = true;
 		
 		ImGui_ImplGlfw_InitForVulkan(window.getNativeWindow(), true);
@@ -101,13 +106,18 @@ namespace DOH {
 	}
 
 	void ImGuiWrapper::render(VkCommandBuffer cmd) {
-		ImGuiIO& io = ImGui::GetIO();
 		ImGui::Render();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
 	}
 
 	void ImGuiWrapper::onWindowResize(int width, int height) const {
-		ImGui::GetIO().DisplaySize = ImVec2((float) width, (float)height);
+		ImGui::GetIO().DisplaySize = ImVec2(static_cast<float>(width), static_cast<float>(height));
+	}
+
+	void ImGuiWrapper::setEnabledConfigFlag(const EImGuiConfigFlag configFlag, const bool enabled) {
+		enabled ?
+			ImGui::GetIO().ConfigFlags |= (ImGuiConfigFlags) configFlag :
+			ImGui::GetIO().ConfigFlags &= ~(ImGuiConfigFlags) configFlag;
 	}
 
 	void ImGuiWrapper::drawTexture(const TextureVulkan& texture, glm::vec2 size, glm::vec2 uv0, glm::vec2 uv1) {

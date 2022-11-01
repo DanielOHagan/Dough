@@ -95,4 +95,17 @@ namespace DOH {
 		inline uint32_t getMaxRefreshRate() const { return mMaxRefreshRate; }
 		inline EWindowDisplayMode getDisplayMode() const { return mDisplayMode; }
 	};
+
+	class WindowDisplayModeChangeEvent : public WindowEvent {
+	private:
+		EWindowDisplayMode mDisplayMode;
+
+	public:
+		WindowDisplayModeChangeEvent(Window& window, EWindowDisplayMode displayMode)
+		:	WindowEvent(EEventType::WINDOW_DISPLAY_MODE_CHANGE, window),
+			mDisplayMode(displayMode)
+		{}
+
+		inline EWindowDisplayMode getDisplayMode() const { return mDisplayMode; }
+	};
 }
