@@ -105,7 +105,7 @@ namespace DOH {
 
 		uint32_t quadBatchStartIndex = 0;
 
-		for (size_t addedCount = 0; addedCount < arrSize; addedCount++) {
+		for (size_t addedCount = 0; addedCount < arrSize; /* addedCount is changed inside loop, breaks loop when no more space or all quads added */) {
 			Quad& quad = quadArr[addedCount];
 			bool added = false;
 
@@ -114,7 +114,8 @@ namespace DOH {
 				if (batch.hasSpace(1)) {
 					batch.add(quad, 0);
 					added = true;
-					mDrawnQuadCount += static_cast<uint32_t>(addedCount);
+					addedCount++;
+					mDrawnQuadCount++;
 					break;
 				} else {
 					quadBatchStartIndex++;
@@ -125,7 +126,8 @@ namespace DOH {
 				const size_t batchIndex = mStorage->createNewBatchQuad();
 				if (batchIndex != -1) {
 					mStorage->getQuadRenderBatches()[batchIndex].add(quad, 0);
-					mDrawnQuadCount += static_cast<uint32_t>(addedCount);
+					addedCount++;
+					mDrawnQuadCount++;
 				} else {
 					mTruncatedQuadCount += static_cast<uint32_t>(arrSize - addedCount);
 					break;
@@ -140,23 +142,24 @@ namespace DOH {
 
 		uint32_t quadBatchStartIndex = 0;
 
-		for (size_t addedCount = 0; addedCount < arrSize; addedCount++) {
+		for (size_t addedCount = 0; addedCount < arrSize; /* addedCount is changed inside loop, breaks loop when no more space or all quads added */) {
 			Quad& quad = quadArr[addedCount];
 			bool added = false;
 
-			uint32_t textureSlotIndex = 0;
-			if (texArr.hasTextureId(quad.getTexture().getId())) {
-				textureSlotIndex = texArr.getTextureSlotIndex(quad.getTexture().getId());
-			} else if (texArr.hasTextureSlotAvailable()) {
-				textureSlotIndex = texArr.addNewTexture(quad.getTexture());
-			}
+			const uint32_t textureSlotIndex =
+				texArr.hasTextureId(quad.getTexture().getId()) ?
+					texArr.getTextureSlotIndex(quad.getTexture().getId()) :
+					texArr.hasTextureSlotAvailable() ?
+						texArr.addNewTexture(quad.getTexture()) :
+						0;
 
 			for (uint32_t batchIndex = quadBatchStartIndex; batchIndex < mStorage->getQuadRenderBatches().size(); batchIndex++) {
 				RenderBatchQuad& batch = mStorage->getQuadRenderBatches()[batchIndex];
 				if (batch.hasSpace(1)) {
 					batch.add(quad, textureSlotIndex);
+					addedCount++;
 					added = true;
-					mDrawnQuadCount += static_cast<uint32_t>(addedCount);
+					mDrawnQuadCount++;
 					break;
 				} else {
 					quadBatchStartIndex++;
@@ -167,7 +170,8 @@ namespace DOH {
 				const size_t batchIndex = mStorage->createNewBatchQuad();
 				if (batchIndex != -1) {
 					mStorage->getQuadRenderBatches()[batchIndex].add(quad, textureSlotIndex);
-					mDrawnQuadCount += static_cast<uint32_t>(addedCount);
+					addedCount++;
+					mDrawnQuadCount++;
 				} else {
 					mTruncatedQuadCount += static_cast<uint32_t>(arrSize - addedCount);
 					break;
@@ -199,7 +203,7 @@ namespace DOH {
 
 		uint32_t quadBatchStartIndex = 0;
 
-		for (size_t addedCount = 0; addedCount < arrSize;) {
+		for (size_t addedCount = 0; addedCount < arrSize; /* addedCount is changed inside loop, breaks loop when no more space */) {
 			Quad& quad = quadArr[addedCount];
 
 			for (uint32_t batchIndex = quadBatchStartIndex; batchIndex < mStorage->getQuadRenderBatches().size(); batchIndex++) {
@@ -252,6 +256,100 @@ namespace DOH {
 				}
 			}
 		}
+	}
+
+	std::vector<Quad> Renderer2dVulkan::getStringAsQuads(
+		const char* string,
+		const glm::vec3 rootPos,
+		const FontBitmap& bitmap,
+		const ETextFlags2d flags
+	) const {
+		const size_t stringLength = strlen(string);
+
+		if (stringLength == 0) {
+			return {};
+		}
+
+		std::vector<Quad> quads;
+		quads.reserve(stringLength);
+
+		const FntFileData& fileData = bitmap.getFileData();
+		const float fileWidth = static_cast<float>(fileData.Width);
+		const float fileHeight = static_cast<float>(fileData.Height);
+
+		glm::vec3 currentPos = rootPos;
+
+		for (size_t i = 0; i < stringLength; i++) {
+			//TODO:: currently doesn't support a UTF-8 conversion so a cast to uint produces ASCII decimal values
+			const uint32_t charId = static_cast<uint32_t>(string[i]);
+
+			//Handle special characters
+			if (charId == 32) { //space
+				currentPos.x += bitmap.getSpaceWidthPx() / fileWidth;
+				continue;
+			} else if (charId == 10) { //new line
+				currentPos.y -=  fileData.LineHeight / fileHeight;
+				currentPos.x = rootPos.x;
+				continue;
+			} else if (charId == 9) { //tab
+				currentPos.x += (bitmap.getSpaceWidthPx() * 4) / fileWidth; //Tab size is equal to 4 glyph sizes
+				continue;
+			}
+
+			const auto& glyphData = fileData.Chars.find(charId);
+			if (glyphData != fileData.Chars.end()) {
+				const FntFileGlyphData& g = glyphData->second;
+
+				const float height = g.Height / fileHeight;
+
+				Quad quad = {};
+				quad.Position = {
+					currentPos.x + (g.OffsetX / fileWidth),
+					currentPos.y - height + (fileData.Base / fileHeight) - (g.OffsetY / fileHeight),
+					currentPos.z
+				};
+				quad.Size = {
+					g.Width / fileWidth,
+					height
+				};
+				
+				const glm::vec2 texCoordTopLeft = {
+					g.X / fileWidth,
+					g.Y / fileHeight
+				};
+				const glm::vec2 texCoordBotRight = {
+					texCoordTopLeft.x + quad.Size.x,
+					texCoordTopLeft.y + quad.Size.y
+				};
+				
+				quad.TextureCoords = {
+					texCoordTopLeft.x,
+					texCoordBotRight.y,
+
+					texCoordBotRight.x,
+					texCoordBotRight.y,
+
+					texCoordBotRight.x,
+					texCoordTopLeft.y,
+					
+					texCoordTopLeft.x,
+					texCoordTopLeft.y
+				};
+
+				quad.Colour = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+				//TODO:: kerning?
+
+				quad.setTexture(*bitmap.getPageTexture(glyphData->second.PageId));
+				quads.emplace_back(quad);
+
+				currentPos.x += g.AdvanceX / fileWidth;
+			} else {
+				LOG_WARN("Failed to find charId: " << charId << " in bitmap");
+			}
+		}
+
+		return quads;
 	}
 
 	void Renderer2dVulkan::updateRenderer2dUniformData(
@@ -311,7 +409,6 @@ namespace DOH {
 
 		//TODO:: A better way of "linking" batches and vaos
 		std::vector<RenderBatchQuad>& batches = mStorage->getQuadRenderBatches();
-		//std::vector<std::shared_ptr<VertexArrayVulkan>>& vaos = mStorage->getQuadRenderBatchVaos();
 		std::vector<std::shared_ptr<SimpleRenderable>>& renderableQuadBatches = mStorage->getRenderableQuadBatches();
 
 		if (batches.size() != renderableQuadBatches.size()) {

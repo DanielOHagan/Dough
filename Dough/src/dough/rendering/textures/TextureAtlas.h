@@ -6,20 +6,20 @@
 
 namespace DOH {
 
-	class MonoSpaceTextureAtlasVulkan : public TextureVulkan {
+	class MonoSpaceTextureAtlas : public TextureVulkan {
 
 	private:
 		const uint32_t mRowCount;
 		const uint32_t mColCount;
-		float mNormalisedInnerTextureWidth;
-		float mNormalisedInnerTextureHeight;
+		const float mNormalisedInnerTextureWidth;
+		const float mNormalisedInnerTextureHeight;
 
 	public:
-		MonoSpaceTextureAtlasVulkan() = delete;
-		MonoSpaceTextureAtlasVulkan(const MonoSpaceTextureAtlasVulkan& copy) = delete;
-		MonoSpaceTextureAtlasVulkan operator=(const MonoSpaceTextureAtlasVulkan& assignment) = delete;
+		MonoSpaceTextureAtlas() = delete;
+		MonoSpaceTextureAtlas(const MonoSpaceTextureAtlas& copy) = delete;
+		MonoSpaceTextureAtlas operator=(const MonoSpaceTextureAtlas& assignment) = delete;
 
-		MonoSpaceTextureAtlasVulkan(
+		MonoSpaceTextureAtlas(
 			VkDevice logicDevice,
 			VkPhysicalDevice physicalDevice,
 			const std::string& filePath,

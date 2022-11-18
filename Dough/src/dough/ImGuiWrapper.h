@@ -42,8 +42,9 @@ namespace DOH {
 		//	and then the main window display mode is changed to fullscreen, the program crashes.
 
 	private:
-		VkDescriptorPool mDescriptorPool = VK_NULL_HANDLE;
+		VkDescriptorPool mDescriptorPool;
 		std::unordered_map<uint32_t, VkDescriptorSet> mLoadedTextures;
+		uint32_t mTextureCount;
 
 		//IMPORTANT:: ImGui has not confirmed exactly how this works in vulkan, currently images are drawn from
 		// a descriptor set created by ImGui
@@ -54,7 +55,7 @@ namespace DOH {
 
 		static const char* EMPTY_LABEL;
 
-		ImGuiWrapper() = default;
+		ImGuiWrapper();
 		ImGuiWrapper(const ImGuiWrapper& copy) = delete;
 		ImGuiWrapper operator=(const ImGuiWrapper& assignment) = delete;
 

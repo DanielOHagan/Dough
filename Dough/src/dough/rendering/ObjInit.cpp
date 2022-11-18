@@ -139,11 +139,15 @@ namespace DOH {
 		return CONTEXT.createTexture(r, g, b, a, colourRgbaNormalised);
 	}
 	
-	std::shared_ptr<MonoSpaceTextureAtlasVulkan> ObjInit::monoSpaceTextureAtlas(
+	std::shared_ptr<MonoSpaceTextureAtlas> ObjInit::monoSpaceTextureAtlas(
 		const std::string& filePath,
 		const uint32_t rowCount,
 		const uint32_t colCount
 	) {
 		return CONTEXT.createMonoSpaceTextureAtlas(filePath, rowCount, colCount);
+	}
+
+	std::shared_ptr<FontBitmap> ObjInit::fontBitmap(const char* filepath, const char* imageDir) {
+		return CONTEXT.createFontBitmap(filepath, imageDir);
 	}
 }

@@ -293,11 +293,14 @@ namespace DOH {
 		//-----Texture-----
 		std::shared_ptr<TextureVulkan> createTexture(const std::string& filePath);
 		std::shared_ptr<TextureVulkan> createTexture(float r, float g, float b, float a, bool colourRgbaNormalised = false);
-		std::shared_ptr<MonoSpaceTextureAtlasVulkan> createMonoSpaceTextureAtlas(
+		std::shared_ptr<MonoSpaceTextureAtlas> createMonoSpaceTextureAtlas(
 			const std::string& filePath,
 			const uint32_t rowCount,
 			const uint32_t columnCount
 		);
+
+		//-----Font-----
+		std::shared_ptr<FontBitmap> createFontBitmap(const char* filepath, const char* imageDir);
 
 	private:
 		void createQueues(QueueFamilyIndices& queueFamilyIndices);

@@ -17,26 +17,10 @@ namespace DOH {
 		std::vector<VkImageView> mImageViews;
 		VkFormat mImageFormat;
 		VkExtent2D mExtent;
-		
-		//std::shared_ptr<RenderPassVulkan> mSceneRenderPass;
-		//std::vector<VkFramebuffer> mSceneFrameBuffers;
-		//std::vector<ImageVulkan> mSceneDepthImages;
-		//
-		//std::shared_ptr<RenderPassVulkan> mAppUiRenderPass;
-		//std::vector<VkFramebuffer> mAppUiFrameBuffers;
-		//
-		//std::shared_ptr<RenderPassVulkan> mImGuiRenderPass;
-		//std::vector<VkFramebuffer> mImGuiFrameBuffers;
 
 		bool mResizable;
 
 	public:
-		//enum class ERenderPassType {
-		//	SCENE,
-		//	APP_UI,
-		//	IMGUI
-		//};
-
 		SwapChainVulkan(
 			VkDevice logicDevice,
 			SwapChainSupportDetails& scsd,
@@ -59,14 +43,11 @@ namespace DOH {
 		);
 		void close(VkDevice logicDevice);
 
-		//void createFrameBuffers(VkDevice logicDevice);
-		//void destroyFrameBuffers(VkDevice logicDevice);
 		uint32_t aquireNextImageIndex(
 			VkDevice logicDevice,
 			VkFence frameInFlightFence,
 			VkSemaphore imageAvailableSemaphore
 		);
-		//void beginRenderPass(ERenderPassType type, size_t frameBufferIndex, VkCommandBuffer cmd);
 
 		inline void setResizable(bool resizable) { mResizable = resizable; }
 		inline bool isResizable() const { return mResizable; }
@@ -78,9 +59,6 @@ namespace DOH {
 		inline const uint32_t getImageCount() const { return static_cast<uint32_t>(mImages.size()); }
 		inline const uint32_t getImageViewCount() const { return static_cast<uint32_t>(mImageViews.size()); }
 		inline const std::vector<VkImageView>& getImageViews() const { return mImageViews; }
-		//IMPORTANT:: ImGui frame buffers are not included as ImGui handles that itself
-		//inline uint32_t getFrameBufferCount() const { return static_cast<uint32_t>(mSceneFrameBuffers.size() + mAppUiFrameBuffers.size()); }
-		//RenderPassVulkan& getRenderPass(ERenderPassType type) const;
 
 		//-----Static Methods-----
 		static SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);

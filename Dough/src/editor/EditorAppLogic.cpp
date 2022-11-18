@@ -21,6 +21,7 @@ namespace DOH::EDITOR {
 		mCustomDemo = std::make_unique<CustomDemo>();
 		mGridDemo = std::make_unique<GridDemo>();
 		mBouncingQuadDemo = std::make_unique<BouncingQuadDemo>();
+		mTextDemo = std::make_unique<TextDemo>();
 
 		mEditorSettings = std::make_unique<EditorSettings>();
 	}
@@ -168,11 +169,17 @@ namespace DOH::EDITOR {
 			}
 		}
 
+		if (mTextDemo->Render) {
+			//If text bitmap has only one page then drawQuadArraySameTextureScene() can be used
+			renderer2d.drawQuadArraySameTextureScene(mTextDemo->TextQuads);
+			//else
+			//renderer2d.drawQuadArrayTexturedScene(mTextDemo->TextQuads);
+		}
+
 		renderer.endScene();
 
 		renderer.beginUi(mCustomDemo->UiProjMat);
 		if (mCustomDemo->RenderUi) {
-			//context.addRenderableToUiDrawList(mCustomDemo->UiPipelineName, mCustomDemo->UiRenderable);
 			mCustomDemo->CustomUiConveyer.safeAddRenderable(mCustomDemo->UiRenderable);
 		}
 		renderer.endUi();
@@ -318,7 +325,7 @@ namespace DOH::EDITOR {
 			ImGui::SetNextItemOpen(mEditorSettings->RenderingCollapseMenuOpen);
 			if (mEditorSettings->RenderingCollapseMenuOpen = ImGui::CollapsingHeader("Rendering")) {
 				AppDebugInfo& debugInfo = Application::get().getDebugInfo();
-				MonoSpaceTextureAtlasVulkan& atlas = *renderer.getContext().getRenderer2d().getStorage().getTestTextureAtlas();
+				MonoSpaceTextureAtlas& atlas = *renderer.getContext().getRenderer2d().getStorage().getTestTextureAtlas();
 
 				const double frameTime = debugInfo.LastUpdateTimeMillis + debugInfo.LastRenderTimeMillis;
 
@@ -531,7 +538,7 @@ namespace DOH::EDITOR {
 						//	static being the default values and dynamic being from the variables determined by ths menu
 						// Maybe have the dynamic settings hidden unless dynamic is selected
 
-						MonoSpaceTextureAtlasVulkan& atlas = *renderer.getContext().getRenderer2d().getStorage().getTestTextureAtlas();
+						MonoSpaceTextureAtlas& atlas = *renderer.getContext().getRenderer2d().getStorage().getTestTextureAtlas();
 
 						int tempTestTextureRowOffset = mGridDemo->TestTexturesRowOffset;
 						if (ImGui::InputInt("Test Texture Row Offset", &tempTestTextureRowOffset)) {
@@ -642,6 +649,18 @@ namespace DOH::EDITOR {
 						}
 						ImGui::EndTabItem();
 					}
+
+					if (ImGui::BeginTabItem("Text")) {
+						ImGui::Checkbox("Render", &mTextDemo->Render);
+
+						ImGui::Text("String length limit: %i", TextDemo::StringLengthLimit);
+						if (ImGui::InputTextMultiline("Display Text", mTextDemo->String, sizeof(mTextDemo->String))) {
+							mTextDemo->TextQuads = renderer2d.getStringAsQuads(mTextDemo->String);
+						}
+
+						ImGui::EndTabItem();
+					}
+
 					ImGui::EndTabBar();
 				}
 			}
@@ -810,6 +829,7 @@ namespace DOH::EDITOR {
 		initBouncingQuadsDemo();
 		initCustomDemo();
 		initObjModelsDemo();
+		initTextDemo();
 
 		context.createPipelineUniformObjects();
 	}
@@ -867,16 +887,8 @@ namespace DOH::EDITOR {
 		//}
 
 		mCustomDemo->SceneShaderProgram = ObjInit::shaderProgram(
-			ObjInit::shader(
-				EShaderType::VERTEX,
-				mCustomDemo->TexturedShaderVertPath
-				//flatColourShaderVertPath
-			),
-			ObjInit::shader(
-				EShaderType::FRAGMENT,
-				mCustomDemo->TexturedShaderFragPath
-				//flatColourShaderFragPath
-			)
+			ObjInit::shader(EShaderType::VERTEX, mCustomDemo->TexturedShaderVertPath),
+			ObjInit::shader(EShaderType::FRAGMENT, mCustomDemo->TexturedShaderFragPath)
 		);
 
 		ShaderUniformLayout& customLayout = mCustomDemo->SceneShaderProgram->getUniformLayout();
@@ -1021,6 +1033,15 @@ namespace DOH::EDITOR {
 			mObjModelsDemo->SceneWireframePipelineName,
 			*mObjModelsDemo->SceneWireframePipelineInfo
 		);
+	}
+
+	void EditorAppLogic::initTextDemo() {
+		const auto& renderer2d = Application::get().getRenderer().getContext().getRenderer2d();
+
+		//Set a defualt message for the text demo here
+		
+		//Generate quads for default message
+		mTextDemo->TextQuads = renderer2d.getStringAsQuads(mTextDemo->String);
 	}
 
 	void EditorAppLogic::bouncingQuadsDemoAddRandomQuads(size_t count) {

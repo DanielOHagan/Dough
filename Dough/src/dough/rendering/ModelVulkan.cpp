@@ -4,23 +4,23 @@
 
 namespace DOH {
 
-	ModelVulkan::ModelVulkan(const Model3dCreationData& modelCreationData) {
+	ModelVulkan::ModelVulkan(std::shared_ptr<Model3dCreationData> modelCreationData) {
 		std::shared_ptr<VertexBufferVulkan> vbo = ObjInit::stagedVertexBuffer(
-			modelCreationData.BufferElements,
-			modelCreationData.Vertices.data(),
-			modelCreationData.VertexBufferSize,
+			modelCreationData->BufferElements,
+			modelCreationData->Vertices.data(),
+			modelCreationData->VertexBufferSize,
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
 		std::shared_ptr<IndexBufferVulkan> ibo = ObjInit::stagedIndexBuffer(
-			modelCreationData.Indices.data(),
-			modelCreationData.IndexBufferSize
+			modelCreationData->Indices.data(),
+			modelCreationData->IndexBufferSize
 		);
 
 		mVao = ObjInit::vertexArray();
 		mVao->addVertexBuffer(vbo);
 		mVao->setIndexBuffer(ibo);
-		mVao->setDrawCount(static_cast<uint32_t>(modelCreationData.Indices.size()));
+		mVao->setDrawCount(static_cast<uint32_t>(modelCreationData->Indices.size()));
 
 		mUsingGpuResource = true;
 	}

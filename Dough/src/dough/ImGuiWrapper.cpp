@@ -8,9 +8,16 @@
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_vulkan.h>
 
+#define DOH_IMGUI_UI_MAX_TEXTURE_COUNT 1000
+
 namespace DOH {
 
 	const char* ImGuiWrapper::EMPTY_LABEL = "##";
+
+	ImGuiWrapper::ImGuiWrapper()
+	:	mDescriptorPool(VK_NULL_HANDLE),
+		mTextureCount(0)
+	{}
 
 	void ImGuiWrapper::init(Window& window, ImGuiInitInfo& imGuiInit) {
 		IMGUI_CHECKVERSION();
@@ -57,11 +64,7 @@ namespace DOH {
 		initInfo.DescriptorPool = mDescriptorPool;
 
 		ImGuiIO& io = ImGui::GetIO();
-		//io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-		//setEnabledConfigFlag(ImGuiConfigFlags_DockingEnable, true);
 		setEnabledConfigFlag(EImGuiConfigFlag::DOCKING, true);
-		//io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-		//setEnabledConfigFlag(ImGuiConfigFlags_ViewportsEnable, true);
 		setEnabledConfigFlag(EImGuiConfigFlag::VIEWPORTS, true);
 		io.ConfigDockingWithShift = true;
 		
@@ -158,6 +161,15 @@ namespace DOH {
 	}
 
 	VkDescriptorSet ImGuiWrapper::addTextureVulkan(VkSampler sampler, VkImageView imageView, VkImageLayout imageLayout) {
-		return ImGui_ImplVulkan_AddTexture(sampler, imageView, imageLayout);
+		VkDescriptorSet descSet = VK_NULL_HANDLE;
+		
+		if (mTextureCount < DOH_IMGUI_UI_MAX_TEXTURE_COUNT) {
+			descSet = ImGui_ImplVulkan_AddTexture(sampler, imageView, imageLayout);
+			mTextureCount++;
+		} else {
+			LOG_WARN("Failed to add texture to ImGUI, mTextureCount reached the limit");
+		}
+
+		return descSet;
 	}
 }

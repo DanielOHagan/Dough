@@ -517,7 +517,6 @@ namespace DOH {
 
 	void RenderingContextVulkan::createRenderPasses() {
 		const VkFormat imageFormat = mSwapChain->getImageFormat();
-		const VkFormat depthFormat = mDepthFormat;
 
 		{
 			SubPassVulkan sceneSubPass = {
@@ -536,7 +535,7 @@ namespace DOH {
 				{//optional depth stencil
 					{
 						ERenderPassAttachmentType::DEPTH,
-						depthFormat,
+						mDepthFormat,
 						VK_ATTACHMENT_LOAD_OP_CLEAR,
 						VK_ATTACHMENT_STORE_OP_DONT_CARE,
 						VK_IMAGE_LAYOUT_UNDEFINED,
@@ -1213,11 +1212,15 @@ namespace DOH {
 		return std::make_shared<TextureVulkan>(mLogicDevice, mPhysicalDevice, r, g, b, a, colourRgbaNormalised);
 	}
 
-	std::shared_ptr<MonoSpaceTextureAtlasVulkan> RenderingContextVulkan::createMonoSpaceTextureAtlas(
+	std::shared_ptr<MonoSpaceTextureAtlas> RenderingContextVulkan::createMonoSpaceTextureAtlas(
 		const std::string& filePath,
 		const uint32_t rowCount,
 		const uint32_t colCount
 	) {
-		return std::make_shared<MonoSpaceTextureAtlasVulkan>(mLogicDevice, mPhysicalDevice, filePath, rowCount, colCount);
+		return std::make_shared<MonoSpaceTextureAtlas>(mLogicDevice, mPhysicalDevice, filePath, rowCount, colCount);
+	}
+
+	std::shared_ptr<FontBitmap> RenderingContextVulkan::createFontBitmap(const char* filepath, const char* imageDir) {
+		return std::make_shared<FontBitmap>(filepath, imageDir);
 	}
 }

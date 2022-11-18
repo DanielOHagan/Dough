@@ -3,6 +3,7 @@
 #include "dough/Utils.h"
 #include "dough/Logging.h"
 #include "dough/rendering/buffer/BufferElement.h"
+#include "dough/readers/FntFileReader.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -62,8 +63,12 @@ namespace DOH {
 		return ResourceHandler::INSTANCE.loadTextureImpl(filepath);
 	}
 
-	Model3dCreationData ResourceHandler::loadObjModel(const std::string& filepath) {
+	std::shared_ptr<Model3dCreationData> ResourceHandler::loadObjModel(const std::string& filepath) {
 		return ResourceHandler::INSTANCE.loadObjModelImpl(filepath);
+	}
+
+	std::shared_ptr<FntFileData> ResourceHandler::loadFntFile(const char* filepath) {
+		return ResourceHandler::INSTANCE.loadFntFileImpl(filepath);
 	}
 
 	void ResourceHandler::freeImage(void* imageData) {
@@ -110,7 +115,7 @@ namespace DOH {
 		stbi_image_free(imageData);
 	}
 
-	Model3dCreationData ResourceHandler::loadObjModelImpl(const std::string& filepath) {
+	std::shared_ptr<Model3dCreationData> ResourceHandler::loadObjModelImpl(const std::string& filepath) {
 		tinyobj::attrib_t attrib;
 		std::vector<tinyobj::shape_t> shapes;
 		std::vector<tinyobj::material_t> materials;
@@ -121,11 +126,11 @@ namespace DOH {
 			THROW("OBJ load fail: " + warn + err);
 		}
 
-		Model3dCreationData model3d = {};
+		std::shared_ptr<Model3dCreationData> model3d = std::make_shared<Model3dCreationData>();
 
 		//TODO:: This assumes Vertex3d
-		model3d.BufferElements.push_back(EDataType::FLOAT3);
-		model3d.BufferElements.push_back(EDataType::FLOAT4);
+		model3d->BufferElements.push_back(EDataType::FLOAT3);
+		model3d->BufferElements.push_back(EDataType::FLOAT4);
 
 		std::unordered_map<Vertex3d, uint32_t> uniqueVertices = {};
 		for (const tinyobj::shape_t& shape : shapes) {
@@ -157,17 +162,75 @@ namespace DOH {
 				//}
 
 				if (uniqueVertices.count(vertex) == 0) {
-					uniqueVertices[vertex] = static_cast<uint32_t>(model3d.Vertices.size());
-					model3d.Vertices.push_back(vertex);
+					uniqueVertices[vertex] = static_cast<uint32_t>(model3d->Vertices.size());
+					model3d->Vertices.push_back(vertex);
 				}
 
-				model3d.Indices.push_back(uniqueVertices[vertex]);
+				model3d->Indices.push_back(uniqueVertices[vertex]);
 			}
 		}
 
-		model3d.VertexBufferSize = model3d.Vertices.size() * sizeof(Vertex3d);
-		model3d.IndexBufferSize = model3d.Indices.size() * sizeof(uint32_t);
+		model3d->VertexBufferSize = model3d->Vertices.size() * sizeof(Vertex3d);
+		model3d->IndexBufferSize = model3d->Indices.size() * sizeof(uint32_t);
 
 		return model3d;
+	}
+
+	std::shared_ptr<FntFileData> ResourceHandler::loadFntFileImpl(const char* filepath) {
+		FntFileReader fntReader(filepath);
+		if (!fntReader.isOpen()) {
+			LOG_ERR("Failed to open file: " << filepath);
+			return nullptr;
+		}
+		return fntReader.read();
+	}
+
+	const std::string ResourceHandler::getCurrentLineAsBuffer(const std::vector<char>& chars, const size_t startIndex) {
+		const size_t lineLength = ResourceHandler::getLengthOfCurrentLine(chars, startIndex);
+		return std::string(chars.begin() + startIndex, chars.begin() + startIndex + lineLength) + "\0";
+	}
+
+	const size_t ResourceHandler::getLengthTillNextTargetChar(
+		const std::vector<char>& chars,
+		const char targetChar,
+		const size_t startIndex
+	) {
+		if (startIndex >= chars.size()) {
+			LOG_WARN("getLengthTillNextTargetChar() startIndex greater than chars.size()");
+			return 0;
+		}
+
+		for (size_t i = 0; i < chars.size(); i++) {
+			if (chars[startIndex + i] == targetChar) {
+				return i;
+			}
+		}
+
+		return 0;
+	}
+
+	const size_t ResourceHandler::getLengthOfCurrentLine(const std::vector<char>& chars, const size_t currentLineStartIndex) {
+		return ResourceHandler::getLengthTillNextTargetChar(chars, '\n', currentLineStartIndex) + 1; //+1 to include '\n'
+	}
+
+	const bool ResourceHandler::isFileOfType(const char* filepath, const char* type) {
+		size_t typeLength = strlen(type);
+		size_t filepathLength = strlen(filepath);
+
+		if (typeLength == 0) {
+			LOG_ERR("isFileOfType typeLength is 0");
+			return false;
+		} else if (typeLength == filepathLength) {
+			LOG_ERR("isFileOfType typeLength same as filepathLength");
+			return false;
+		}
+
+		for (size_t i = 0; i < typeLength; i++) {
+			if (type[i] != filepath[(filepathLength - typeLength) + i]) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 }

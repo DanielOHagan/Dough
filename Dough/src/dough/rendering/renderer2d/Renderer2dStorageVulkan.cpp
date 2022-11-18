@@ -17,6 +17,7 @@ namespace DOH {
 	void Renderer2dStorageVulkan::init(VkDevice logicDevice) {
 
 		mWhiteTexture = ObjInit::texture(255.0f, 255.0f, 255.0f, 255.0f, false);
+		mArialBitmap = ObjInit::fontBitmap("res/fonts/arial_latin_32px.fnt", "res/fonts/");
 
 		initForQuads(logicDevice);
 
@@ -40,6 +41,10 @@ namespace DOH {
 
 		for (const auto& renderableQuadBatch : mRenderableQuadBatches) {
 			renderableQuadBatch->getVao().close(logicDevice);
+		}
+
+		for (const auto& texture : mArialBitmap->getPageTextures()) {
+			texture->close(logicDevice);
 		}
 
 		mQuadSharedIndexBuffer->close(logicDevice);
@@ -116,6 +121,15 @@ namespace DOH {
 			5
 		);
 		mQuadBatchTextureArray->addNewTexture(*mTestTexturesAtlas);
+
+		uint32_t bitmapTexturesAdded = 0;
+		for (const auto& texture : mArialBitmap->getPageTextures()) {
+			mQuadBatchTextureArray->addNewTexture(*texture);
+			bitmapTexturesAdded++;
+		}
+		if (bitmapTexturesAdded < mArialBitmap->getPageCount()) {
+			LOG_ERR("Failed to add all arial bitmap textures to quad batch texture array. Missing: " << mArialBitmap->getPageCount() - bitmapTexturesAdded);
+		}
 
 		ShaderUniformLayout& layout = mQuadShaderProgram->getUniformLayout();
 		layout.setValue(0, sizeof(glm::mat4x4));

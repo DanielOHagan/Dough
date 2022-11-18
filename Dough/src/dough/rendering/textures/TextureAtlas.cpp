@@ -1,10 +1,10 @@
-#include "dough/rendering/textures/TextureAtlasVulkan.h"
+#include "dough/rendering/textures/TextureAtlas.h"
 
 #include "dough/Logging.h"
 
 namespace DOH {
 
-	MonoSpaceTextureAtlasVulkan::MonoSpaceTextureAtlasVulkan(
+	MonoSpaceTextureAtlas::MonoSpaceTextureAtlas(
 		VkDevice logicDevice,
 		VkPhysicalDevice physicalDevice,
 		const std::string& filePath,
@@ -17,23 +17,23 @@ namespace DOH {
 		mNormalisedInnerTextureHeight(1.0f / mColCount)
 	{}
 
-	glm::vec2 MonoSpaceTextureAtlasVulkan::getInnerTextureCoordsOrigin(const uint32_t row, const uint32_t col) const {
+	glm::vec2 MonoSpaceTextureAtlas::getInnerTextureCoordsOrigin(const uint32_t row, const uint32_t col) const {
 		return { row * mNormalisedInnerTextureWidth, col * mNormalisedInnerTextureHeight };
 	}
 
-	std::array<float, 8> MonoSpaceTextureAtlasVulkan::getInnerTextureCoords(const uint32_t row, const uint32_t col) const {
+	std::array<float, 8> MonoSpaceTextureAtlas::getInnerTextureCoords(const uint32_t row, const uint32_t col) const {
 		const glm::vec2 origin = getInnerTextureCoordsOrigin(row, col);
 
 		std::array<float, 8> arr = {
 			origin.x,
 			origin.y + mNormalisedInnerTextureHeight,
-		
+
 			origin.x + mNormalisedInnerTextureWidth,
 			origin.y + mNormalisedInnerTextureHeight,
-		
+
 			origin.x + mNormalisedInnerTextureWidth,
 			origin.y,
-		
+
 			origin.x,
 			origin.y
 		};
@@ -41,7 +41,7 @@ namespace DOH {
 		return arr;
 	}
 
-	std::array<float, 8> MonoSpaceTextureAtlasVulkan::getInnerTextureCoords(
+	std::array<float, 8> MonoSpaceTextureAtlas::getInnerTextureCoords(
 		const uint32_t rowTop,
 		const uint32_t rowBot,
 		const uint32_t colLeft,

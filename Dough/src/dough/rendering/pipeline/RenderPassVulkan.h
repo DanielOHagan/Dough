@@ -76,7 +76,7 @@ namespace DOH {
 			VkDevice logicDevice,
 			const SubPassVulkan& subPass
 		);
-		//RenderPassVulkan2(
+		//RenderPassVulkan(
 		//	VkDevice logicDevice,
 		//	const std::vector<SubPassVulkan>& subPasses,
 		//	const uint32_t colourAttachmentCount,

@@ -18,7 +18,7 @@ namespace DOH {
 		ModelVulkan operator=(const ModelVulkan& assignment) = delete;
 
 	public:
-		ModelVulkan(const Model3dCreationData& modelCreationData);
+		ModelVulkan(std::shared_ptr<Model3dCreationData> modelCreationData);
 
 		inline VertexArrayVulkan& getVao() const { return *mVao; }
 

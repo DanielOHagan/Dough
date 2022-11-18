@@ -231,7 +231,6 @@ namespace DOH {
 	static VkVertexInputBindingDescription getVertexTypeBindingDesc(EVertexType vertexType, uint32_t binding, VkVertexInputRate inputRate) {
 		VkVertexInputBindingDescription bindDesc = {};
 		bindDesc.binding = binding;
-		//bindDesc.stride = static_cast<uint32_t>(getVertexTypeSize(vertexType));
 		bindDesc.stride = static_cast<uint32_t>(vertexType);
 		bindDesc.inputRate = inputRate;
 		return bindDesc;

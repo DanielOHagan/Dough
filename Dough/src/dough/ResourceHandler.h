@@ -5,6 +5,7 @@
 namespace DOH {
 
 	struct BufferElement;
+	struct FntFileData;
 
 	struct TextureCreationData {
 		void* Data;
@@ -33,7 +34,8 @@ namespace DOH {
 
 		TextureCreationData loadTextureImpl(const char* filepath);
 		void freeImageImpl(void* imageData);
-		Model3dCreationData loadObjModelImpl(const std::string& filepath);
+		std::shared_ptr<Model3dCreationData> loadObjModelImpl(const std::string& filepath);
+		std::shared_ptr<FntFileData> loadFntFileImpl(const char* filepath);
 
 	public:
 		ResourceHandler(const ResourceHandler& copy) = delete;
@@ -46,6 +48,16 @@ namespace DOH {
 		static std::vector<char> readFile(const std::string& filepath);
 		static uint32_t getNextUniqueTextureId();
 		//TODO:: allow for VertexType to be specified when loading
-		static Model3dCreationData loadObjModel(const std::string& filepath);
+		static std::shared_ptr<Model3dCreationData> loadObjModel(const std::string& filepath);
+		static std::shared_ptr<FntFileData> loadFntFile(const char* filepath);
+
+
+		//------String parsing helpers-----
+		static const std::string getCurrentLineAsBuffer(const std::vector<char>& chars, const size_t startIndex);
+		static const size_t getLengthTillNextTargetChar(const std::vector<char>& chars, const char targetChar, const size_t startIndex);
+		static const size_t getLengthOfCurrentLine(const std::vector<char>& chars, const size_t currentLineStartIndex);
+
+		//-----File type helpers-----
+		static const bool isFileOfType(const char* filepath, const char* type);
 	};
 }

@@ -4,8 +4,9 @@
 #include "dough/ResourceHandler.h"
 #include "dough/rendering/pipeline/shader/ShaderVulkan.h"
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
-#include "dough/rendering/textures/TextureAtlasVulkan.h"
+#include "dough/rendering/textures/TextureAtlas.h"
 #include "dough/rendering/SwapChainVulkan.h"
+#include "dough/rendering/text/FontBitmap.h"
 
 namespace DOH {
 
@@ -108,10 +109,13 @@ namespace DOH {
 		static std::shared_ptr<TextureVulkan> texture(const std::string& filePath);
 		//RGBA values range from 0 - 255
 		static std::shared_ptr<TextureVulkan> texture(float r, float g, float b, float a, bool colourRgbaNormalised = false);
-		static std::shared_ptr<MonoSpaceTextureAtlasVulkan> monoSpaceTextureAtlas(
+		static std::shared_ptr<MonoSpaceTextureAtlas> monoSpaceTextureAtlas(
 			const std::string& filePath,
 			const uint32_t rowCount,
 			const uint32_t columnCount
 		);
+
+		//-----Font-----
+		static std::shared_ptr<FontBitmap> fontBitmap(const char* filepath, const char* imageDir);
 	};
 }

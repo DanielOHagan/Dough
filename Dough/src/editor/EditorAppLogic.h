@@ -179,6 +179,16 @@ namespace DOH::EDITOR {
 			bool Render = false;
 		};
 
+		struct TextDemo {
+			static const size_t StringLengthLimit = 1024;
+
+			std::vector<Quad> TextQuads;
+			char String[StringLengthLimit]; //Arbitrary limit
+
+			bool Update = false;
+			bool Render = false;
+		};
+
 		struct ImGuiTextureViewerWindow {
 			const TextureVulkan& Texture;
 			bool Display;
@@ -230,6 +240,7 @@ namespace DOH::EDITOR {
 		std::unique_ptr<CustomDemo> mCustomDemo;
 		std::unique_ptr<GridDemo> mGridDemo;
 		std::unique_ptr<BouncingQuadDemo> mBouncingQuadDemo;
+		std::unique_ptr<TextDemo> mTextDemo;
 
 		//Editor settings
 		std::unique_ptr<EditorSettings> mEditorSettings;
@@ -265,6 +276,7 @@ namespace DOH::EDITOR {
 		void initBouncingQuadsDemo();
 		void initCustomDemo();
 		void initObjModelsDemo();
+		void initTextDemo();
 		void bouncingQuadsDemoAddRandomQuads(size_t count);
 		void bouncingQaudsDemoPopQuads(size_t count);
 		void objModelsDemoAddObject(
