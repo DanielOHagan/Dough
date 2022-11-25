@@ -177,25 +177,27 @@ namespace DOH {
 				"Device failed to wait idle for swap chain recreation"
 			);
 
-			std::vector<DescriptorTypeInfo> descTypes;
-			bool usingDescPool = false;
+			std::vector<DescriptorTypeInfo> totalDescTypes;
+			
 			for (const auto& pipeline : mAppSceneGraphicsPipelines) {
-				usingDescPool = true;
-				
-				for (const auto& descType : pipeline.second->getShaderProgram().getUniformLayout().asDescriptorTypes()) {
-					descTypes.emplace_back(descType);
+				std::vector<DescriptorTypeInfo> descTypes = pipeline.second->getShaderProgram().getUniformLayout().asDescriptorTypes();
+				totalDescTypes.reserve(totalDescTypes.size() + descTypes.size());
+
+				for (const DescriptorTypeInfo& descType : descTypes) {
+					totalDescTypes.emplace_back(descType);
 				}
 			}
 
 			for (const auto& pipeline : mAppUiGraphicsPipelines) {
-				usingDescPool = true;
+				std::vector<DescriptorTypeInfo> descTypes = pipeline.second->getShaderProgram().getUniformLayout().asDescriptorTypes();
+				totalDescTypes.reserve(totalDescTypes.size() + descTypes.size());
 
-				for (const auto& descType : pipeline.second->getShaderProgram().getUniformLayout().asDescriptorTypes()) {
-					descTypes.emplace_back(descType);
+				for (const DescriptorTypeInfo& descType : descTypes) {
+					totalDescTypes.emplace_back(descType);
 				}
 			}
 
-			if (usingDescPool) {
+			if (totalDescTypes.size() > 0) {
 				vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
 			}
 
@@ -216,8 +218,8 @@ namespace DOH {
 			createAppSceneDepthResources();
 			createFrameBuffers();
 
-			if (usingDescPool) {
-				mDescriptorPool = createDescriptorPool(descTypes);
+			if (totalDescTypes.size() > 0) {
+				mDescriptorPool = createDescriptorPool(totalDescTypes);
 			}
 
 			for (const auto& pipeline : mAppSceneGraphicsPipelines) {
@@ -304,7 +306,7 @@ namespace DOH {
 		mAppSceneRenderPass->begin(mAppSceneFrameBuffers[imageIndex], mSwapChain->getExtent(), cmd);
 
 		for (const auto& pipeline : mAppSceneGraphicsPipelines) {
-			if (pipeline.second->isEnabled()) {
+			if (pipeline.second->isEnabled() && pipeline.second->getVaoDrawCount() > 0) {
 
 				//Assumes all scene pipelines use this UBO and they're at binding 0
 				const uint32_t binding = 0;
@@ -330,7 +332,7 @@ namespace DOH {
 		mAppUiRenderPass->begin(mAppUiFrameBuffers[imageIndex], mSwapChain->getExtent(), cmd);
 
 		for (const auto& pipeline : mAppUiGraphicsPipelines) {
-			if (pipeline.second->isEnabled()) {
+			if (pipeline.second->isEnabled() && pipeline.second->getVaoDrawCount() > 0) {
 
 				//Assumes all scene pipelines use this UBO and they're at binding 0
 				const uint32_t binding = 0;

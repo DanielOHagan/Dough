@@ -124,13 +124,14 @@ namespace DOH {
 			VK_COLOR_COMPONENT_G_BIT |
 			VK_COLOR_COMPONENT_B_BIT |
 			VK_COLOR_COMPONENT_A_BIT;
-		colourBlendAttachment.blendEnable = VK_FALSE;
-		colourBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		colourBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		colourBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-		colourBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		colourBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		colourBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+		colourBlendAttachment.blendEnable = mInstanceInfo.BlendingEnabled ? VK_TRUE : VK_FALSE;
+		colourBlendAttachment.srcColorBlendFactor = mInstanceInfo.ColourBlendSrcFactor;
+		colourBlendAttachment.dstColorBlendFactor = mInstanceInfo.ColourBlendDstFactor;
+		colourBlendAttachment.colorBlendOp = mInstanceInfo.ColourBlendOp;
+		colourBlendAttachment.srcAlphaBlendFactor = mInstanceInfo.AlphaBlendSrcFactor;
+		colourBlendAttachment.dstAlphaBlendFactor = mInstanceInfo.AlphaBlendDstFactor;
+		colourBlendAttachment.alphaBlendOp = mInstanceInfo.AlphaBlendOp;
 
 		VkPipelineColorBlendStateCreateInfo colourBlending = {};
 		colourBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -140,9 +141,9 @@ namespace DOH {
 
 		VkPipelineDepthStencilStateCreateInfo depthStencil = {};
 		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		depthStencil.depthTestEnable = VK_TRUE;
-		depthStencil.depthWriteEnable = VK_TRUE;
-		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS; //VK_COMPARE_OP_LESS_OR_EQUAL;
+		depthStencil.depthTestEnable = mInstanceInfo.DepthTestingEnabled ? VK_TRUE : VK_FALSE;
+		depthStencil.depthWriteEnable = mInstanceInfo.DepthTestingEnabled ? VK_TRUE : VK_FALSE;
+		depthStencil.depthCompareOp = mInstanceInfo.DepthCompareOp;
 		depthStencil.depthBoundsTestEnable = VK_FALSE;
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
@@ -238,6 +239,7 @@ namespace DOH {
 	void GraphicsPipelineVulkan::recordDrawCommands(uint32_t imageIndex, VkCommandBuffer cmd) {
 		for (const auto& renderable : mRenderableDrawList) {
 			renderable->getVao().bind(cmd);
+
 			if (mInstanceInfo.ShaderProgram.getUniformLayout().hasUniforms()) {
 				mInstanceInfo.ShaderProgram.getShaderDescriptor().bindDescriptorSets(
 					cmd,

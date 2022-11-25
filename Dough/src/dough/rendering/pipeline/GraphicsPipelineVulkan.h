@@ -27,6 +27,17 @@ namespace DOH {
 		VkPolygonMode PolygonMode = VK_POLYGON_MODE_FILL;
 		VkCullModeFlags CullMode = VK_CULL_MODE_BACK_BIT;
 		VkFrontFace FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+
+		bool DepthTestingEnabled = false;
+		VkCompareOp DepthCompareOp = VK_COMPARE_OP_NEVER;
+
+		bool BlendingEnabled = false;
+		VkBlendFactor ColourBlendSrcFactor = VK_BLEND_FACTOR_ONE;
+		VkBlendFactor ColourBlendDstFactor = VK_BLEND_FACTOR_ZERO;
+		VkBlendFactor AlphaBlendSrcFactor = VK_BLEND_FACTOR_ONE;
+		VkBlendFactor AlphaBlendDstFactor = VK_BLEND_FACTOR_ZERO;
+		VkBlendOp ColourBlendOp = VK_BLEND_OP_ADD;
+		VkBlendOp AlphaBlendOp = VK_BLEND_OP_ADD;
 	};
 
 	class GraphicsPipelineVulkan {

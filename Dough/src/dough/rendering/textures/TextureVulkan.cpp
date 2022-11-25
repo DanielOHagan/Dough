@@ -82,16 +82,17 @@ namespace DOH {
 		mChannels(4)
 	{
 		if (!rgbaNormalised) {
-			r = 1.0f / TextureVulkan::COLOUR_MAX_VALUE;
-			g = 1.0f / TextureVulkan::COLOUR_MAX_VALUE;
-			b = 1.0f / TextureVulkan::COLOUR_MAX_VALUE;
-			a = 1.0f / TextureVulkan::COLOUR_MAX_VALUE;
+			r = (r / TextureVulkan::COLOUR_MAX_VALUE);
+			g = (g / TextureVulkan::COLOUR_MAX_VALUE);
+			b = (b / TextureVulkan::COLOUR_MAX_VALUE);
+			a = (a / TextureVulkan::COLOUR_MAX_VALUE);
 		}
 
-		r = std::min(r, 1.0f);
-		r = std::min(g, 1.0f);
-		r = std::min(b, 1.0f);
-		r = std::min(a, 1.0f);
+		//Clamp between 0.0f and 1.0f then turn negative to remove signed-bit before uint32_t cast
+		r = -1 * std::min(std::max(r, 0.0f), 1.0f);
+		g = -1 * std::min(std::max(g, 0.0f), 1.0f);
+		b = -1 * std::min(std::max(b, 0.0f), 1.0f);
+		a = -1 * std::min(std::max(a, 0.0f), 1.0f);
 
 		const size_t textureSize = mWidth * mHeight * mChannels;
 		const size_t length = mWidth * mHeight;

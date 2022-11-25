@@ -170,10 +170,8 @@ namespace DOH::EDITOR {
 		}
 
 		if (mTextDemo->Render) {
-			//If text bitmap has only one page then drawQuadArraySameTextureScene() can be used
-			renderer2d.drawQuadArraySameTextureScene(mTextDemo->TextQuads);
-			//else
-			//renderer2d.drawQuadArrayTexturedScene(mTextDemo->TextQuads);
+			//If text bitmap has only one page then drawTextSameTextureFromQuads() can be used
+			renderer2d.drawTextSameTextureFromQuads(mTextDemo->TextQuads);
 		}
 
 		renderer.endScene();
@@ -658,6 +656,17 @@ namespace DOH::EDITOR {
 							mTextDemo->TextQuads = renderer2d.getStringAsQuads(mTextDemo->String);
 						}
 
+						if (ImGui::ColorPicker4("String Colour", mTextDemo->Colour)) {
+							for (Quad& quad : mTextDemo->TextQuads) {
+								quad.setColourRGBA(
+									mTextDemo->Colour[0],
+									mTextDemo->Colour[1],
+									mTextDemo->Colour[2],
+									mTextDemo->Colour[3]
+								);
+							}
+						}
+
 						ImGui::EndTabItem();
 					}
 
@@ -940,6 +949,9 @@ namespace DOH::EDITOR {
 			*mCustomDemo->SceneShaderProgram,
 			ERenderPass::APP_SCENE
 		);
+		mCustomDemo->ScenePipelineInfo->DepthTestingEnabled = true;
+		mCustomDemo->ScenePipelineInfo->DepthCompareOp = VK_COMPARE_OP_LESS;
+
 		mCustomDemo->UiPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 			mCustomDemo->UiVertexType,
 			*mCustomDemo->UiShaderProgram,
@@ -1015,12 +1027,16 @@ namespace DOH::EDITOR {
 			*mObjModelsDemo->SceneShaderProgram,
 			ERenderPass::APP_SCENE
 		);
+		mObjModelsDemo->ScenePipelineInfo->DepthTestingEnabled = true;
+		mObjModelsDemo->ScenePipelineInfo->DepthCompareOp = VK_COMPARE_OP_LESS;
+
 		mObjModelsDemo->SceneWireframePipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 			mObjModelsDemo->SceneVertexType,
 			*mObjModelsDemo->SceneShaderProgram,
 			ERenderPass::APP_SCENE
 		);
-
+		mObjModelsDemo->SceneWireframePipelineInfo->DepthTestingEnabled = true;
+		mObjModelsDemo->SceneWireframePipelineInfo->DepthCompareOp = VK_COMPARE_OP_LESS;
 		mObjModelsDemo->SceneWireframePipelineInfo->CullMode = VK_CULL_MODE_NONE;
 		mObjModelsDemo->SceneWireframePipelineInfo->PolygonMode = VK_POLYGON_MODE_LINE;
 

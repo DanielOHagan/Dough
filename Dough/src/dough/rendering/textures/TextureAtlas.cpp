@@ -17,10 +17,6 @@ namespace DOH {
 		mNormalisedInnerTextureHeight(1.0f / mColCount)
 	{}
 
-	glm::vec2 MonoSpaceTextureAtlas::getInnerTextureCoordsOrigin(const uint32_t row, const uint32_t col) const {
-		return { row * mNormalisedInnerTextureWidth, col * mNormalisedInnerTextureHeight };
-	}
-
 	std::array<float, 8> MonoSpaceTextureAtlas::getInnerTextureCoords(const uint32_t row, const uint32_t col) const {
 		const glm::vec2 origin = getInnerTextureCoordsOrigin(row, col);
 

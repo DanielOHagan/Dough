@@ -258,6 +258,34 @@ namespace DOH {
 		}
 	}
 
+	void Renderer2dVulkan::drawTextFromQuads(std::vector<Quad>& quadArr) {
+		RenderBatchQuad& textBatch = mStorage->getTextRenderBatch();
+		TextureArray& textTextureArr = mStorage->getTextTextureArray();
+
+		for (const Quad& quad : quadArr) {
+			textBatch.add(
+				quad,
+				textTextureArr.getTextureSlotIndex(quad.getTexture().getId())
+			);
+		}
+	}
+
+	void Renderer2dVulkan::drawTextSameTextureFromQuads(std::vector<Quad>& quadArr) {
+		if (quadArr.size() == 0) {
+			//TODO:: Is this worth a warning?
+			//LOG_WARN("drawTextSameTextureFromQuads() quadArr size = 0");
+			return;
+		} else if (!quadArr[0].hasTexture()) {
+			LOG_ERR("Quad array does not have texture");
+			return;
+		}
+
+		mStorage->getTextRenderBatch().addAll(
+			quadArr,
+			mStorage->getTextTextureArray().getTextureSlotIndex(quadArr[0].getTexture().getId())
+		);
+	}
+
 	std::vector<Quad> Renderer2dVulkan::getStringAsQuads(
 		const char* string,
 		const glm::vec3 rootPos,
@@ -336,7 +364,7 @@ namespace DOH {
 					texCoordTopLeft.y
 				};
 
-				quad.Colour = { 0.0f, 0.0f, 0.0f, 1.0f };
+				quad.Colour = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 				//TODO:: kerning?
 
@@ -361,45 +389,93 @@ namespace DOH {
 		mStorage->getQuadGraphicsPipeline().getShaderDescriptor().getBuffersFromBinding(uboBinding)[currentImage]->
 			setData(logicDevice, &sceneProjView, sizeof(glm::mat4x4));
 
+		mStorage->getTextGraphicsPipeline().getShaderDescriptor().getBuffersFromBinding(uboBinding)[currentImage]->
+			setData(logicDevice, &sceneProjView, sizeof(glm::mat4x4));
+
 		//TODO:: UI
 	}
 
 	void Renderer2dVulkan::flushScene(VkDevice logicDevice, uint32_t imageIndex, VkCommandBuffer cmd) {
-		GraphicsPipelineVulkan& quadPipeline = mStorage->getQuadGraphicsPipeline();
 
-		quadPipeline.bind(cmd);
-		mStorage->getQuadBatchIndexBuffer().bind(cmd);
+		bool quadIboBound = false;
 
-		uint32_t index = 0;
-		for (RenderBatchQuad& batch : mStorage->getQuadRenderBatches()) {
-			const uint32_t quadCount = static_cast<uint32_t>(batch.getGeometryCount());
+		{ //Draw Quads
+			GraphicsPipelineVulkan& quadPipeline = mStorage->getQuadGraphicsPipeline();
 
-			if (quadCount > 0) {
-				const auto& renderableBatch = mStorage->getRenderableQuadBatches()[index];
+			bool quadPipelineBound = false;
+
+			uint32_t index = 0;
+			for (RenderBatchQuad& batch : mStorage->getQuadRenderBatches()) {
+				const uint32_t quadCount = static_cast<uint32_t>(batch.getGeometryCount());
+
+				if (quadCount > 0) {
+					if (!quadPipelineBound) {
+						quadPipeline.bind(cmd);
+					}
+
+					if (!quadIboBound) {
+						mStorage->getQuadBatchIndexBuffer().bind(cmd);
+					}
+
+					const auto& renderableBatch = mStorage->getRenderableQuadBatches()[index];
+					VertexArrayVulkan& vao = renderableBatch->getVao();
+
+					vao.getVertexBuffers()[0]->setData(
+						logicDevice,
+						batch.getData().data(),
+						Renderer2dStorageVulkan::BatchSizeLimits::BATCH_QUAD_BYTE_SIZE
+					);
+					vao.setDrawCount(quadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT);
+
+					quadPipeline.addRenderableToDraw(renderableBatch);
+					mDebugInfoDrawCount++;
+
+					batch.reset();
+				}
+
+				index++;
+			}
+
+			quadPipeline.recordDrawCommands(imageIndex, cmd);
+
+			quadPipeline.clearRenderableToDraw();
+
+			mDrawnQuadCount = 0;
+			mTruncatedQuadCount = 0;
+		}
+
+		{ //Draw Text
+			GraphicsPipelineVulkan& textPipeline = mStorage->getTextGraphicsPipeline();
+			RenderBatchQuad& textBatch = mStorage->getTextRenderBatch();
+			const size_t textQuadCount = textBatch.getGeometryCount();
+
+			if (textQuadCount > 0) {
+				textPipeline.bind(cmd);
+
+				if (!quadIboBound) {
+					//NOTE:: Text is currently rendered as a Quad so it can share the Quad batch index buffer
+					mStorage->getQuadBatchIndexBuffer().bind(cmd);
+				}
+
+				const auto& renderableBatch = mStorage->getRenderableTextBatch();
 				VertexArrayVulkan& vao = renderableBatch->getVao();
 
 				vao.getVertexBuffers()[0]->setData(
 					logicDevice,
-					batch.getData().data(),
-					Renderer2dStorageVulkan::BatchSizeLimits::BATCH_QUAD_BYTE_SIZE
+					textBatch.getData().data(),
+					textQuadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_BYTE_SIZE
 				);
-				vao.setDrawCount(quadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT);
+				vao.setDrawCount(static_cast<uint32_t>(textQuadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT));
 
-				quadPipeline.addRenderableToDraw(renderableBatch);
-				mDebugInfoDrawCount++;
+				textPipeline.addRenderableToDraw(renderableBatch);
 
-				batch.reset();
+				textBatch.reset();
 			}
 
-			index++;
+			textPipeline.recordDrawCommands(imageIndex, cmd);
+
+			textPipeline.clearRenderableToDraw();
 		}
-
-		quadPipeline.recordDrawCommands(imageIndex, cmd);
-
-		quadPipeline.clearRenderableToDraw();
-
-		mDrawnQuadCount = 0;
-		mTruncatedQuadCount = 0;
 	}
 
 	void Renderer2dVulkan::closeEmptyQuadBatches() {

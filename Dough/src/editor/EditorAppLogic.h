@@ -184,6 +184,7 @@ namespace DOH::EDITOR {
 
 			std::vector<Quad> TextQuads;
 			char String[StringLengthLimit]; //Arbitrary limit
+			float Colour[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 
 			bool Update = false;
 			bool Render = false;

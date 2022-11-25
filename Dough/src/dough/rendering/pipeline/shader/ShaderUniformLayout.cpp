@@ -95,6 +95,8 @@ namespace DOH {
 
 	std::vector<DescriptorTypeInfo> ShaderUniformLayout::asDescriptorTypes() const {
 		std::vector<DescriptorTypeInfo> descTypes = {};
+		descTypes.reserve(mDescriptorSetLayoutBindings.size());
+
 		for (const VkDescriptorSetLayoutBinding& layoutBinding : mDescriptorSetLayoutBindings) {
 			descTypes.emplace_back(layoutBinding.descriptorType, layoutBinding.descriptorCount);
 		}

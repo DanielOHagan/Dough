@@ -20,7 +20,7 @@ namespace DOH {
 
 		Quad()
 		:	AGeometry({ 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, 0.0f),
-			Colour(1.0f, 0.0f, 1.0f, 1.0f),
+			Colour(1.0f, 1.0f, 1.0f, 1.0f),
 			TextureCoords({ 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f })
 		{}
 		Quad(

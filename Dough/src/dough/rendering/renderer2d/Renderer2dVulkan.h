@@ -49,7 +49,11 @@ namespace DOH {
 		void drawQuadArraySameTextureScene(std::vector<Quad>& quadArr);
 		//void drawQuadUi(Quad& quad);
 
+		void drawTextFromQuads(std::vector<Quad>& quadArr);
+		void drawTextSameTextureFromQuads(std::vector<Quad>& quadArr);
 
+
+		//TODO:: Have a "TextBuilder" class for these functions
 		inline std::vector<Quad> getStringAsQuads(
 			const char* string,
 			const ETextFlags2d flags = ETextFlags2d::NONE

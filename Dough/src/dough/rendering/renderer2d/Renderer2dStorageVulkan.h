@@ -29,6 +29,8 @@ namespace DOH {
 
 		static const std::string QUAD_SHADER_PATH_VERT;
 		static const std::string QUAD_SHADER_PATH_FRAG;
+		static const std::string TEXT_2D_SHADER_PATH_VERT;
+		static const std::string TEXT_2D_SHADER_PATH_FRAG;
 
 		VkDescriptorPool mDescriptorPool;
 
@@ -46,7 +48,13 @@ namespace DOH {
 		std::shared_ptr<TextureVulkan> mWhiteTexture;
 
 		//Text
+		std::shared_ptr<ShaderProgramVulkan> mTextShaderProgram;
+		std::unique_ptr<GraphicsPipelineInstanceInfo> mTextGraphicsPipelineInstanceInfo;
+		std::shared_ptr<GraphicsPipelineVulkan> mTextGraphicsPipeline;
+		std::unique_ptr<RenderBatchQuad> mTextRenderBatch;
+		std::shared_ptr<SimpleRenderable> mRenderableTextBatch;
 		std::shared_ptr<FontBitmap> mArialBitmap;
+		std::unique_ptr<TextureArray> mTextBatchTextureArray;
 
 		//TEMP::
 		const char* testTexturesPath = "res/images/test textures/";
@@ -54,6 +62,9 @@ namespace DOH {
 		std::shared_ptr<MonoSpaceTextureAtlas> mTestTexturesAtlas;
 
 		void initForQuads(VkDevice logicDevice);
+		void initForText(VkDevice logicDevice);
+
+		void createDescriptorPool();
 
 	public:
 		//Max count of objects allowed per batch
@@ -89,14 +100,21 @@ namespace DOH {
 		size_t createNewBatchQuad();
 
 		inline VkDescriptorPool getDescriptorPool() const { return mDescriptorPool; }
-		inline GraphicsPipelineVulkan& getQuadGraphicsPipeline() const { return *mQuadGraphicsPipeline; }
 		inline const TextureVulkan& getWhiteTexture() const { return *mWhiteTexture; }
+		
+		inline GraphicsPipelineVulkan& getQuadGraphicsPipeline() const { return *mQuadGraphicsPipeline; }
 		inline std::vector<RenderBatchQuad>& getQuadRenderBatches() { return mQuadRenderBatches; }
 		inline std::vector<std::shared_ptr<SimpleRenderable>>& getRenderableQuadBatches() { return mRenderableQuadBatches; }
+		inline TextureArray& getQuadBatchTextureArray() const { return *mQuadBatchTextureArray; }
+		inline IndexBufferVulkan& getQuadBatchIndexBuffer() const { return *mQuadSharedIndexBuffer; }
+		
+		inline GraphicsPipelineVulkan& getTextGraphicsPipeline() const { return *mTextGraphicsPipeline; }
+		inline RenderBatchQuad& getTextRenderBatch() { return *mTextRenderBatch; }
+		inline TextureArray& getTextTextureArray() { return *mTextBatchTextureArray; }
+		inline std::shared_ptr<SimpleRenderable> getRenderableTextBatch() const { return mRenderableTextBatch; }
+
 		inline const std::vector<std::shared_ptr<TextureVulkan>>& getTestTextures() const { return mTestTextures; }
 		inline const std::shared_ptr<MonoSpaceTextureAtlas> getTestTextureAtlas() const { return mTestTexturesAtlas; }
 		inline const FontBitmap& getArialBitmap() const { return *mArialBitmap; }
-		inline TextureArray& getQuadBatchTextureArray() const { return *mQuadBatchTextureArray; }
-		inline IndexBufferVulkan& getQuadBatchIndexBuffer() const { return *mQuadSharedIndexBuffer; }
 	};
 }
