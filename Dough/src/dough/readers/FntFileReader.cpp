@@ -164,7 +164,7 @@ namespace DOH {
 				static_cast<uint32_t>(xAdvanceValue.first),
 				static_cast<uint32_t>(pageValue.first)
 			};
-			fntFileData->Chars.emplace(charData.Id, charData);
+			fntFileData->Chars.emplace_back(charData);
 			currentIndex += lineBuffer.size();
 		}
 
@@ -195,7 +195,7 @@ namespace DOH {
 					static_cast<uint32_t>(secondValue.first),
 					amountValue.first
 				};
-				fntFileData->Kernings.emplace(kerningData.FirstGlyphId, kerningData);
+				fntFileData->Kernings.emplace_back(kerningData);
 
 				currentIndex += lineBuffer.size();
 			}

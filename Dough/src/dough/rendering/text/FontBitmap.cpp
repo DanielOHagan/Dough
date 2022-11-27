@@ -8,7 +8,10 @@
 namespace DOH {
 
 	FontBitmap::FontBitmap(const char* filepath, const char* imageDir)
-	:	mSpaceWidthPx(0)
+	:	mPageCount(0),
+		mSpaceWidthNorm(0.0f),
+		mLineHeightNorm(0.0f),
+		mBaseNorm(0.0f)
 	{
 		std::shared_ptr<FntFileData> fileData = ResourceHandler::loadFntFile(filepath);
 
@@ -17,18 +20,63 @@ namespace DOH {
 			return;
 		}
 
-		mFntFileData = fileData;
-		mFntFileData->ImageDir = imageDir;
-
-		//Set a Space length for easy reference
-		const auto& spaceChar = mFntFileData->Chars.find(32); //ASCII & UTF decimal value for "space"
-		if (spaceChar != mFntFileData->Chars.end()) {
-			mSpaceWidthPx = spaceChar->second.AdvanceX;
+		for (const FntFilePageData& page : fileData->Pages) {
+			std::shared_ptr<TextureVulkan> pageTexture = ObjInit::texture((imageDir + page.PageFilepath).c_str());
+			mPageTextures.emplace_back(pageTexture);
 		}
 
-		for (const FntFilePageData& page : mFntFileData->Pages) {
-			std::shared_ptr<TextureVulkan> pageTexture = ObjInit::texture((fileData->ImageDir + page.PageFilepath).c_str());
-			mPageTextures.emplace_back(pageTexture);
+		const float fileWidth = static_cast<float>(fileData->Width);
+		const float fileHeight = static_cast<float>(fileData->Height);
+
+		mPageCount = fileData->PageCount;
+		mLineHeightNorm = fileData->LineHeight / fileHeight;
+		mBaseNorm = fileData->Base / fileHeight;
+
+		bool spaceFound = false;
+		for (const FntFileGlyphData& fileGlyph : fileData->Chars) {
+			if (fileGlyph.Id == 32) { //ASCII & UTF decimal value for "space"
+				mSpaceWidthNorm = fileGlyph.AdvanceX / fileWidth;
+				spaceFound = true;
+				continue;
+			}
+
+			GlyphData g = {};
+			g.PageId = fileGlyph.PageId;
+
+			//IMPORTANT:: Invert Y-axis to align coordinate space from fnt's to DOH's
+			//TODO:: When allowing for other types of font files, account for this where needed
+			g.Offset = {
+				fileGlyph.OffsetX / fileWidth,
+				-fileGlyph.OffsetY / fileHeight
+			};
+			g.Size = {
+				fileGlyph.Width / fileWidth,
+				fileGlyph.Height / fileHeight
+			};
+			g.TexCoordTopLeft = {
+				fileGlyph.X / fileWidth,
+				fileGlyph.Y / fileHeight
+			};
+			g.TexCoordBotRight = {
+				g.TexCoordTopLeft.x + g.Size.x,
+				g.TexCoordTopLeft.y + g.Size.y
+			};
+			g.AdvanceX = fileGlyph.AdvanceX / fileWidth;
+
+			mGlyphMap.emplace(fileGlyph.Id, g);
+		}
+
+		if (!spaceFound) {
+			mSpaceWidthNorm = 8.0f / fileWidth;
+		}
+
+		for (const FntFileKerningData& fileKerning : fileData->Kernings) {
+			KerningData k = {
+				fileKerning.FirstGlyphId,
+				fileKerning.SecondGlyphId,
+				fileKerning.Amount / fileWidth
+			};
+			mKernings.emplace_back(k);
 		}
 	}
 }

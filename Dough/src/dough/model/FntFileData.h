@@ -44,8 +44,8 @@ namespace DOH {
 		{};
 
 		std::vector<FntFilePageData> Pages;
-		std::unordered_map<uint32_t, FntFileGlyphData> Chars;
-		std::unordered_map<uint32_t, FntFileKerningData> Kernings;
+		std::vector<FntFileGlyphData> Chars;
+		std::vector<FntFileKerningData> Kernings;
 		std::string Face;
 		std::string ImageDir;
 		uint32_t CharSize;

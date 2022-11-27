@@ -301,11 +301,9 @@ namespace DOH {
 		std::vector<Quad> quads;
 		quads.reserve(stringLength);
 
-		const FntFileData& fileData = bitmap.getFileData();
-		const float fileWidth = static_cast<float>(fileData.Width);
-		const float fileHeight = static_cast<float>(fileData.Height);
-
 		glm::vec3 currentPos = rootPos;
+
+		uint32_t lastCharId = 0;
 
 		for (size_t i = 0; i < stringLength; i++) {
 			//TODO:: currently doesn't support a UTF-8 conversion so a cast to uint produces ASCII decimal values
@@ -313,65 +311,72 @@ namespace DOH {
 
 			//Handle special characters
 			if (charId == 32) { //space
-				currentPos.x += bitmap.getSpaceWidthPx() / fileWidth;
+				currentPos.x += bitmap.getSpaceWidthNorm();
+				lastCharId = 0;
 				continue;
 			} else if (charId == 10) { //new line
-				currentPos.y -=  fileData.LineHeight / fileHeight;
+				currentPos.y -=  bitmap.getLineHeightNorm();
 				currentPos.x = rootPos.x;
+				lastCharId = 0;
 				continue;
 			} else if (charId == 9) { //tab
-				currentPos.x += (bitmap.getSpaceWidthPx() * 4) / fileWidth; //Tab size is equal to 4 glyph sizes
+				currentPos.x += bitmap.getTabWidthNorm(); //Tab size is equal to 4 glyph sizes
+				lastCharId = 0;
 				continue;
 			}
 
-			const auto& glyphData = fileData.Chars.find(charId);
-			if (glyphData != fileData.Chars.end()) {
-				const FntFileGlyphData& g = glyphData->second;
-
-				const float height = g.Height / fileHeight;
+			const auto& g = bitmap.getGlyphMap().find(charId);
+			if (g != bitmap.getGlyphMap().end()) {
 
 				Quad quad = {};
 				quad.Position = {
-					currentPos.x + (g.OffsetX / fileWidth),
-					currentPos.y - height + (fileData.Base / fileHeight) - (g.OffsetY / fileHeight),
+					currentPos.x + g->second.Offset.x,
+					currentPos.y - g->second.Size.y + bitmap.getBaseNorm() + g->second.Offset.y,
 					currentPos.z
 				};
 				quad.Size = {
-					g.Width / fileWidth,
-					height
+					g->second.Size.x,
+					g->second.Size.y
 				};
-				
-				const glm::vec2 texCoordTopLeft = {
-					g.X / fileWidth,
-					g.Y / fileHeight
-				};
-				const glm::vec2 texCoordBotRight = {
-					texCoordTopLeft.x + quad.Size.x,
-					texCoordTopLeft.y + quad.Size.y
-				};
-				
+
 				quad.TextureCoords = {
-					texCoordTopLeft.x,
-					texCoordBotRight.y,
+					g->second.TexCoordTopLeft.x,
+					g->second.TexCoordBotRight.y,
 
-					texCoordBotRight.x,
-					texCoordBotRight.y,
+					g->second.TexCoordBotRight.x,
+					g->second.TexCoordBotRight.y,
 
-					texCoordBotRight.x,
-					texCoordTopLeft.y,
+					g->second.TexCoordBotRight.x,
+					g->second.TexCoordTopLeft.y,
 					
-					texCoordTopLeft.x,
-					texCoordTopLeft.y
+					g->second.TexCoordTopLeft.x,
+					g->second.TexCoordTopLeft.y
 				};
 
 				quad.Colour = { 1.0f, 1.0f, 1.0f, 1.0f };
 
-				//TODO:: kerning?
+				//TODO:: convert to using an unordered_map instead of vector
+				for (const KerningData& k : bitmap.getKernings()) {
+					if (k.FirstGlyphId == lastCharId && k.SecondGlyphId == charId) {
+						quad.Position.x += k.Amount;
+					}
+				}
 
-				quad.setTexture(*bitmap.getPageTexture(glyphData->second.PageId));
+				//TODO:: Turn 
+				//KerningMapKey kerningKey = { lastCharId, charId };
+				//const auto& kerning = bitmap.getKerningMap().find(kerningKey);
+				//if (kerning != bitmap.getKerningMap().end()) {
+				//	quad.Position.x += kerning->second;
+				//}
+				
+				
+				lastCharId = charId;
+
+				quad.setTexture(*bitmap.getPageTexture(g->second.PageId));
 				quads.emplace_back(quad);
 
-				currentPos.x += g.AdvanceX / fileWidth;
+				currentPos.x += g->second.AdvanceX;
+
 			} else {
 				LOG_WARN("Failed to find charId: " << charId << " in bitmap");
 			}
