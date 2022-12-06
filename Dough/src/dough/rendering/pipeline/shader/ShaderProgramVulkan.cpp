@@ -6,7 +6,7 @@ namespace DOH {
 		std::shared_ptr<ShaderVulkan> vertShader,
 		std::shared_ptr<ShaderVulkan> fragShader
 	) : mShaderUniformLayout(std::make_unique<ShaderUniformLayout>()),
-		mShaderDescriptor(std::make_unique<DescriptorVulkan>(*mShaderUniformLayout)),
+		mShaderDescriptorLayout(std::make_unique<DescriptorSetLayoutVulkan>(*mShaderUniformLayout)),
 		mVertexShader(vertShader),
 		mFragmentShader(fragShader)
 	{}
@@ -23,11 +23,11 @@ namespace DOH {
 
 	void ShaderProgramVulkan::closePipelineSpecificObjects(VkDevice logicDevice) {
 		closeModules(logicDevice);
-		mShaderDescriptor->close(logicDevice);
+		mShaderDescriptorLayout->closeBuffers(logicDevice);
 	}
 
 	void ShaderProgramVulkan::close(VkDevice logicDevice) {
-		mShaderDescriptor->close(logicDevice);
+		mShaderDescriptorLayout->close(logicDevice);
 		mShaderUniformLayout->close();
 
 		mVertexShader->close(logicDevice);

@@ -7,6 +7,7 @@
 
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_vulkan.h>
+#include <vulkan/vulkan.hpp>
 
 #define DOH_IMGUI_UI_MAX_TEXTURE_COUNT 1000
 
@@ -23,6 +24,8 @@ namespace DOH {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGui::StyleColorsDark();
+
+		createRenderPass(imGuiInit.LogicDevice, imGuiInit.ImageFormat);
 
 		ImGui_ImplVulkan_InitInfo initInfo = {};
 		initInfo.Instance = imGuiInit.VulkanInstance;
@@ -69,7 +72,7 @@ namespace DOH {
 		io.ConfigDockingWithShift = true;
 		
 		ImGui_ImplGlfw_InitForVulkan(window.getNativeWindow(), true);
-		ImGui_ImplVulkan_Init(&initInfo, imGuiInit.RenderPass);
+		ImGui_ImplVulkan_Init(&initInfo, mRenderPass->get());
 
 		mUsingGpuResource = true;
 
@@ -86,6 +89,9 @@ namespace DOH {
 
 			mUsingGpuResource = false;
 		}
+
+		closeRenderPass(logicDevice);
+		closeFrameBuffers(logicDevice);
 	}
 
 	void ImGuiWrapper::uploadFonts(RenderingContextVulkan& context) {
@@ -106,6 +112,10 @@ namespace DOH {
 		ImGui::EndFrame();
 		ImGui::UpdatePlatformWindows();
 		ImGui::RenderPlatformWindowsDefault();
+	}
+
+	void ImGuiWrapper::beginRenderPass(uint32_t imageIndex, VkExtent2D extent, VkCommandBuffer cmd) {
+		mRenderPass->begin(mFrameBuffers[imageIndex], extent, cmd);
 	}
 
 	void ImGuiWrapper::render(VkCommandBuffer cmd) {
@@ -171,5 +181,57 @@ namespace DOH {
 		}
 
 		return descSet;
+	}
+
+	void ImGuiWrapper::createRenderPass(VkDevice logicDevice, VkFormat imageFormat) {
+		SubPassVulkan imGuiSubPass = {
+			VK_PIPELINE_BIND_POINT_GRAPHICS,
+			{
+				{
+					ERenderPassAttachmentType::COLOUR,
+					imageFormat,
+					VK_ATTACHMENT_LOAD_OP_LOAD,
+					VK_ATTACHMENT_STORE_OP_STORE,
+					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+					VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+				}
+			}
+		};
+		
+		mRenderPass = std::make_shared<RenderPassVulkan>(logicDevice, imGuiSubPass);
+	}
+
+	void ImGuiWrapper::createFrameBuffers(VkDevice logicDevice, const std::vector<VkImageView>& imageViews, VkExtent2D extent) {
+		mFrameBuffers.resize(imageViews.size());
+
+		uint32_t i = 0;
+		for (const VkImageView imageView : imageViews) {
+			VkImageView imGuiAttachments[] = { imageView };
+			VkFramebufferCreateInfo imGuiFrameBufferInfo = {};
+			imGuiFrameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			imGuiFrameBufferInfo.renderPass = mRenderPass->get();
+			imGuiFrameBufferInfo.attachmentCount = 1;
+			imGuiFrameBufferInfo.pAttachments = imGuiAttachments;
+			imGuiFrameBufferInfo.width = extent.width;
+			imGuiFrameBufferInfo.height = extent.height;
+			imGuiFrameBufferInfo.layers = 1;
+
+			VK_TRY(
+				vkCreateFramebuffer(logicDevice, &imGuiFrameBufferInfo, nullptr, &mFrameBuffers[i]),
+				"Failed to create ImGui FrameBuffer."
+			);
+
+			i++;
+		}
+	}
+
+	void ImGuiWrapper::closeFrameBuffers(VkDevice logicDevice) {
+		for (const VkFramebuffer& frameBuffer : mFrameBuffers) {
+			vkDestroyFramebuffer(logicDevice, frameBuffer, nullptr);
+		}
+	}
+
+	void ImGuiWrapper::closeRenderPass(VkDevice logicDevice) {
+		mRenderPass->close(logicDevice);
 	}
 }

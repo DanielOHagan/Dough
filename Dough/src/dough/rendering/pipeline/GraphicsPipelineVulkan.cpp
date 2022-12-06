@@ -26,7 +26,7 @@ namespace DOH {
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutCreateInfo.setLayoutCount = 1;
-		pipelineLayoutCreateInfo.pSetLayouts = &mInstanceInfo.ShaderProgram.getShaderDescriptor().getDescriptorSetLayout();
+		pipelineLayoutCreateInfo.pSetLayouts = &mInstanceInfo.ShaderProgram.getShaderDescriptorLayout().getDescriptorSetLayout();
 
 		if (mInstanceInfo.ShaderProgram.getUniformLayout().hasPushConstant()) {
 			pipelineLayoutCreateInfo.pushConstantRangeCount =
@@ -183,57 +183,35 @@ namespace DOH {
 		vkDestroyPipeline(logicDevice, mGraphicsPipeline, nullptr);
 
 		createPipeline(logicDevice, extent, renderPass);
-		mInstanceInfo.ShaderProgram.getShaderDescriptor().createDescriptorSetLayout(logicDevice);
+		mInstanceInfo.ShaderProgram.getShaderDescriptorLayout().createDescriptorSetLayout(logicDevice);
 	}
 
 	void GraphicsPipelineVulkan::createUniformObjects(VkDevice logicDevice) {
-		ShaderUniformLayout& layout = mInstanceInfo.ShaderProgram.getUniformLayout();
-
-		layout.initDescriptorSetLayoutBindings(layout.getTotalUniformCount());
-		//Create values' layout binding
-		for (const auto& [binding, value] : layout.getValueUniformMap()) {
-			layout.getDescriptorSetLayoutBindings()[binding] = DescriptorVulkan::createLayoutBinding(
-				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-				VK_SHADER_STAGE_VERTEX_BIT,
-				1,
-				binding
-			);
-		}
-
-		//Create textures' layout binding
-		for (const auto& [binding, value] : layout.getTextureUniformMap()) {
-			layout.getDescriptorSetLayoutBindings()[binding] = DescriptorVulkan::createLayoutBinding(
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				VK_SHADER_STAGE_FRAGMENT_BIT,
-				1,
-				binding
-			);
-		}
-
-		//Create texture arrays' layout binding
-		for (const auto& [binding, texArr] : layout.getTextureArrayUniformMap()) {
-			layout.getDescriptorSetLayoutBindings()[binding] = DescriptorVulkan::createLayoutBinding(
-				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-				VK_SHADER_STAGE_FRAGMENT_BIT,
-				texArr.get().getMaxTextureCount(),
-				binding
-			);
-		}
-
-		mInstanceInfo.ShaderProgram.getShaderDescriptor().createDescriptorSetLayout(logicDevice);
+		mInstanceInfo.ShaderProgram.getShaderDescriptorLayout().createDescriptorSetLayoutBindings(
+			logicDevice,
+			mInstanceInfo.ShaderProgram.getUniformLayout().getTotalUniformCount()
+		);
+		mInstanceInfo.ShaderProgram.getShaderDescriptorLayout().createDescriptorSetLayout(logicDevice);
 	}
 
-	void GraphicsPipelineVulkan::uploadShaderUniforms(
+	void GraphicsPipelineVulkan::createShaderUniforms(
 		VkDevice logicDevice,
 		VkPhysicalDevice physicalDevice,
 		uint32_t imageCount,
 		VkDescriptorPool descPool
 	) {
-		DescriptorVulkan& desc = mInstanceInfo.ShaderProgram.getShaderDescriptor();
+		DescriptorSetLayoutVulkan& desc = mInstanceInfo.ShaderProgram.getShaderDescriptorLayout();
 		desc.createValueBuffers(logicDevice, physicalDevice, imageCount);
 		desc.createDescriptorSets(logicDevice, imageCount, descPool);
+	}
 
-		desc.updateDescriptorSets(logicDevice, imageCount);
+	void GraphicsPipelineVulkan::updateShaderUniforms(VkDevice logicDevice, uint32_t imageCount) {
+		mInstanceInfo.ShaderProgram.getShaderDescriptorLayout().updateAllDescriptorSets(logicDevice, imageCount);
+	}
+
+	void GraphicsPipelineVulkan::setImageUniformData(VkDevice logicDevice, uint32_t image, uint32_t binding, void* data, size_t size) {
+		mInstanceInfo.ShaderProgram.getShaderDescriptorLayout().getBuffersFromBinding(binding)[image]
+			->setData(logicDevice, data, size);
 	}
 
 	void GraphicsPipelineVulkan::recordDrawCommands(uint32_t imageIndex, VkCommandBuffer cmd) {
@@ -241,7 +219,7 @@ namespace DOH {
 			renderable->getVao().bind(cmd);
 
 			if (mInstanceInfo.ShaderProgram.getUniformLayout().hasUniforms()) {
-				mInstanceInfo.ShaderProgram.getShaderDescriptor().bindDescriptorSets(
+				mInstanceInfo.ShaderProgram.getShaderDescriptorLayout().bindDescriptorSets(
 					cmd,
 					mGraphicsPipelineLayout,
 					imageIndex

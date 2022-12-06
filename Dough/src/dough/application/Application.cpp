@@ -156,8 +156,7 @@ namespace DOH {
 			case EEventType::WINDOW_ICONIFY_CHANGE:
 				mIconified = ((WindowIconifyChangeEvent&) windowEvent).isIconified();
 				if (mIconified) {
-					LOGLN("Forcing GPU wait while iconified");
-					mRenderer->deviceWaitIdle();
+					mRenderer->deviceWaitIdle("Forcing GPU wait while iconified");
 				}
 				return;
 

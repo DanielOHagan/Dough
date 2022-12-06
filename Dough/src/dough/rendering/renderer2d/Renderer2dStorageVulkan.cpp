@@ -59,7 +59,7 @@ namespace DOH {
 	void Renderer2dStorageVulkan::createDescriptorPool() {
 		std::vector<DescriptorTypeInfo> totalDescTypes;
 		{
-			std::vector<DescriptorTypeInfo> descTypes = mQuadGraphicsPipeline->getShaderProgram().getUniformLayout().asDescriptorTypes();
+			std::vector<DescriptorTypeInfo> descTypes = mQuadGraphicsPipeline->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes();
 			totalDescTypes.reserve(totalDescTypes.size() + descTypes.size());
 
 			for (const DescriptorTypeInfo& descType : descTypes) {
@@ -67,7 +67,7 @@ namespace DOH {
 			}
 		}
 		{
-			std::vector<DescriptorTypeInfo> descTypes = mTextGraphicsPipeline->getShaderProgram().getUniformLayout().asDescriptorTypes();
+			std::vector<DescriptorTypeInfo> descTypes = mTextGraphicsPipeline->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes();
 			totalDescTypes.reserve(totalDescTypes.size() + descTypes.size());
 
 			for (const DescriptorTypeInfo& descType : descTypes) {

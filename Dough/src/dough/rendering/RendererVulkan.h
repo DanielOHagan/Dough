@@ -9,6 +9,7 @@
 
 #include "dough/rendering/Config.h"
 #include "dough/rendering/RenderingContextVulkan.h"
+#include "dough/Logging.h"
 
 namespace DOH {
 
@@ -62,11 +63,13 @@ namespace DOH {
 		void endScene();
 		void beginUi(glm::mat4x4& proj);
 		void endUi();
-		inline void deviceWaitIdle() {
+		inline void deviceWaitIdle(const char* msg) {
+			LOG_INFO(msg);
 			VK_TRY(vkDeviceWaitIdle(mLogicDevice), "Device failed to wait idle");
 		}
 
 		inline RenderingContextVulkan& getContext() const { return *mRenderingContext; }
+		inline const bool areValidationLayersEnabled() const { return mValidationLayersEnabled; }
 
 		static uint32_t findPhysicalDeviceMemoryType(
 			VkPhysicalDevice physicalDevice,

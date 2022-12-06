@@ -108,17 +108,17 @@ namespace DOH::EDITOR {
 
 		if (mCustomDemo->RenderScene) {
 			//context.addRenderableToSceneDrawList(mCustomDemo->ScenePipelineName, mCustomDemo->SceneRenderable);
-			mCustomDemo->CustomSceneConveyer.safeAddRenderable(mCustomDemo->SceneRenderable);
+			mCustomDemo->CustomSceneConveyor.safeAddRenderable(mCustomDemo->SceneRenderable);
 		}
 
 		if (mObjModelsDemo->Render) {
-			if (mObjModelsDemo->ScenePipelineConveyer.isValid() && mObjModelsDemo->WireframePipelineConveyer.isValid()) {
+			if (mObjModelsDemo->ScenePipelineConveyor.isValid() && mObjModelsDemo->WireframePipelineConveyor.isValid()) {
 				for (auto& obj : mObjModelsDemo->RenderableObjects) {
 					if (obj->Render || mObjModelsDemo->RenderAllStandard) {
-						mObjModelsDemo->ScenePipelineConveyer.addRenderable(obj);
+						mObjModelsDemo->ScenePipelineConveyor.addRenderable(obj);
 					}
 					if (obj->RenderWireframe || mObjModelsDemo->RenderAllWireframe) {
-						mObjModelsDemo->WireframePipelineConveyer.addRenderable(obj);
+						mObjModelsDemo->WireframePipelineConveyor.addRenderable(obj);
 					}
 				}
 			}
@@ -178,7 +178,7 @@ namespace DOH::EDITOR {
 
 		renderer.beginUi(mCustomDemo->UiProjMat);
 		if (mCustomDemo->RenderUi) {
-			mCustomDemo->CustomUiConveyer.safeAddRenderable(mCustomDemo->UiRenderable);
+			mCustomDemo->CustomUiConveyor.safeAddRenderable(mCustomDemo->UiRenderable);
 		}
 		renderer.endUi();
 	}
@@ -748,6 +748,15 @@ namespace DOH::EDITOR {
 			ImGui::Text("Vulkan SDK Version: ");
 			ImGui::SameLine();
 			ImGui::Text(deviceInfo.ApiVersion.c_str());
+
+			ImGui::Text("Vulkan Validation Layers Enabled: ");
+			ImGui::SameLine();
+			ImGui::Text(deviceInfo.ValidationLayersEnabled ? "TRUE" : "FALSE");
+
+			//TODO:: list all currently used validation layers?
+
+			//TODO:: vulkan extensions?
+
 			
 			ImGui::Text("Rendering Device Name: ");
 			ImGui::SameLine();
@@ -959,11 +968,11 @@ namespace DOH::EDITOR {
 		);
 
 		auto& context = Application::get().getRenderer().getContext();
-		mCustomDemo->CustomSceneConveyer = context.createPipeline(
+		mCustomDemo->CustomSceneConveyor = context.createPipeline(
 			mCustomDemo->ScenePipelineName,
 			*mCustomDemo->ScenePipelineInfo
 		);
-		mCustomDemo->CustomUiConveyer = context.createPipeline(
+		mCustomDemo->CustomUiConveyor = context.createPipeline(
 			mCustomDemo->UiPipelineName,
 			*mCustomDemo->UiPipelineInfo
 		);
@@ -973,9 +982,6 @@ namespace DOH::EDITOR {
 		for (const auto& filePath : mObjModelsDemo->ObjModelFilePaths) {
 			mObjModelsDemo->LoadedModels.emplace_back(ModelVulkan::createModel(filePath));
 		}
-
-		
-		//mObjModelsDemo->LoadedModels.emplace_back(ModelVulkan::createModel(mObjModelsDemo->ObjModelFilePaths[0]));
 
 		const float padding = 0.5f;
 		for (uint32_t x = 0; x < 10; x++) {
@@ -1041,11 +1047,11 @@ namespace DOH::EDITOR {
 		mObjModelsDemo->SceneWireframePipelineInfo->PolygonMode = VK_POLYGON_MODE_LINE;
 
 		auto& context = Application::get().getRenderer().getContext();
-		mObjModelsDemo->ScenePipelineConveyer = context.createPipeline(
+		mObjModelsDemo->ScenePipelineConveyor = context.createPipeline(
 			mObjModelsDemo->ScenePipelineName,
 			*mObjModelsDemo->ScenePipelineInfo
 		);
-		mObjModelsDemo->WireframePipelineConveyer = context.createPipeline(
+		mObjModelsDemo->WireframePipelineConveyor = context.createPipeline(
 			mObjModelsDemo->SceneWireframePipelineName,
 			*mObjModelsDemo->SceneWireframePipelineInfo
 		);

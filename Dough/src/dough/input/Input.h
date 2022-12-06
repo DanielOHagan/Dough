@@ -17,8 +17,8 @@ namespace DOH {
 		std::unordered_map<int, bool> mPressedKeysMap;
 		std::unordered_map<int, bool> mPressedMouseButtonsMap;
 
-		std::unique_ptr<glm::vec2> mMouseScreenPos;
-		std::unique_ptr<glm::vec2> mMouseScrollOffset;
+		glm::vec2 mMouseScreenPos;
+		glm::vec2 mMouseScrollOffset;
 
 	private:
 		Input(const Input& copy) = delete;
@@ -26,17 +26,17 @@ namespace DOH {
 
 		bool isKeyPressedImpl(int keyCode);
 		bool isMouseButtonPressedImpl(int button);
-		inline bool isMouseScrollingUpImpl() const { return mMouseScrollOffset->y > 0.0f; };
-		inline bool isMouseScrollingDownImpl() const { return mMouseScrollOffset->y < 0.0f; };
+		inline bool isMouseScrollingUpImpl() const { return mMouseScrollOffset.y > 0.0f; };
+		inline bool isMouseScrollingDownImpl() const { return mMouseScrollOffset.y < 0.0f; };
 
 		inline bool isKeyCodeInPossibleMap(int keyCode) const { return mPressedKeysMap.find(keyCode) != mPressedKeysMap.end(); }
 		inline bool isMouseButtonInPossibleMap(int button) const { return mPressedMouseButtonsMap.find(button) != mPressedMouseButtonsMap.end(); }
 
 		void onKeyEvent(int keyCode, bool pressed);
 		void onMouseButtonEvent(int button, bool pressed);
-		inline void onMouseMove(float x, float y) { mMouseScreenPos->x = x; mMouseScreenPos->y = y; };
-		inline void onMouseScroll(float offsetX, float offsetY) { mMouseScrollOffset->x = offsetX; mMouseScrollOffset->y = offsetY; };
-		inline void resetCycleData() { mMouseScrollOffset->x = 0.0f; mMouseScrollOffset->y = 0.0f; };
+		inline void onMouseMove(float x, float y) { mMouseScreenPos.x = x; mMouseScreenPos.y = y; };
+		inline void onMouseScroll(float offsetX, float offsetY) { mMouseScrollOffset.x = offsetX; mMouseScrollOffset.y = offsetY; };
+		inline void resetCycleData() { mMouseScrollOffset.x = 0.0f; mMouseScrollOffset.y = 0.0f; };
 
 		static void init();
 		static void close();
@@ -57,8 +57,8 @@ namespace DOH {
 		//std::vector<int> getAllPossibleKeyCodes();
 		//std::vector<int> getAllPossibleMouseButtons();
 
-		inline static glm::vec2& getCursorPos() { return *INSTANCE->mMouseScreenPos; }
-		inline static glm::vec2& getScrollOffset() { return *INSTANCE->mMouseScrollOffset; }
+		inline static glm::vec2& getCursorPos() { return INSTANCE->mMouseScreenPos; }
+		inline static glm::vec2& getScrollOffset() { return INSTANCE->mMouseScrollOffset; }
 
 		inline static bool isKeyPressed(int keyCode) { return INSTANCE->isKeyPressedImpl(keyCode); };
 		inline static bool isMouseButtonPressed(int button) { return INSTANCE->isMouseButtonPressedImpl(button); };

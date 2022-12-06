@@ -30,8 +30,8 @@ namespace DOH {
 	};
 
 	Input::Input()
-	:	mMouseScreenPos(std::make_unique<glm::vec2>(0.0f, 0.0f)),
-		mMouseScrollOffset(std::make_unique<glm::vec2>(0.0f, 0.0f))
+	:	mMouseScreenPos(0.0f, 0.0f),
+		mMouseScrollOffset(0.0f, 0.0f)
 	{}
 
 	void Input::init() {
@@ -91,7 +91,7 @@ namespace DOH {
 		if (isKeyCodeInPossibleMap(keyCode)) {
 			return mPressedKeysMap.at(keyCode);
 		} else {
-			LOG_WARN("Key not available: " << keyCode);
+			LOG_WARN("Key not in current key map: " << keyCode);
 		}
 
 		//TODO::
@@ -104,7 +104,7 @@ namespace DOH {
 		if (isMouseButtonInPossibleMap(button)) {
 			return mPressedMouseButtonsMap.at(button);
 		} else {
-			LOG_WARN("Mouse button not available: " << button);
+			LOG_WARN("Mouse button not in current mouse button map: " << button);
 		}
 
 		//TODO::

@@ -5,6 +5,7 @@
 #include "dough/Window.h"
 #include "dough/rendering/IGPUResourceVulkan.h"
 #include "dough/rendering/textures/TextureVulkan.h"
+#include "dough/rendering/pipeline/RenderPassVulkan.h"
 
 #include <imgui/imgui.h>
 
@@ -20,7 +21,7 @@ namespace DOH {
 		VkQueue Queue;//graphics queue
 		uint32_t MinImageCount;
 		uint32_t ImageCount;
-		VkRenderPass RenderPass;
+		VkFormat ImageFormat;
 	};
 
 	enum class EImGuiConfigFlag {
@@ -44,6 +45,8 @@ namespace DOH {
 	private:
 		VkDescriptorPool mDescriptorPool;
 		std::unordered_map<uint32_t, VkDescriptorSet> mLoadedTextures;
+		std::vector<VkFramebuffer> mFrameBuffers;
+		std::shared_ptr<RenderPassVulkan> mRenderPass;
 		uint32_t mTextureCount;
 
 		//IMPORTANT:: ImGui has not confirmed exactly how this works in vulkan, currently images are drawn from
@@ -64,9 +67,16 @@ namespace DOH {
 		void uploadFonts(RenderingContextVulkan& context);
 		void newFrame();
 		void endFrame();
+		void beginRenderPass(uint32_t imageIndex, VkExtent2D extent, VkCommandBuffer cmd);
 		void render(VkCommandBuffer cmd);
 		void onWindowResize(int width, int height) const;
 		void setEnabledConfigFlag(const EImGuiConfigFlag configFlag, const bool enabled);
+
+		void createRenderPass(VkDevice logicDevice, VkFormat imageFormat);
+		void createFrameBuffers(VkDevice logicDevice, const std::vector<VkImageView>& imageViews, VkExtent2D extent);
+
+		void closeFrameBuffers(VkDevice logicDevice);
+		void closeRenderPass(VkDevice logicDevice);
 
 		void drawTexture(const TextureVulkan& texture, glm::vec2 size, glm::vec2 uv0 = { 0.0f, 0.0f }, glm::vec2 uv1 = { 1.0f, 1.0f });
 	};

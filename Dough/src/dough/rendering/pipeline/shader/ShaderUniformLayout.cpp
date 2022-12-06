@@ -8,13 +8,6 @@ namespace DOH {
 	:	mHasUniforms(false)
 	{}
 
-	void ShaderUniformLayout::initDescriptorSetLayoutBindings(uint32_t count) {
-		if (count < 0) {
-			count = 0;
-		}
-		mDescriptorSetLayoutBindings = std::vector<VkDescriptorSetLayoutBinding>(count);
-	}
-
 	bool ShaderUniformLayout::isBindingAvailable(uint32_t binding) const {
 		if (mValueUniformMap.find(binding) != mValueUniformMap.end()) {
 			return false;
@@ -71,10 +64,6 @@ namespace DOH {
 		mPushConstantRanges.emplace_back(pushConstant);
 	}
 
-	void ShaderUniformLayout::clearDescriptorSetLayoutBindings() {
-		mDescriptorSetLayoutBindings.clear();
-	}
-
 	void ShaderUniformLayout::clearTextureUniforms() {
 		mTextureUniformMap.clear();
 		mTextureArrayUniformMap.clear();
@@ -89,19 +78,7 @@ namespace DOH {
 	}
 
 	void ShaderUniformLayout::close() {
-		clearDescriptorSetLayoutBindings();
 		clearUniforms();
-	}
-
-	std::vector<DescriptorTypeInfo> ShaderUniformLayout::asDescriptorTypes() const {
-		std::vector<DescriptorTypeInfo> descTypes = {};
-		descTypes.reserve(mDescriptorSetLayoutBindings.size());
-
-		for (const VkDescriptorSetLayoutBinding& layoutBinding : mDescriptorSetLayoutBindings) {
-			descTypes.emplace_back(layoutBinding.descriptorType, layoutBinding.descriptorCount);
-		}
-
-		return descTypes;
 	}
 
 	uint32_t ShaderUniformLayout::getPushConstantOffset() const {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dough/rendering/pipeline/DescriptorVulkan.h"
+#include "dough/rendering/pipeline/DescriptorSetLayoutVulkan.h"
 #include "dough/rendering/textures/TextureVulkan.h"
 #include "dough/rendering/renderables/IRenderable.h"
 #include "dough/rendering/pipeline/shader/ShaderProgramVulkan.h"
@@ -63,12 +63,14 @@ namespace DOH {
 		);
 
 		void createUniformObjects(VkDevice logicDevice);
-		void uploadShaderUniforms(
+		void createShaderUniforms(
 			VkDevice logicDevice,
 			VkPhysicalDevice physicalDevice,
 			uint32_t imageCount,
 			VkDescriptorPool descPool
 		);
+		void updateShaderUniforms(VkDevice logicDevice, uint32_t imageCount);
+		void setImageUniformData(VkDevice logicDevice, uint32_t image, uint32_t binding, void* data, size_t size);
 		void recordDrawCommands(uint32_t imageIndex, VkCommandBuffer cmd);
 		inline void addRenderableToDraw(std::shared_ptr<IRenderable> renderable) { mRenderableDrawList.emplace_back(renderable); }
 		inline void clearRenderableToDraw() { mRenderableDrawList.clear(); }
@@ -77,7 +79,6 @@ namespace DOH {
 		void recreate(VkDevice logicDevice, VkExtent2D extent, VkRenderPass renderPass);
 
 		inline VkPipelineLayout getPipelineLayout() const { return mGraphicsPipelineLayout; }
-		inline DescriptorVulkan& getShaderDescriptor() const { return mInstanceInfo.ShaderProgram.getShaderDescriptor(); }
 		inline ShaderProgramVulkan& getShaderProgram() const { return mInstanceInfo.ShaderProgram; }
 		inline bool isReady() const { return mGraphicsPipeline != VK_NULL_HANDLE; }
 		inline uint32_t getVaoDrawCount() const { return static_cast<uint32_t>(mRenderableDrawList.size()); }
@@ -94,16 +95,16 @@ namespace DOH {
 		);
 	};
 
-	class PipelineRenderableConveyer {
+	class PipelineRenderableConveyor {
 
 	private:
 		std::optional<std::reference_wrapper<GraphicsPipelineVulkan>> mPipeline;
 
 	public:
-		PipelineRenderableConveyer()
+		PipelineRenderableConveyor()
 		:	mPipeline()
 		{}
-		PipelineRenderableConveyer(std::reference_wrapper<GraphicsPipelineVulkan> pipeline)
+		PipelineRenderableConveyor(std::reference_wrapper<GraphicsPipelineVulkan> pipeline)
 		:	mPipeline(pipeline)
 		{}
 

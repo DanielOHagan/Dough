@@ -2,7 +2,7 @@
 
 #include "dough/rendering/pipeline/shader/ShaderVulkan.h"
 #include "dough/rendering/pipeline/shader/ShaderUniformLayout.h"
-#include "dough/rendering/pipeline/DescriptorVulkan.h"
+#include "dough/rendering/pipeline/DescriptorSetLayoutVulkan.h"
 #include "dough/rendering/buffer/BufferLayout.h"
 
 namespace DOH {
@@ -11,7 +11,7 @@ namespace DOH {
 
 	private:
 		std::unique_ptr<ShaderUniformLayout> mShaderUniformLayout;
-		std::unique_ptr<DescriptorVulkan> mShaderDescriptor;
+		std::unique_ptr<DescriptorSetLayoutVulkan> mShaderDescriptorLayout;
 
 		std::shared_ptr<ShaderVulkan> mVertexShader;
 		std::shared_ptr<ShaderVulkan> mFragmentShader;
@@ -31,7 +31,7 @@ namespace DOH {
 		void closePipelineSpecificObjects(VkDevice logicDevice);
 		virtual void close(VkDevice logicDevice) override;
 
-		inline DescriptorVulkan& getShaderDescriptor() const { return *mShaderDescriptor; }
+		inline DescriptorSetLayoutVulkan& getShaderDescriptorLayout() const { return *mShaderDescriptorLayout; }
 		inline ShaderUniformLayout& getUniformLayout() const { return *mShaderUniformLayout; }
 		inline ShaderVulkan& getVertexShader() const { return *mVertexShader; }
 		inline ShaderVulkan& getFragmentShader() const { return *mFragmentShader; }

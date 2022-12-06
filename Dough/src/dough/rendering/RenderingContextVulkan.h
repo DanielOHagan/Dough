@@ -11,8 +11,7 @@ namespace DOH {
 
 	enum class ERenderPass {
 		APP_SCENE,
-		APP_UI,
-		IMGUI
+		APP_UI
 	};
 
 	class RenderingContextVulkan {
@@ -27,14 +26,17 @@ namespace DOH {
 			const std::string ApiVersion;
 			const std::string DeviceName;
 			const std::string DeviceDriverVersion;
+			const bool ValidationLayersEnabled;
 
 			RenderingDeviceInfo(
 				const std::string& apiVersion,
 				const std::string& deviceName,
-				const std::string& deviceDriverVersion
+				const std::string& deviceDriverVersion,
+				const bool validationLayersEnabled
 			) : ApiVersion(apiVersion),
 				DeviceName(deviceName),
-				DeviceDriverVersion(deviceDriverVersion)
+				DeviceDriverVersion(deviceDriverVersion),
+				ValidationLayersEnabled(validationLayersEnabled)
 			{}
 		};
 
@@ -68,11 +70,6 @@ namespace DOH {
 		std::shared_ptr<RenderPassVulkan> mAppUiRenderPass;
 
 		std::vector<ImageVulkan> mAppSceneDepthImages;
-
-		//TODO:: put into ImGuiWrapper ?
-		// ImGuiWrapper requires Renderpass to been created before init()
-		std::vector<VkFramebuffer> mImGuiFrameBuffers;
-		std::shared_ptr<RenderPassVulkan> mImGuiRenderPass;
 
 		//Used by Scene and UI pipelines
 		//TODO::
@@ -117,14 +114,14 @@ namespace DOH {
 		VkDescriptorPool createDescriptorPool(std::vector<DescriptorTypeInfo>& descTypes);
 		bool isReady() const;
 
-		//TODO:: return PipelineVaoConveyer for easier and faster vao adding?
+		//TODO:: return PipelineVaoConveyor for easier and faster vao adding?
 		//	Take in a pipeline builder object?
-		PipelineRenderableConveyer createPipeline(
+		PipelineRenderableConveyor createPipeline(
 			const std::string& name,
 			GraphicsPipelineInstanceInfo& instanceInfo,
 			const bool enabled = true
 		);
-		PipelineRenderableConveyer createPipelineConveyer(
+		PipelineRenderableConveyor createPipelineConveyor(
 			const ERenderPass renderPass,
 			const std::string& name
 		);

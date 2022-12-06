@@ -3,7 +3,6 @@
 #include "dough/application/Application.h"
 #include "dough/Utils.h"
 #include "dough/rendering/pipeline/shader/ShaderVulkan.h"
-#include "dough/Logging.h"
 #include "dough/rendering/renderer2d/Renderer2dVulkan.h"
 
 #include <set>

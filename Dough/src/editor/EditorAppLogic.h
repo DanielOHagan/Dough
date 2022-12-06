@@ -68,8 +68,8 @@ namespace DOH::EDITOR {
 			std::vector<std::shared_ptr<ModelVulkan>> LoadedModels;
 			std::vector<std::shared_ptr<RenderableModelVulkan>> RenderableObjects;
 
-			PipelineRenderableConveyer ScenePipelineConveyer;
-			PipelineRenderableConveyer WireframePipelineConveyer;
+			PipelineRenderableConveyor ScenePipelineConveyor;
+			PipelineRenderableConveyor WireframePipelineConveyor;
 
 			int AddNewObjectsCount = 0;
 			int PopObjectsCount = 0;
@@ -138,8 +138,8 @@ namespace DOH::EDITOR {
 			std::shared_ptr<SimpleRenderable> UiRenderable;
 			std::shared_ptr<VertexArrayVulkan> UiVao;
 
-			PipelineRenderableConveyer CustomSceneConveyer;
-			PipelineRenderableConveyer CustomUiConveyer;
+			PipelineRenderableConveyor CustomSceneConveyor;
+			PipelineRenderableConveyor CustomUiConveyor;
 
 			const char* ScenePipelineName = "Custom";
 			const char* UiPipelineName = "CustomUi";
@@ -308,6 +308,7 @@ namespace DOH::EDITOR {
 
 		//Draw a window displaying a texture
 		void imGuiDrawTextureViewerWindow(ImGuiTextureViewerWindow& textureWindow);
+		//TODO:: more editor features
 		//void imGuiDrawTextureAtlasViewerWindow(ImGuiTextureAtlasViewerWindow& textureAtlasWindow);
 		void imGuiRemoveHiddenTextureViewerWindows();
 

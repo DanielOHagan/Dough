@@ -362,14 +362,6 @@ namespace DOH {
 					}
 				}
 
-				//TODO:: Turn 
-				//KerningMapKey kerningKey = { lastCharId, charId };
-				//const auto& kerning = bitmap.getKerningMap().find(kerningKey);
-				//if (kerning != bitmap.getKerningMap().end()) {
-				//	quad.Position.x += kerning->second;
-				//}
-				
-				
 				lastCharId = charId;
 
 				quad.setTexture(*bitmap.getPageTexture(g->second.PageId));
@@ -391,11 +383,21 @@ namespace DOH {
 		glm::mat4x4& sceneProjView
 	) {
 		const uint32_t uboBinding = 0;
-		mStorage->getQuadGraphicsPipeline().getShaderDescriptor().getBuffersFromBinding(uboBinding)[currentImage]->
-			setData(logicDevice, &sceneProjView, sizeof(glm::mat4x4));
 
-		mStorage->getTextGraphicsPipeline().getShaderDescriptor().getBuffersFromBinding(uboBinding)[currentImage]->
-			setData(logicDevice, &sceneProjView, sizeof(glm::mat4x4));
+		mStorage->getQuadGraphicsPipeline().setImageUniformData(
+			logicDevice,
+			currentImage,
+			uboBinding,
+			&sceneProjView,
+			sizeof(glm::mat4x4)
+		);
+		mStorage->getTextGraphicsPipeline().setImageUniformData(
+			logicDevice,
+			currentImage,
+			uboBinding,
+			&sceneProjView,
+			sizeof(glm::mat4x4)
+		);
 
 		//TODO:: UI
 	}

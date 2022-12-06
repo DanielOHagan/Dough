@@ -1,25 +1,25 @@
-#include "dough/rendering/pipeline/DescriptorVulkan.h"
+#include "dough/rendering/pipeline/DescriptorSetLayoutVulkan.h"
 
 #include "dough/rendering/ObjInit.h"
 
 namespace DOH {
 
-	DescriptorVulkan::DescriptorVulkan(ShaderUniformLayout& uniformLayout)
+	DescriptorSetLayoutVulkan::DescriptorSetLayoutVulkan(ShaderUniformLayout& uniformLayout)
 	:	mDescriptorSetLayout(VK_NULL_HANDLE),
 		mUniformLayout(uniformLayout),
 		mDescriptorSetLayoutCreated(false),
 		mValueBuffersCreated(false)
 	{}
 
-	void DescriptorVulkan::createDescriptorSetLayout(VkDevice logicDevice) {
+	void DescriptorSetLayoutVulkan::createDescriptorSetLayout(VkDevice logicDevice) {
 		if (mDescriptorSetLayoutCreated) {
 			return;
 		}
 
 		VkDescriptorSetLayoutCreateInfo dslCreateInfo = {};
 		dslCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		dslCreateInfo.bindingCount = static_cast<uint32_t>(mUniformLayout.getDescriptorSetLayoutBindings().size());
-		dslCreateInfo.pBindings = mUniformLayout.getDescriptorSetLayoutBindings().data();
+		dslCreateInfo.bindingCount = static_cast<uint32_t>(mDescriptorSetLayoutBindings.size());
+		dslCreateInfo.pBindings = mDescriptorSetLayoutBindings.data();
 
 		VK_TRY(
 			vkCreateDescriptorSetLayout(logicDevice, &dslCreateInfo, nullptr, &mDescriptorSetLayout),
@@ -29,7 +29,7 @@ namespace DOH {
 		mDescriptorSetLayoutCreated = true;
 	}
 
-	void DescriptorVulkan::createValueBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice, uint32_t count) {
+	void DescriptorSetLayoutVulkan::createValueBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice, uint32_t count) {
 		if (mValueBuffersCreated) {
 			return;
 		}
@@ -51,7 +51,7 @@ namespace DOH {
 		}
 	}
 
-	void DescriptorVulkan::createDescriptorSets(VkDevice logicDevice, uint32_t descSetCount, VkDescriptorPool descPool) {
+	void DescriptorSetLayoutVulkan::createDescriptorSets(VkDevice logicDevice, uint32_t descSetCount, VkDescriptorPool descPool) {
 		std::vector<VkDescriptorSetLayout> layouts(descSetCount, mDescriptorSetLayout);
 
 		VkDescriptorSetAllocateInfo allocation = {};
@@ -68,7 +68,40 @@ namespace DOH {
 		);
 	}
 
-	void DescriptorVulkan::updateDescriptorSets(VkDevice logicDevice, uint32_t imageCount) {
+	void DescriptorSetLayoutVulkan::createDescriptorSetLayoutBindings(VkDevice logicDevice, uint32_t count) {
+		mDescriptorSetLayoutBindings = std::vector<VkDescriptorSetLayoutBinding>(count);
+
+		for (const auto& [binding, value] : mUniformLayout.getValueUniformMap()) {
+			mDescriptorSetLayoutBindings[binding] = DescriptorSetLayoutVulkan::createLayoutBinding(
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				VK_SHADER_STAGE_VERTEX_BIT,
+				1,
+				binding
+			);
+		}
+
+		//Create textures' layout binding
+		for (const auto& [binding, value] : mUniformLayout.getTextureUniformMap()) {
+			mDescriptorSetLayoutBindings[binding] = DescriptorSetLayoutVulkan::createLayoutBinding(
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				VK_SHADER_STAGE_FRAGMENT_BIT,
+				1,
+				binding
+			);
+		}
+
+		//Create texture arrays' layout binding
+		for (const auto& [binding, texArr] : mUniformLayout.getTextureArrayUniformMap()) {
+			mDescriptorSetLayoutBindings[binding] = DescriptorSetLayoutVulkan::createLayoutBinding(
+				VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				VK_SHADER_STAGE_FRAGMENT_BIT,
+				texArr.get().getMaxTextureCount(),
+				binding
+			);
+		}
+	}
+
+	void DescriptorSetLayoutVulkan::updateAllDescriptorSets(VkDevice logicDevice, uint32_t imageCount) {
 		for (uint32_t swapChainImageIndex = 0; swapChainImageIndex < imageCount; swapChainImageIndex++) {
 			std::vector<VkWriteDescriptorSet> descWrites(mUniformLayout.getTotalUniformCount());
 			std::vector<VkDescriptorImageInfo> imageInfos(mUniformLayout.getTotalTextureCount());
@@ -168,7 +201,7 @@ namespace DOH {
 		}
 	}
 
-	void DescriptorVulkan::bindDescriptorSets(
+	void DescriptorSetLayoutVulkan::bindDescriptorSets(
 		VkCommandBuffer cmdBuffer,
 		VkPipelineLayout pipelineLayout,
 		uint32_t descriptorSetIndex
@@ -185,7 +218,7 @@ namespace DOH {
 		);
 	}
 
-	void DescriptorVulkan::closeBuffers(VkDevice logicDevice) {
+	void DescriptorSetLayoutVulkan::closeBuffers(VkDevice logicDevice) {
 		for (auto& [binding, buffers] : mValueBufferMap) {
 			for (std::shared_ptr<BufferVulkan> buffer : buffers) {
 				buffer->close(logicDevice);
@@ -195,20 +228,35 @@ namespace DOH {
 		mValueBuffersCreated = false;
 	}
 
-	void DescriptorVulkan::closeDescriptorSetLayout(VkDevice logicDevice) {
-		vkDestroyDescriptorSetLayout(logicDevice, mDescriptorSetLayout, nullptr);
-		mDescriptorSetLayout = VK_NULL_HANDLE;
-		mDescriptorSetLayoutCreated = false;
+	void DescriptorSetLayoutVulkan::closeDescriptorSetLayout(VkDevice logicDevice) {
+		if (mDescriptorSetLayout != VK_NULL_HANDLE) {
+			vkDestroyDescriptorSetLayout(logicDevice, mDescriptorSetLayout, nullptr);
+			mDescriptorSetLayout = VK_NULL_HANDLE;
+			mDescriptorSetLayoutCreated = false;
+		}
 	}
 
-	void DescriptorVulkan::close(VkDevice logicDevice) {
+	void DescriptorSetLayoutVulkan::close(VkDevice logicDevice) {
 		closeBuffers(logicDevice);
 		closeDescriptorSetLayout(logicDevice);
+
+		mDescriptorSetLayoutBindings.clear();
 
 		mUsingGpuResource = false;
 	}
 
-	VkDescriptorSetLayoutBinding DescriptorVulkan::createLayoutBinding(
+	std::vector<DescriptorTypeInfo> DescriptorSetLayoutVulkan::asDescriptorTypes() const {
+		std::vector<DescriptorTypeInfo> descTypes = {};
+		descTypes.reserve(mDescriptorSetLayoutBindings.size());
+
+		for (const VkDescriptorSetLayoutBinding& layoutBinding : mDescriptorSetLayoutBindings) {
+			descTypes.emplace_back(layoutBinding.descriptorType, layoutBinding.descriptorCount);
+		}
+
+		return descTypes;
+	}
+
+	VkDescriptorSetLayoutBinding DescriptorSetLayoutVulkan::createLayoutBinding(
 		VkDescriptorType descriptorType,
 		VkShaderStageFlags stages,
 		uint32_t descriptorCount,

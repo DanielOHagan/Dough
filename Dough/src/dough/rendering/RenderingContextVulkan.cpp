@@ -54,7 +54,8 @@ namespace DOH {
 				std::to_string(VK_VERSION_PATCH(mPhysicalDeviceProperties->apiVersion))
 			),
 			mPhysicalDeviceProperties->deviceName,
-			std::to_string(mPhysicalDeviceProperties->driverVersion)
+			std::to_string(mPhysicalDeviceProperties->driverVersion),
+			Application::get().getRenderer().areValidationLayersEnabled()
 		);
 
 		createQueues(queueFamilyIndices);
@@ -88,11 +89,12 @@ namespace DOH {
 		imGuiInitInfo.PhysicalDevice = mPhysicalDevice;
 		imGuiInitInfo.Queue = mGraphicsQueue;
 		imGuiInitInfo.QueueFamily = queueFamilyIndices.GraphicsFamily.value();
-		imGuiInitInfo.RenderPass = mImGuiRenderPass->get();
 		imGuiInitInfo.VulkanInstance = vulkanInstance;
+		imGuiInitInfo.ImageFormat = mSwapChain->getImageFormat();
 		
 		mImGuiWrapper->init(window, imGuiInitInfo);
 		mImGuiWrapper->uploadFonts(*this);
+		mImGuiWrapper->createFrameBuffers(mLogicDevice, mSwapChain->getImageViews(), mSwapChain->getExtent());
 	}
 
 	void RenderingContextVulkan::close() {
@@ -113,7 +115,6 @@ namespace DOH {
 		}
 
 		closeSyncObjects();
-
 		closeRenderPasses();
 		closeAppSceneDepthResources();
 		closeFrameBuffers();
@@ -172,15 +173,12 @@ namespace DOH {
 		uint32_t height
 	) {
 		if (mSwapChain->isResizable()) {
-			VK_TRY(
-				vkDeviceWaitIdle(mLogicDevice),
-				"Device failed to wait idle for swap chain recreation"
-			);
+			Application::get().getRenderer().deviceWaitIdle("Device waiting idle for swap chain recreation");
 
 			std::vector<DescriptorTypeInfo> totalDescTypes;
 			
 			for (const auto& pipeline : mAppSceneGraphicsPipelines) {
-				std::vector<DescriptorTypeInfo> descTypes = pipeline.second->getShaderProgram().getUniformLayout().asDescriptorTypes();
+				std::vector<DescriptorTypeInfo> descTypes = pipeline.second->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes();
 				totalDescTypes.reserve(totalDescTypes.size() + descTypes.size());
 
 				for (const DescriptorTypeInfo& descType : descTypes) {
@@ -189,7 +187,7 @@ namespace DOH {
 			}
 
 			for (const auto& pipeline : mAppUiGraphicsPipelines) {
-				std::vector<DescriptorTypeInfo> descTypes = pipeline.second->getShaderProgram().getUniformLayout().asDescriptorTypes();
+				std::vector<DescriptorTypeInfo> descTypes = pipeline.second->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes();
 				totalDescTypes.reserve(totalDescTypes.size() + descTypes.size());
 
 				for (const DescriptorTypeInfo& descType : descTypes) {
@@ -199,12 +197,18 @@ namespace DOH {
 
 			if (totalDescTypes.size() > 0) {
 				vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
+
+				//TODO:: reset pool instead?
+				//vkResetDescriptorPool(mLogicDevice, mDescriptorPool, 0);
 			}
 
 			if (mSwapChain != nullptr) {
 				closeRenderPasses();
 				closeAppSceneDepthResources();
 				closeFrameBuffers();
+
+				mImGuiWrapper->closeRenderPass(mLogicDevice);
+				mImGuiWrapper->closeFrameBuffers(mLogicDevice);
 
 				mSwapChain->close(mLogicDevice);
 			}
@@ -215,8 +219,10 @@ namespace DOH {
 			mSwapChain = ObjInit::swapChain(*mSwapChainCreationInfo);
 
 			createRenderPasses();
+			mImGuiWrapper->createRenderPass(mLogicDevice, mSwapChain->getImageFormat());
 			createAppSceneDepthResources();
 			createFrameBuffers();
+			mImGuiWrapper->createFrameBuffers(mLogicDevice, mSwapChain->getImageViews(), mSwapChain->getExtent());
 
 			if (totalDescTypes.size() > 0) {
 				mDescriptorPool = createDescriptorPool(totalDescTypes);
@@ -276,7 +282,7 @@ namespace DOH {
 		drawUi(imageIndex, cmd);
 
 		//Draw ImGui
-		mImGuiRenderPass->begin(mImGuiFrameBuffers[imageIndex], mSwapChain->getExtent(), cmd);
+		mImGuiWrapper->beginRenderPass(imageIndex, mSwapChain->getExtent(), cmd);
 		mImGuiWrapper->render(cmd);
 		RenderPassVulkan::endRenderPass(cmd);
 
@@ -310,8 +316,14 @@ namespace DOH {
 
 				//Assumes all scene pipelines use this UBO and they're at binding 0
 				const uint32_t binding = 0;
-				pipeline.second->getShaderDescriptor().getBuffersFromBinding(binding)[imageIndex]
-					->setData(mLogicDevice, &mAppSceneUbo, sizeof(UniformBufferObject));
+
+				pipeline.second->setImageUniformData(
+					mLogicDevice,
+					imageIndex,
+					binding,
+					&mAppSceneUbo,
+					sizeof(UniformBufferObject)
+				);
 
 				pipeline.second->bind(cmd);
 				pipeline.second->recordDrawCommands(imageIndex, cmd);
@@ -336,8 +348,13 @@ namespace DOH {
 
 				//Assumes all scene pipelines use this UBO and they're at binding 0
 				const uint32_t binding = 0;
-				pipeline.second->getShaderDescriptor().getBuffersFromBinding(binding)[imageIndex]
-					->setData(mLogicDevice, &mAppUiProjection, sizeof(glm::mat4x4));
+				pipeline.second->setImageUniformData(
+					mLogicDevice,
+					imageIndex,
+					binding,
+					&mAppUiProjection,
+					sizeof(glm::mat4x4)
+				);
 
 				pipeline.second->bind(cmd);
 				pipeline.second->recordDrawCommands(imageIndex, cmd);
@@ -568,30 +585,11 @@ namespace DOH {
 
 			mAppUiRenderPass = std::make_shared<RenderPassVulkan>(mLogicDevice, uiSubPass);
 		}
-
-		{
-			SubPassVulkan imGuiSubPass = {
-				VK_PIPELINE_BIND_POINT_GRAPHICS,
-				{
-					{
-						ERenderPassAttachmentType::COLOUR,
-						imageFormat,
-						VK_ATTACHMENT_LOAD_OP_LOAD,
-						VK_ATTACHMENT_STORE_OP_STORE,
-						VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-						VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-					}
-				}
-			};
-
-			mImGuiRenderPass = std::make_shared<RenderPassVulkan>(mLogicDevice, imGuiSubPass);
-		}
 	}
 
 	void RenderingContextVulkan::closeRenderPasses() {
 		mAppSceneRenderPass->close(mLogicDevice);
 		mAppUiRenderPass->close(mLogicDevice);
-		mImGuiRenderPass->close(mLogicDevice);
 	}
 
 	void RenderingContextVulkan::createFrameBuffers() {
@@ -601,7 +599,6 @@ namespace DOH {
 
 		mAppSceneFrameBuffers.resize(imageCount);
 		mAppUiFrameBuffers.resize(imageCount);
-		mImGuiFrameBuffers.resize(imageCount);
 
 		for (size_t i = 0; i < imageCount; i++) {
 			std::array<VkImageView, 2> sceneAttachments = { imageViews[i], mAppSceneDepthImages[i % (imageCount - 1)].getImageView() };
@@ -633,21 +630,6 @@ namespace DOH {
 				vkCreateFramebuffer(mLogicDevice, &appUiFrameBufferInfo, nullptr, &mAppUiFrameBuffers[i]),
 				"Failed to create App Ui FrameBuffer."
 			);
-
-			VkImageView imGuiAttachments[] = { imageViews[i] };
-			VkFramebufferCreateInfo imGuiFrameBufferInfo = {};
-			imGuiFrameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			imGuiFrameBufferInfo.renderPass = mImGuiRenderPass->get();
-			imGuiFrameBufferInfo.attachmentCount = 1;
-			imGuiFrameBufferInfo.pAttachments = imGuiAttachments;
-			imGuiFrameBufferInfo.width = extent.width;
-			imGuiFrameBufferInfo.height = extent.height;
-			imGuiFrameBufferInfo.layers = 1;
-
-			VK_TRY(
-				vkCreateFramebuffer(mLogicDevice, &imGuiFrameBufferInfo, nullptr, &mImGuiFrameBuffers[i]),
-				"Failed to create ImGui FrameBuffer."
-			);
 		}
 	}
 
@@ -659,35 +641,27 @@ namespace DOH {
 		for (VkFramebuffer frameBuffer : mAppUiFrameBuffers) {
 			vkDestroyFramebuffer(mLogicDevice, frameBuffer, nullptr);
 		}
-
-		for (VkFramebuffer frameBuffer : mImGuiFrameBuffers) {
-			vkDestroyFramebuffer(mLogicDevice, frameBuffer, nullptr);
-		}
 	}
 
 	void RenderingContextVulkan::createPipelineUniformObjects(GraphicsPipelineVulkan& pipeline, VkDescriptorPool descPool) {
 		if (pipeline.getShaderProgram().getUniformLayout().hasUniforms()) {
-			pipeline.uploadShaderUniforms(
+			pipeline.createShaderUniforms(
 				mLogicDevice,
 				mPhysicalDevice,
 				mSwapChain->getImageCount(),
 				descPool
 			);
+			pipeline.updateShaderUniforms(mLogicDevice, mSwapChain->getImageCount());
 		} else {
 			LOG_WARN("Tried to create uniform objects for pipeline without uniforms");
 		}
 	}
 
-	PipelineRenderableConveyer RenderingContextVulkan::createPipeline(
+	PipelineRenderableConveyor RenderingContextVulkan::createPipeline(
 		const std::string& name,
 		GraphicsPipelineInstanceInfo& instanceInfo,
 		const bool enabled
 	) {
-		if (instanceInfo.RenderPass == ERenderPass::IMGUI) {
-			LOG_ERR("Unable to create ImGui pipeline");
-			return {};
-		}
-
 		auto& map = instanceInfo.RenderPass == ERenderPass::APP_SCENE ? mAppSceneGraphicsPipelines : mAppUiGraphicsPipelines;
 		const auto& itr = map.find(name);
 		if (itr != map.end()) {
@@ -703,15 +677,10 @@ namespace DOH {
 		return { *pipeline };
 	}
 
-	PipelineRenderableConveyer RenderingContextVulkan::createPipelineConveyer(
+	PipelineRenderableConveyor RenderingContextVulkan::createPipelineConveyor(
 		const ERenderPass renderPass,
 		const std::string& name
 	) {
-		if (renderPass == ERenderPass::IMGUI) {
-			LOG_ERR("Unable to create ImGui pipeline conveyer");
-			return {};
-		}
-
 		auto& map = renderPass == ERenderPass::APP_SCENE ? mAppSceneGraphicsPipelines : mAppUiGraphicsPipelines;
 		const auto& itr = map.find(name);
 		if (itr != map.end()) {
@@ -723,11 +692,6 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::enablePipeline(const ERenderPass renderPass, const std::string& name, bool enable) {
-		if (renderPass == ERenderPass::IMGUI) {
-			LOG_ERR("Unable to enable/disable ImGui pipeline");
-			return;
-		}
-
 		auto& map = renderPass == ERenderPass::APP_SCENE ? mAppSceneGraphicsPipelines : mAppUiGraphicsPipelines;
 		const auto& itr = map.find(name);
 		if (itr != map.end()) {
@@ -738,11 +702,6 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::closePipeline(const ERenderPass renderPass, const std::string& name) {
-		if (renderPass == ERenderPass::IMGUI) {
-			LOG_ERR("Unable to close ImGui pipeline");
-			return;
-		}
-
 		auto& map = renderPass == ERenderPass::APP_SCENE ? mAppSceneGraphicsPipelines : mAppUiGraphicsPipelines;
 		const auto& itr = map.find(name);
 		if (itr != map.end()) {
@@ -757,14 +716,14 @@ namespace DOH {
 		std::vector<DescriptorTypeInfo> descTypes;
 		uint32_t pipelineCount = 0;
 		for (const auto& pipeline : mAppSceneGraphicsPipelines) {
-			for (const auto& descType : pipeline.second->getShaderProgram().getUniformLayout().asDescriptorTypes()) {
+			for (const auto& descType : pipeline.second->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes()) {
 				descTypes.emplace_back(descType);
 			}
 			pipelineCount++;
 		}
 
 		for (const auto& pipeline : mAppUiGraphicsPipelines) {
-			for (const auto& descType : pipeline.second->getShaderProgram().getUniformLayout().asDescriptorTypes()) {
+			for (const auto& descType : pipeline.second->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes()) {
 				descTypes.emplace_back(descType);
 			}
 			pipelineCount++;
@@ -774,21 +733,23 @@ namespace DOH {
 			mDescriptorPool = createDescriptorPool(descTypes);
 
 			for (const auto& pipeline : mAppSceneGraphicsPipelines) {
-				pipeline.second->uploadShaderUniforms(
+				pipeline.second->createShaderUniforms(
 					mLogicDevice,
 					mPhysicalDevice,
 					mSwapChain->getImageCount(),
 					mDescriptorPool
 				);
+				pipeline.second->updateShaderUniforms(mLogicDevice, mSwapChain->getImageCount());
 			}
 
 			for (const auto& pipeline : mAppUiGraphicsPipelines) {
-				pipeline.second->uploadShaderUniforms(
+				pipeline.second->createShaderUniforms(
 					mLogicDevice,
 					mPhysicalDevice,
 					mSwapChain->getImageCount(),
 					mDescriptorPool
 				);
+				pipeline.second->updateShaderUniforms(mLogicDevice, mSwapChain->getImageCount());
 			}
 		} else {
 			LOG_WARN("Attempted to create uniform objects when not using any custom pipelines");
@@ -1097,8 +1058,6 @@ namespace DOH {
 				return *mAppSceneRenderPass;
 			case ERenderPass::APP_UI:
 				return *mAppUiRenderPass;
-			case ERenderPass::IMGUI:
-				return *mImGuiRenderPass;
 		}
 
 		THROW("Unknown render pass");
