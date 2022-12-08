@@ -1,15 +1,18 @@
 #include "dough/application/Application.h"
 #include "editor/EditorAppLogic.h"
+#include "editor/DemoLiciousAppLogic.h"
+
+#include "dough/EmptyDefines.h"
 
 #ifdef _DEBUG
+	#undef DOH_DEBUG_DEFINES_EMPTY
+	
 	//#define DOH_DEBUG_MEM_USE_CRT
 	#define DOH_DEBUG_MEM_USE_DOH
 	//#define DOH_DEBUG_MEM_PREFER_CRT
 	//#define DOH_DEBUG_MEM_PREFER_DOH
 
 	#include "dough/Debug.h"
-#else
-	#include "dough/EmptyDefines.h"
 #endif
 
 int main() {
@@ -17,7 +20,9 @@ int main() {
 	DOH_DEBUG_MEM_TRACK_START;
 
 	int code = DOH::Application::start(
-		std::make_shared<DOH::EDITOR::EditorAppLogic>(),
+		std::make_shared<DOH::EDITOR::EditorAppLogic>(
+			std::make_shared<DOH::EDITOR::DemoLiciousAppLogic>()
+		),
 		{
 			//Title
 			"Dough Editor",

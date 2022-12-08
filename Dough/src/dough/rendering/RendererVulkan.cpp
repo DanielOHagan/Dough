@@ -333,10 +333,7 @@ namespace DOH {
 		mRenderingContext->setAppSceneUniformBufferObject(camera);
 	}
 
-	void RendererVulkan::endScene() {
-		//TODO:: once batch rendering is implemented this will use the VAOs in the "RendererStorage" to make draw commands,
-		//therefore, addVaoDrawCommands() will be redundant and should then be removed.
-		
+	void RendererVulkan::endScene() {		
 		//TODO:: For the batch renderer
 		// Maybe have a list of references to geometry and a list of references to a lists of geometry which are to be
 		// added to batches in renderer2dStorage, possibly by a separate thread
@@ -348,9 +345,6 @@ namespace DOH {
 	}
 
 	void RendererVulkan::endUi() {
-		//TODO:: once batch rendering is implemented this will use the VAOs in the "RendererStorage" to make draw commands,
-		//therefore, addVaoDrawCommands() will be redundant and should then be removed.
-
 		//TODO:: For the batch renderer
 		// Maybe have a list of references to geometry and a list of references to a lists of geometry which are to be
 		// added to batches in renderer2dStorage, possibly by a separate thread
