@@ -13,6 +13,7 @@
 
 #include "editor/EditorOrthoCameraController.h"
 #include "editor/EditorPerspectiveCameraController.h"
+#include "editor/EditorGui.h"
 
 using namespace DOH;
 
@@ -32,28 +33,7 @@ namespace DOH::EDITOR {
 	private:
 		std::shared_ptr<IApplicationLogic> mInnerAppLogic;
 
-		struct ImGuiTextureViewerWindow {
-			const TextureVulkan& Texture;
-			bool Display;
-			bool MatchWindowSize;
-			float Scale;
-		
-			ImGuiTextureViewerWindow(
-				TextureVulkan& texture,
-				const bool display,
-				const bool matchWindowSize,
-				const float scale
-			) : Texture(texture),
-				Display(display),
-				MatchWindowSize(matchWindowSize),
-				Scale(scale)
-			{}
-		};
-
 		struct EditorSettings {
-			//Map for texture windows, using the texture's ID as the key
-			std::unordered_map<uint32_t, ImGuiTextureViewerWindow> TextureViewerWindows;
-
 			//ImGui window rendering controls
 			bool RenderDebugWindow = true;
 
@@ -96,18 +76,7 @@ namespace DOH::EDITOR {
 		virtual void onResize(float aspectRatio) override;
 
 	private:
-		//Draw a window displaying a texture
-		void imGuiDrawTextureViewerWindow(ImGuiTextureViewerWindow& textureWindow);
-		//TODO:: more editor features
-		//void imGuiDrawTextureAtlasViewerWindow(ImGuiTextureAtlasViewerWindow& textureAtlasWindow);
-		void imGuiRemoveHiddenTextureViewerWindows();
-
-		//ImGui convenience and separated functions, primarly used for debugging and easier ImGui functionality
-		void imGuiDisplayHelpTooltip(const char* message);
-		void imGuiBulletTextWrapped(const char* message);
-		void imGuiRenderDebugWindow(float delta); //This renders the Editor windows
-		void imGuiPrintDrawCallTableColumn(const char* pipelineName, uint32_t drawCount);
-		void imGuiPrintMat4x4(const glm::mat4x4& mat, const char* name);
-		inline void imGuiPrintMat4x4(const glm::mat4x4& mat, const std::string& name) { imGuiPrintMat4x4(mat, name.c_str()); }
+		//This renders the Editor windows
+		void imGuiRenderDebugWindow(float delta);
 	};
 }

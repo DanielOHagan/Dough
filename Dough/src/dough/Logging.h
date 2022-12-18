@@ -25,6 +25,9 @@
 
 	//Add colour prefixes & suffixes to log messages on windows terminals
 	#if defined (DOH_PLATFORM_WINDOWS_64)
+		
+		#define DOH_LOG_STYLE_ENABLED
+
 		#define TEXT_UNDERLINE(message)			"\033[4m" << message << "\033[0m"
 		#define TEXT_BLACK(message)				"\033[30m" << message << "\033[0m"
 		#define TEXT_RED(message)				"\033[31m" << message << "\033[0m"
@@ -161,6 +164,11 @@
 
 namespace DOH {
 	static void displaySampleLogText() {
+
+		#if not defined (DOH_LOG_STYLED_ENABLED)
+			LOGLN("Styled logging not available");
+		#endif
+
 		LOG_ENDL;
 		LOGLN_BLACK("Black");
 		LOGLN_RED("Red");

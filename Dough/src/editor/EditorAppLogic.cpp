@@ -32,9 +32,10 @@ namespace DOH::EDITOR {
 		mPerspectiveCameraController->setPosition({ 0.0f, 0.0f, 5.0f });
 
 		mEditorSettings->UseOrthographicCamera = false;
-		mEditorSettings->TextureViewerWindows = {};
 
 		mInnerAppLogic->init(aspectRatio);
+
+		EditorGui::init();
 	}
 
 	void EditorAppLogic::update(float delta) {
@@ -152,14 +153,14 @@ namespace DOH::EDITOR {
 					static_cast<int>(loop.getTargetFps()),
 					static_cast<int>(loop.getTargetBackgroundFps())
 				);
-				imGuiDisplayHelpTooltip("Max: Current Target UPS or 360, whichever is lower. Min: 15\nFPS displayed is the count of frames in the last full second interval");
+				EditorGui::displayHelpTooltip("Max: Current Target UPS or 360, whichever is lower. Min: 15\nFPS displayed is the count of frames in the last full second interval");
 				ImGui::Text(
 					"UPS: %i \t(Fore: %i, Back: %i)",
 					static_cast<int>(loop.getUps()),
 					static_cast<int>(loop.getTargetUps()),
 					static_cast<int>(loop.getTargetBackgroundUps())
 				);
-				imGuiDisplayHelpTooltip("Max: 1000. Min: Current Target FPS or 15, whichever is higher.\nUPS displayed is the count of frames in the last full second interval");
+				EditorGui::displayHelpTooltip("Max: 1000. Min: Current Target FPS or 15, whichever is higher.\nUPS displayed is the count of frames in the last full second interval");
 				int tempTargetFps = static_cast<int>(loop.getTargetFps());
 				if (ImGui::InputInt("Target FPS", &tempTargetFps)) {
 					if (loop.isValidTargetFps(static_cast<float>(tempTargetFps))) {
@@ -189,7 +190,7 @@ namespace DOH::EDITOR {
 				if (ImGui::Button("Stop Rendering ImGui Windows")) {
 					mEditorSettings->RenderDebugWindow = false;
 				}
-				imGuiDisplayHelpTooltip("When hidden press F1 to start rendering ImGui again");
+				EditorGui::displayHelpTooltip("When hidden press F1 to start rendering ImGui again");
 
 				if (ImGui::Button("Quit Application") || ImGui::IsItemActive()) {
 					mEditorSettings->QuitButtonHoldTime += delta;
@@ -216,7 +217,6 @@ namespace DOH::EDITOR {
 			ImGui::SetNextItemOpen(mEditorSettings->RenderingCollapseMenuOpen);
 			if (mEditorSettings->RenderingCollapseMenuOpen = ImGui::CollapsingHeader("Rendering")) {
 				AppDebugInfo& debugInfo = Application::get().getDebugInfo();
-				MonoSpaceTextureAtlas& atlas = *renderer.getContext().getRenderer2d().getStorage().getTestTextureAtlas();
 
 				const double frameTime = debugInfo.LastUpdateTimeMillis + debugInfo.LastRenderTimeMillis;
 
@@ -248,20 +248,20 @@ namespace DOH::EDITOR {
 				ImGui::TableSetColumnIndex(0);
 				//Individual scene pipeline draw calls
 				for (const auto& [name, pipeline] : renderer.getContext().getAppSceneGraphicsPipelines()) {
-					imGuiPrintDrawCallTableColumn(name.c_str(), pipeline->getVaoDrawCount());
+					EditorGui::printDrawCallTableColumn(name.c_str(), pipeline->getVaoDrawCount());
 				}
 				//Total scene pipeline draw calls
-				imGuiPrintDrawCallTableColumn("Total Scene", debugInfo.SceneDrawCalls);
+				EditorGui::printDrawCallTableColumn("Total Scene", debugInfo.SceneDrawCalls);
 				ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImColor::ImColor(125, 125, 125, 90));
 				//Individual UI pipeline draw calls
 				for (const auto& [name, pipeline] : renderer.getContext().getAppUiGraphicsPipelines()) {
-					imGuiPrintDrawCallTableColumn(name.c_str(), pipeline->getVaoDrawCount());
+					EditorGui::printDrawCallTableColumn(name.c_str(), pipeline->getVaoDrawCount());
 				}
 				//Total UI pipeline draw calls
-				imGuiPrintDrawCallTableColumn("Total UI", debugInfo.UiDrawCalls);
+				EditorGui::printDrawCallTableColumn("Total UI", debugInfo.UiDrawCalls);
 				ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImColor::ImColor(125, 125, 125, 90));
-				imGuiPrintDrawCallTableColumn("Quad Batch", debugInfo.BatchRendererDrawCalls);
-				imGuiPrintDrawCallTableColumn("Total", debugInfo.TotalDrawCalls);
+				EditorGui::printDrawCallTableColumn("Quad Batch", debugInfo.BatchRendererDrawCalls);
+				EditorGui::printDrawCallTableColumn("Total", debugInfo.TotalDrawCalls);
 				ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImColor::ImColor(128, 128, 255, 100));
 				ImGui::EndTable();
 
@@ -289,28 +289,11 @@ namespace DOH::EDITOR {
 					0,
 					renderer.getContext().getRenderer2d().getStorage().getQuadBatchTextureArray().getTextureSlots().size()
 				);
-				if (ImGui::Button("View atlas texture")) {
-					const auto& itr = mEditorSettings->TextureViewerWindows.find(atlas.getId());
-					if (itr != mEditorSettings->TextureViewerWindows.end()) {
-						itr->second.Display = true;
-					} else {
-						mEditorSettings->TextureViewerWindows.emplace(
-							atlas.getId(),
-							ImGuiTextureViewerWindow(
-								atlas,
-								true,
-								false,
-								1.0f
-							)
-						);
-					}
-				}
-				imGuiDisplayHelpTooltip("Display Texture Altas texture inside a separate window.");
 
 				if (ImGui::Button("Close All Empty Quad Batches")) {
 					renderer.getContext().getRenderer2d().closeEmptyQuadBatches();
 				}
-				imGuiDisplayHelpTooltip("Close Empty Quad Batches. This can help clean-up when 1 or more batches have geo counts of 0");
+				EditorGui::displayHelpTooltip("Close Empty Quad Batches. This can help clean-up when 1 or more batches have geo counts of 0");
 			}
 
 			ImGui::SetNextItemOpen(mEditorSettings->InnerAppCollapseMenu);
@@ -397,9 +380,9 @@ namespace DOH::EDITOR {
 					ImGui::BulletText("W, A, S, D: Move Camera");
 					ImGui::BulletText("Hold Left Shift: Increase move speed");
 					ImGui::BulletText("Z, X: Zoom Camera In & Out");
-					imGuiDisplayHelpTooltip("NOTE:: Changes top/bottom & left/right orthographic perspective, does not change the Z clipping range");
+					EditorGui::displayHelpTooltip("NOTE:: Changes top/bottom & left/right orthographic perspective, does not change the Z clipping range");
 					ImGui::BulletText("Right Click Drag Camera");
-					imGuiDisplayHelpTooltip("NOTE:: Drag doesn't work properly at all update rates");
+					EditorGui::displayHelpTooltip("NOTE:: Drag doesn't work properly at all update rates");
 					
 					ImGui::Text("Camera Position");
 					const auto& pos = mOrthoCameraController->getPosition();
@@ -408,12 +391,12 @@ namespace DOH::EDITOR {
 						mOrthoCameraController->setPosition({ tempPos[0], tempPos[1], tempPos[2] });
 					}
 					ImGui::Text("Zoom: %f", mOrthoCameraController->getZoomLevel());
-					imGuiDisplayHelpTooltip("Higher is more \"zoomed out\" and lower is more \"zoomed in\"");
+					EditorGui::displayHelpTooltip("Higher is more \"zoomed out\" and lower is more \"zoomed in\"");
 				} else {
 					ImGui::Text("Perspective Camera Controls");
-					imGuiBulletTextWrapped("W, A, S, D, C, Space Bar: Move Camera");
-					imGuiBulletTextWrapped("Arrow Left, Arrow Right, Arrow Up, Arrow Down, Z, X, Mouse Right Click & Drag: Change camera looking direction");
-					imGuiBulletTextWrapped("Hold Left Shift: Increase translation speed");
+					EditorGui::bulletTextWrapped("W, A, S, D, C, Space Bar: Move Camera");
+					EditorGui::bulletTextWrapped("Arrow Left, Arrow Right, Arrow Up, Arrow Down, Z, X, Mouse Right Click & Drag: Change camera looking direction");
+					EditorGui::bulletTextWrapped("Hold Left Shift: Increase translation speed");
 					
 					const auto pos = mPerspectiveCameraController->getPosition();
 					const auto dir = mPerspectiveCameraController->getDirection();
@@ -473,147 +456,17 @@ namespace DOH::EDITOR {
 		ImGui::EndTabBar();
 		ImGui::End();
 
-		for (auto& textureViewer : mEditorSettings->TextureViewerWindows) {
-			if (textureViewer.second.Display) {
-				imGuiDrawTextureViewerWindow(textureViewer.second);
-			}
-		}
+		EditorGui::drawTextureViewerWindows();
 	}
 
 	void EditorAppLogic::close() {
 		mInnerAppLogic->close();
+
+		EditorGui::close();
 	}
 
 	void EditorAppLogic::onResize(float aspectRatio) {
 		mOrthoCameraController->onViewportResize(aspectRatio);
 		mInnerAppLogic->onResize(aspectRatio);
-	}
-
-	void EditorAppLogic::imGuiDrawTextureViewerWindow(ImGuiTextureViewerWindow& textureViewer) {
-		auto& imGuiWrapper = GET_RENDERER.getContext().getImGuiWrapper();
-
-		const std::string title = "Texture ID: " + std::to_string(textureViewer.Texture.getId());
-		const int paddingWidth = 5;
-		const int paddingHeight = 5;
-
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(paddingWidth, paddingHeight));
-
-		if (ImGui::Begin(
-			title.c_str(),
-			&textureViewer.Display,
-			ImGuiWindowFlags_HorizontalScrollbar
-		)) {
-			ImGui::Text("Size: %i, %i", textureViewer.Texture.getWidth(), textureViewer.Texture.getHeight());
-			ImGui::Checkbox("Match To Window Size", &textureViewer.MatchWindowSize);
-			imGuiDisplayHelpTooltip("Match texture displayed width & height to window. Still affected by scale.");
-			ImGui::DragFloat("Scale", &textureViewer.Scale, 0.005f, 0.01f, 2.0f);
-
-			glm::vec2 displaySize = { 0.0f, 0.0f };
-
-			if (textureViewer.MatchWindowSize) {
-				ImVec2 regionAvail = ImGui::GetContentRegionAvail();
-
-				displaySize.x = regionAvail.x * textureViewer.Scale;
-				displaySize.y = regionAvail.y * textureViewer.Scale;
-			} else {
-				displaySize.x = textureViewer.Texture.getWidth() * textureViewer.Scale;
-				displaySize.y = textureViewer.Texture.getHeight() * textureViewer.Scale;
-			}
-
-			if (displaySize.y > 0.0f) {
-				imGuiWrapper.drawTexture(textureViewer.Texture, displaySize);
-			}
-		}
-
-		ImGui::PopStyleVar(1);
-		ImGui::End();
-	}
-
-	void EditorAppLogic::imGuiRemoveHiddenTextureViewerWindows() {
-		for (auto& textureViewer : mEditorSettings->TextureViewerWindows) {
-			if (!textureViewer.second.Display) {
-				mEditorSettings->TextureViewerWindows.erase(textureViewer.first);
-			}
-		}
-	}
-
-	void EditorAppLogic::imGuiDisplayHelpTooltip(const char* message) {
-		ImGui::SameLine();
-		ImGui::Text("(?)");
-		if (ImGui::IsItemHovered()) {
-			ImGui::BeginTooltip();
-			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-			ImGui::TextUnformatted(message);
-			ImGui::PopTextWrapPos();
-			ImGui::EndTooltip();
-		}
-	}
-
-	void EditorAppLogic::imGuiBulletTextWrapped(const char* message) {
-		ImGui::Bullet();
-		ImGui::SameLine();
-		ImGui::TextWrapped(message);
-	}
-
-	void EditorAppLogic::imGuiPrintDrawCallTableColumn(const char* pipelineName, uint32_t drawCount) {
-		//IMPORTANT:: Assumes already inside the Draw Call Count debug info table
-		ImGui::TableNextRow();
-		ImGui::TableNextColumn();
-		ImGui::Text(pipelineName);
-		ImGui::TableNextColumn();
-		ImGui::Text("%i", drawCount);
-	}
-
-	void EditorAppLogic::imGuiPrintMat4x4(const glm::mat4x4& mat, const char* name) {
-		ImGui::Text(name);
-		ImGui::BeginTable(name, 4);
-		ImGui::TableSetupColumn("0");
-		ImGui::TableSetupColumn("1");
-		ImGui::TableSetupColumn("2");
-		ImGui::TableSetupColumn("3");
-		ImGui::TableHeadersRow();
-		ImGui::TableSetColumnIndex(0);
-
-		ImGui::TableNextRow();
-		ImGui::TableNextColumn();
-		ImGui::Text("%f", mat[0][0]);
-		ImGui::TableNextColumn();
-		ImGui::Text("%f", mat[0][1]);
-		ImGui::TableNextColumn();
-		ImGui::Text("%f", mat[0][2]);
-		ImGui::TableNextColumn();
-		ImGui::Text("%f", mat[0][3]);
-
-		ImGui::TableNextRow();
-		ImGui::TableNextColumn();
-		ImGui::Text("%f", mat[1][0]);
-		ImGui::TableNextColumn();
-		ImGui::Text("%f", mat[1][1]);
-		ImGui::TableNextColumn();
-		ImGui::Text("%f", mat[1][2]);
-		ImGui::TableNextColumn();
-		ImGui::Text("%f", mat[1][3]);
-		
-		ImGui::TableNextRow();
-		ImGui::TableNextColumn();
-		ImGui::Text("%f", mat[2][0]);
-		ImGui::TableNextColumn();
-		ImGui::Text("%f", mat[2][1]);
-		ImGui::TableNextColumn();
-		ImGui::Text("%f", mat[2][2]);
-		ImGui::TableNextColumn();
-		ImGui::Text("%f", mat[2][3]);
-
-		ImGui::TableNextRow();
-		ImGui::TableNextColumn();
-		ImGui::Text("%f", mat[3][0]);
-		ImGui::TableNextColumn();
-		ImGui::Text("%f", mat[3][1]);
-		ImGui::TableNextColumn();
-		ImGui::Text("%f", mat[3][2]);
-		ImGui::TableNextColumn();
-		ImGui::Text("%f", mat[3][3]);
-
-		ImGui::EndTable();
 	}
 }

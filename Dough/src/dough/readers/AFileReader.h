@@ -6,6 +6,11 @@
 
 namespace DOH {
 
+	/**
+	* Assumes file is made up of chars
+	* 
+	* TODO:: Binary file support
+	*/
 	template<typename T, typename = std::enable_if<std::is_base_of<AFileData, T>::value>>
 	class AFileReader {
 	protected:

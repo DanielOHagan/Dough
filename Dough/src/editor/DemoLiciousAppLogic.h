@@ -191,7 +191,7 @@ namespace DOH::EDITOR {
 
 		//TODO:: allow for apps to pass in textures to batch renderer so their lifetime is controlled by the app and not the engine
 		//const char* testTexturesPath = "res/images/test textures/";
-		//std::vector<std::shared_ptr<TextureVulkan>> mTestTextures;
+		//std::shared_ptr<MonoSpaceTextureAtlas> mTestTexturesAtlas;
 
 	public:
 		virtual void init(float aspectRatio) override;

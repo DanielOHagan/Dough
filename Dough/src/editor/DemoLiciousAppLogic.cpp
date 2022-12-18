@@ -1,5 +1,7 @@
 #include "editor/DemoLiciousAppLogic.h"
 
+#include "editor/EditorGui.h"
+
 #include "dough/application/Application.h"
 #include "dough/rendering/ObjInit.h"
 
@@ -150,21 +152,6 @@ namespace DOH::EDITOR {
 		Renderer2dVulkan& renderer2d = renderer.getContext().getRenderer2d();
 
 		if (ImGui::Begin("DemoLicious Demos")) {
-			if (ImGui::Button("Disable all demos")) {
-				mGridDemo->Render = false;
-				mGridDemo->Update = false;
-
-				mBouncingQuadDemo->Render = false;
-				mBouncingQuadDemo->Update = false;
-
-				mCustomDemo->RenderScene = false;
-				mCustomDemo->RenderUi = false;
-				mCustomDemo->Update = false;
-
-				mObjModelsDemo->Render = false;
-				mObjModelsDemo->Update = false;
-			}
-
 			ImGui::Text("Demo Settings & Info:");
 
 			ImGui::BeginTabBar("Demo Tab Bar");
@@ -207,12 +194,14 @@ namespace DOH::EDITOR {
 
 				int tempTestTextureRowOffset = mGridDemo->TestTexturesRowOffset;
 				if (ImGui::InputInt("Test Texture Row Offset", &tempTestTextureRowOffset)) {
-					mGridDemo->TestTexturesRowOffset = tempTestTextureRowOffset < 0 ? 0 : tempTestTextureRowOffset % atlas.getRowCount();
+					mGridDemo->TestTexturesRowOffset = tempTestTextureRowOffset < 0 ?
+						0 : tempTestTextureRowOffset % atlas.getRowCount();
 					mGridDemo->IsUpToDate = false;
 				}
 				int tempTestTextureColOffset = mGridDemo->TestTexturesColumnOffset;
 				if (ImGui::InputInt("Test Texture Col Offset", &tempTestTextureColOffset)) {
-					mGridDemo->TestTexturesColumnOffset = tempTestTextureColOffset < 0 ? 0 : tempTestTextureColOffset % atlas.getColCount();
+					mGridDemo->TestTexturesColumnOffset = tempTestTextureColOffset < 0 ?
+						0 : tempTestTextureColOffset % atlas.getColCount();
 					mGridDemo->IsUpToDate = false;
 				}
 
@@ -338,6 +327,27 @@ namespace DOH::EDITOR {
 			}
 
 			ImGui::EndTabBar();
+
+			ImGui::NewLine();
+			ImGui::Text("Cross-demo functions/resources");
+			if (ImGui::Button("Disable all demos")) {
+				mGridDemo->Render = false;
+				mGridDemo->Update = false;
+
+				mBouncingQuadDemo->Render = false;
+				mBouncingQuadDemo->Update = false;
+
+				mCustomDemo->RenderScene = false;
+				mCustomDemo->RenderUi = false;
+				mCustomDemo->Update = false;
+
+				mObjModelsDemo->Render = false;
+				mObjModelsDemo->Update = false;
+			}
+			if (ImGui::Button("View atlas texture")) {
+				EditorGui::openTextureViewerWindow(*renderer2d.getStorage().getTestTextureAtlas());
+			}
+			EditorGui::displayHelpTooltip("Display Texture Altas texture inside a separate window.");
 		}
 		ImGui::End();
 
@@ -392,10 +402,6 @@ namespace DOH::EDITOR {
 		mObjModelsDemo->LoadedModels.clear();
 		mObjModelsDemo->RenderableObjects.clear();
 		renderer.closeGpuResource(mObjModelsDemo->SceneShaderProgram);
-
-		//for (std::shared_ptr<TextureVulkan> texture : mTestTextures) {
-		//	renderer.closeGpuResource(texture);
-		//}
 	}
 
 	void DemoLiciousAppLogic::onResize(float aspectRatio) {
@@ -496,7 +502,7 @@ namespace DOH::EDITOR {
 	
 		//Test grid is repopulated per update to apply changes from editor. To only populate once remove re-population from update and populate here.
 		//populateTestGrid(static_cast<uint32_t>(mGridDemo.TestGridSize[0]), static_cast<uint32_t>(mGridDemo.TestGridSize[1]));
-		
+
 		initBouncingQuadsDemo();
 		initCustomDemo();
 		initObjModelsDemo();
@@ -527,8 +533,8 @@ namespace DOH::EDITOR {
 						static_cast<float>(y) * mGridDemo->TestGridQuadGapSize[1],
 						0.5f
 					},
-					{mGridDemo->TestGridQuadSize[0], mGridDemo->TestGridQuadSize[1]},
-					{mGridDemo->QuadColour.x, mGridDemo->QuadColour.y, mGridDemo->QuadColour.z, mGridDemo->QuadColour.w},
+					{ mGridDemo->TestGridQuadSize[0], mGridDemo->TestGridQuadSize[1] },
+					{ mGridDemo->QuadColour.x, mGridDemo->QuadColour.y, mGridDemo->QuadColour.z, mGridDemo->QuadColour.w },
 					0.0f,
 					atlas,
 					atlas->getInnerTextureCoords(
@@ -733,9 +739,10 @@ namespace DOH::EDITOR {
 				//Semi-random values for starting position, velocitiy and assigned texture
 				{
 					(static_cast<float>((rand() % 5000)) / 500.0f) - 1.0f,
-					(static_cast<float>((rand() % 5000)) / 500.0f) - 1.0f, 0.8f
+					(static_cast<float>((rand() % 5000)) / 500.0f) - 1.0f,
+					0.8f
 				},
-				{mGridDemo->TestGridQuadSize[0], mGridDemo->TestGridQuadSize[1]},
+				{ mGridDemo->TestGridQuadSize[0], mGridDemo->TestGridQuadSize[1] },
 				{
 					//TODO:: Easier & cleaner way of getting a random normalised RGB value
 					(1.0f / 255.0f) * static_cast<float>(rand() % static_cast<int>(TextureVulkan::COLOUR_MAX_VALUE)),

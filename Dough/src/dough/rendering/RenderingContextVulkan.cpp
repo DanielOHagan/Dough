@@ -172,7 +172,10 @@ namespace DOH {
 		uint32_t width,
 		uint32_t height
 	) {
-		if (mSwapChain->isResizable()) {
+		if (
+			mSwapChain->isResizable() &&
+			(mSwapChain->getExtent().width != width || mSwapChain->getExtent().height != height)
+		) {
 			Application::get().getRenderer().deviceWaitIdle("Device waiting idle for swap chain recreation");
 
 			std::vector<DescriptorTypeInfo> totalDescTypes;
