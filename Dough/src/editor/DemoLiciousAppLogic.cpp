@@ -9,16 +9,11 @@
 
 namespace DOH::EDITOR {
 
+	const std::string DemoLiciousAppLogic::SharedDemoResources::TexturedShaderVertPath = "res/shaders/spv/Textured.vert.spv";
+	const std::string DemoLiciousAppLogic::SharedDemoResources::TexturedShaderFragPath = "res/shaders/spv/Textured.frag.spv";
+
 	void DemoLiciousAppLogic::init(float aspectRatio) {
-		mObjModelsDemo = std::make_unique<ObjModelsDemo>();
-		mCustomDemo = std::make_unique<CustomDemo>();
-		mGridDemo = std::make_unique<GridDemo>();
-		mBouncingQuadDemo = std::make_unique<BouncingQuadDemo>();
-		mTextDemo = std::make_unique<TextDemo>();
-
 		mImGuiSettings = std::make_unique<ImGuiSettings>();
-
-		mGridDemo->TestGridMaxQuadCount = Renderer2dStorageVulkan::MAX_BATCH_COUNT_QUAD * Renderer2dStorageVulkan::BATCH_MAX_GEO_COUNT_QUAD;
 
 		initDemos();
 
@@ -72,7 +67,9 @@ namespace DOH::EDITOR {
 
 		if (mCustomDemo->RenderScene) {
 			//context.addRenderableToSceneDrawList(mCustomDemo->ScenePipelineName, mCustomDemo->SceneRenderable);
-			mCustomDemo->CustomSceneConveyor.safeAddRenderable(mCustomDemo->SceneRenderable);
+			
+			//mCustomDemo->CustomSceneConveyor.safeAddRenderable(mCustomDemo->SceneRenderable);
+			mSharedDemoResources->TexturedConveyor.safeAddRenderable(mCustomDemo->SceneRenderable);
 		}
 
 		if (mObjModelsDemo->Render) {
@@ -85,6 +82,10 @@ namespace DOH::EDITOR {
 						mObjModelsDemo->WireframePipelineConveyor.addRenderable(obj);
 					}
 				}
+			}
+
+			if (mSharedDemoResources->TexturedConveyor.isValid() && mObjModelsDemo->RenderableTexturedModel->Render) {
+				mSharedDemoResources->TexturedConveyor.addRenderable(mObjModelsDemo->RenderableTexturedModel);
 			}
 		}
 
@@ -301,6 +302,11 @@ namespace DOH::EDITOR {
 				if (ImGui::Button("Clear Objects")) {
 					renderables.clear();
 				}
+
+				ImGui::Checkbox("Render Textured Model", &mObjModelsDemo->RenderableTexturedModel->Render);
+				//TODO:: TexturedModel Wireframe rendering not currently supported
+				//ImGui::Checkbox("Render Wireframe Textured Model", &mObjModelsDemo->RenderableTexturedModel->RenderWireframe);
+
 				ImGui::EndTabItem();
 			}
 
@@ -308,6 +314,7 @@ namespace DOH::EDITOR {
 				ImGui::Checkbox("Render", &mTextDemo->Render);
 
 				ImGui::Text("String length limit: %i", TextDemo::StringLengthLimit);
+				EditorGui::displayHelpTooltip("Larger strings can be displayed as the text renderer uses a Quad batch of size 10,000 (by default). The limitation is because ImGui InputText field requires extra implementation for dynamic data on the heap.");
 				if (ImGui::InputTextMultiline("Display Text", mTextDemo->String, sizeof(mTextDemo->String))) {
 					mTextDemo->TextQuads = renderer2d.getStringAsQuads(mTextDemo->String);
 				}
@@ -343,6 +350,9 @@ namespace DOH::EDITOR {
 
 				mObjModelsDemo->Render = false;
 				mObjModelsDemo->Update = false;
+
+				mTextDemo->Render = false;
+				mTextDemo->Update = false;
 			}
 			if (ImGui::Button("View atlas texture")) {
 				EditorGui::openTextureViewerWindow(*renderer2d.getStorage().getTestTextureAtlas());
@@ -351,13 +361,15 @@ namespace DOH::EDITOR {
 		}
 		ImGui::End();
 
+
 		if (mImGuiSettings->RenderObjModelsList) {
-			const auto& renderables = mObjModelsDemo->RenderableObjects;
-			if (ImGui::Begin("Renderable Models List")) {
+			if (ImGui::Begin("Renderable Models List", &mImGuiSettings->RenderObjModelsList)) {
+				const auto& renderables = mObjModelsDemo->RenderableObjects;
 				ImGui::Checkbox("Render All", &mObjModelsDemo->RenderAllStandard);
 				ImGui::SameLine();
 				ImGui::Checkbox("Render All Wireframe", &mObjModelsDemo->RenderAllWireframe);
 
+				//Render list of renderable OBJ models as a tree separating all into groups of 10 based on index
 				const int size = static_cast<int>(renderables.size());
 				if (size > 0) {
 					ImGui::TreePush();
@@ -370,6 +382,15 @@ namespace DOH::EDITOR {
 							for (int i = objIndex; i < nodeIterator + objectsPerNode && i < size; i++) {
 								std::string uniqueImGuiId = "##" + std::to_string(i);
 								imGuiDrawObjDemoItem(*renderables[i], uniqueImGuiId);
+
+								//Separate individual OBJ model's UI for easier viewing by displaying an empty
+								// line in-between each one in the same node
+								if (
+									i < nodeIterator + objectsPerNode - 1 &&
+									i != size - 1 //Prevent NewLine after final UI item that is part-way through a node's list
+								) {
+									ImGui::NewLine();
+								}
 							}
 
 							ImGui::TreePop();
@@ -378,8 +399,11 @@ namespace DOH::EDITOR {
 					}
 
 					ImGui::TreePop();
+				} else {
+					ImGui::TextWrapped("No OBJ renderables exist, use the demo's editor to create some.");
 				}
 			}
+
 			ImGui::End();
 		}
 	}
@@ -388,20 +412,23 @@ namespace DOH::EDITOR {
 		RendererVulkan& renderer = GET_RENDERER;
 
 		//Custom demo
-		renderer.closeGpuResource(mCustomDemo->SceneShaderProgram);
 		renderer.closeGpuResource(mCustomDemo->SceneVao);
 		renderer.closeGpuResource(mCustomDemo->UiShaderProgram);
 		renderer.closeGpuResource(mCustomDemo->UiVao);
-		renderer.closeGpuResource(mCustomDemo->TestTexture1);
 		renderer.closeGpuResource(mCustomDemo->TestTexture2);
 
 		//Obj Models Demo
 		for (const auto& model : mObjModelsDemo->LoadedModels) {
 			renderer.closeGpuResource(model);
 		}
+		renderer.closeGpuResource(mObjModelsDemo->TexturedModel);
 		mObjModelsDemo->LoadedModels.clear();
 		mObjModelsDemo->RenderableObjects.clear();
 		renderer.closeGpuResource(mObjModelsDemo->SceneShaderProgram);
+
+		//Shared resources
+		renderer.closeGpuResource(mSharedDemoResources->TexturedShaderProgram);
+		renderer.closeGpuResource(mSharedDemoResources->TestTexture1);
 	}
 
 	void DemoLiciousAppLogic::onResize(float aspectRatio) {
@@ -503,6 +530,11 @@ namespace DOH::EDITOR {
 		//Test grid is repopulated per update to apply changes from editor. To only populate once remove re-population from update and populate here.
 		//populateTestGrid(static_cast<uint32_t>(mGridDemo.TestGridSize[0]), static_cast<uint32_t>(mGridDemo.TestGridSize[1]));
 
+		initSharedResources();
+
+		mGridDemo = std::make_unique<GridDemo>();
+		mGridDemo->TestGridMaxQuadCount = Renderer2dStorageVulkan::MAX_BATCH_COUNT_QUAD * Renderer2dStorageVulkan::BATCH_MAX_GEO_COUNT_QUAD;
+
 		initBouncingQuadsDemo();
 		initCustomDemo();
 		initObjModelsDemo();
@@ -548,13 +580,44 @@ namespace DOH::EDITOR {
 	
 		mGridDemo->IsUpToDate = true;
 	}
+
+	void DemoLiciousAppLogic::initSharedResources() {
+		mSharedDemoResources = std::make_unique<SharedDemoResources>();
+
+		mSharedDemoResources->TestTexture1 = ObjInit::texture(mSharedDemoResources->TestTexturePath);
+
+		mSharedDemoResources->TexturedShaderProgram = ObjInit::shaderProgram(
+			ObjInit::shader(EShaderType::VERTEX, SharedDemoResources::TexturedShaderVertPath),
+			ObjInit::shader(EShaderType::FRAGMENT, SharedDemoResources::TexturedShaderFragPath)
+		);
+
+		ShaderUniformLayout& customLayout = mSharedDemoResources->TexturedShaderProgram->getUniformLayout();
+		customLayout.setValue(0, sizeof(CustomDemo::UniformBufferObject));
+		customLayout.setTexture(1, { mSharedDemoResources->TestTexture1->getImageView(), mSharedDemoResources->TestTexture1->getSampler() });
+
+		mSharedDemoResources->TexturedPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
+			SharedDemoResources::TexturedVertexType,
+			*mSharedDemoResources->TexturedShaderProgram,
+			ERenderPass::APP_SCENE
+		);
+		mSharedDemoResources->TexturedPipelineInfo->setDepthTesting(true, VK_COMPARE_OP_LESS);
+
+		RenderingContextVulkan& context = Application::get().getRenderer().getContext();
+		mSharedDemoResources->TexturedConveyor = context.createPipeline(
+			mSharedDemoResources->TexturedPipelineName,
+			*mSharedDemoResources->TexturedPipelineInfo
+		);
+	}
 	
 	void DemoLiciousAppLogic::initBouncingQuadsDemo() {
+		mBouncingQuadDemo = std::make_unique<BouncingQuadDemo>();
+
 		bouncingQuadsDemoAddRandomQuads(5000);
 	}
 	
 	void DemoLiciousAppLogic::initCustomDemo() {
-		mCustomDemo->TestTexture1 = ObjInit::texture(mCustomDemo->TestTexturePath);
+		mCustomDemo = std::make_unique<CustomDemo>();
+
 		mCustomDemo->TestTexture2 = ObjInit::texture(mCustomDemo->TestTexture2Path);
 	
 		//for (int i = 0; i < 8; i++) {
@@ -563,20 +626,11 @@ namespace DOH::EDITOR {
 		//	mTestTextures.push_back(testTexture);
 		//}
 	
-		mCustomDemo->SceneShaderProgram = ObjInit::shaderProgram(
-			ObjInit::shader(EShaderType::VERTEX, mCustomDemo->TexturedShaderVertPath),
-			ObjInit::shader(EShaderType::FRAGMENT, mCustomDemo->TexturedShaderFragPath)
-		);
-	
-		ShaderUniformLayout& customLayout = mCustomDemo->SceneShaderProgram->getUniformLayout();
-		customLayout.setValue(0, sizeof(CustomDemo::UniformBufferObject));
-		customLayout.setTexture(1, { mCustomDemo->TestTexture1->getImageView(), mCustomDemo->TestTexture1->getSampler() });
-	
 		mCustomDemo->SceneVao = ObjInit::vertexArray();
 		std::shared_ptr<VertexBufferVulkan> sceneVb = ObjInit::stagedVertexBuffer(
-			mCustomDemo->SceneVertexType,
+			SharedDemoResources::TexturedVertexType,
 			mCustomDemo->SceneVertices.data(),
-			(size_t) mCustomDemo->SceneVertexType * mCustomDemo->SceneVertices.size(),
+			(size_t) SharedDemoResources::TexturedVertexType * mCustomDemo->SceneVertices.size(),
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
@@ -612,25 +666,13 @@ namespace DOH::EDITOR {
 		mCustomDemo->UiVao->setIndexBuffer(appUiIb);
 		mCustomDemo->UiRenderable = std::make_shared<SimpleRenderable>(mCustomDemo->UiVao);
 	
-		mCustomDemo->ScenePipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-			mCustomDemo->SceneVertexType,
-			*mCustomDemo->SceneShaderProgram,
-			ERenderPass::APP_SCENE
-		);
-		mCustomDemo->ScenePipelineInfo->DepthTestingEnabled = true;
-		mCustomDemo->ScenePipelineInfo->DepthCompareOp = VK_COMPARE_OP_LESS;
-	
 		mCustomDemo->UiPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 			mCustomDemo->UiVertexType,
 			*mCustomDemo->UiShaderProgram,
 			ERenderPass::APP_UI
 		);
 	
-		auto& context = Application::get().getRenderer().getContext();
-		mCustomDemo->CustomSceneConveyor = context.createPipeline(
-			mCustomDemo->ScenePipelineName,
-			*mCustomDemo->ScenePipelineInfo
-		);
+		RenderingContextVulkan& context = Application::get().getRenderer().getContext();
 		mCustomDemo->CustomUiConveyor = context.createPipeline(
 			mCustomDemo->UiPipelineName,
 			*mCustomDemo->UiPipelineInfo
@@ -638,10 +680,13 @@ namespace DOH::EDITOR {
 	}
 	
 	void DemoLiciousAppLogic::initObjModelsDemo() {
+		mObjModelsDemo = std::make_unique<ObjModelsDemo>();
+
 		for (const auto& filePath : mObjModelsDemo->ObjModelFilePaths) {
-			mObjModelsDemo->LoadedModels.emplace_back(ModelVulkan::createModel(filePath));
+			mObjModelsDemo->LoadedModels.emplace_back(ModelVulkan::createModel(filePath, EVertexType::VERTEX_3D));
 		}
 	
+		//Spwan objects on incrementing x/y values of a grid with random z value
 		const float padding = 0.5f;
 		for (uint32_t x = 0; x < 10; x++) {
 			for (uint32_t y = 0; y < 10; y++) {
@@ -667,10 +712,12 @@ namespace DOH::EDITOR {
 					mObjModelsDemo->LoadedModels[modelIndex],
 					transform
 				));
-		
-				//objModelsDemoAddRandomisedObject();
 			}
 		}
+
+		//for (uint32_t i = 0; i < 100; i++) {
+		//	objModelsDemoAddRandomisedObject();
+		//}
 	
 		mObjModelsDemo->SceneShaderProgram = ObjInit::shaderProgram(
 			ObjInit::shader(
@@ -688,20 +735,19 @@ namespace DOH::EDITOR {
 		cubeLayout.addPushConstant(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::mat4x4));
 	
 		mObjModelsDemo->ScenePipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-			mObjModelsDemo->SceneVertexType,
+			mObjModelsDemo->FlatColourVertexType,
 			*mObjModelsDemo->SceneShaderProgram,
 			ERenderPass::APP_SCENE
 		);
-		mObjModelsDemo->ScenePipelineInfo->DepthTestingEnabled = true;
-		mObjModelsDemo->ScenePipelineInfo->DepthCompareOp = VK_COMPARE_OP_LESS;
-	
+		mObjModelsDemo->ScenePipelineInfo->setDepthTesting(true, VK_COMPARE_OP_LESS);
+
+		//TODO:: wireframe for each vertex type
 		mObjModelsDemo->SceneWireframePipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-			mObjModelsDemo->SceneVertexType,
+			mObjModelsDemo->FlatColourVertexType,
 			*mObjModelsDemo->SceneShaderProgram,
 			ERenderPass::APP_SCENE
 		);
-		mObjModelsDemo->SceneWireframePipelineInfo->DepthTestingEnabled = true;
-		mObjModelsDemo->SceneWireframePipelineInfo->DepthCompareOp = VK_COMPARE_OP_LESS;
+		mObjModelsDemo->SceneWireframePipelineInfo->setDepthTesting(true, VK_COMPARE_OP_LESS);
 		mObjModelsDemo->SceneWireframePipelineInfo->CullMode = VK_CULL_MODE_NONE;
 		mObjModelsDemo->SceneWireframePipelineInfo->PolygonMode = VK_POLYGON_MODE_LINE;
 	
@@ -714,9 +760,17 @@ namespace DOH::EDITOR {
 			mObjModelsDemo->SceneWireframePipelineName,
 			*mObjModelsDemo->SceneWireframePipelineInfo
 		);
+
+		mObjModelsDemo->TexturedModel = ModelVulkan::createModel("res/models/textured_cube.obj", EVertexType::VERTEX_3D_TEXTURED);
+		mObjModelsDemo->RenderableTexturedModel = std::make_shared<RenderableModelVulkan>(
+			"TexturedObjModel",
+			mObjModelsDemo->TexturedModel
+		);
 	}
 	
 	void DemoLiciousAppLogic::initTextDemo() {
+		mTextDemo = std::make_unique<TextDemo>();
+
 		const auto& renderer2d = Application::get().getRenderer().getContext().getRenderer2d();
 	
 		//Set a defualt message for the text demo here

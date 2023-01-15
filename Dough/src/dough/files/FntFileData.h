@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dough/model/AFileData.h"
+#include "dough/files/AFileData.h"
 #include "dough/Core.h"
 
 namespace DOH {
@@ -30,7 +30,6 @@ namespace DOH {
 
 	struct FntFileData : public AFileData {
 
-	public:
 		FntFileData()
 		:	AFileData(),
 			CharSize(0),

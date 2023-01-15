@@ -1,6 +1,6 @@
 #include "dough/rendering/pipeline/shader/ShaderVulkan.h"
 
-#include "dough/ResourceHandler.h"
+#include "dough/files/ResourceHandler.h"
 #include "dough/Utils.h"
 
 namespace DOH {

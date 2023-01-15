@@ -2,7 +2,7 @@
 
 #include "dough/Core.h"
 
-#include "dough/model/FntFileData.h"
+#include "dough/files/FntFileData.h"
 
 namespace DOH {
 

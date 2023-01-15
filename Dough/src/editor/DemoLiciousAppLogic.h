@@ -31,6 +31,7 @@ namespace DOH::EDITOR {
 				glm::mat4x4 ProjView;
 			};
 
+			//Models using EVertexType::VERTEX_3D
 			const std::array<const char*, 4> ObjModelFilePaths = {
 				"res/models/testCube.obj",
 				"res/models/spoon.obj",
@@ -44,7 +45,8 @@ namespace DOH::EDITOR {
 			const std::string FlatColourShaderFragPath = "res/shaders/spv/FlatColour.frag.spv";
 			const char* ScenePipelineName = "ObjScene";
 			const char* SceneWireframePipelineName = "ObjWireframe";
-			const EVertexType SceneVertexType = EVertexType::VERTEX_3D;
+			const EVertexType FlatColourVertexType = EVertexType::VERTEX_3D;
+			const EVertexType TexturedVertexType = EVertexType::VERTEX_3D_TEXTURED;
 			std::shared_ptr<ShaderProgramVulkan> SceneShaderProgram;
 
 			std::unique_ptr<GraphicsPipelineInstanceInfo> ScenePipelineInfo;
@@ -52,6 +54,9 @@ namespace DOH::EDITOR {
 
 			std::vector<std::shared_ptr<ModelVulkan>> LoadedModels;
 			std::vector<std::shared_ptr<RenderableModelVulkan>> RenderableObjects;
+
+			std::shared_ptr<ModelVulkan> TexturedModel;
+			std::shared_ptr<RenderableModelVulkan> RenderableTexturedModel;
 
 			PipelineRenderableConveyor ScenePipelineConveyor;
 			PipelineRenderableConveyor WireframePipelineConveyor;
@@ -70,21 +75,18 @@ namespace DOH::EDITOR {
 				glm::mat4 ProjView;
 			};
 
-			const std::string TexturedShaderVertPath = "res/shaders/spv/Textured.vert.spv";
-			const std::string TexturedShaderFragPath = "res/shaders/spv/Textured.frag.spv";
-			const char* TestTexturePath = "res/images/testTexture.jpg";
 			const char* TestTexture2Path = "res/images/testTexture2.jpg";
 			const std::vector<Vertex3dTextured> SceneVertices = {
-				//	x		y		z		r		g		b		a		u		v		texIndex
-				{{	-0.5f,	-0.5f,	0.0f},	{1.0f,	0.0f,	0.0f,	1.0f},	{0.0f,	1.0f},	{0.0f}},
-				{{	 0.5f,	-0.5f,	0.0f},	{0.0f,	0.0f,	0.0f,	1.0f},	{1.0f,	1.0f},	{0.0f}},
-				{{	 0.5f,	0.5f,	0.0f},	{0.0f,	0.0f,	1.0f,	1.0f},	{1.0f,	0.0f},	{0.0f}},
-				{{	-0.5f,	0.5f,	0.0f},	{0.0f,	0.0f,	0.0f,	1.0f},	{0.0f,	0.0f},	{0.0f}},
+				//	x		y		z		r		g		b		a		u		v		
+				{{	-0.5f,	-0.5f,	0.0f},	{1.0f,	0.0f,	0.0f,	1.0f},	{0.0f,	1.0f} },
+				{{	 0.5f,	-0.5f,	0.0f},	{0.0f,	0.0f,	0.0f,	1.0f},	{1.0f,	1.0f} },
+				{{	 0.5f,	0.5f,	0.0f},	{0.0f,	0.0f,	1.0f,	1.0f},	{1.0f,	0.0f} },
+				{{	-0.5f,	0.5f,	0.0f},	{0.0f,	0.0f,	0.0f,	1.0f},	{0.0f,	0.0f} },
 
-				{{0.00f,	0.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{0.0f,	1.0f},	{1.0f}},
-				{{1.00f,	0.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{1.0f,	1.0f},	{1.0f}},
-				{{1.00f,	1.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{1.0f,	0.0f},	{1.0f}},
-				{{0.00f,	1.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{0.0f,	0.0f},	{1.0f}}
+				{{	0.00f,	0.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{0.0f,	1.0f} },
+				{{	1.00f,	0.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{1.0f,	1.0f} },
+				{{	1.00f,	1.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{1.0f,	0.0f} },
+				{{	0.00f,	1.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{0.0f,	0.0f} }
 			};
 			const std::vector<uint32_t> Indices{
 				0, 1, 2, 2, 3, 0,
@@ -95,25 +97,23 @@ namespace DOH::EDITOR {
 			const std::string UiShaderFragPath = "res/shaders/spv/SimpleUi.frag.spv";
 			const std::vector<Vertex2d> UiVertices = {
 				//	x		y			r		g		b		a
-				{{	-1.0f,	-0.90f},	{0.0f,	1.0f,	0.0f,	1.0f}}, //bot-left
-				{{	-0.75f,	-0.90f},	{0.0f,	0.5f,	0.5f,	1.0f}}, //bot-right
-				{{	-0.75f,	-0.65f},	{0.0f,	0.0f,	1.0f,	1.0f}}, //top-right
-				{{	-1.0f,	-0.65f},	{0.0f,	0.5f,	0.5f,	1.0f}}  //top-left
+				{{	-1.0f,	-0.90f},	{0.0f,	1.0f,	0.0f,	1.0f}},	//bot-left
+				{{	-0.75f,	-0.90f},	{0.0f,	0.5f,	0.5f,	1.0f}},	//bot-right
+				{{	-0.75f,	-0.65f},	{0.0f,	0.0f,	1.0f,	1.0f}},	//top-right
+				{{	-1.0f,	-0.65f},	{0.0f,	0.5f,	0.5f,	1.0f}}	//top-left
 			};
 			const std::vector<uint32_t> UiIndices{
 				0, 1, 2, 2, 3, 0
 			};
 
-			const EVertexType SceneVertexType = EVertexType::VERTEX_3D_TEXTURED;
-			const EVertexType UiVertexType = EVertexType::VERTEX_2D;
-
 			glm::mat4x4 UiProjMat = glm::mat4x4(1.0f);
-			std::unique_ptr<GraphicsPipelineInstanceInfo> ScenePipelineInfo;
-			std::shared_ptr<ShaderProgramVulkan> SceneShaderProgram;
+
+			const EVertexType UiVertexType = EVertexType::VERTEX_2D;
 			std::unique_ptr<GraphicsPipelineInstanceInfo> UiPipelineInfo;
 			std::shared_ptr<ShaderProgramVulkan> UiShaderProgram;
+			PipelineRenderableConveyor CustomUiConveyor;
+			const char* UiPipelineName = "CustomUi";
 
-			std::shared_ptr<TextureVulkan> TestTexture1;
 			std::shared_ptr<TextureVulkan> TestTexture2;
 
 			//Renderables are for an easier API overall, they do not fully "own" an object,
@@ -122,12 +122,6 @@ namespace DOH::EDITOR {
 			std::shared_ptr<VertexArrayVulkan> SceneVao;
 			std::shared_ptr<SimpleRenderable> UiRenderable;
 			std::shared_ptr<VertexArrayVulkan> UiVao;
-
-			PipelineRenderableConveyor CustomSceneConveyor;
-			PipelineRenderableConveyor CustomUiConveyor;
-
-			const char* ScenePipelineName = "Custom";
-			const char* UiPipelineName = "CustomUi";
 
 			bool Update = false;
 			bool RenderScene = false;
@@ -165,14 +159,31 @@ namespace DOH::EDITOR {
 		};
 
 		struct TextDemo {
-			static const size_t StringLengthLimit = 1024;
+			static constexpr size_t StringLengthLimit = 1024; //Arbitrary limit
 		
 			std::vector<Quad> TextQuads;
-			char String[StringLengthLimit]; //Arbitrary limit
-			float Colour[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+			char String[StringLengthLimit];
+			float Colour[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 		
 			bool Update = false;
 			bool Render = false;
+		};
+
+		//Resources used by more than one demo
+		struct SharedDemoResources {
+			static const EVertexType TexturedVertexType = EVertexType::VERTEX_3D_TEXTURED;
+
+			static const std::string TexturedShaderVertPath;
+			static const std::string TexturedShaderFragPath;
+
+			const char* TexturedPipelineName = "Textured";
+			std::unique_ptr<GraphicsPipelineInstanceInfo> TexturedPipelineInfo;
+			std::shared_ptr<ShaderProgramVulkan> TexturedShaderProgram;
+
+			PipelineRenderableConveyor TexturedConveyor;
+
+			const char* TestTexturePath = "res/images/testTexture.jpg";
+			std::shared_ptr<TextureVulkan> TestTexture1;
 		};
 
 		struct ImGuiSettings {
@@ -181,6 +192,7 @@ namespace DOH::EDITOR {
 		};
 
 		//Demos
+		std::unique_ptr<SharedDemoResources> mSharedDemoResources;
 		std::unique_ptr<ObjModelsDemo> mObjModelsDemo;
 		std::unique_ptr<CustomDemo> mCustomDemo;
 		std::unique_ptr<GridDemo> mGridDemo;
@@ -211,6 +223,7 @@ namespace DOH::EDITOR {
 		void populateTestGrid(uint32_t width, uint32_t height);
 
 		void initDemos();
+		void initSharedResources();
 		//void initGridDemo(); //Doesn't currently need any form of initialisation, commented-out declaration just here in case it ever needs it
 		void initBouncingQuadsDemo();
 		void initCustomDemo();
@@ -232,9 +245,9 @@ namespace DOH::EDITOR {
 		inline void objModelsDemoAddRandomisedObject() {
 			objModelsDemoAddObject(
 				rand() % mObjModelsDemo->LoadedModels.size(),
-				static_cast<float>(rand() % 25),
-				static_cast<float>(rand() % 25),
-				static_cast<float>(rand() % 15) * (rand() % 2 > 0 ? 1.0f : -1.0f),
+				static_cast<float>(rand() % 5) * (rand() % 2 > 0 ? 1.0f : -1.0f),
+				static_cast<float>(rand() % 5) * (rand() % 2 > 0 ? 1.0f : -1.0f),
+				static_cast<float>(rand() % 5) * (rand() % 2 > 0 ? 1.0f : -1.0f),
 				0.5f,
 				static_cast<float>(rand() % 360),
 				static_cast<float>(rand() % 360),

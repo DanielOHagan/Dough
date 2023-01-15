@@ -1,6 +1,6 @@
 #include "dough/rendering/text/FontBitmap.h"
 
-#include "dough/ResourceHandler.h"
+#include "dough/files/ResourceHandler.h"
 #include "dough/Logging.h"
 #include "dough/scene/geometry/Quad.h"
 #include "dough/rendering/ObjInit.h"

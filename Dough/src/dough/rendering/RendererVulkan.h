@@ -70,6 +70,8 @@ namespace DOH {
 
 		inline RenderingContextVulkan& getContext() const { return *mRenderingContext; }
 		inline const bool areValidationLayersEnabled() const { return mValidationLayersEnabled; }
+		inline const std::vector<const char*>& getValidationLayers() const { return mValidationLayers; };
+		inline const std::vector<const char*>& getDeviceExtensions() const { return mDeviceExtensions; }
 
 		static uint32_t findPhysicalDeviceMemoryType(
 			VkPhysicalDevice physicalDevice,

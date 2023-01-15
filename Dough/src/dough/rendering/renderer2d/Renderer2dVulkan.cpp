@@ -268,6 +268,8 @@ namespace DOH {
 				textTextureArr.getTextureSlotIndex(quad.getTexture().getId())
 			);
 		}
+
+		mDrawnQuadCount += static_cast<uint32_t>(quadArr.size());
 	}
 
 	void Renderer2dVulkan::drawTextSameTextureFromQuads(std::vector<Quad>& quadArr) {
@@ -284,6 +286,8 @@ namespace DOH {
 			quadArr,
 			mStorage->getTextTextureArray().getTextureSlotIndex(quadArr[0].getTexture().getId())
 		);
+
+		mDrawnQuadCount += static_cast<uint32_t>(quadArr.size());
 	}
 
 	std::vector<Quad> Renderer2dVulkan::getStringAsQuads(
@@ -356,11 +360,14 @@ namespace DOH {
 				quad.Colour = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 				//TODO:: convert to using an unordered_map instead of vector
-				for (const KerningData& k : bitmap.getKernings()) {
-					if (k.FirstGlyphId == lastCharId && k.SecondGlyphId == charId) {
-						quad.Position.x += k.Amount;
-					}
-				}
+				//TODO:: if kerning and depth testing is enabled then Z-fighting occurs between applied quads
+				//if (kerning is enabled) {
+				//	for (const KerningData& k : bitmap.getKernings()) {
+				//		if (k.FirstGlyphId == lastCharId && k.SecondGlyphId == charId) {
+				//			quad.Position.x += k.Amount;
+				//		}
+				//	}
+				//}
 
 				lastCharId = charId;
 
@@ -446,9 +453,6 @@ namespace DOH {
 			quadPipeline.recordDrawCommands(imageIndex, cmd);
 
 			quadPipeline.clearRenderableToDraw();
-
-			mDrawnQuadCount = 0;
-			mTruncatedQuadCount = 0;
 		}
 
 		{ //Draw Text
@@ -475,6 +479,7 @@ namespace DOH {
 				vao.setDrawCount(static_cast<uint32_t>(textQuadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT));
 
 				textPipeline.addRenderableToDraw(renderableBatch);
+				mDebugInfoDrawCount++;
 
 				textBatch.reset();
 			}
@@ -483,6 +488,9 @@ namespace DOH {
 
 			textPipeline.clearRenderableToDraw();
 		}
+
+		mDrawnQuadCount = 0;
+		mTruncatedQuadCount = 0;
 	}
 
 	void Renderer2dVulkan::closeEmptyQuadBatches() {
@@ -506,6 +514,10 @@ namespace DOH {
 			} else {
 				break;
 			}
+		}
+
+		if (mStorage->getTextRenderBatch().getGeometryCount() > 0) {
+			mStorage->getTextRenderBatch().reset();
 		}
 	}
 }

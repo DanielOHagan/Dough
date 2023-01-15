@@ -79,7 +79,7 @@ namespace DOH {
 	}
 
 	void RendererVulkan::close() {
-		vkDeviceWaitIdle(mLogicDevice);
+		deviceWaitIdle("Waiting idle for app closing");
 
 		mRenderingContext->close();
 

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "dough/Core.h"
-#include "dough/model/FntFileData.h"
-#include "dough/readers/AFileReader.h"
+#include "dough/files/FntFileData.h"
+#include "dough/files/readers/AFileReader.h"
 
 namespace DOH {
 

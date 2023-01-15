@@ -2,6 +2,7 @@
 
 #include "dough/rendering/renderer2d/ARenderBatch.h"
 #include "dough/scene/geometry/Quad.h"
+#include "dough/rendering/Config.h"
 
 
 namespace DOH {
@@ -9,6 +10,8 @@ namespace DOH {
 	class RenderBatchQuad : public ARenderBatch<Quad> {
 
 	public:
+		constexpr static EVertexType VERTEX_INPUT_TYPE = EVertexType::VERTEX_3D_TEXTURED_INDEXED;
+
 		RenderBatchQuad(const uint32_t maxGeometryCount, const uint32_t maxTextureCount);
 
 		virtual void add(const Quad& geo, const uint32_t textureSlotIndex) override;

@@ -124,7 +124,6 @@ namespace DOH {
 			VK_COLOR_COMPONENT_G_BIT |
 			VK_COLOR_COMPONENT_B_BIT |
 			VK_COLOR_COMPONENT_A_BIT;
-
 		colourBlendAttachment.blendEnable = mInstanceInfo.BlendingEnabled ? VK_TRUE : VK_FALSE;
 		colourBlendAttachment.srcColorBlendFactor = mInstanceInfo.ColourBlendSrcFactor;
 		colourBlendAttachment.dstColorBlendFactor = mInstanceInfo.ColourBlendDstFactor;
@@ -246,9 +245,5 @@ namespace DOH {
 				0
 			);
 		}
-	}
-
-	void GraphicsPipelineVulkan::bind(VkCommandBuffer cmdBuffer) {
-		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline);
 	}
 }

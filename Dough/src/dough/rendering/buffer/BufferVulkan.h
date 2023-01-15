@@ -77,7 +77,16 @@ namespace DOH {
 			VkBufferUsageFlags usage,
 			VkMemoryPropertyFlags props
 		) {
-			resizeBufferStaged(logicDevice, physicalDevice, cmdPool, graphicsQueue, (const void*)data, size, usage, props);
+			resizeBufferStaged(
+				logicDevice,
+				physicalDevice,
+				cmdPool,
+				graphicsQueue,
+				(const void*) data,
+				size,
+				usage,
+				props
+			);
 		}
 		virtual void close(VkDevice logicDevice) override;
 

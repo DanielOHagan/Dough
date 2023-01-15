@@ -40,6 +40,7 @@ namespace DOH {
 
 		std::vector<int> keyCodes{ DEFAULT_KEY_CODES.begin(),DEFAULT_KEY_CODES.end() };
 		std::vector<int> mouseButtons{ DEFAULT_MOUSE_BUTTON_CODES.begin(), DEFAULT_MOUSE_BUTTON_CODES.end() };
+
 		INSTANCE->setPossibleKeyInputs(keyCodes);
 		INSTANCE->setPossibleMouseInputs(mouseButtons);
 	}
@@ -51,16 +52,20 @@ namespace DOH {
 		}
 	}
 
-	void Input::setPossibleKeyInputs(std::vector<int>& keyCodes) {
+	void Input::setPossibleKeyInputs(const std::vector<int>& keyCodes) {
 		INSTANCE->mPressedKeysMap.clear();
+
+		INSTANCE->mPressedKeysMap.reserve(keyCodes.size());
 
 		for (int keyCode : keyCodes) {
 			INSTANCE->mPressedKeysMap.emplace(keyCode, false);
 		}
 	}
 
-	void Input::setPossibleMouseInputs(std::vector<int>& buttons) {
+	void Input::setPossibleMouseInputs(const std::vector<int>& buttons) {
 		INSTANCE->mPressedMouseButtonsMap.clear();
+
+		INSTANCE->mPressedMouseButtonsMap.reserve(buttons.size());
 
 		for (int btn : buttons) {
 			INSTANCE->mPressedMouseButtonsMap.emplace(btn, false);
@@ -79,12 +84,12 @@ namespace DOH {
 		}
 	}
 
-	void Input::setKeyPressedFlag(int keyCode, bool state) {
-		mPressedKeysMap[keyCode] = state;
+	void Input::setKeyPressedFlag(int keyCode, bool pressed) {
+		mPressedKeysMap[keyCode] = pressed;
 	}
 
-	void Input::setMouseButtonPressedFlag(int button, bool state) {
-		mPressedMouseButtonsMap[button] = state;
+	void Input::setMouseButtonPressedFlag(int button, bool pressed) {
+		mPressedMouseButtonsMap[button] = pressed;
 	}
 
 	bool Input::isKeyPressedImpl(int keyCode) {
@@ -93,9 +98,6 @@ namespace DOH {
 		} else {
 			LOG_WARN("Key not in current key map: " << keyCode);
 		}
-
-		//TODO::
-		//Log string name of key along with code
 
 		return false;
 	}
@@ -106,9 +108,6 @@ namespace DOH {
 		} else {
 			LOG_WARN("Mouse button not in current mouse button map: " << button);
 		}
-
-		//TODO::
-		//Log string name of button along with code
 
 		return false;
 	}

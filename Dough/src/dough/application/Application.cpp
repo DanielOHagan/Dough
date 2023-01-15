@@ -62,8 +62,6 @@ namespace DOH {
 	void Application::update(float delta) {
 		const double preUpdate = Time::getCurrentTimeMillis();
 
-		mWindow->pollEvents();
-
 		mAppLogic->update(delta);
 
 		Input::get().resetCycleData();

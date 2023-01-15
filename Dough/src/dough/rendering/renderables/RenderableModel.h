@@ -13,6 +13,7 @@ namespace DOH {
 
 		//Initialise translation to identity and not using pos, rotation, scale,
 		// because the matrix may not be used.
+		TransformationData() = default;
 		TransformationData(
 			glm::vec3 pos,
 			glm::vec3 rotationDegs,
@@ -35,7 +36,7 @@ namespace DOH {
 				glm::radians(Rotation[2])
 			);
 
-			Translation *= glm::scale(
+			Translation = glm::scale(
 				Translation,
 				{ Scale, Scale, Scale }
 			);
@@ -62,6 +63,16 @@ namespace DOH {
 			RenderWireframe(false)
 		{}
 
+		RenderableModelVulkan(
+			const std::string& name,
+			std::shared_ptr<ModelVulkan> model
+		) : Name(name),
+			Model(model),
+			Transformation({}),
+			Render(true),
+			RenderWireframe(false)
+		{}
+
 		virtual VertexArrayVulkan& getVao() const override { return Model->getVao(); };
 		//NOTE::Assumes pipeline wants transformation data for push constant
 		virtual void* getPushConstantPtr() const override { return &Transformation->Translation; };
@@ -70,5 +81,4 @@ namespace DOH {
 		inline const std::string& getName() const { return Name; }
 		inline void setName(const std::string& name) { Name = name; }
 	};
-
 }

@@ -2,24 +2,34 @@
 
 #include "dough/rendering/Config.h"
 
+namespace tinyobj {
+	struct attrib_t;
+	struct shape_t;
+	struct material_t;
+}
+
 namespace DOH {
 
 	struct BufferElement;
 	struct FntFileData;
+	struct ObjFileData;
 
 	struct TextureCreationData {
 		void* Data;
-		uint32_t Width;
-		uint32_t Height;
-		uint32_t Channels;
+		uint32_t Width = 0;
+		uint32_t Height = 0;
+		uint32_t Channels = 0;
 	};
 
 	struct Model3dCreationData {
+		Model3dCreationData(const EVertexType vertexType)
+		:	VertexType(vertexType)
+		{};
+
 		std::vector<BufferElement> BufferElements;
-		std::vector<Vertex3d> Vertices;
+		std::vector<float> Vertices;
 		std::vector<uint32_t> Indices;
-		size_t VertexBufferSize;
-		size_t IndexBufferSize;
+		const EVertexType VertexType;
 	};
 
 	class ResourceHandler {
@@ -34,8 +44,24 @@ namespace DOH {
 
 		TextureCreationData loadTextureImpl(const char* filepath);
 		void freeImageImpl(void* imageData);
-		std::shared_ptr<Model3dCreationData> loadObjModelImpl(const std::string& filepath);
 		std::shared_ptr<FntFileData> loadFntFileImpl(const char* filepath);
+		std::shared_ptr<Model3dCreationData> loadObjModelImpl(const std::string& filePath, const EVertexType vertexType);
+
+		static std::pair<std::vector<float>, std::vector<uint32_t>> extractObjFileDataAsVertex3d(
+			const tinyobj::attrib_t& attrib,
+			const std::vector<tinyobj::shape_t>& shapes,
+			const std::vector<tinyobj::material_t>& materials
+		);
+		static std::pair<std::vector<float>, std::vector<uint32_t>> extractObjFileDataAsVertex3dTextured(
+			const tinyobj::attrib_t& attrib,
+			const std::vector<tinyobj::shape_t>& shapes,
+			const std::vector<tinyobj::material_t>& materials
+		);
+		static std::pair<std::vector<float>, std::vector<uint32_t>> extractObjFileDataAsVertex3dLitTextured(
+			const tinyobj::attrib_t& attrib,
+			const std::vector<tinyobj::shape_t>& shapes,
+			const std::vector<tinyobj::material_t>& materials
+		);
 
 	public:
 		ResourceHandler(const ResourceHandler& copy) = delete;
@@ -59,5 +85,7 @@ namespace DOH {
 
 		//-----File type helpers-----
 		static const bool isFileOfType(const char* filepath, const char* type);
+
+		static std::shared_ptr<Model3dCreationData> loadObjModel(const std::string& filePath, const EVertexType vertexType);
 	};
 }

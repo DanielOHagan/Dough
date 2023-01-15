@@ -87,7 +87,6 @@ namespace DOH {
 		std::vector<VkSemaphore> mImageAvailableSemaphores;
 		std::vector<VkSemaphore> mRenderFinishedSemaphores;
 		std::vector<VkFence> mFramesInFlightFences;
-		std::vector<VkFence> mImageFencesInFlight;
 
 		VkFormat mDepthFormat;
 

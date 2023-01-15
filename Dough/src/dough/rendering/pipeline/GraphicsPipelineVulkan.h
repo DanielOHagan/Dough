@@ -38,12 +38,33 @@ namespace DOH {
 		VkBlendFactor AlphaBlendDstFactor = VK_BLEND_FACTOR_ZERO;
 		VkBlendOp ColourBlendOp = VK_BLEND_OP_ADD;
 		VkBlendOp AlphaBlendOp = VK_BLEND_OP_ADD;
+
+		constexpr inline void setDepthTesting(bool enabled, VkCompareOp compareOp) {
+			DepthTestingEnabled = enabled;
+			DepthCompareOp = compareOp;
+		}
+		constexpr inline void setBlending(
+			bool enabled,
+			VkBlendOp colourBlendOp,
+			VkBlendFactor colourSrcFactor,
+			VkBlendFactor colourDstFactor,
+			VkBlendOp alphaBlendOp,
+			VkBlendFactor alphaSrcFactor,
+			VkBlendFactor alphaDstFactor
+		) {
+			BlendingEnabled = enabled;
+			ColourBlendOp = colourBlendOp;
+			ColourBlendSrcFactor = colourSrcFactor;
+			ColourBlendDstFactor = colourDstFactor;
+			AlphaBlendOp = alphaBlendOp;
+			AlphaBlendSrcFactor = alphaSrcFactor;
+			AlphaBlendDstFactor = alphaDstFactor;
+		}
 	};
 
 	class GraphicsPipelineVulkan {
 
 	private:
-
 		VkPipeline mGraphicsPipeline;
 		VkPipelineLayout mGraphicsPipelineLayout;
 		GraphicsPipelineInstanceInfo& mInstanceInfo;
@@ -74,7 +95,7 @@ namespace DOH {
 		void recordDrawCommands(uint32_t imageIndex, VkCommandBuffer cmd);
 		inline void addRenderableToDraw(std::shared_ptr<IRenderable> renderable) { mRenderableDrawList.emplace_back(renderable); }
 		inline void clearRenderableToDraw() { mRenderableDrawList.clear(); }
-		void bind(VkCommandBuffer cmdBuffer);
+		inline void bind(VkCommandBuffer cmd) const { vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline); }
 		void close(VkDevice logicDevice);
 		void recreate(VkDevice logicDevice, VkExtent2D extent, VkRenderPass renderPass);
 

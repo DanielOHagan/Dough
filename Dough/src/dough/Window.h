@@ -34,8 +34,8 @@ namespace DOH {
 		Window operator=(const Window& assignment) = delete;
 
 		void init(const std::string& windowTitle);
-		bool shouldClose() const;
-		void pollEvents();
+		inline bool shouldClose() const { return glfwWindowShouldClose(mWindowPtr); };
+		inline void pollEvents() { glfwPollEvents(); }
 		void selectDisplayMode(const EWindowDisplayMode displayMode);
 		void setResolution(uint32_t width, uint32_t height);
 		VkSurfaceKHR createVulkanSurface(VkInstance vulkanInstance);

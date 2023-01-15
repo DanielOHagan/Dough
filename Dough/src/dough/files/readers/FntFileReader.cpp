@@ -1,6 +1,6 @@
-#include "dough/readers/FntFileReader.h"
+#include "dough/files/readers/FntFileReader.h"
 
-#include "dough/ResourceHandler.h"
+#include "dough/files/ResourceHandler.h"
 #include "dough/Logging.h"
 
 #define DOH_FNT_MAX_STRING_CHAR_LENGTH 128

@@ -42,14 +42,14 @@ namespace DOH {
 		static void close();
 		inline static Input& get() { return *INSTANCE; }
 
-		void setKeyPressedFlag(int keyCode, bool state);
-		void setMouseButtonPressedFlag(int button, bool state);
+		void setKeyPressedFlag(int keyCode, bool pressed);
+		void setMouseButtonPressedFlag(int button, bool pressed);
 
 	public:
 		Input();
 
-		void setPossibleKeyInputs(std::vector<int>& keyCodes);
-		void setPossibleMouseInputs(std::vector<int>& buttons);
+		void setPossibleKeyInputs(const std::vector<int>& keyCodes);
+		void setPossibleMouseInputs(const std::vector<int>& buttons);
 
 		//TODO::
 		//void setEnabledPossibleKeyCode(int keyCode, bool enabled);

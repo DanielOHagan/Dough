@@ -70,14 +70,6 @@ namespace DOH {
 		setUpCallbacks();
 	}
 
-	bool Window::shouldClose() const {
-		return glfwWindowShouldClose(mWindowPtr);
-	}
-
-	void Window::pollEvents() {
-		glfwPollEvents();
-	}
-
 	void Window::selectDisplayMode(const EWindowDisplayMode displayMode) {
 		if (displayMode != mCurrentDisplayMode) {
 			switch (displayMode) {

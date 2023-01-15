@@ -2,7 +2,7 @@
 
 #include "dough/Core.h"
 #include "dough/rendering/IGPUResourceVulkan.h"
-#include "dough/ResourceHandler.h"
+#include "dough/files/ResourceHandler.h"
 
 namespace DOH {
 
@@ -24,6 +24,6 @@ namespace DOH {
 
 		virtual void close(VkDevice logicDevice) override;
 
-		static std::shared_ptr<ModelVulkan> createModel(const std::string& filepath);
+		static std::shared_ptr<ModelVulkan> createModel(const std::string& filepath, const EVertexType vertextype);
 	};
 }

@@ -111,7 +111,7 @@ namespace DOH {
 
 			std::shared_ptr<VertexArrayVulkan> vao = ObjInit::vertexArray();
 			std::shared_ptr<VertexBufferVulkan> vbo = ObjInit::vertexBuffer(
-				EVertexType::VERTEX_3D_TEXTURED,
+				RenderBatchQuad::VERTEX_INPUT_TYPE,
 				BatchSizeLimits::BATCH_QUAD_BYTE_SIZE,
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
@@ -163,19 +163,20 @@ namespace DOH {
 		layout.setTextureArray(1, *mQuadBatchTextureArray);
 
 		mQuadGraphicsPipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-			EVertexType::VERTEX_3D_TEXTURED,
+			RenderBatchQuad::VERTEX_INPUT_TYPE,
 			*mQuadShaderProgram,
 			ERenderPass::APP_SCENE
 		);
-		mQuadGraphicsPipelineInstanceInfo->DepthTestingEnabled = true;
-		mQuadGraphicsPipelineInstanceInfo->DepthCompareOp = VK_COMPARE_OP_LESS;
-		mQuadGraphicsPipelineInstanceInfo->BlendingEnabled = false;
-		mQuadGraphicsPipelineInstanceInfo->ColourBlendOp = VK_BLEND_OP_ADD;
-		mQuadGraphicsPipelineInstanceInfo->ColourBlendSrcFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		mQuadGraphicsPipelineInstanceInfo->ColourBlendDstFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		mQuadGraphicsPipelineInstanceInfo->AlphaBlendOp = VK_BLEND_OP_ADD;
-		mQuadGraphicsPipelineInstanceInfo->AlphaBlendSrcFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		mQuadGraphicsPipelineInstanceInfo->AlphaBlendDstFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		mQuadGraphicsPipelineInstanceInfo->setDepthTesting(true, VK_COMPARE_OP_LESS);
+		mQuadGraphicsPipelineInstanceInfo->setBlending(
+			false,
+			VK_BLEND_OP_ADD,
+			VK_BLEND_FACTOR_SRC_ALPHA,
+			VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+			VK_BLEND_OP_ADD,
+			VK_BLEND_FACTOR_SRC_ALPHA,
+			VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
+		);
 
 		mQuadGraphicsPipeline = mContext.createGraphicsPipeline(
 			*mQuadGraphicsPipelineInstanceInfo,
@@ -236,7 +237,7 @@ namespace DOH {
 
 		std::shared_ptr<VertexArrayVulkan> vao = ObjInit::vertexArray();
 		std::shared_ptr<VertexBufferVulkan> vbo = ObjInit::vertexBuffer(
-			EVertexType::VERTEX_3D_TEXTURED,
+			RenderBatchQuad::VERTEX_INPUT_TYPE,
 			BatchSizeLimits::BATCH_QUAD_BYTE_SIZE,
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
@@ -247,19 +248,24 @@ namespace DOH {
 		mRenderableTextBatch = std::make_shared<SimpleRenderable>(vao);
 
 		mTextGraphicsPipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-			EVertexType::VERTEX_3D_TEXTURED,
+			RenderBatchQuad::VERTEX_INPUT_TYPE,
 			*mTextShaderProgram,
 			ERenderPass::APP_SCENE
 		);
+
+		//Text isn't culled by default for viewing from behind.
+		//Text depth testing in scene so it doesn't overlap, however, this causes z-fighting during kerning as each glyph is a rendered quad.
 		mTextGraphicsPipelineInstanceInfo->CullMode = VK_CULL_MODE_NONE;
-		mTextGraphicsPipelineInstanceInfo->DepthTestingEnabled = false;
-		mTextGraphicsPipelineInstanceInfo->BlendingEnabled = true;
-		mTextGraphicsPipelineInstanceInfo->ColourBlendOp = VK_BLEND_OP_ADD;
-		mTextGraphicsPipelineInstanceInfo->ColourBlendSrcFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		mTextGraphicsPipelineInstanceInfo->ColourBlendDstFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		mTextGraphicsPipelineInstanceInfo->AlphaBlendOp = VK_BLEND_OP_ADD;
-		mTextGraphicsPipelineInstanceInfo->AlphaBlendSrcFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		mTextGraphicsPipelineInstanceInfo->AlphaBlendDstFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		mTextGraphicsPipelineInstanceInfo->setDepthTesting(true, VK_COMPARE_OP_LESS);
+		mTextGraphicsPipelineInstanceInfo->setBlending(
+			true,
+			VK_BLEND_OP_ADD,
+			VK_BLEND_FACTOR_SRC_ALPHA,
+			VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+			VK_BLEND_OP_ADD,
+			VK_BLEND_FACTOR_SRC_ALPHA,
+			VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
+		);
 
 		mTextGraphicsPipeline = mContext.createGraphicsPipeline(
 			*mTextGraphicsPipelineInstanceInfo,

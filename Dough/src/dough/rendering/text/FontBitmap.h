@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dough/model/FntFileData.h"
+#include "dough/files/FntFileData.h"
 #include "dough/rendering/textures/TextureVulkan.h"
 #include "dough/scene/geometry/Quad.h"
 

@@ -131,7 +131,6 @@ namespace DOH::EDITOR {
 		* @param name The name/label of the Matrix.
 		*/
 		static void printMat4x4(const glm::mat4x4& mat, const char* name);
-		//static void imGuiPrintMat4x4(const glm::mat4x4& mat, const std::string& name); //{ imGuiPrintMat4x4(mat, name.c_str()); }
 
 		
 		

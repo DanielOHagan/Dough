@@ -28,20 +28,20 @@ namespace DOH {
 	public:
 		constexpr static uint32_t getComponentCount(EDataType dataType) {
 			switch (dataType) {
-				case EDataType::FLOAT: return 1;
-				case EDataType::FLOAT2: return 2;
-				case EDataType::FLOAT3: return 3;
-				case EDataType::FLOAT4: return 4;
+				case EDataType::FLOAT:	return 1;
+				case EDataType::FLOAT2:	return 2;
+				case EDataType::FLOAT3:	return 3;
+				case EDataType::FLOAT4:	return 4;
 
-				case EDataType::MAT3: return 3 * 3;
-				case EDataType::MAT4: return 4 * 4;
+				case EDataType::MAT3:	return 3 * 3;
+				case EDataType::MAT4:	return 4 * 4;
 
-				case EDataType::INT: return 1;
-				case EDataType::INT2: return 2;
-				case EDataType::INT3: return 3;
-				case EDataType::INT4: return 4;
+				case EDataType::INT:	return 1;
+				case EDataType::INT2:	return 2;
+				case EDataType::INT3:	return 3;
+				case EDataType::INT4:	return 4;
 
-				case EDataType::BOOL: return 1;
+				case EDataType::BOOL:	return 1;
 
 				default: return 0;
 			}
@@ -49,20 +49,22 @@ namespace DOH {
 
 		constexpr static uint32_t getDataTypeSize(EDataType dataType) {
 			switch (dataType) {
-				case EDataType::FLOAT: return 4;
-				case EDataType::FLOAT2: return 4 * 2;
-				case EDataType::FLOAT3: return 4 * 3;
-				case EDataType::FLOAT4: return 4 * 4;
+				case EDataType::FLOAT:	return 4;
+				case EDataType::FLOAT2:	return getDataTypeSize(EDataType::FLOAT) * 2;
+				case EDataType::FLOAT3:	return getDataTypeSize(EDataType::FLOAT) * 3;
+				case EDataType::FLOAT4:	return getDataTypeSize(EDataType::FLOAT) * 4;
 
-				case EDataType::MAT3: return 4 * 3 * 3;
-				case EDataType::MAT4: return 4 * 4 * 4;
+				case EDataType::MAT3:	return getDataTypeSize(EDataType::FLOAT) * 3 * 3;
+				case EDataType::MAT4:	return getDataTypeSize(EDataType::FLOAT) * 4 * 4;
 
-				case EDataType::INT: return 4;
-				case EDataType::INT2: return 4 * 2;
-				case EDataType::INT3: return 4 * 3;
-				case EDataType::INT4: return 4 * 4;
+				case EDataType::INT:	return 4;
+				case EDataType::INT2:	return getDataTypeSize(EDataType::INT) * 2;
+				case EDataType::INT3:	return getDataTypeSize(EDataType::INT) * 3;
+				case EDataType::INT4:	return getDataTypeSize(EDataType::INT) * 4;
 
-				case EDataType::BOOL: return 1;
+				case EDataType::BOOL:	return 1;
+
+				default: return 0;
 			}
 
 			return 0;

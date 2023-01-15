@@ -91,7 +91,7 @@ namespace DOH {
 		imGuiInitInfo.QueueFamily = queueFamilyIndices.GraphicsFamily.value();
 		imGuiInitInfo.VulkanInstance = vulkanInstance;
 		imGuiInitInfo.ImageFormat = mSwapChain->getImageFormat();
-		
+
 		mImGuiWrapper->init(window, imGuiInitInfo);
 		mImGuiWrapper->uploadFonts(*this);
 		mImGuiWrapper->createFrameBuffers(mLogicDevice, mSwapChain->getImageViews(), mSwapChain->getExtent());
@@ -369,12 +369,7 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::present(uint32_t imageIndex, VkCommandBuffer cmd) {
-		if (mImageFencesInFlight[imageIndex] != VK_NULL_HANDLE) {
-			vkWaitForFences(mLogicDevice, 1, &mImageFencesInFlight[imageIndex], VK_TRUE, 100);
-		}
-
-		//Mark the image as now being in use by this frame
-		mImageFencesInFlight[imageIndex] = mFramesInFlightFences[mCurrentFrame];
+		vkWaitForFences(mLogicDevice, 1, &mFramesInFlightFences[imageIndex], VK_TRUE, 100);
 
 		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -454,15 +449,15 @@ namespace DOH {
 		const uint32_t imageCount = mSwapChain->getImageCount();
 
 		std::vector<VkDescriptorPoolSize> poolSizes;
-		uint32_t poolSizeCount = 0;
+		poolSizes.reserve(descTypes.size());
 		for (const DescriptorTypeInfo& descType : descTypes) {
-			poolSizes.push_back({ descType.first, descType.second * imageCount });
-			poolSizeCount++;
+			VkDescriptorPoolSize poolSize = { descType.first, descType.second * imageCount };
+			poolSizes.emplace_back(poolSize);
 		}
 
 		VkDescriptorPoolCreateInfo poolCreateInfo = {};
 		poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		poolCreateInfo.poolSizeCount = poolSizeCount;
+		poolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 		poolCreateInfo.pPoolSizes = poolSizes.data();
 		poolCreateInfo.maxSets = static_cast<uint32_t>(descTypes.size()) * imageCount;
 
@@ -478,7 +473,6 @@ namespace DOH {
 		mImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
 		mRenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
 		mFramesInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-		mImageFencesInFlight.resize(mSwapChain->getImageCount(), VK_NULL_HANDLE);
 
 		VkSemaphoreCreateInfo semaphore = {};
 		semaphore.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -598,7 +592,7 @@ namespace DOH {
 	void RenderingContextVulkan::createFrameBuffers() {
 		const uint32_t imageCount = mSwapChain->getImageCount();
 		const VkExtent2D extent = mSwapChain->getExtent();
-		const std::vector<VkImageView> imageViews = mSwapChain->getImageViews();
+		const std::vector<VkImageView>& imageViews = mSwapChain->getImageViews();
 
 		mAppSceneFrameBuffers.resize(imageCount);
 		mAppUiFrameBuffers.resize(imageCount);

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "dough/Utils.h"
-#include "dough/ResourceHandler.h"
+#include "dough/files/ResourceHandler.h"
 #include "dough/rendering/pipeline/shader/ShaderVulkan.h"
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 #include "dough/rendering/textures/TextureAtlas.h"

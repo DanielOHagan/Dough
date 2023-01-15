@@ -16,10 +16,10 @@
 //		logBlock = Logger::startLogBlock(colour, decorators)
 //		logBlock.logLine(message); logBlock.dump();
 #include <iostream>
-#define LOG(message) { std::cout << message;}
-#define LOGLN(message) { std::cout << message << std::endl; }
-#define LNLOG(message) { std::cout << std::endl << message; }
-#define LOG_ENDL { std::cout << std::endl; }
+#define LOG(message)	std::cout << message;
+#define LOGLN(message)	std::cout << message << std::endl;
+#define LNLOG(message)	std::cout << std::endl << message;
+#define LOG_ENDL		std::cout << std::endl;
 
 #if defined (_DEBUG)
 
@@ -65,8 +65,8 @@
 		#define TEXT_BRIGHT_WHITE(message)		message
 	#endif
 
-	#define LOG_UNDERLINED(message) LOG(TEXT_UNDERLINE(message))
-	#define LOGLN_UNDERLINED(message) LOGLN(TEXT_UNDERLINE(message))
+	#define LOG_UNDERLINED(message)		LOG(TEXT_UNDERLINE(message))
+	#define LOGLN_UNDERLINED(message)	LOGLN(TEXT_UNDERLINE(message))
 	
 	#define LOG_BLACK(message)			LOG(TEXT_BLACK(message))
 	#define LOG_RED(message)			LOG(TEXT_RED(message))

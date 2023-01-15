@@ -278,6 +278,10 @@ namespace DOH::EDITOR {
 					ImGui::Text("Batch: %i Geo Count: %i", quadBatchIndex, batch.getGeometryCount());
 					quadBatchIndex++;
 				}
+				const size_t textQuadCount = renderer.getContext().getRenderer2d().getStorage().getTextRenderBatch().getGeometryCount();
+				if (textQuadCount > 0) {
+					ImGui::Text("Text Batch Geo Count: %i", textQuadCount);
+				}
 				//TODO:: debug info when multiple texture arrays are supported
 				//uint32_t texArrIndex = 0;
 				//for (TextureArray& texArr : renderer.getContext().getRenderer2d().getStorage().getTextureArrays()) {
@@ -358,6 +362,7 @@ namespace DOH::EDITOR {
 				}
 
 				ImGui::Checkbox("Display Inner App Editor Window", &mEditorSettings->InnerAppEditorWindowDisplay);
+				EditorGui::displayHelpTooltip("Inner App Editor Window can't be closed from Inner App GUI because InnerApp doesn't have access to Editor settings.");
 			}
 
 			//TODO:: Use different formats, currently looks bad
@@ -386,7 +391,7 @@ namespace DOH::EDITOR {
 					
 					ImGui::Text("Camera Position");
 					const auto& pos = mOrthoCameraController->getPosition();
-					float tempPos[3] = {pos.x, pos.y, pos.z};
+					float tempPos[3] = { pos.x, pos.y, pos.z };
 					if (ImGui::DragFloat3("Pos", tempPos)) {
 						mOrthoCameraController->setPosition({ tempPos[0], tempPos[1], tempPos[2] });
 					}
@@ -437,11 +442,28 @@ namespace DOH::EDITOR {
 
 			ImGui::Text("Vulkan Validation Layers Enabled: ");
 			ImGui::SameLine();
-			ImGui::Text(deviceInfo.ValidationLayersEnabled ? "TRUE" : "FALSE");
 
-			//TODO:: list all currently used validation layers?
+			if (renderer.areValidationLayersEnabled()) {
+				ImGui::Text("TRUE");
+				ImGui::Indent();
+				for (const char* validationLayer : renderer.getValidationLayers()) {
+					ImGui::Text(validationLayer);
+				}
+				ImGui::Unindent();
+			} else {
+				ImGui::Text("FALSE");
+			}
 
-			//TODO:: vulkan extensions?
+			if (renderer.getDeviceExtensions().size() > 0) {
+				ImGui::Text("Device extensions enabled:");
+				ImGui::Indent();
+				for (const char* extension : renderer.getDeviceExtensions()) {
+					ImGui::Text(extension);
+				}
+				ImGui::Unindent();
+			} else {
+				ImGui::Text("No device extensions enabled.");
+			}
 
 			
 			ImGui::Text("Rendering Device Name: ");
