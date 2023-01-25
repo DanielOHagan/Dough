@@ -1,6 +1,6 @@
 #include "editor/DemoLiciousAppLogic.h"
 
-#include "editor/EditorGui.h"
+#include "editor/ui/EditorGui.h"
 
 #include "dough/application/Application.h"
 #include "dough/rendering/ObjInit.h"
@@ -314,7 +314,10 @@ namespace DOH::EDITOR {
 				ImGui::Checkbox("Render", &mTextDemo->Render);
 
 				ImGui::Text("String length limit: %i", TextDemo::StringLengthLimit);
-				EditorGui::displayHelpTooltip("Larger strings can be displayed as the text renderer uses a Quad batch of size 10,000 (by default). The limitation is because ImGui InputText field requires extra implementation for dynamic data on the heap.");
+				EditorGui::displayHelpTooltip(
+				R"(Larger strings can be displayed as the text renderer uses a Quad batch of size 10,000 (by default). )"
+						R"(The limitation is because ImGui InputText field requires extra implementation for dynamic data on the heap.)"
+				);
 				if (ImGui::InputTextMultiline("Display Text", mTextDemo->String, sizeof(mTextDemo->String))) {
 					mTextDemo->TextQuads = renderer2d.getStringAsQuads(mTextDemo->String);
 				}
@@ -355,9 +358,13 @@ namespace DOH::EDITOR {
 				mTextDemo->Update = false;
 			}
 			if (ImGui::Button("View atlas texture")) {
-				EditorGui::openTextureViewerWindow(*renderer2d.getStorage().getTestTextureAtlas());
+				EditorGui::openMonoSpaceTextureAtlasViewerWindow(*renderer2d.getStorage().getTestTextureAtlas());
 			}
 			EditorGui::displayHelpTooltip("Display Texture Altas texture inside a separate window.");
+			if (ImGui::Button("View test texture")) {
+				EditorGui::openTextureViewerWindow(*mSharedDemoResources->TestTexture1);
+			}
+			EditorGui::displayHelpTooltip("Display test texture inside a separate window.");
 		}
 		ImGui::End();
 
@@ -593,7 +600,7 @@ namespace DOH::EDITOR {
 
 		ShaderUniformLayout& customLayout = mSharedDemoResources->TexturedShaderProgram->getUniformLayout();
 		customLayout.setValue(0, sizeof(CustomDemo::UniformBufferObject));
-		customLayout.setTexture(1, { mSharedDemoResources->TestTexture1->getImageView(), mSharedDemoResources->TestTexture1->getSampler() });
+		customLayout.setTexture(1, *mSharedDemoResources->TestTexture1);
 
 		mSharedDemoResources->TexturedPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 			SharedDemoResources::TexturedVertexType,

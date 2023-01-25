@@ -108,7 +108,7 @@ namespace DOH {
 		//-----Texture-----
 		static std::shared_ptr<TextureVulkan> texture(const std::string& filePath);
 		//RGBA values range from 0 - 255
-		static std::shared_ptr<TextureVulkan> texture(float r, float g, float b, float a, bool colourRgbaNormalised = false);
+		static std::shared_ptr<TextureVulkan> texture(float r, float g, float b, float a, bool colourRgbaNormalised = false, const char* name = "Un-named Texture");
 		static std::shared_ptr<MonoSpaceTextureAtlas> monoSpaceTextureAtlas(
 			const std::string& filePath,
 			const uint32_t rowCount,

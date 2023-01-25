@@ -162,7 +162,7 @@ namespace DOH::EDITOR {
 			static constexpr size_t StringLengthLimit = 1024; //Arbitrary limit
 		
 			std::vector<Quad> TextQuads;
-			char String[StringLengthLimit];
+			char String[StringLengthLimit] = "This is the default text string. Use the Text Field to change me!";
 			float Colour[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 		
 			bool Update = false;

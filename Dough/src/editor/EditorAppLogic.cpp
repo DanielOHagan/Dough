@@ -153,14 +153,18 @@ namespace DOH::EDITOR {
 					static_cast<int>(loop.getTargetFps()),
 					static_cast<int>(loop.getTargetBackgroundFps())
 				);
-				EditorGui::displayHelpTooltip("Max: Current Target UPS or 360, whichever is lower. Min: 15\nFPS displayed is the count of frames in the last full second interval");
+				EditorGui::displayHelpTooltip(
+					"Max: Current Target UPS or 360, whichever is lower. Min: 15\nFPS displayed is the count of frames in the last full second interval"
+				);
 				ImGui::Text(
 					"UPS: %i \t(Fore: %i, Back: %i)",
 					static_cast<int>(loop.getUps()),
 					static_cast<int>(loop.getTargetUps()),
 					static_cast<int>(loop.getTargetBackgroundUps())
 				);
-				EditorGui::displayHelpTooltip("Max: 1000. Min: Current Target FPS or 15, whichever is higher.\nUPS displayed is the count of frames in the last full second interval");
+				EditorGui::displayHelpTooltip(
+					"Max: 1000. Min: Current Target FPS or 15, whichever is higher.\nUPS displayed is the count of frames in the last full second interval"
+				);
 				int tempTargetFps = static_cast<int>(loop.getTargetFps());
 				if (ImGui::InputInt("Target FPS", &tempTargetFps)) {
 					if (loop.isValidTargetFps(static_cast<float>(tempTargetFps))) {
@@ -291,11 +295,14 @@ namespace DOH::EDITOR {
 				ImGui::Text(
 					"Texture Array: %i Texture Count: %i",
 					0,
-					renderer.getContext().getRenderer2d().getStorage().getQuadBatchTextureArray().getTextureSlots().size()
+					renderer2d.getStorage().getQuadBatchTextureArray().getTextureSlots().size()
 				);
+				if (ImGui::Button("View Quad Batch Texture Array")) {
+					EditorGui::openTextureArrayViewerWindow("Quad Batch Texture Array", renderer2d.getStorage().getQuadBatchTextureArray());
+				}
 
 				if (ImGui::Button("Close All Empty Quad Batches")) {
-					renderer.getContext().getRenderer2d().closeEmptyQuadBatches();
+					renderer2d.closeEmptyQuadBatches();
 				}
 				EditorGui::displayHelpTooltip("Close Empty Quad Batches. This can help clean-up when 1 or more batches have geo counts of 0");
 			}

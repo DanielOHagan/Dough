@@ -9,6 +9,7 @@ namespace DOH {
 	class TextureVulkan : public IGPUResourceVulkan {
 
 	protected:
+		const std::string mName;
 		std::unique_ptr<ImageVulkan> mTextureImage;
 		VkSampler mSampler;
 
@@ -40,7 +41,8 @@ namespace DOH {
 			float g,
 			float b,
 			float a,
-			bool rgbaNormalised
+			bool rgbaNormalised,
+			const char* name = "Un-named Texture"
 		);
 
 		//TODO::
@@ -56,6 +58,7 @@ namespace DOH {
 
 		virtual void close(VkDevice logicDevice) override;
 
+		inline const std::string& getName() const { return mName; }
 		inline uint32_t getId() const { return mId; }
 		inline int getWidth() const { return mWidth; }
 		inline int getHeight() const { return mHeight; }

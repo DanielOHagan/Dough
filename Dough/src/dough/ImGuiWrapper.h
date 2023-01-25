@@ -57,6 +57,7 @@ namespace DOH {
 	public:
 
 		static const char* EMPTY_LABEL;
+		static const char* TEXTURE_LABEL;
 
 		ImGuiWrapper();
 		ImGuiWrapper(const ImGuiWrapper& copy) = delete;

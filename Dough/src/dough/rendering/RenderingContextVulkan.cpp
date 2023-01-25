@@ -1166,8 +1166,8 @@ namespace DOH {
 		return std::make_shared<TextureVulkan>(mLogicDevice, mPhysicalDevice, filePath);
 	}
 
-	std::shared_ptr<TextureVulkan> RenderingContextVulkan::createTexture(float r, float g, float b, float a, bool colourRgbaNormalised) {
-		return std::make_shared<TextureVulkan>(mLogicDevice, mPhysicalDevice, r, g, b, a, colourRgbaNormalised);
+	std::shared_ptr<TextureVulkan> RenderingContextVulkan::createTexture(float r, float g, float b, float a, bool colourRgbaNormalised, const char* name) {
+		return std::make_shared<TextureVulkan>(mLogicDevice, mPhysicalDevice, r, g, b, a, colourRgbaNormalised, name);
 	}
 
 	std::shared_ptr<MonoSpaceTextureAtlas> RenderingContextVulkan::createMonoSpaceTextureAtlas(

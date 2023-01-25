@@ -5,25 +5,9 @@
 #include "dough/rendering/textures/TextureVulkan.h"
 #include "dough/ImGuiWrapper.h"
 
+#include "editor/ui/EditorResourceUiViewer.h"
+
 namespace DOH::EDITOR {
-
-	struct ImGuiTextureViewerWindow {
-		const TextureVulkan& Texture;
-		bool Display;
-		bool MatchWindowSize;
-		float Scale;
-
-		ImGuiTextureViewerWindow(
-			TextureVulkan& texture,
-			const bool display,
-			const bool matchWindowSize,
-			const float scale
-		) : Texture(texture),
-			Display(display),
-			MatchWindowSize(matchWindowSize),
-			Scale(scale)
-		{}
-	};
 
 	class EditorGui {
 
@@ -34,12 +18,13 @@ namespace DOH::EDITOR {
 		EditorGui operator=(const EditorGui& assignment) = delete;
 
 		//Map for texture windows, using the texture's ID as the key
-		std::unordered_map<uint32_t, ImGuiTextureViewerWindow> mTextureViewerWindows;
+		std::unordered_map<uint32_t, ResourceViewerUiTexture> mTextureViewerWindows;
+		std::unordered_map<uint32_t, ResourceViewerUiMonoSpaceTextureAtlas> mMonoSpaceTextureAtlasViewerWindows;
+		std::unordered_map<std::string, ResourceViewerUiTextureArray> mTextureArrayViewerWindows;
 
 	private:
 		//-----ImGui Implementations-----
 		void imGuiDrawTextureViewerWindowsImpl();
-		void imGuiDrawTextureViewerWindowImpl(ImGuiTextureViewerWindow& textureWindow);
 		void imGuiRemoveHiddenTextureViewerWindowsImpl();
 
 		void imGuiDisplayHelpTooltipImpl(const char* message);
@@ -52,9 +37,17 @@ namespace DOH::EDITOR {
 
 
 		//-----GUI Implementation Agnostic Functions-----
-		void openTextureViewerWindowImpl(TextureVulkan& texture);
-		void closeTextureViewerWindowImpl(uint32_t textureId);
-		bool hasTextureViewerWindowImpl(uint32_t textureId);
+		void openTextureViewerWindowImpl(const TextureVulkan& texture);
+		void openMonoSpaceTextureAtlasViewerWindowImpl(const MonoSpaceTextureAtlas& textureAtlas);
+		void openTextureArrayViewerWindowImpl(const char* title, const TextureArray& texArray);
+
+		void closeTextureViewerWindowImpl(const uint32_t textureId);
+		void closeMonoSpaceTextureAtlasViewerWindowImpl(const uint32_t textureId);
+		void closeTextureArrayViewerWindowImpl(const char* title);
+		
+		bool hasTextureViewerWindowImpl(const uint32_t textureId);
+		bool hasMonoSpaceTextureAtlasViewerWindowImpl(const uint32_t textureId);
+		bool hasTextureArrayViewerWindowImpl(const char* title);
 
 	public:
 		EditorGui() = default;
@@ -83,30 +76,75 @@ namespace DOH::EDITOR {
 		* Cycle through current TextureViewerWindows and draw those enabled for rendering
 		*/
 		static void drawTextureViewerWindows();
+
 		/**
 		* If a texture viewer of given texture isn't already open then create a new texture viewer.
 		* Then enable it for rendering.
 		* 
 		* @param texture The desired texture for use in creating a new texture viewer window.
 		*/
-		static void openTextureViewerWindow(TextureVulkan& texture);
+		static void openTextureViewerWindow(const TextureVulkan& texture);
+		/**
+		* If a texture viewer of given mono space texture atlas isn't already open then create a new texture viewer.
+		* Then enable it for rendering.
+		*
+		* @param textureAtlas The desired texture atlas for use in creating a new texture viewer window.
+		*/
+		static void openMonoSpaceTextureAtlasViewerWindow(const MonoSpaceTextureAtlas& textureAtlas);
+		/**
+		* If a texture viewer of given texture array isn't already open then create a new texture viewer.
+		* Then enable it for rendering.
+		*
+		* @param title The title of the texture array, to be used as a UUID for further reference/use.
+		* @param texArray The desired texture array for use in creating a new texture viewer window.
+		*/
+		static void openTextureArrayViewerWindow(const char* title, const TextureArray& texArray);
+
 		/**
 		* Find texture viewer of given textureId and remove it from the texture viewer map.
 		* 
 		* @param textureId Unique id of the texture viewer that is to be closed.
 		*/
-		static void closeTextureViewerWindow(uint32_t textureId);
+		static void closeTextureViewerWindow(const uint32_t textureId);
+		/**
+		* Find texture atlas viewer of given textureId and remove it from the texture atlas viewer map.
+		*
+		* @param textureId Unique id of the texture atlas viewer that is to be closed.
+		*/
+		static void closeMonoSpaceTextureAtlasViewerWindow(const uint32_t textureId);
+		/**
+		* Find texture array viewer of given title and remove it from the texture array viewer map.
+		*
+		* @param title Title of the texture array viewer that is to be closed.
+		*/
+		static void closeTextureArrayViewerWindow(const char* title);
 		/**
 		* Cycle through all texture viewers and remove all that are currently hidden (rendering is disabled).
 		*/
 		static void removeHiddenTextureViewerWindows();
+
 		/**
 		* Search currently instantiated texture viewer windows to see if given textureId matches an instantiated one.
-		* 
-		* @param textureId Unique id of the texture viewer that is to be queried.
+		*
+		* @param textureId Unique id of the texture being used by the viewer window.
 		* @returns If a texture viewer window with textureId is instantiated.
 		*/
-		static bool hasTextureViewerWindow(uint32_t textureId);
+		static bool hasTextureViewerWindow(const uint32_t textureId);
+		/**
+		* Search currently instantiated mono space texture viewer windows to see if a given textureId matches an
+		* instantiated one.
+		* 
+		* @param textureId Unique id of the texture atlas being used by the viewer window.
+		* @returns If a texture atlas viewer window with textureId is instantiated.
+		*/
+		static bool hasMonoSpaceTextureAtlasViewerWindow(const uint32_t textureId);
+		/**
+		* Search currently instantiated texture array viewer widnows to see if a given title matches an instantiated one.
+		* 
+		* @param title The title of the texture array that is being used by the viewer window.
+		* @return If a texture array viewer window with title is instantiated.
+		*/
+		static bool hasTextureArrayViewerWindow(const char* title);
 
 		//-----GUI Text-----
 		/**

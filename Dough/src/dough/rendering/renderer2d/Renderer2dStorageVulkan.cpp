@@ -17,7 +17,14 @@ namespace DOH {
 	{}
 
 	void Renderer2dStorageVulkan::init(VkDevice logicDevice) {
-		mWhiteTexture = ObjInit::texture(255.0f, 255.0f, 255.0f, 255.0f, false);
+		mWhiteTexture = ObjInit::texture(
+			255.0f,
+			255.0f,
+			255.0f,
+			255.0f,
+			false,
+			"White Texture"
+		);
 
 		initForQuads(logicDevice);
 		initForText(logicDevice);
@@ -138,6 +145,7 @@ namespace DOH {
 			*mWhiteTexture
 		);
 
+		//Add blacnk white texture for quads that aren't using a texture
 		mQuadBatchTextureArray->addNewTexture(*mWhiteTexture);
 
 		//Commented out after implementation of Texture Atlas,
@@ -218,7 +226,10 @@ namespace DOH {
 			bitmapTexturesAdded++;
 		}
 		if (bitmapTexturesAdded < mArialBitmap->getPageCount()) {
-			LOG_ERR("Failed to add all arial bitmap textures to quad batch texture array. Missing: " << mArialBitmap->getPageCount() - bitmapTexturesAdded);
+			LOG_ERR(
+				"Failed to add all arial bitmap textures to quad batch texture array. Missing: " <<
+				mArialBitmap->getPageCount() - bitmapTexturesAdded
+			);
 		}
 
 		mTextShaderProgram = ObjInit::shaderProgram(

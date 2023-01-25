@@ -9,7 +9,7 @@ namespace DOH {
 		VkDevice logicDevice,
 		VkPhysicalDevice physicalDevice,
 		const std::string& filePath
-	) {
+	) : mName(filePath) {
 		TextureCreationData textureData = ResourceHandler::loadTexture(filePath.c_str());
 		
 		mWidth = textureData.Width;
@@ -76,10 +76,12 @@ namespace DOH {
 		float g,
 		float b,
 		float a,
-		bool rgbaNormalised
+		bool rgbaNormalised,
+		const char* name
 	) : mWidth(1),
 		mHeight(1),
-		mChannels(4)
+		mChannels(4),
+		mName(name)
 	{
 		if (!rgbaNormalised) {
 			r = (r / TextureVulkan::COLOUR_MAX_VALUE);

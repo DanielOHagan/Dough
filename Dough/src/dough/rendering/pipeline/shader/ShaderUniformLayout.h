@@ -20,11 +20,12 @@ namespace DOH {
 		ShaderUniformLayout(const ShaderUniformLayout& copy) = delete;
 		ShaderUniformLayout operator=(const ShaderUniformLayout& assignment) = delete;
 
-		bool isBindingAvailable(uint32_t binding) const;
-		void setValue(uint32_t binding, ValueUniformInfo value);
-		void setTexture(uint32_t binding, TextureUniformInfo textureInfo);
-		void setTextureArray(uint32_t binding, TextureArray& texArr);
-		void addPushConstant(VkShaderStageFlags shaderStages, uint32_t size);
+		bool isBindingAvailable(const uint32_t binding) const;
+		void setValue(const uint32_t binding, ValueUniformInfo value);
+		void setTexture(const uint32_t binding, TextureUniformInfo textureInfo);
+		inline void setTexture(const uint32_t binding, TextureVulkan& texture) { setTexture(binding, { texture.getImageView(), texture.getSampler() }); }
+		void setTextureArray(const uint32_t binding, TextureArray& texArr);
+		void addPushConstant(const VkShaderStageFlags shaderStages, const uint32_t size);
 		void clearTextureUniforms();
 		void clearUniforms();
 		void close();

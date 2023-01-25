@@ -14,6 +14,7 @@
 namespace DOH {
 
 	const char* ImGuiWrapper::EMPTY_LABEL = "##";
+	const char* ImGuiWrapper::TEXTURE_LABEL = "##tex";
 
 	ImGuiWrapper::ImGuiWrapper()
 	:	mDescriptorPool(VK_NULL_HANDLE),

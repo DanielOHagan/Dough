@@ -13,7 +13,7 @@
 
 #include "editor/EditorOrthoCameraController.h"
 #include "editor/EditorPerspectiveCameraController.h"
-#include "editor/EditorGui.h"
+#include "editor/ui/EditorGui.h"
 
 using namespace DOH;
 

@@ -214,16 +214,16 @@ namespace DOH {
 	}
 
 	void GraphicsPipelineVulkan::recordDrawCommands(uint32_t imageIndex, VkCommandBuffer cmd) {
+		if (mInstanceInfo.ShaderProgram.getUniformLayout().hasUniforms()) {
+			mInstanceInfo.ShaderProgram.getShaderDescriptorLayout().bindDescriptorSets(
+				cmd,
+				mGraphicsPipelineLayout,
+				imageIndex
+			);
+		}
+
 		for (const auto& renderable : mRenderableDrawList) {
 			renderable->getVao().bind(cmd);
-
-			if (mInstanceInfo.ShaderProgram.getUniformLayout().hasUniforms()) {
-				mInstanceInfo.ShaderProgram.getShaderDescriptorLayout().bindDescriptorSets(
-					cmd,
-					mGraphicsPipelineLayout,
-					imageIndex
-				);
-			}
 
 			for (const VkPushConstantRange& pushConstant : mInstanceInfo.ShaderProgram.getUniformLayout().getPushConstantRanges()) {
 				vkCmdPushConstants(

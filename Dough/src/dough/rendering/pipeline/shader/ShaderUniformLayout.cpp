@@ -8,7 +8,7 @@ namespace DOH {
 	:	mHasUniforms(false)
 	{}
 
-	bool ShaderUniformLayout::isBindingAvailable(uint32_t binding) const {
+	bool ShaderUniformLayout::isBindingAvailable(const uint32_t binding) const {
 		if (mValueUniformMap.find(binding) != mValueUniformMap.end()) {
 			return false;
 		}
@@ -24,21 +24,21 @@ namespace DOH {
 		return true;
 	}
 
-	void ShaderUniformLayout::setValue(uint32_t binding, ValueUniformInfo value) {
+	void ShaderUniformLayout::setValue(const uint32_t binding, ValueUniformInfo value) {
 		if (isBindingAvailable(binding)) {
 			mValueUniformMap.emplace(binding, value);
 			mHasUniforms = true;
 		}
 	}
 
-	void ShaderUniformLayout::setTexture(uint32_t binding, TextureUniformInfo textureInfo) {
+	void ShaderUniformLayout::setTexture(const uint32_t binding, TextureUniformInfo textureInfo) {
 		if (isBindingAvailable(binding)) {
 			mTextureUniformMap.emplace(binding, textureInfo);
 			mHasUniforms = true;
 		}
 	}
 
-	void ShaderUniformLayout::setTextureArray(uint32_t binding, TextureArray& texArr) {
+	void ShaderUniformLayout::setTextureArray(const uint32_t binding, TextureArray& texArr) {
 		if (isBindingAvailable(binding)) {
 			mTextureArrayUniformMap.emplace(binding, texArr);
 			mHasUniforms = true;
@@ -48,7 +48,7 @@ namespace DOH {
 		
 	}
 
-	void ShaderUniformLayout::addPushConstant(VkShaderStageFlags shaderStages, uint32_t size) {
+	void ShaderUniformLayout::addPushConstant(const VkShaderStageFlags shaderStages, const uint32_t size) {
 		//TODO:: Only the 128 bits guaranteed by Vulkan are supported right now, set a limit based off device capabilities
 		uint32_t offset = getPushConstantOffset();
 		if (offset + size > 128) {
