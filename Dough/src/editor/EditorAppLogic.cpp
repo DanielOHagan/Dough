@@ -245,28 +245,48 @@ namespace DOH::EDITOR {
 				//ImGui::Text("Frame: %fs", Time::convertMillisToSeconds(frameTime));
 				//ImGui::Text("Update: %fs", Time::convertMillisToSeconds(debugInfo.LastUpdateTimeMillis));
 				//ImGui::Text("Render: %fs", Time::convertMillisToSeconds(debugInfo.LastRenderTimeMillis));
-				ImGui::BeginTable("Draw Call Info", 2);
+				
+				ImGui::BeginTable("Draw Call Info", 3);
 				ImGui::TableSetupColumn("Pipeline");
 				ImGui::TableSetupColumn("Draw Call Count");
+				ImGui::TableSetupColumn("Render Pass");
 				ImGui::TableHeadersRow();
 				ImGui::TableSetColumnIndex(0);
-				//Individual scene pipeline draw calls
-				for (const auto& [name, pipeline] : renderer.getContext().getAppSceneGraphicsPipelines()) {
-					EditorGui::printDrawCallTableColumn(name.c_str(), pipeline->getVaoDrawCount());
+
+				for (
+					const auto& [renderPass, pipelines] :
+					renderer.getContext().getCurrentRenderState().getRenderPassGraphicsPipelineMap()
+				) {
+					const char* renderPassString = ERenderPassStrings[static_cast<uint32_t>(renderPass)];
+					for (const auto& [name, pipeline] : pipelines) {
+						EditorGui::printDrawCallTableColumn(
+							name.c_str(),
+							pipeline->getVaoDrawCount(),
+							renderPassString
+						);
+					}
 				}
+				EditorGui::printDrawCallTableColumn(
+					"Quad Batch",
+					debugInfo.BatchRendererDrawCalls,
+					ERenderPassStrings[static_cast<uint32_t>(ERenderPass::APP_SCENE)]
+				);
 				//Total scene pipeline draw calls
-				EditorGui::printDrawCallTableColumn("Total Scene", debugInfo.SceneDrawCalls);
+				EditorGui::printDrawCallTableColumn("Total Scene",
+					debugInfo.SceneDrawCalls,
+					ERenderPassStrings[static_cast<uint32_t>(ERenderPass::APP_SCENE)]
+				);
 				ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImColor::ImColor(125, 125, 125, 90));
-				//Individual UI pipeline draw calls
-				for (const auto& [name, pipeline] : renderer.getContext().getAppUiGraphicsPipelines()) {
-					EditorGui::printDrawCallTableColumn(name.c_str(), pipeline->getVaoDrawCount());
-				}
 				//Total UI pipeline draw calls
-				EditorGui::printDrawCallTableColumn("Total UI", debugInfo.UiDrawCalls);
+				EditorGui::printDrawCallTableColumn(
+					"Total UI",
+					debugInfo.UiDrawCalls,
+					ERenderPassStrings[static_cast<uint32_t>(ERenderPass::APP_UI)]
+				);
 				ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImColor::ImColor(125, 125, 125, 90));
-				EditorGui::printDrawCallTableColumn("Quad Batch", debugInfo.BatchRendererDrawCalls);
-				EditorGui::printDrawCallTableColumn("Total", debugInfo.TotalDrawCalls);
+				EditorGui::printDrawCallTableColumn("Total", debugInfo.TotalDrawCalls, "All");
 				ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImColor::ImColor(128, 128, 255, 100));
+
 				ImGui::EndTable();
 
 				ImGui::Text("Quads Drawn: %i", renderer2d.getDrawnQuadCount());

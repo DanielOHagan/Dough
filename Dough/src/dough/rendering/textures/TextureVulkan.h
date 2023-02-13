@@ -45,17 +45,6 @@ namespace DOH {
 			const char* name = "Un-named Texture"
 		);
 
-		//TODO::
-		//TextureVulkan(
-		//	VkDevice logicDevice,
-		//	VkPhysicalDevice physicalDevice,
-		//	uint32_t width,
-		//	uint32_t height,
-		//	EFormat format,
-		//	const void* data,
-		//	size_t size
-		//);
-
 		virtual void close(VkDevice logicDevice) override;
 
 		inline const std::string& getName() const { return mName; }

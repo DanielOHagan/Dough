@@ -47,10 +47,12 @@ namespace DOH {
 		mAppInfoTimer->recordInterval("Renderer.init() end");
 
 		mAppInfoTimer->recordInterval("AppLogic.init() start");
-		mAppLogic->init((float) mWindow->getWidth() / mWindow->getHeight());
+		mAppLogic->init(static_cast<float>(mWindow->getWidth()) / mWindow->getHeight());
 		mAppInfoTimer->recordInterval("AppLogic.init() end");
 
-		//mRenderer->setupPostAppLogicInit();
+		//TODO:: Some kind of post app.init preparation?
+		//mRenderer->prepareCurrentRenderState();
+
 		if (!mRenderer->isReady()) {
 			LOG_ERR("Renderer is not ready, forcing stop");
 			THROW("Thrown: Renderer not ready");
@@ -99,26 +101,31 @@ namespace DOH {
 	}
 
 	int Application::start(std::shared_ptr<IApplicationLogic> appLogic, ApplicationInitSettings initSettings) {
-		INSTANCE = new Application();
 		int returnCode = 0;
-		
-		if (Application::isInstantiated()) {
-			try {
+
+		if (!Application::isInstantiated()) {
+			INSTANCE = new Application();
+
+			#if defined (_DEBUG)
 				INSTANCE->init(appLogic, initSettings);
 				INSTANCE->run();
-				returnCode = EXIT_SUCCESS;
-			} catch (const std::exception& e) {
-				LOG_RED("Fatal error: ");
-				LOG_ERR(e.what());
-				LOG_ENDL;
-				returnCode = EXIT_FAILURE;
-			}
+			#else
+				try {
+					INSTANCE->init(appLogic, initSettings);
+					INSTANCE->run();
+					returnCode = EXIT_SUCCESS;
+				} catch (const std::exception& e) {
+					LOG_RED("Fatal error: ");
+					LOG_ERR(e.what());
+					LOG_ENDL;
+					returnCode = EXIT_FAILURE;
+				}
+			#endif
 
 			INSTANCE->close();
-
 			delete INSTANCE;
-
 		} else {
+			LOG_ERR("Attempted to start application that is already running.");
 			returnCode = EXIT_FAILURE;
 		}
 

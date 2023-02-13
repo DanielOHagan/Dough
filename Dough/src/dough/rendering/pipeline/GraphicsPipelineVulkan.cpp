@@ -26,20 +26,25 @@ namespace DOH {
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutCreateInfo.setLayoutCount = 1;
-		pipelineLayoutCreateInfo.pSetLayouts = &mInstanceInfo.ShaderProgram.getShaderDescriptorLayout().getDescriptorSetLayout();
+		pipelineLayoutCreateInfo.pSetLayouts = &mInstanceInfo.getShaderProgram().getShaderDescriptorLayout().getDescriptorSetLayout();
 
-		if (mInstanceInfo.ShaderProgram.getUniformLayout().hasPushConstant()) {
+		if (mInstanceInfo.getShaderProgram().getUniformLayout().hasPushConstant()) {
+			const auto& pushConstantRanges = mInstanceInfo.getShaderProgram().getUniformLayout().getPushConstantRanges();
 			pipelineLayoutCreateInfo.pushConstantRangeCount =
-				static_cast<uint32_t>(mInstanceInfo.ShaderProgram.getUniformLayout().getPushConstantRanges().size());
-			pipelineLayoutCreateInfo.pPushConstantRanges =
-				mInstanceInfo.ShaderProgram.getUniformLayout().getPushConstantRanges().data();
+				static_cast<uint32_t>(pushConstantRanges.size());
+			pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
 		} else {
 			pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
 			pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
 		}
 
 		VK_TRY(
-			vkCreatePipelineLayout(logicDevice, &pipelineLayoutCreateInfo, nullptr, &mGraphicsPipelineLayout),
+			vkCreatePipelineLayout(
+				logicDevice,
+				&pipelineLayoutCreateInfo,
+				nullptr,
+				&mGraphicsPipelineLayout
+			),
 			"Failed to create Pipeline Layout."
 		);
 	}
@@ -49,19 +54,19 @@ namespace DOH {
 		VkExtent2D extent,
 		VkRenderPass renderPass
 	) {
-		mInstanceInfo.ShaderProgram.loadModules(logicDevice);
-		TRY(!mInstanceInfo.ShaderProgram.areShadersLoaded(), "Shader Modules not loaded");
+		mInstanceInfo.getShaderProgram().loadModules(logicDevice);
+		TRY(!mInstanceInfo.getShaderProgram().areShadersLoaded(), "Shader Modules not loaded");
 
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
 		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-		vertShaderStageInfo.module = mInstanceInfo.ShaderProgram.getVertexShader().getShaderModule();
+		vertShaderStageInfo.module = mInstanceInfo.getShaderProgram().getVertexShader().getShaderModule();
 		vertShaderStageInfo.pName = "main";
 
 		VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
 		fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-		fragShaderStageInfo.module = mInstanceInfo.ShaderProgram.getFragmentShader().getShaderModule();
+		fragShaderStageInfo.module = mInstanceInfo.getShaderProgram().getFragmentShader().getShaderModule();
 		fragShaderStageInfo.pName = "main";
 
 		VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
@@ -71,8 +76,8 @@ namespace DOH {
 
 		//IMPORTANT:: vertex input binding is always slot 0
 		const uint32_t binding = 0;
-		const auto bindingDesc = getVertexTypeBindingDesc(mInstanceInfo.VertexType, binding, VK_VERTEX_INPUT_RATE_VERTEX);
-		const auto vertexAttribs = getVertexTypeAsAttribDesc(mInstanceInfo.VertexType, binding);
+		const auto bindingDesc = getVertexTypeBindingDesc(mInstanceInfo.getVertexType(), binding, VK_VERTEX_INPUT_RATE_VERTEX);
+		const auto vertexAttribs = getVertexTypeAsAttribDesc(mInstanceInfo.getVertexType(), binding);
 
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
 		vertexInputInfo.pVertexBindingDescriptions = &bindingDesc;
@@ -107,10 +112,10 @@ namespace DOH {
 		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 		rasterizer.depthClampEnable = VK_FALSE;
 		rasterizer.rasterizerDiscardEnable = VK_FALSE;
-		rasterizer.polygonMode = mInstanceInfo.PolygonMode;
+		rasterizer.polygonMode = mInstanceInfo.getOptionalFields().PolygonMode;
 		rasterizer.lineWidth = 1.0f;
-		rasterizer.cullMode = mInstanceInfo.CullMode;
-		rasterizer.frontFace = mInstanceInfo.FrontFace;
+		rasterizer.cullMode = mInstanceInfo.getOptionalFields().CullMode;
+		rasterizer.frontFace = mInstanceInfo.getOptionalFields().FrontFace;
 		rasterizer.depthBiasEnable = VK_FALSE;
 
 		VkPipelineMultisampleStateCreateInfo multisampling = {};
@@ -124,13 +129,13 @@ namespace DOH {
 			VK_COLOR_COMPONENT_G_BIT |
 			VK_COLOR_COMPONENT_B_BIT |
 			VK_COLOR_COMPONENT_A_BIT;
-		colourBlendAttachment.blendEnable = mInstanceInfo.BlendingEnabled ? VK_TRUE : VK_FALSE;
-		colourBlendAttachment.srcColorBlendFactor = mInstanceInfo.ColourBlendSrcFactor;
-		colourBlendAttachment.dstColorBlendFactor = mInstanceInfo.ColourBlendDstFactor;
-		colourBlendAttachment.colorBlendOp = mInstanceInfo.ColourBlendOp;
-		colourBlendAttachment.srcAlphaBlendFactor = mInstanceInfo.AlphaBlendSrcFactor;
-		colourBlendAttachment.dstAlphaBlendFactor = mInstanceInfo.AlphaBlendDstFactor;
-		colourBlendAttachment.alphaBlendOp = mInstanceInfo.AlphaBlendOp;
+		colourBlendAttachment.blendEnable = mInstanceInfo.getOptionalFields().BlendingEnabled ? VK_TRUE : VK_FALSE;
+		colourBlendAttachment.srcColorBlendFactor = mInstanceInfo.getOptionalFields().ColourBlendSrcFactor;
+		colourBlendAttachment.dstColorBlendFactor = mInstanceInfo.getOptionalFields().ColourBlendDstFactor;
+		colourBlendAttachment.colorBlendOp = mInstanceInfo.getOptionalFields().ColourBlendOp;
+		colourBlendAttachment.srcAlphaBlendFactor = mInstanceInfo.getOptionalFields().AlphaBlendSrcFactor;
+		colourBlendAttachment.dstAlphaBlendFactor = mInstanceInfo.getOptionalFields().AlphaBlendDstFactor;
+		colourBlendAttachment.alphaBlendOp = mInstanceInfo.getOptionalFields().AlphaBlendOp;
 
 		VkPipelineColorBlendStateCreateInfo colourBlending = {};
 		colourBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -140,9 +145,9 @@ namespace DOH {
 
 		VkPipelineDepthStencilStateCreateInfo depthStencil = {};
 		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		depthStencil.depthTestEnable = mInstanceInfo.DepthTestingEnabled ? VK_TRUE : VK_FALSE;
-		depthStencil.depthWriteEnable = mInstanceInfo.DepthTestingEnabled ? VK_TRUE : VK_FALSE;
-		depthStencil.depthCompareOp = mInstanceInfo.DepthCompareOp;
+		depthStencil.depthTestEnable = mInstanceInfo.getOptionalFields().DepthTestingEnabled ? VK_TRUE : VK_FALSE;
+		depthStencil.depthWriteEnable = mInstanceInfo.getOptionalFields().DepthTestingEnabled ? VK_TRUE : VK_FALSE;
+		depthStencil.depthCompareOp = mInstanceInfo.getOptionalFields().DepthCompareOp;
 		depthStencil.depthBoundsTestEnable = VK_FALSE;
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
@@ -165,7 +170,7 @@ namespace DOH {
 			"Failed to create Graphics Pipeline."
 		);
 
-		mInstanceInfo.ShaderProgram.closeModules(logicDevice);
+		mInstanceInfo.getShaderProgram().closeModules(logicDevice);
 	}
 
 	void GraphicsPipelineVulkan::close(VkDevice logicDevice) {
@@ -178,19 +183,19 @@ namespace DOH {
 		VkExtent2D extent,
 		VkRenderPass renderPass
 	) {
-		mInstanceInfo.ShaderProgram.closePipelineSpecificObjects(logicDevice);
+		mInstanceInfo.getShaderProgram().closePipelineSpecificObjects(logicDevice);
 		vkDestroyPipeline(logicDevice, mGraphicsPipeline, nullptr);
 
 		createPipeline(logicDevice, extent, renderPass);
-		mInstanceInfo.ShaderProgram.getShaderDescriptorLayout().createDescriptorSetLayout(logicDevice);
+		mInstanceInfo.getShaderProgram().getShaderDescriptorLayout().createDescriptorSetLayout(logicDevice);
 	}
 
 	void GraphicsPipelineVulkan::createUniformObjects(VkDevice logicDevice) {
-		mInstanceInfo.ShaderProgram.getShaderDescriptorLayout().createDescriptorSetLayoutBindings(
+		mInstanceInfo.getShaderProgram().getShaderDescriptorLayout().createDescriptorSetLayoutBindings(
 			logicDevice,
-			mInstanceInfo.ShaderProgram.getUniformLayout().getTotalUniformCount()
+			mInstanceInfo.getShaderProgram().getUniformLayout().getTotalUniformCount()
 		);
-		mInstanceInfo.ShaderProgram.getShaderDescriptorLayout().createDescriptorSetLayout(logicDevice);
+		mInstanceInfo.getShaderProgram().getShaderDescriptorLayout().createDescriptorSetLayout(logicDevice);
 	}
 
 	void GraphicsPipelineVulkan::createShaderUniforms(
@@ -199,23 +204,23 @@ namespace DOH {
 		uint32_t imageCount,
 		VkDescriptorPool descPool
 	) {
-		DescriptorSetLayoutVulkan& desc = mInstanceInfo.ShaderProgram.getShaderDescriptorLayout();
+		DescriptorSetLayoutVulkan& desc = mInstanceInfo.getShaderProgram().getShaderDescriptorLayout();
 		desc.createValueBuffers(logicDevice, physicalDevice, imageCount);
 		desc.createDescriptorSets(logicDevice, imageCount, descPool);
 	}
 
 	void GraphicsPipelineVulkan::updateShaderUniforms(VkDevice logicDevice, uint32_t imageCount) {
-		mInstanceInfo.ShaderProgram.getShaderDescriptorLayout().updateAllDescriptorSets(logicDevice, imageCount);
+		mInstanceInfo.getShaderProgram().getShaderDescriptorLayout().updateAllDescriptorSets(logicDevice, imageCount);
 	}
-
-	void GraphicsPipelineVulkan::setImageUniformData(VkDevice logicDevice, uint32_t image, uint32_t binding, void* data, size_t size) {
-		mInstanceInfo.ShaderProgram.getShaderDescriptorLayout().getBuffersFromBinding(binding)[image]
+	
+	void GraphicsPipelineVulkan::setFrameUniformData(VkDevice logicDevice, uint32_t image, uint32_t binding, void* data, size_t size) {
+		mInstanceInfo.getShaderProgram().getShaderDescriptorLayout().getBuffersFromBinding(binding)[image]
 			->setData(logicDevice, data, size);
 	}
 
 	void GraphicsPipelineVulkan::recordDrawCommands(uint32_t imageIndex, VkCommandBuffer cmd) {
-		if (mInstanceInfo.ShaderProgram.getUniformLayout().hasUniforms()) {
-			mInstanceInfo.ShaderProgram.getShaderDescriptorLayout().bindDescriptorSets(
+		if (mInstanceInfo.getShaderProgram().getUniformLayout().hasUniforms()) {
+			mInstanceInfo.getShaderProgram().getShaderDescriptorLayout().bindDescriptorSets(
 				cmd,
 				mGraphicsPipelineLayout,
 				imageIndex
@@ -225,7 +230,7 @@ namespace DOH {
 		for (const auto& renderable : mRenderableDrawList) {
 			renderable->getVao().bind(cmd);
 
-			for (const VkPushConstantRange& pushConstant : mInstanceInfo.ShaderProgram.getUniformLayout().getPushConstantRanges()) {
+			for (const VkPushConstantRange& pushConstant : mInstanceInfo.getShaderProgram().getUniformLayout().getPushConstantRanges()) {
 				vkCmdPushConstants(
 					cmd,
 					mGraphicsPipelineLayout,
@@ -244,6 +249,10 @@ namespace DOH {
 				0,
 				0
 			);
+		}
+
+		if (mInstanceInfo.getOptionalFields().ClearRenderablesAfterDraw) {
+			mRenderableDrawList.clear();
 		}
 	}
 }

@@ -6,12 +6,21 @@
 #include "dough/ImGuiWrapper.h"
 #include "dough/rendering/renderer2d/Renderer2dVulkan.h"
 #include "dough/rendering/SwapChainVulkan.h"
+#include "dough/rendering/CustomRenderState.h"
 
 namespace DOH {
 
+
+	static std::array<const char*, 2> ERenderPassStrings = {
+		"APP_SCENE",
+		"APP_UI"
+	};
+	//TODO:: Make this a class instead of hardcoded enums
 	enum class ERenderPass {
-		APP_SCENE,
-		APP_UI
+		//NONE,
+
+		APP_SCENE = 0,
+		APP_UI = 1
 	};
 
 	class RenderingContextVulkan {
@@ -57,8 +66,7 @@ namespace DOH {
 
 		std::shared_ptr<SwapChainVulkan> mSwapChain;
 
-		std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>> mAppSceneGraphicsPipelines;
-		std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>> mAppUiGraphicsPipelines;
+		std::unique_ptr<CustomRenderState> mCurrentRenderState;
 
 		std::unique_ptr<Renderer2dVulkan> mRenderer2d;
 		std::unique_ptr<ImGuiWrapper> mImGuiWrapper;
@@ -108,13 +116,10 @@ namespace DOH {
 		void createPipelineUniformObjects(GraphicsPipelineVulkan& pipeline, VkDescriptorPool descPool);
 		void createPipelineUniformObjects();
 		void closeAppPipelines();
-		void closeAppScenePipelines();
-		void closeAppUiPipelines();
-		VkDescriptorPool createDescriptorPool(std::vector<DescriptorTypeInfo>& descTypes);
+		VkDescriptorPool createDescriptorPool(const std::vector<DescriptorTypeInfo>& descTypes);
 		bool isReady() const;
 
-		//TODO:: return PipelineVaoConveyor for easier and faster vao adding?
-		//	Take in a pipeline builder object?
+		//TODO:: Take in a pipeline builder object?
 		PipelineRenderableConveyor createPipeline(
 			const std::string& name,
 			GraphicsPipelineInstanceInfo& instanceInfo,
@@ -142,8 +147,7 @@ namespace DOH {
 		inline void setAppSceneUniformBufferObject(ICamera& camera) { mAppSceneUbo.ProjectionViewMat = camera.getProjectionViewMatrix(); }
 		inline void setAppUiProjection(glm::mat4x4& proj) { mAppUiProjection = proj; }
 
-		inline std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>> getAppSceneGraphicsPipelines() const { return mAppSceneGraphicsPipelines; }
-		inline std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>> getAppUiGraphicsPipelines() const { return mAppUiGraphicsPipelines; }
+		inline CustomRenderState& getCurrentRenderState() const { return *mCurrentRenderState; }
 		RenderPassVulkan& getRenderPass(const ERenderPass renderPass) const;
 
 		//TODO:: Ability for better control over when GPU resources can be released (e.g. after certain program stages or as soon as possible)

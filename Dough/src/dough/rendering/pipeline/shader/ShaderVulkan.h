@@ -15,7 +15,7 @@ namespace DOH {
 	class ShaderVulkan : public IGPUResourceVulkan {
 
 	private:
-		EShaderType mShaderType;
+		const EShaderType mShaderType;
 		VkShaderModule mShaderModule;
 		const std::string& mFilePath;
 
@@ -24,7 +24,7 @@ namespace DOH {
 		ShaderVulkan(const ShaderVulkan& copy) = delete;
 		ShaderVulkan operator=(const ShaderVulkan& assignment) = delete;
 
-		ShaderVulkan(EShaderType type, const std::string& filePath);
+		ShaderVulkan(const EShaderType type, const std::string& filePath);
 
 		void loadModule(VkDevice logicDeivce);
 		void closeModule(VkDevice logicDevice);

@@ -41,6 +41,8 @@ namespace DOH {
 		const bool mValidationLayersEnabled = true;
 #else
 		const bool mValidationLayersEnabled = false;
+		//TODO:: Build config/engine init settings that have the highest C++ optimisation and Vulkan validation layers
+		//const bool mValidationLayersEnabled = true;
 #endif
 
 	public:

@@ -35,7 +35,7 @@ namespace DOH {
 		void createDescriptorSetLayoutBindings(VkDevice logicDevice, uint32_t count);
 
 		void updateAllDescriptorSets(VkDevice logicDevice, uint32_t imageCount);
-		void bindDescriptorSets(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout, uint32_t descriptorSetIndex);
+		void bindDescriptorSets(VkCommandBuffer cmdBuffer, VkPipelineLayout pipelineLayout, uint32_t imageIndex);
 		std::vector<DescriptorTypeInfo> asDescriptorTypes() const;
 
 		void closeBuffers(VkDevice logicDevice);

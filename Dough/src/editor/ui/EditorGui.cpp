@@ -171,13 +171,15 @@ namespace DOH::EDITOR {
 		ImGui::TextWrapped(message);
 	}
 
-	void EditorGui::imGuiPrintDrawCallTableColumnImpl(const char* pipelineName, uint32_t drawCount) {
+	void EditorGui::imGuiPrintDrawCallTableColumnImpl(const char* pipelineName, const uint32_t drawCount, const char* renderPass) {
 		//IMPORTANT:: Assumes already inside the Draw Call Count debug info table
 		ImGui::TableNextRow();
 		ImGui::TableNextColumn();
 		ImGui::Text(pipelineName);
 		ImGui::TableNextColumn();
 		ImGui::Text("%i", drawCount);
+		ImGui::TableNextColumn();
+		ImGui::Text(renderPass);
 	}
 
 	void EditorGui::imGuiPrintMat4x4Impl(const glm::mat4x4& mat, const char* name) {
@@ -257,6 +259,7 @@ namespace DOH::EDITOR {
 	void EditorGui::closeMonoSpaceTextureAtlasViewerWindow(const uint32_t textureId) {
 		INSTANCE->closeMonoSpaceTextureAtlasViewerWindowImpl(textureId);
 	}
+
 	void EditorGui::closeTextureArrayViewerWindow(const char* title) {
 		INSTANCE->closeTextureArrayViewerWindowImpl(title);
 	}
@@ -277,7 +280,6 @@ namespace DOH::EDITOR {
 		return INSTANCE->hasTextureArrayViewerWindowImpl(title);
 	}
 
-
 	void EditorGui::displayHelpTooltip(const char* message) {
 		INSTANCE->imGuiDisplayHelpTooltipImpl(message);
 	}
@@ -286,8 +288,8 @@ namespace DOH::EDITOR {
 		INSTANCE->imGuiBulletTextWrappedImpl(message);
 	}
 
-	void EditorGui::printDrawCallTableColumn(const char* pipelineName, uint32_t drawCount) {
-		INSTANCE->imGuiPrintDrawCallTableColumnImpl(pipelineName, drawCount);
+	void EditorGui::printDrawCallTableColumn(const char* pipelineName, const uint32_t drawCount, const char* renderPass) {
+		INSTANCE->imGuiPrintDrawCallTableColumnImpl(pipelineName, drawCount, renderPass);
 	}
 
 	void EditorGui::printMat4x4(const glm::mat4x4& mat, const char* name) {

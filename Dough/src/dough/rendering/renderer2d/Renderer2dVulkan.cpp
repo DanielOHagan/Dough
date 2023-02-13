@@ -48,8 +48,6 @@ namespace DOH {
 				batch.add(quad, 0);
 				mDrawnQuadCount++;
 			}
-		} else {
-			mTruncatedQuadCount++;
 		}
 	}
 
@@ -391,14 +389,14 @@ namespace DOH {
 	) {
 		const uint32_t uboBinding = 0;
 
-		mStorage->getQuadGraphicsPipeline().setImageUniformData(
+		mStorage->getQuadGraphicsPipeline().setFrameUniformData(
 			logicDevice,
 			currentImage,
 			uboBinding,
 			&sceneProjView,
 			sizeof(glm::mat4x4)
 		);
-		mStorage->getTextGraphicsPipeline().setImageUniformData(
+		mStorage->getTextGraphicsPipeline().setFrameUniformData(
 			logicDevice,
 			currentImage,
 			uboBinding,
@@ -485,8 +483,6 @@ namespace DOH {
 			}
 
 			textPipeline.recordDrawCommands(imageIndex, cmd);
-
-			textPipeline.clearRenderableToDraw();
 		}
 
 		mDrawnQuadCount = 0;

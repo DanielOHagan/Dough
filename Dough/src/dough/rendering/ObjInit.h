@@ -98,7 +98,6 @@ namespace DOH {
 
 		//-----Shader-----
 		static std::shared_ptr<ShaderProgramVulkan> shaderProgram(
-			//TODO:: Maybe use std::move shared ptr here so shader program instance has ownership of shaders
 			std::shared_ptr<ShaderVulkan> vertShader,
 			std::shared_ptr<ShaderVulkan> fragShader
 		);

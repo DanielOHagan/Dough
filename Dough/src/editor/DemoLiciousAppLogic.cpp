@@ -422,7 +422,6 @@ namespace DOH::EDITOR {
 		renderer.closeGpuResource(mCustomDemo->SceneVao);
 		renderer.closeGpuResource(mCustomDemo->UiShaderProgram);
 		renderer.closeGpuResource(mCustomDemo->UiVao);
-		renderer.closeGpuResource(mCustomDemo->TestTexture2);
 
 		//Obj Models Demo
 		for (const auto& model : mObjModelsDemo->LoadedModels) {
@@ -436,6 +435,7 @@ namespace DOH::EDITOR {
 		//Shared resources
 		renderer.closeGpuResource(mSharedDemoResources->TexturedShaderProgram);
 		renderer.closeGpuResource(mSharedDemoResources->TestTexture1);
+		renderer.closeGpuResource(mSharedDemoResources->TestTexture2);
 	}
 
 	void DemoLiciousAppLogic::onResize(float aspectRatio) {
@@ -546,7 +546,7 @@ namespace DOH::EDITOR {
 		initCustomDemo();
 		initObjModelsDemo();
 		initTextDemo();
-	
+
 		context.createPipelineUniformObjects();
 	}
 	
@@ -592,6 +592,7 @@ namespace DOH::EDITOR {
 		mSharedDemoResources = std::make_unique<SharedDemoResources>();
 
 		mSharedDemoResources->TestTexture1 = ObjInit::texture(mSharedDemoResources->TestTexturePath);
+		mSharedDemoResources->TestTexture2 = ObjInit::texture(mSharedDemoResources->TestTexture2Path);
 
 		mSharedDemoResources->TexturedShaderProgram = ObjInit::shaderProgram(
 			ObjInit::shader(EShaderType::VERTEX, SharedDemoResources::TexturedShaderVertPath),
@@ -607,7 +608,7 @@ namespace DOH::EDITOR {
 			*mSharedDemoResources->TexturedShaderProgram,
 			ERenderPass::APP_SCENE
 		);
-		mSharedDemoResources->TexturedPipelineInfo->setDepthTesting(true, VK_COMPARE_OP_LESS);
+		mSharedDemoResources->TexturedPipelineInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS);
 
 		RenderingContextVulkan& context = Application::get().getRenderer().getContext();
 		mSharedDemoResources->TexturedConveyor = context.createPipeline(
@@ -625,8 +626,6 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::initCustomDemo() {
 		mCustomDemo = std::make_unique<CustomDemo>();
 
-		mCustomDemo->TestTexture2 = ObjInit::texture(mCustomDemo->TestTexture2Path);
-	
 		//for (int i = 0; i < 8; i++) {
 		//	std::string path = testTexturesPath + "texture" + std::to_string(i) + ".png";
 		//	std::shared_ptr<TextureVulkan> testTexture = ObjInit::texture(path);
@@ -746,7 +745,7 @@ namespace DOH::EDITOR {
 			*mObjModelsDemo->SceneShaderProgram,
 			ERenderPass::APP_SCENE
 		);
-		mObjModelsDemo->ScenePipelineInfo->setDepthTesting(true, VK_COMPARE_OP_LESS);
+		mObjModelsDemo->ScenePipelineInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS);
 
 		//TODO:: wireframe for each vertex type
 		mObjModelsDemo->SceneWireframePipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
@@ -754,9 +753,9 @@ namespace DOH::EDITOR {
 			*mObjModelsDemo->SceneShaderProgram,
 			ERenderPass::APP_SCENE
 		);
-		mObjModelsDemo->SceneWireframePipelineInfo->setDepthTesting(true, VK_COMPARE_OP_LESS);
-		mObjModelsDemo->SceneWireframePipelineInfo->CullMode = VK_CULL_MODE_NONE;
-		mObjModelsDemo->SceneWireframePipelineInfo->PolygonMode = VK_POLYGON_MODE_LINE;
+		mObjModelsDemo->SceneWireframePipelineInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS);
+		mObjModelsDemo->SceneWireframePipelineInfo->getOptionalFields().CullMode = VK_CULL_MODE_NONE;
+		mObjModelsDemo->SceneWireframePipelineInfo->getOptionalFields().PolygonMode = VK_POLYGON_MODE_LINE;
 	
 		auto& context = Application::get().getRenderer().getContext();
 		mObjModelsDemo->ScenePipelineConveyor = context.createPipeline(

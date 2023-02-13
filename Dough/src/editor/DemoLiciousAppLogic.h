@@ -75,7 +75,6 @@ namespace DOH::EDITOR {
 				glm::mat4 ProjView;
 			};
 
-			const char* TestTexture2Path = "res/images/testTexture2.jpg";
 			const std::vector<Vertex3dTextured> SceneVertices = {
 				//	x		y		z		r		g		b		a		u		v		
 				{{	-0.5f,	-0.5f,	0.0f},	{1.0f,	0.0f,	0.0f,	1.0f},	{0.0f,	1.0f} },
@@ -113,8 +112,6 @@ namespace DOH::EDITOR {
 			std::shared_ptr<ShaderProgramVulkan> UiShaderProgram;
 			PipelineRenderableConveyor CustomUiConveyor;
 			const char* UiPipelineName = "CustomUi";
-
-			std::shared_ptr<TextureVulkan> TestTexture2;
 
 			//Renderables are for an easier API overall, they do not fully "own" an object,
 			// therefore, they are not responsible for clearing up resources
@@ -183,7 +180,9 @@ namespace DOH::EDITOR {
 			PipelineRenderableConveyor TexturedConveyor;
 
 			const char* TestTexturePath = "res/images/testTexture.jpg";
+			const char* TestTexture2Path = "res/images/testTexture2.jpg";
 			std::shared_ptr<TextureVulkan> TestTexture1;
+			std::shared_ptr<TextureVulkan> TestTexture2;
 		};
 
 		struct ImGuiSettings {

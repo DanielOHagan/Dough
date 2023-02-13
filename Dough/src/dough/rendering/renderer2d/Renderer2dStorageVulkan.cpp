@@ -175,8 +175,8 @@ namespace DOH {
 			*mQuadShaderProgram,
 			ERenderPass::APP_SCENE
 		);
-		mQuadGraphicsPipelineInstanceInfo->setDepthTesting(true, VK_COMPARE_OP_LESS);
-		mQuadGraphicsPipelineInstanceInfo->setBlending(
+		mQuadGraphicsPipelineInstanceInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS);
+		mQuadGraphicsPipelineInstanceInfo->getOptionalFields().setBlending(
 			false,
 			VK_BLEND_OP_ADD,
 			VK_BLEND_FACTOR_SRC_ALPHA,
@@ -266,9 +266,9 @@ namespace DOH {
 
 		//Text isn't culled by default for viewing from behind.
 		//Text depth testing in scene so it doesn't overlap, however, this causes z-fighting during kerning as each glyph is a rendered quad.
-		mTextGraphicsPipelineInstanceInfo->CullMode = VK_CULL_MODE_NONE;
-		mTextGraphicsPipelineInstanceInfo->setDepthTesting(true, VK_COMPARE_OP_LESS);
-		mTextGraphicsPipelineInstanceInfo->setBlending(
+		mTextGraphicsPipelineInstanceInfo->getOptionalFields().CullMode = VK_CULL_MODE_NONE;
+		mTextGraphicsPipelineInstanceInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS);
+		mTextGraphicsPipelineInstanceInfo->getOptionalFields().setBlending(
 			true,
 			VK_BLEND_OP_ADD,
 			VK_BLEND_FACTOR_SRC_ALPHA,

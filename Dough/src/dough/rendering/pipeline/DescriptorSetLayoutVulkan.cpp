@@ -1,6 +1,7 @@
 #include "dough/rendering/pipeline/DescriptorSetLayoutVulkan.h"
 
 #include "dough/rendering/ObjInit.h"
+#include "dough/Logging.h"
 
 namespace DOH {
 
@@ -13,6 +14,12 @@ namespace DOH {
 
 	void DescriptorSetLayoutVulkan::createDescriptorSetLayout(VkDevice logicDevice) {
 		if (mDescriptorSetLayoutCreated) {
+			//TODO:: Since pipelines can share the same instance of this class and createDescLayout() is called for each pipeline
+			// which results in this being called multiple times when it only needs it done once
+			// When Shader programs are separated from pipeline ownership they will be owned by "current render states" or something like that
+			// 
+			// 
+			//LOG_WARN("Attempting to create descriptor set layout layout when it already exists");
 			return;
 		}
 
@@ -31,6 +38,12 @@ namespace DOH {
 
 	void DescriptorSetLayoutVulkan::createValueBuffers(VkDevice logicDevice, VkPhysicalDevice physicalDevice, uint32_t count) {
 		if (mValueBuffersCreated) {
+			//TODO:: Since pipelines can share the same instance of this class and createDescLayout() is called for each pipeline
+			// which results in this being called multiple times when it only needs it done once
+			// When Shader programs are separated from pipeline ownership they will be owned by "current render states" or something like that
+			// 
+			// 
+			//LOG_WARN("Attempting to create value buffers when they already exist.");
 			return;
 		}
 
@@ -104,9 +117,11 @@ namespace DOH {
 	void DescriptorSetLayoutVulkan::updateAllDescriptorSets(VkDevice logicDevice, uint32_t imageCount) {
 		for (uint32_t swapChainImageIndex = 0; swapChainImageIndex < imageCount; swapChainImageIndex++) {
 			std::vector<VkWriteDescriptorSet> descWrites(mUniformLayout.getTotalUniformCount());
+			std::vector<VkDescriptorBufferInfo> valueInfos(mUniformLayout.getTotalValueCount());
 			std::vector<VkDescriptorImageInfo> imageInfos(mUniformLayout.getTotalTextureCount());
 
 			uint32_t writeIndex = 0;
+			uint32_t valueIndex = 0;
 			uint32_t imageIndex = 0;
 
 			//Attached values
@@ -123,7 +138,10 @@ namespace DOH {
 				write.dstArrayElement = 0;
 				write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 				write.descriptorCount = 1;
-				write.pBufferInfo = &bufferInfo;
+
+				valueInfos[valueIndex] = bufferInfo;
+				write.pBufferInfo = &valueInfos[valueIndex];
+				valueIndex++;
 
 				descWrites[writeIndex] = write;
 				writeIndex++;
@@ -204,7 +222,7 @@ namespace DOH {
 	void DescriptorSetLayoutVulkan::bindDescriptorSets(
 		VkCommandBuffer cmdBuffer,
 		VkPipelineLayout pipelineLayout,
-		uint32_t descriptorSetIndex
+		uint32_t imageIndex
 	) {
 		vkCmdBindDescriptorSets(
 			cmdBuffer,
@@ -212,7 +230,7 @@ namespace DOH {
 			pipelineLayout,
 			0,
 			1,
-			&mDescriptorSets[descriptorSetIndex],
+			&mDescriptorSets[imageIndex],
 			0,
 			nullptr
 		);

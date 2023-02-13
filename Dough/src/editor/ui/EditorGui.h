@@ -33,7 +33,7 @@ namespace DOH::EDITOR {
 		void imGuiPrintMat4x4Impl(const glm::mat4x4& mat, const char* name);
 		//inline void imGuiPrintMat4x4Impl(const glm::mat4x4& mat, const std::string& name) { imGuiPrintMat4x4(mat, name.c_str()); }
 
-		void imGuiPrintDrawCallTableColumnImpl(const char* pipelineName, uint32_t drawCount);
+		void imGuiPrintDrawCallTableColumnImpl(const char* pipelineName, const uint32_t drawCount, const char* renderPass);
 
 
 		//-----GUI Implementation Agnostic Functions-----
@@ -175,6 +175,6 @@ namespace DOH::EDITOR {
 		//IMPORTANT:: Calling this function outside of the table start/end is undefined behaviour.
 		//TODO:: Some kind of way of creating custom tables easily in the GUI
 		// It might be worth just keeping this function, in its current form, in EditorAppLogic
-		static void printDrawCallTableColumn(const char* pipelineName, uint32_t drawCount);
+		static void printDrawCallTableColumn(const char* pipelineName, const uint32_t drawCount, const char* renderPass);
 	};
 }

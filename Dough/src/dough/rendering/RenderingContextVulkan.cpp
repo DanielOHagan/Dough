@@ -95,6 +95,8 @@ namespace DOH {
 		mImGuiWrapper->init(window, imGuiInitInfo);
 		mImGuiWrapper->uploadFonts(*this);
 		mImGuiWrapper->createFrameBuffers(mLogicDevice, mSwapChain->getImageViews(), mSwapChain->getExtent());
+
+		mCurrentRenderState = std::make_unique<CustomRenderState>();
 	}
 
 	void RenderingContextVulkan::close() {
@@ -128,26 +130,11 @@ namespace DOH {
 	}
 	
 	void RenderingContextVulkan::closeAppPipelines() {
-		closeAppScenePipelines();
-		closeAppUiPipelines();
+		mCurrentRenderState->close(mLogicDevice);
 
 		if (mDescriptorPool != VK_NULL_HANDLE) {
 			vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
 		}
-	}
-
-	void RenderingContextVulkan::closeAppScenePipelines() {
-		for (const auto& pipeline : mAppSceneGraphicsPipelines) {
-			pipeline.second->close(mLogicDevice);
-		}
-		mAppSceneGraphicsPipelines.clear();
-	}
-
-	void RenderingContextVulkan::closeAppUiPipelines() {
-		for (const auto& pipeline : mAppUiGraphicsPipelines) {
-			pipeline.second->close(mLogicDevice);
-		}
-		mAppUiGraphicsPipelines.clear();
 	}
 
 	void RenderingContextVulkan::closeGpuResourceImmediately(std::shared_ptr<IGPUResourceVulkan> res) {
@@ -179,22 +166,15 @@ namespace DOH {
 			Application::get().getRenderer().deviceWaitIdle("Device waiting idle for swap chain recreation");
 
 			std::vector<DescriptorTypeInfo> totalDescTypes;
-			
-			for (const auto& pipeline : mAppSceneGraphicsPipelines) {
-				std::vector<DescriptorTypeInfo> descTypes = pipeline.second->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes();
-				totalDescTypes.reserve(totalDescTypes.size() + descTypes.size());
 
-				for (const DescriptorTypeInfo& descType : descTypes) {
-					totalDescTypes.emplace_back(descType);
-				}
-			}
+			for (const auto& pipelineGroup : mCurrentRenderState->getRenderPassGraphicsPipelineMap()) {
+				for (const auto& [name, pipeline] : pipelineGroup.second) {
+					std::vector<DescriptorTypeInfo> descTypes = pipeline->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes();
+					totalDescTypes.reserve(totalDescTypes.size() + descTypes.size());
 
-			for (const auto& pipeline : mAppUiGraphicsPipelines) {
-				std::vector<DescriptorTypeInfo> descTypes = pipeline.second->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes();
-				totalDescTypes.reserve(totalDescTypes.size() + descTypes.size());
-
-				for (const DescriptorTypeInfo& descType : descTypes) {
-					totalDescTypes.emplace_back(descType);
+					for (const DescriptorTypeInfo& descType : descTypes) {
+						totalDescTypes.emplace_back(descType);
+					}
 				}
 			}
 
@@ -231,22 +211,15 @@ namespace DOH {
 				mDescriptorPool = createDescriptorPool(totalDescTypes);
 			}
 
-			for (const auto& pipeline : mAppSceneGraphicsPipelines) {
-				pipeline.second->recreate(
-					mLogicDevice,
-					mSwapChain->getExtent(),
-					mAppSceneRenderPass->get()
-				);
-				createPipelineUniformObjects(*pipeline.second, mDescriptorPool);
-			}
-
-			for (const auto& pipeline : mAppUiGraphicsPipelines) {
-				pipeline.second->recreate(
-					mLogicDevice,
-					mSwapChain->getExtent(),
-					mAppUiRenderPass->get()
-				);
-				createPipelineUniformObjects(*pipeline.second, mDescriptorPool);
+			for (auto& pipelineGroup : mCurrentRenderState->getRenderPassGraphicsPipelineMap()) {
+				for (auto& pipeline : pipelineGroup.second) {
+					pipeline.second->recreate(
+						mLogicDevice,
+						mSwapChain->getExtent(),
+						getRenderPass(pipelineGroup.first).get()
+					);
+					createPipelineUniformObjects(*pipeline.second, mDescriptorPool);
+				}
 			}
 
 			mRenderer2d->onSwapChainResize(mLogicDevice, *mSwapChain);
@@ -291,14 +264,6 @@ namespace DOH {
 
 		mImGuiWrapper->endFrame();
 
-		//Clear to-draw lists whether or not pipeline is enabled
-		for (const auto& pipeline : mAppSceneGraphicsPipelines) {
-			pipeline.second->clearRenderableToDraw();
-		}
-		for (const auto& pipeline : mAppUiGraphicsPipelines) {
-			pipeline.second->clearRenderableToDraw();
-		}
-
 		endCommandBuffer(cmd);
 
 		present(imageIndex, cmd);
@@ -313,24 +278,30 @@ namespace DOH {
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 
 		mAppSceneRenderPass->begin(mAppSceneFrameBuffers[imageIndex], mSwapChain->getExtent(), cmd);
+		auto scenePipelines = mCurrentRenderState->getRenderPassGraphicsPipelineGroup(ERenderPass::APP_SCENE);
+		if (scenePipelines.has_value()) {
+			for (auto& pipeline : scenePipelines.value()) {
+				if (pipeline.second->isEnabled() && pipeline.second->getVaoDrawCount() > 0) {
 
-		for (const auto& pipeline : mAppSceneGraphicsPipelines) {
-			if (pipeline.second->isEnabled() && pipeline.second->getVaoDrawCount() > 0) {
+					//TODO:: 
+					// FIX:: This sets the data for all shader programs used by scene graphics pipelines in the frame.
+					// Even if the data in the descriptors has already been set when a prior pipeline, which has
+					// the same shader program, has been cycled through.
 
-				//Assumes all scene pipelines use this UBO and they're at binding 0
-				const uint32_t binding = 0;
+					//IMPORTANT:: Assumes all scene pipelines use this UBO and they're at binding 0
+					const uint32_t binding = 0;
+					pipeline.second->setFrameUniformData(
+						mLogicDevice,
+						imageIndex,
+						binding,
+						&mAppSceneUbo,
+						sizeof(UniformBufferObject)
+					);
 
-				pipeline.second->setImageUniformData(
-					mLogicDevice,
-					imageIndex,
-					binding,
-					&mAppSceneUbo,
-					sizeof(UniformBufferObject)
-				);
-
-				pipeline.second->bind(cmd);
-				pipeline.second->recordDrawCommands(imageIndex, cmd);
-				debugInfo.SceneDrawCalls += pipeline.second->getVaoDrawCount();
+					debugInfo.SceneDrawCalls += pipeline.second->getVaoDrawCount();
+					pipeline.second->bind(cmd);
+					pipeline.second->recordDrawCommands(imageIndex, cmd);
+				}
 			}
 		}
 		
@@ -346,22 +317,30 @@ namespace DOH {
 
 		mAppUiRenderPass->begin(mAppUiFrameBuffers[imageIndex], mSwapChain->getExtent(), cmd);
 
-		for (const auto& pipeline : mAppUiGraphicsPipelines) {
-			if (pipeline.second->isEnabled() && pipeline.second->getVaoDrawCount() > 0) {
+		auto uiPipelines = mCurrentRenderState->getRenderPassGraphicsPipelineGroup(ERenderPass::APP_UI);
+		if (uiPipelines.has_value()) {
+			for (auto& pipeline : uiPipelines.value()) {
+				if (pipeline.second->isEnabled() && pipeline.second->getVaoDrawCount() > 0) {
 
-				//Assumes all scene pipelines use this UBO and they're at binding 0
-				const uint32_t binding = 0;
-				pipeline.second->setImageUniformData(
-					mLogicDevice,
-					imageIndex,
-					binding,
-					&mAppUiProjection,
-					sizeof(glm::mat4x4)
-				);
+					//TODO:: 
+					// FIX:: This sets the data for all shader programs used by scene graphics pipelines in the frame.
+					// Even if the data in the descriptors has already been set when a prior pipeline, which has
+					// the same shader program, has been cycled through.
 
-				pipeline.second->bind(cmd);
-				pipeline.second->recordDrawCommands(imageIndex, cmd);
-				debugInfo.UiDrawCalls += pipeline.second->getVaoDrawCount();
+					//IMPORTANT:: Assumes all scene pipelines use this UBO and they're at binding 0
+					const uint32_t binding = 0;
+					pipeline.second->setFrameUniformData(
+						mLogicDevice,
+						imageIndex,
+						binding,
+						&mAppUiProjection,
+						sizeof(UniformBufferObject)
+					);
+
+					debugInfo.UiDrawCalls += pipeline.second->getVaoDrawCount();
+					pipeline.second->bind(cmd);
+					pipeline.second->recordDrawCommands(imageIndex, cmd);
+				}
 			}
 		}
 
@@ -443,7 +422,7 @@ namespace DOH {
 		);
 	}
 
-	VkDescriptorPool RenderingContextVulkan::createDescriptorPool(std::vector<DescriptorTypeInfo>& descTypes) {
+	VkDescriptorPool RenderingContextVulkan::createDescriptorPool(const std::vector<DescriptorTypeInfo>& descTypes) {
 		VkDescriptorPool descPool;
 
 		const uint32_t imageCount = mSwapChain->getImageCount();
@@ -659,94 +638,107 @@ namespace DOH {
 		GraphicsPipelineInstanceInfo& instanceInfo,
 		const bool enabled
 	) {
-		auto& map = instanceInfo.RenderPass == ERenderPass::APP_SCENE ? mAppSceneGraphicsPipelines : mAppUiGraphicsPipelines;
-		const auto& itr = map.find(name);
-		if (itr != map.end()) {
-			LOG_ERR("Pipeline already exists: " << name);
+		std::optional<GraphicsPipelineMap> map = mCurrentRenderState->getRenderPassGraphicsPipelineGroup(instanceInfo.getRenderPass());
+
+		if (map.has_value()) {
+			//Check if pipeline already exists
+			const auto& itr = map.value().find(name);
+			if (itr != map.value().end()) {
+				LOG_ERR("Pipeline already exists: " << name.c_str());
+				return {};
+			}
+
+			const auto pipeline = createGraphicsPipeline(instanceInfo, mSwapChain->getExtent());
+			if (pipeline != nullptr) {
+				pipeline->setEnabled(enabled);
+				mCurrentRenderState->addPipelineToRenderPass(instanceInfo.getRenderPass(), name, pipeline);
+
+				return { *pipeline };
+			} else {
+				LOG_ERR("Failed to create pipeline: " << name.c_str());
+				return {};
+			}
+		} else {
+			LOG_ERR("Pipeline group not found: " << ERenderPassStrings[static_cast<uint32_t>(instanceInfo.getRenderPass())]);
 			return {};
 		}
-
-		const auto pipeline = createGraphicsPipeline(instanceInfo, mSwapChain->getExtent());
-		pipeline->setEnabled(enabled);
-
-		map.emplace(name, pipeline);
-
-		return { *pipeline };
 	}
 
 	PipelineRenderableConveyor RenderingContextVulkan::createPipelineConveyor(
 		const ERenderPass renderPass,
 		const std::string& name
 	) {
-		auto& map = renderPass == ERenderPass::APP_SCENE ? mAppSceneGraphicsPipelines : mAppUiGraphicsPipelines;
-		const auto& itr = map.find(name);
-		if (itr != map.end()) {
-			return { *itr->second };
+		std::optional<GraphicsPipelineMap> map = mCurrentRenderState->getRenderPassGraphicsPipelineGroup(renderPass);
+
+		if (map.has_value()) {
+			const auto& itr = map.value().find(name);
+			if (itr != map.value().end()) {
+				return { *itr->second };
+			} else {
+				LOG_ERR("Pipeline not found: " << name);
+				return {};
+			}
 		} else {
-			LOG_ERR("Pipeline (" << name << ") not found");
+			LOG_ERR("Pipeline group not found: " << ERenderPassStrings[(uint32_t) renderPass]);
 			return {};
 		}
 	}
 
 	void RenderingContextVulkan::enablePipeline(const ERenderPass renderPass, const std::string& name, bool enable) {
-		auto& map = renderPass == ERenderPass::APP_SCENE ? mAppSceneGraphicsPipelines : mAppUiGraphicsPipelines;
-		const auto& itr = map.find(name);
-		if (itr != map.end()) {
-			itr->second->setEnabled(enable);
-		} else {
-			LOG_WARN("Unable to find pipeline: " << name);
+		std::optional<GraphicsPipelineMap> map = mCurrentRenderState->getRenderPassGraphicsPipelineGroup(renderPass);
+
+		if (map.has_value()) {
+			const auto& itr = map.value().find(name);
+			if (itr != map.value().end()) {
+				itr->second->setEnabled(enable);
+			} else {
+				LOG_WARN("Unable to find pipeline: " << name);
+			}
 		}
 	}
 
 	void RenderingContextVulkan::closePipeline(const ERenderPass renderPass, const std::string& name) {
-		auto& map = renderPass == ERenderPass::APP_SCENE ? mAppSceneGraphicsPipelines : mAppUiGraphicsPipelines;
-		const auto& itr = map.find(name);
-		if (itr != map.end()) {
-			itr->second->close(mLogicDevice);
-			map.erase(itr);
-		} else {
-			LOG_WARN("Unable to find pipeline: " << name);
+		std::optional<GraphicsPipelineMap> map = mCurrentRenderState->getRenderPassGraphicsPipelineGroup(renderPass);
+
+		if (map.has_value()) {
+			const auto& itr = map.value().find(name);
+			if (itr != map.value().end()) {
+				itr->second->close(mLogicDevice);
+				map.value().erase(itr);
+			} else {
+				LOG_WARN("Unable to find pipeline: " << name);
+			}
 		}
 	}
 
 	void RenderingContextVulkan::createPipelineUniformObjects() {
 		std::vector<DescriptorTypeInfo> descTypes;
 		uint32_t pipelineCount = 0;
-		for (const auto& pipeline : mAppSceneGraphicsPipelines) {
-			for (const auto& descType : pipeline.second->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes()) {
-				descTypes.emplace_back(descType);
-			}
-			pipelineCount++;
-		}
 
-		for (const auto& pipeline : mAppUiGraphicsPipelines) {
-			for (const auto& descType : pipeline.second->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes()) {
-				descTypes.emplace_back(descType);
+		for (const auto& pipelineGroup : mCurrentRenderState->getRenderPassGraphicsPipelineMap()) {
+			for (const auto& pipeline : pipelineGroup.second) {
+				for (const auto& descType : pipeline.second->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes()) {
+					descTypes.emplace_back(descType);
+				}
+				pipelineCount++;
 			}
-			pipelineCount++;
 		}
 
 		if (pipelineCount > 0) {
 			mDescriptorPool = createDescriptorPool(descTypes);
 
-			for (const auto& pipeline : mAppSceneGraphicsPipelines) {
-				pipeline.second->createShaderUniforms(
-					mLogicDevice,
-					mPhysicalDevice,
-					mSwapChain->getImageCount(),
-					mDescriptorPool
-				);
-				pipeline.second->updateShaderUniforms(mLogicDevice, mSwapChain->getImageCount());
-			}
+			const uint32_t imageCount = mSwapChain->getImageCount();
 
-			for (const auto& pipeline : mAppUiGraphicsPipelines) {
-				pipeline.second->createShaderUniforms(
-					mLogicDevice,
-					mPhysicalDevice,
-					mSwapChain->getImageCount(),
-					mDescriptorPool
-				);
-				pipeline.second->updateShaderUniforms(mLogicDevice, mSwapChain->getImageCount());
+			for (auto& pipelineGroup : mCurrentRenderState->getRenderPassGraphicsPipelineMap()) {
+				for (auto& pipeline : pipelineGroup.second) {
+					pipeline.second->createShaderUniforms(
+						mLogicDevice,
+						mPhysicalDevice,
+						imageCount,
+						mDescriptorPool
+					);
+					pipeline.second->updateShaderUniforms(mLogicDevice, imageCount);
+				}
 			}
 		} else {
 			LOG_WARN("Attempted to create uniform objects when not using any custom pipelines");
@@ -1041,10 +1033,10 @@ namespace DOH {
 		GraphicsPipelineInstanceInfo& instanceInfo,
 		VkExtent2D extent
 	) {
-		return std::make_unique<GraphicsPipelineVulkan>(
+		return std::make_shared<GraphicsPipelineVulkan>(
 			mLogicDevice,
 			instanceInfo,
-			getRenderPass(instanceInfo.RenderPass).get(),
+			getRenderPass(instanceInfo.getRenderPass()).get(),
 			extent
 		);
 	}
