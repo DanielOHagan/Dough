@@ -288,98 +288,12 @@ namespace DOH {
 		mDrawnQuadCount += static_cast<uint32_t>(quadArr.size());
 	}
 
-	std::vector<Quad> Renderer2dVulkan::getStringAsQuads(
-		const char* string,
-		const glm::vec3 rootPos,
-		const FontBitmap& bitmap,
-		const ETextFlags2d flags
-	) const {
-		const size_t stringLength = strlen(string);
-
-		if (stringLength == 0) {
-			return {};
+	void Renderer2dVulkan::drawTextString(TextString& string) {
+		if (string.getCurrentFontBitmap().getPageCount() > 1) {
+			drawTextFromQuads(string.getQuads());
+		} else {
+			drawTextSameTextureFromQuads(string.getQuads());
 		}
-
-		std::vector<Quad> quads;
-		quads.reserve(stringLength);
-
-		glm::vec3 currentPos = rootPos;
-
-		uint32_t lastCharId = 0;
-
-		for (size_t i = 0; i < stringLength; i++) {
-			//TODO:: currently doesn't support a UTF-8 conversion so a cast to uint produces ASCII decimal values
-			const uint32_t charId = static_cast<uint32_t>(string[i]);
-
-			//Handle special characters
-			if (charId == 32) { //space
-				currentPos.x += bitmap.getSpaceWidthNorm();
-				lastCharId = 0;
-				continue;
-			} else if (charId == 10) { //new line
-				currentPos.y -=  bitmap.getLineHeightNorm();
-				currentPos.x = rootPos.x;
-				lastCharId = 0;
-				continue;
-			} else if (charId == 9) { //tab
-				currentPos.x += bitmap.getTabWidthNorm(); //Tab size is equal to 4 glyph sizes
-				lastCharId = 0;
-				continue;
-			}
-
-			const auto& g = bitmap.getGlyphMap().find(charId);
-			if (g != bitmap.getGlyphMap().end()) {
-
-				Quad quad = {};
-				quad.Position = {
-					currentPos.x + g->second.Offset.x,
-					currentPos.y - g->second.Size.y + bitmap.getBaseNorm() + g->second.Offset.y,
-					currentPos.z
-				};
-				quad.Size = {
-					g->second.Size.x,
-					g->second.Size.y
-				};
-
-				quad.TextureCoords = {
-					g->second.TexCoordTopLeft.x,
-					g->second.TexCoordBotRight.y,
-
-					g->second.TexCoordBotRight.x,
-					g->second.TexCoordBotRight.y,
-
-					g->second.TexCoordBotRight.x,
-					g->second.TexCoordTopLeft.y,
-					
-					g->second.TexCoordTopLeft.x,
-					g->second.TexCoordTopLeft.y
-				};
-
-				quad.Colour = { 1.0f, 1.0f, 1.0f, 1.0f };
-
-				//TODO:: convert to using an unordered_map instead of vector
-				//TODO:: if kerning and depth testing is enabled then Z-fighting occurs between applied quads
-				//if (kerning is enabled) {
-				//	for (const KerningData& k : bitmap.getKernings()) {
-				//		if (k.FirstGlyphId == lastCharId && k.SecondGlyphId == charId) {
-				//			quad.Position.x += k.Amount;
-				//		}
-				//	}
-				//}
-
-				lastCharId = charId;
-
-				quad.setTexture(*bitmap.getPageTexture(g->second.PageId));
-				quads.emplace_back(quad);
-
-				currentPos.x += g->second.AdvanceX;
-
-			} else {
-				LOG_WARN("Failed to find charId: " << charId << " in bitmap");
-			}
-		}
-
-		return quads;
 	}
 
 	void Renderer2dVulkan::updateRenderer2dUniformData(

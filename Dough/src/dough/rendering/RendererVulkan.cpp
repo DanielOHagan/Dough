@@ -333,7 +333,7 @@ namespace DOH {
 		mRenderingContext->setAppSceneUniformBufferObject(camera);
 	}
 
-	void RendererVulkan::endScene() {		
+	void RendererVulkan::endScene() {
 		//TODO:: For the batch renderer
 		// Maybe have a list of references to geometry and a list of references to a lists of geometry which are to be
 		// added to batches in renderer2dStorage, possibly by a separate thread

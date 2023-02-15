@@ -135,8 +135,7 @@ namespace DOH::EDITOR {
 		}
 
 		if (mTextDemo->Render) {
-			//If text bitmap has only one page then drawTextSameTextureFromQuads() can be used
-			renderer2d.drawTextSameTextureFromQuads(mTextDemo->TextQuads);
+			renderer2d.drawTextString(*mTextDemo->TextString);
 		}
 
 		renderer.endScene();
@@ -315,15 +314,21 @@ namespace DOH::EDITOR {
 
 				ImGui::Text("String length limit: %i", TextDemo::StringLengthLimit);
 				EditorGui::displayHelpTooltip(
-				R"(Larger strings can be displayed as the text renderer uses a Quad batch of size 10,000 (by default). )"
-						R"(The limitation is because ImGui InputText field requires extra implementation for dynamic data on the heap.)"
+					R"(Larger strings can be displayed as the text renderer uses a Quad batch of size 10,000 (by default). )"
+					R"(The limitation is because ImGui InputText field requires extra implementation for dynamic data on the heap.)"
 				);
-				if (ImGui::InputTextMultiline("Display Text", mTextDemo->String, sizeof(mTextDemo->String))) {
-					mTextDemo->TextQuads = renderer2d.getStringAsQuads(mTextDemo->String);
+
+				if (ImGui::InputTextMultiline("Display Text", mTextDemo->StringBuffer, sizeof(mTextDemo->StringBuffer))) {
+					mTextDemo->TextString->setString(mTextDemo->StringBuffer);
+				}
+
+				float tempScale = mTextDemo->TextString->getScale();
+				if (ImGui::DragFloat("Text Scale", &tempScale, 0.05f, 0.05f, 5.0f)) {
+					mTextDemo->TextString->setScale(tempScale);
 				}
 
 				if (ImGui::ColorPicker4("String Colour", mTextDemo->Colour)) {
-					for (Quad& quad : mTextDemo->TextQuads) {
+					for (Quad& quad : mTextDemo->TextString->getQuads()) {
 						quad.setColourRGBA(
 							mTextDemo->Colour[0],
 							mTextDemo->Colour[1],
@@ -782,7 +787,10 @@ namespace DOH::EDITOR {
 		//Set a defualt message for the text demo here
 		
 		//Generate quads for default message
-		mTextDemo->TextQuads = renderer2d.getStringAsQuads(mTextDemo->String);
+		mTextDemo->TextString = std::make_unique<TextString>(
+			mTextDemo->StringBuffer,
+			renderer2d.getStorage().getFontBitmap("Arial")
+		);
 	}
 	
 	void DemoLiciousAppLogic::bouncingQuadsDemoAddRandomQuads(size_t count) {

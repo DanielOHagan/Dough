@@ -53,8 +53,9 @@ namespace DOH {
 		std::shared_ptr<GraphicsPipelineVulkan> mTextGraphicsPipeline;
 		std::unique_ptr<RenderBatchQuad> mTextRenderBatch;
 		std::shared_ptr<SimpleRenderable> mRenderableTextBatch;
-		std::shared_ptr<FontBitmap> mArialBitmap;
 		std::unique_ptr<TextureArray> mTextBatchTextureArray;
+
+		std::unordered_map<std::string, std::shared_ptr<FontBitmap>> mFontBitmaps;
 
 		//TEMP::
 		const char* testTexturesPath = "res/images/test textures/";
@@ -64,9 +65,14 @@ namespace DOH {
 		void initForQuads(VkDevice logicDevice);
 		void initForText(VkDevice logicDevice);
 
+		void addFontBitmapToTextTextureArray(const FontBitmap& fontBitmap);
+
 		void createDescriptorPool();
 
 	public:
+
+		static constexpr const char* DEFAULT_FONT_BITMAP_NAME = "Arial";
+
 		//Max count of objects allowed per batch
 		
 		//BATCH_QUAD_COUNT is given an arbitrary number, it can be higher or lower depending on need.
@@ -115,6 +121,6 @@ namespace DOH {
 
 		inline const std::vector<std::shared_ptr<TextureVulkan>>& getTestTextures() const { return mTestTextures; }
 		inline const std::shared_ptr<MonoSpaceTextureAtlas> getTestTextureAtlas() const { return mTestTexturesAtlas; }
-		inline const FontBitmap& getArialBitmap() const { return *mArialBitmap; }
+		FontBitmap& getFontBitmap(const char* font) const;
 	};
 }

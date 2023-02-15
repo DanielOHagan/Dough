@@ -5,7 +5,7 @@
 #include "dough/rendering/buffer/VertexArrayVulkan.h"
 #include "dough/rendering/textures/TextureVulkan.h"
 #include "dough/rendering/Config.h"
-#include "dough/scene/geometry/Quad.h"
+#include "dough/scene/geometry/primitives/Quad.h"
 #include "dough/rendering/renderables/RenderableModel.h"
 #include "dough/rendering/renderables/SimpleRenderable.h"
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"

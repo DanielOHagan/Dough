@@ -2,7 +2,7 @@
 
 #include "dough/files/FntFileData.h"
 #include "dough/rendering/textures/TextureVulkan.h"
-#include "dough/scene/geometry/Quad.h"
+#include "dough/scene/geometry/primitives/Quad.h"
 
 namespace DOH {
 
@@ -31,6 +31,7 @@ namespace DOH {
 	class FontBitmap {
 
 	private:
+		constexpr static uint32_t TAB_SPACE_COUNT = 4;
 		//TODO:: currently only supports .fnt files
 
 		std::vector<std::shared_ptr<TextureVulkan>> mPageTextures;
@@ -50,7 +51,7 @@ namespace DOH {
 		FontBitmap(const char* filepath, const char* imageDir);
 
 		inline const float getSpaceWidthNorm() const { return mSpaceWidthNorm; }
-		inline const float getTabWidthNorm() const { return mSpaceWidthNorm * 4; }
+		inline const float getTabWidthNorm() const { return mSpaceWidthNorm * static_cast<float>(FontBitmap::TAB_SPACE_COUNT); }
 		inline const float getLineHeightNorm() const { return mLineHeightNorm; }
 		inline const float getBaseNorm() const { return mBaseNorm; }
 		inline const std::unordered_map<uint32_t, GlyphData>& getGlyphMap() const { return mGlyphMap; }

@@ -3,7 +3,7 @@
 #include "dough/application/IApplicationLogic.h"
 #include "dough/Core.h"
 #include "dough/Maths.h"
-#include "dough/scene/geometry/Quad.h"
+#include "dough/scene/geometry/collections/TextString.h"
 #include "dough/rendering/RendererVulkan.h"
 #include "dough/rendering/renderables/RenderableModel.h"
 
@@ -156,10 +156,10 @@ namespace DOH::EDITOR {
 		};
 
 		struct TextDemo {
-			static constexpr size_t StringLengthLimit = 1024; //Arbitrary limit
+			static constexpr size_t StringLengthLimit = 1000; //Arbitrary limit
 		
-			std::vector<Quad> TextQuads;
-			char String[StringLengthLimit] = "This is the default text string. Use the Text Field to change me!";
+			std::unique_ptr<TextString> TextString;
+			char StringBuffer[StringLengthLimit] = "This is the default text string. Use the Text Field to change me!";
 			float Colour[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 		
 			bool Update = false;

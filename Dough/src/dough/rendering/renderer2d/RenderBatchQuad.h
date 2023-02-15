@@ -1,7 +1,7 @@
 #pragma once
 
 #include "dough/rendering/renderer2d/ARenderBatch.h"
-#include "dough/scene/geometry/Quad.h"
+#include "dough/scene/geometry/primitives/Quad.h"
 #include "dough/rendering/Config.h"
 
 

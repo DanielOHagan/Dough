@@ -54,8 +54,10 @@ namespace DOH {
 			renderableQuadBatch->getVao().close(logicDevice);
 		}
 
-		for (const auto& texture : mArialBitmap->getPageTextures()) {
-			texture->close(logicDevice);
+		for (auto& fontBitmap : mFontBitmaps) {
+			for (auto& page : fontBitmap.second->getPageTextures()) {
+				page->close(logicDevice);
+			}
 		}
 
 		mQuadSharedIndexBuffer->close(logicDevice);
@@ -213,23 +215,21 @@ namespace DOH {
 	}
 
 	void Renderer2dStorageVulkan::initForText(VkDevice logicDevice) {
-		mArialBitmap = ObjInit::fontBitmap("res/fonts/arial_latin_32px.fnt", "res/fonts/");
-
 		mTextBatchTextureArray = std::make_unique<TextureArray>(
 			BatchSizeLimits::BATCH_MAX_COUNT_TEXTURE,
 			*mWhiteTexture
 		);
 
-		uint32_t bitmapTexturesAdded = 0;
-		for (const auto& texture : mArialBitmap->getPageTextures()) {
-			mTextBatchTextureArray->addNewTexture(*texture);
-			bitmapTexturesAdded++;
-		}
-		if (bitmapTexturesAdded < mArialBitmap->getPageCount()) {
-			LOG_ERR(
-				"Failed to add all arial bitmap textures to quad batch texture array. Missing: " <<
-				mArialBitmap->getPageCount() - bitmapTexturesAdded
-			);
+		mFontBitmaps = {};
+		const auto& arialFont = mFontBitmaps.emplace(
+			Renderer2dStorageVulkan::DEFAULT_FONT_BITMAP_NAME, //Store Arial font as default
+			ObjInit::fontBitmap("res/fonts/arial_latin_32px.fnt", "res/fonts/")
+		);
+		if (arialFont.second) {
+			addFontBitmapToTextTextureArray(*arialFont.first->second);
+		} else {
+			LOG_ERR("Failed to store default font: " << Renderer2dStorageVulkan::DEFAULT_FONT_BITMAP_NAME);
+			THROW("");
 		}
 
 		mTextShaderProgram = ObjInit::shaderProgram(
@@ -282,5 +282,29 @@ namespace DOH {
 			*mTextGraphicsPipelineInstanceInfo,
 			mContext.getSwapChain().getExtent()
 		);
+	}
+
+	void Renderer2dStorageVulkan::addFontBitmapToTextTextureArray(const FontBitmap& fontBitmap) {
+		uint32_t bitmapTexturesAdded = 0;
+		for (const auto& texture : fontBitmap.getPageTextures()) {
+			mTextBatchTextureArray->addNewTexture(*texture);
+			bitmapTexturesAdded++;
+		}
+		if (bitmapTexturesAdded < fontBitmap.getPageCount()) {
+			LOG_ERR(
+				"Failed to add all arial bitmap textures to quad batch texture array. Missing: " <<
+				fontBitmap.getPageCount() - bitmapTexturesAdded
+			);
+		}
+	}
+
+	FontBitmap& Renderer2dStorageVulkan::getFontBitmap(const char* font) const {
+		const auto& fontItr = mFontBitmaps.find(font);
+		if (fontItr != mFontBitmaps.end()) {
+			return *fontItr->second;
+		} else {
+			const auto& defaultFontItr = mFontBitmaps.find(Renderer2dStorageVulkan::DEFAULT_FONT_BITMAP_NAME);
+			return *defaultFontItr->second;
+		}
 	}
 }

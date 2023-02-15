@@ -2,7 +2,7 @@
 
 #include "dough/files/ResourceHandler.h"
 #include "dough/Logging.h"
-#include "dough/scene/geometry/Quad.h"
+#include "dough/scene/geometry/primitives/Quad.h"
 #include "dough/rendering/ObjInit.h"
 
 namespace DOH {
