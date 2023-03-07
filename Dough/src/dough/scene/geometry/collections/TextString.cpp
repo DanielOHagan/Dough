@@ -20,8 +20,8 @@ namespace DOH {
 	void TextString::setString(const char* string) {
 		size_t length = strlen(string);
 		if (length == 0) {
-			//LOG_WARN("setString given empty string");
 			mStringQuads.clear();
+			mString = "";
 			return;
 		}
 
@@ -62,15 +62,6 @@ namespace DOH {
 		}
 
 		mScale = scale;
-	}
-
-	std::vector<Quad> TextString::getStringAsQuads(
-		const char* string,
-		const FontBitmap& bitmap,
-		const float scale,
-		const ETextFlags2d flags
-	) {
-		return TextString::getStringAsQuads(string, bitmap, { 0.0f, 0.0f, 0.0f }, scale, flags);
 	}
 
 	std::vector<Quad> TextString::getStringAsQuads(

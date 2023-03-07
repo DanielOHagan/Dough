@@ -5,124 +5,38 @@ namespace DOH {
 
 	SwapChainVulkan::SwapChainVulkan(
 		VkDevice logicDevice,
-		SwapChainSupportDetails& scsd,
-		VkSurfaceKHR surface,
-		QueueFamilyIndices& indices,
-		uint32_t width,
-		uint32_t height
-	) : mSwapChainSupportDetails(scsd),
-		mSwapChain(VK_NULL_HANDLE),
+		SwapChainCreationInfo& scCreate
+	) : mSwapChain(VK_NULL_HANDLE),
 		mImageFormat(VK_FORMAT_UNDEFINED),
 		mExtent({}),
 		mResizable(true)
 	{
-		init(logicDevice, scsd, surface, indices, width, height);
+		init(logicDevice, scCreate);
 	}
 
-	SwapChainVulkan::SwapChainVulkan(
-		VkDevice logicDevice,
-		SwapChainCreationInfo& creationInfo
-	) : mSwapChainSupportDetails(creationInfo.SupportDetails),
-		mSwapChain(VK_NULL_HANDLE),
-		mImageFormat(VK_FORMAT_UNDEFINED),
-		mExtent({}),
-		mResizable(true)
-	{
-		init(
-			logicDevice,
-			mSwapChainSupportDetails,
-			creationInfo.Surface,
-			creationInfo.Indices,
-			creationInfo.getWidth(),
-			creationInfo.getHeight()
-		);
-	}
-
-	void SwapChainVulkan::init(
-		VkDevice logicDevice,
-		SwapChainSupportDetails& swapChainSupportDetails,
-		VkSurfaceKHR surface,
-		QueueFamilyIndices& indices,
-		uint32_t width,
-		uint32_t height
-	) {
-		TRY(width < 1 || height < 1, "Swap Chain Width and Height must be larger than 0.");
-
-		mSwapChainSupportDetails = swapChainSupportDetails;
-
-		VkSurfaceFormatKHR surfaceFormat = SwapChainVulkan::chooseSwapSurfaceFormat(mSwapChainSupportDetails.formats);
-		VkPresentModeKHR presentMode = SwapChainVulkan::chooseSwapPresentMode(mSwapChainSupportDetails.presentModes);
-		VkExtent2D extent = SwapChainVulkan::chooseSwapExtent(mSwapChainSupportDetails.capabilities, width, height);
-
-		uint32_t imageCount = mSwapChainSupportDetails.capabilities.minImageCount + 1;
-		if (mSwapChainSupportDetails.capabilities.maxImageCount > 0 && imageCount > mSwapChainSupportDetails.capabilities.maxImageCount) {
-			imageCount = mSwapChainSupportDetails.capabilities.maxImageCount;
-		}
-
-		VkSwapchainCreateInfoKHR createInfo = {};
-		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		createInfo.surface = surface;
-		createInfo.minImageCount = imageCount;
-		createInfo.imageFormat = surfaceFormat.format;
-		createInfo.imageColorSpace = surfaceFormat.colorSpace;
-		createInfo.imageExtent = extent;
-		createInfo.imageArrayLayers = 1;
-		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-		uint32_t queueFamilyIndices[] = { indices.GraphicsFamily.value(), indices.PresentFamily.value() };
-
-		if (indices.GraphicsFamily != indices.PresentFamily) {
-			createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-			createInfo.queueFamilyIndexCount = 2;
-			createInfo.pQueueFamilyIndices = queueFamilyIndices;
-		} else {
-			createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-			createInfo.queueFamilyIndexCount = 0; //Optional
-			createInfo.pQueueFamilyIndices = nullptr; //Optional
-		}
-
-		createInfo.preTransform = mSwapChainSupportDetails.capabilities.currentTransform;
-		createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-		createInfo.presentMode = presentMode;
-		createInfo.clipped = VK_TRUE;
-		createInfo.oldSwapchain = VK_NULL_HANDLE;
-
-		VK_TRY(
-			vkCreateSwapchainKHR(logicDevice, &createInfo, nullptr, &mSwapChain),
-			"Failed to create swap chain."
-		);
-
-		//Query image count in swap chain (we have defined a min image count but not a max and Vulkan might not always use the same amount),
-		// then resize images vector and store inside.
-		vkGetSwapchainImagesKHR(logicDevice, mSwapChain, &imageCount, nullptr);
-		mImages.resize(imageCount);
-		vkGetSwapchainImagesKHR(logicDevice, mSwapChain, &imageCount, mImages.data());
-
-		//Store swap chain info for later.
-		mImageFormat = surfaceFormat.format;
-		mExtent = extent;
-
-		createImageViews(logicDevice);
+	void SwapChainVulkan::init(VkDevice logicDevice, const SwapChainCreationInfo& scCreate) {
+		createSwapChainKHR(logicDevice, scCreate);
 	}
 
 	void SwapChainVulkan::close(VkDevice logicDevice) {
 		for (auto imageView : mImageViews) {
 			vkDestroyImageView(logicDevice, imageView, nullptr);
 		}
+
+		//NOTE:: destroying presentable images is handled based on device implementation,
+		// vkDestroySwapchainKHR allows devic eimplementation to handle the destruction of
+		// images associated with the given swapchain (see Vulkan Spec for info)
+
 		vkDestroySwapchainKHR(logicDevice, mSwapChain, nullptr);
 	}
 
-	void SwapChainVulkan::createImageViews(VkDevice logicDevice) {
-		mImageViews.resize(mImages.size());
-
-		auto& context = Application::get().getRenderer().getContext();
-
-		for (size_t i = 0; i < mImages.size(); i++) {
-			mImageViews[i] = context.createImageView(mImages[i], mImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+	void SwapChainVulkan::resize(VkDevice logicDevice, const SwapChainCreationInfo& scCreate) {
+		for (auto imageView : mImageViews) {
+			vkDestroyImageView(logicDevice, imageView, nullptr);
 		}
-	}
 
-	
+		createSwapChainKHR(logicDevice, scCreate);
+	}
 
 	uint32_t SwapChainVulkan::aquireNextImageIndex(
 		VkDevice logicDevice,
@@ -145,7 +59,7 @@ namespace DOH {
 	}
 
 	SwapChainSupportDetails SwapChainVulkan::querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface) {
-		SwapChainSupportDetails details;
+		SwapChainSupportDetails details = {};
 
 		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
 
@@ -178,16 +92,29 @@ namespace DOH {
 			}
 		}
 
+		LOG_WARN("Desired surface format (format: VK_FORMAT_B8G8R8A8_SRGB, colorSpace: VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) not found, falling back on first available format.");
+
 		return availableFormats[0];
 	}
 
-	VkPresentModeKHR SwapChainVulkan::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
+	VkPresentModeKHR SwapChainVulkan::chooseSwapPresentMode(
+		const std::vector<VkPresentModeKHR>& availablePresentModes,
+		VkPresentModeKHR desiredPresentMode,
+		bool fallbackToImmediatePresentMode
+	) {
 		for (const auto& availablePresentMode : availablePresentModes) {
-			if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+			if (availablePresentMode == desiredPresentMode) {
+				LOG_INFO("Desired present mode found.");
 				return availablePresentMode;
 			}
 		}
 
+		if (fallbackToImmediatePresentMode) {
+			LOG_WARN("Desired present mode (" << desiredPresentMode << ") not found, falling back on enabled optional default (VK_PRESENT_MODE_IMMEDIATE_KHR)");
+			return VK_PRESENT_MODE_IMMEDIATE_KHR;
+		}
+
+		LOG_WARN("Desired present mode (" << desiredPresentMode << ") not found, falling back on default (VK_PRESENT_MODE_FIFO_KHR)");
 		return VK_PRESENT_MODE_FIFO_KHR;
 	}
 
@@ -201,6 +128,85 @@ namespace DOH {
 			actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
 
 			return actualExtent;
+		}
+	}
+
+	void SwapChainVulkan::createSwapChainKHR(VkDevice logicDevice, const SwapChainCreationInfo& scCreate) {
+		const uint32_t width = scCreate.getWidth();
+		const uint32_t height = scCreate.getHeight();
+
+		TRY(width < 1 || height < 1, "Swap Chain Width and Height must be larger than 0.");
+
+
+		//TODO:: These device specifications are called each swapchain creation & recreation. 
+		//	Should this be limited to the first time the swap chain is created and if/when the device changes.
+		VkSurfaceFormatKHR surfaceFormat = SwapChainVulkan::chooseSwapSurfaceFormat(scCreate.SupportDetails.formats);
+		VkPresentModeKHR presentMode = SwapChainVulkan::chooseSwapPresentMode(
+			scCreate.SupportDetails.presentModes,
+			scCreate.DesiredPresentMode,
+			scCreate.FallbackToImmediatePresentMode
+		);
+		VkExtent2D extent = SwapChainVulkan::chooseSwapExtent(scCreate.SupportDetails.capabilities, width, height);
+
+		uint32_t imageCount = scCreate.SupportDetails.capabilities.minImageCount + 1;
+		if (scCreate.SupportDetails.capabilities.maxImageCount > 0 && imageCount > scCreate.SupportDetails.capabilities.maxImageCount) {
+			imageCount = scCreate.SupportDetails.capabilities.maxImageCount;
+		}
+
+		VkSwapchainCreateInfoKHR createInfo = {};
+		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+		createInfo.surface = scCreate.Surface;
+		createInfo.minImageCount = imageCount;
+		createInfo.imageFormat = surfaceFormat.format;
+		createInfo.imageColorSpace = surfaceFormat.colorSpace;
+		createInfo.imageExtent = extent;
+		createInfo.imageArrayLayers = 1;
+		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+		uint32_t queueFamilyIndices[] = { scCreate.Indices.GraphicsFamily.value(), scCreate.Indices.PresentFamily.value() };
+
+		if (scCreate.Indices.GraphicsFamily != scCreate.Indices.PresentFamily) {
+			createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+			createInfo.queueFamilyIndexCount = 2;
+			createInfo.pQueueFamilyIndices = queueFamilyIndices;
+		} else {
+			createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+			createInfo.queueFamilyIndexCount = 0; //Optional
+			createInfo.pQueueFamilyIndices = nullptr; //Optional
+		}
+
+		createInfo.preTransform = scCreate.SupportDetails.capabilities.currentTransform;
+		createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		createInfo.presentMode = presentMode;
+		createInfo.clipped = VK_TRUE;
+		createInfo.oldSwapchain = mSwapChain;
+
+		VkSwapchainKHR swapChain = VK_NULL_HANDLE;
+
+		VK_TRY(
+			vkCreateSwapchainKHR(logicDevice, &createInfo, nullptr, &swapChain),
+			"Failed to create swap chain."
+		);
+
+		if (mSwapChain != VK_NULL_HANDLE) {
+			vkDestroySwapchainKHR(logicDevice, mSwapChain, nullptr);
+		}
+
+		mSwapChain = swapChain;
+
+		vkGetSwapchainImagesKHR(logicDevice, mSwapChain, &imageCount, nullptr);
+		mImages.resize(imageCount);
+		vkGetSwapchainImagesKHR(logicDevice, mSwapChain, &imageCount, mImages.data());
+
+		//Store swap chain info for later.
+		mImageFormat = surfaceFormat.format;
+		mExtent = extent;
+
+		mImageViews.resize(imageCount);
+		const auto& context = Application::get().getRenderer().getContext();
+
+		for (size_t i = 0; i < imageCount; i++) {
+			mImageViews[i] = context.createImageView(mImages[i], mImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 		}
 	}
 }

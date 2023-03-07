@@ -28,23 +28,43 @@
 		
 		#define DOH_LOG_STYLE_ENABLED
 
-		#define TEXT_UNDERLINE(message)			"\033[4m" << message << "\033[0m"
-		#define TEXT_BLACK(message)				"\033[30m" << message << "\033[0m"
-		#define TEXT_RED(message)				"\033[31m" << message << "\033[0m"
-		#define TEXT_GREEN(message)				"\033[32m" << message << "\033[0m"
-		#define TEXT_YELLOW(message)			"\033[33m" << message << "\033[0m"
-		#define TEXT_BLUE(message)				"\033[34m" << message << "\033[0m"
-		#define TEXT_MAGENTA(message)			"\033[35m" << message << "\033[0m"
-		#define TEXT_CYAN(message)				"\033[36m" << message << "\033[0m"
-		#define TEXT_WHITE(message)				"\033[37m" << message << "\033[0m"
-		#define TEXT_BRIGHT_BLACK(message)		"\033[90m" << message << "\033[0m"
-		#define TEXT_BRIGHT_RED(message)		"\033[91m" << message << "\033[0m"
-		#define TEXT_BRIGHT_GREEN(message)		"\033[92m" << message << "\033[0m"
-		#define TEXT_BRIGHT_YELLOW(message)		"\033[93m" << message << "\033[0m"
-		#define TEXT_BRIGHT_BLUE(message)		"\033[94m" << message << "\033[0m"
-		#define TEXT_BRIGHT_MAGENTA(message)	"\033[95m" << message << "\033[0m"
-		#define TEXT_BRIGHT_CYAN(message)		"\033[96m" << message << "\033[0m"
-		#define TEXT_BRIGHT_WHITE(message)		"\033[97m" << message << "\033[0m"
+		constexpr const char* TEXT_STYLE_END = "\033[0m";
+
+		constexpr const char* TEXT_STYLE_START_UNDERLINE =		"\033[4m";
+		constexpr const char* TEXT_STYLE_START_BLACK =			"\033[30m";
+		constexpr const char* TEXT_STYLE_START_RED =			"\033[31m";
+		constexpr const char* TEXT_STYLE_START_GREEN =			"\033[32m";
+		constexpr const char* TEXT_STYLE_START_YELLOW =			"\033[33m";
+		constexpr const char* TEXT_STYLE_START_BLUE =			"\033[34m";
+		constexpr const char* TEXT_STYLE_START_MAGENTA =		"\033[35m";
+		constexpr const char* TEXT_STYLE_START_CYAN =			"\033[36m";
+		constexpr const char* TEXT_STYLE_START_WHITE =			"\033[37m";
+		constexpr const char* TEXT_STYLE_START_BRIGHT_BLACK =	"\033[90m";
+		constexpr const char* TEXT_STYLE_START_BRIGHT_RED =		"\033[91m";
+		constexpr const char* TEXT_STYLE_START_BRIGHT_GREEN =	"\033[92m";
+		constexpr const char* TEXT_STYLE_START_BRIGHT_YELLOW =	"\033[93m";
+		constexpr const char* TEXT_STYLE_START_BRIGHT_BLUE =	"\033[94m";
+		constexpr const char* TEXT_STYLE_START_BRIGHT_MAGENTA =	"\033[95m";
+		constexpr const char* TEXT_STYLE_START_BRIGHT_CYAN =	"\033[96m";
+		constexpr const char* TEXT_STYLE_START_BRIGHT_WHITE =	"\033[97m";
+
+		#define TEXT_UNDERLINE(message)			TEXT_STYLE_START_UNDERLINE	<< message << TEXT_STYLE_END
+		#define TEXT_BLACK(message)				TEXT_STYLE_START_BLACK		<< message << TEXT_STYLE_END
+		#define TEXT_RED(message)				TEXT_STYLE_START_RED		<< message << TEXT_STYLE_END
+		#define TEXT_GREEN(message)				TEXT_STYLE_START_GREEN		<< message << TEXT_STYLE_END
+		#define TEXT_YELLOW(message)			TEXT_STYLE_START_YELLOW		<< message << TEXT_STYLE_END
+		#define TEXT_BLUE(message)				TEXT_STYLE_START_BLUE		<< message << TEXT_STYLE_END
+		#define TEXT_MAGENTA(message)			TEXT_STYLE_START_MAGENTA	<< message << TEXT_STYLE_END
+		#define TEXT_CYAN(message)				TEXT_STYLE_START_CYAN		<< message << TEXT_STYLE_END
+		#define TEXT_WHITE(message)				TEXT_STYLE_START_WHITE		<< message << TEXT_STYLE_END
+		#define TEXT_BRIGHT_BLACK(message)		TEXT_STYLE_START_BRIGHT_BLACK	<< message << TEXT_STYLE_END
+		#define TEXT_BRIGHT_RED(message)		TEXT_STYLE_START_BRIGHT_RED		<< message << TEXT_STYLE_END
+		#define TEXT_BRIGHT_GREEN(message)		TEXT_STYLE_START_BRIGHT_GREEN	<< message << TEXT_STYLE_END
+		#define TEXT_BRIGHT_YELLOW(message)		TEXT_STYLE_START_BRIGHT_YELLOW	<< message << TEXT_STYLE_END
+		#define TEXT_BRIGHT_BLUE(message)		TEXT_STYLE_START_BRIGHT_BLUE	<< message << TEXT_STYLE_END
+		#define TEXT_BRIGHT_MAGENTA(message)	TEXT_STYLE_START_BRIGHT_MAGENTA	<< message << TEXT_STYLE_END
+		#define TEXT_BRIGHT_CYAN(message)		TEXT_STYLE_START_BRIGHT_CYAN	<< message << TEXT_STYLE_END
+		#define TEXT_BRIGHT_WHITE(message)		TEXT_STYLE_START_BRIGHT_WHITE	<< message << TEXT_STYLE_END
 	#else 
 		#define TEXT_UNDERLINE(message)			message
 		#define TEXT_BLACK(message)				message

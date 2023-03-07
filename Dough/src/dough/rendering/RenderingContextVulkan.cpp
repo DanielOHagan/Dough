@@ -68,7 +68,13 @@ namespace DOH {
 			VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
 		);
 
-		mSwapChainCreationInfo = std::make_unique<SwapChainCreationInfo>(scSupport, surface, queueFamilyIndices);
+		mSwapChainCreationInfo = std::make_unique<SwapChainCreationInfo>(
+			scSupport,
+			surface,
+			queueFamilyIndices,
+			VK_PRESENT_MODE_MAILBOX_KHR,
+			true
+		);
 		mSwapChain = ObjInit::swapChain(*mSwapChainCreationInfo);
 
 		createAppSceneDepthResources();
@@ -126,15 +132,15 @@ namespace DOH {
 		}
 		closeAppPipelines();
 
+		if (mDescriptorPool != VK_NULL_HANDLE) {
+			vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
+		}
+
 		vkDestroyCommandPool(mLogicDevice, mCommandPool, nullptr);
 	}
 	
 	void RenderingContextVulkan::closeAppPipelines() {
 		mCurrentRenderState->close(mLogicDevice);
-
-		if (mDescriptorPool != VK_NULL_HANDLE) {
-			vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
-		}
 	}
 
 	void RenderingContextVulkan::closeGpuResourceImmediately(std::shared_ptr<IGPUResourceVulkan> res) {
@@ -155,7 +161,6 @@ namespace DOH {
 	void RenderingContextVulkan::resizeSwapChain(
 		SwapChainSupportDetails& scSupport,
 		VkSurfaceKHR surface,
-		QueueFamilyIndices& queueFamilyIndices,
 		uint32_t width,
 		uint32_t height
 	) {
@@ -185,21 +190,20 @@ namespace DOH {
 				//vkResetDescriptorPool(mLogicDevice, mDescriptorPool, 0);
 			}
 
-			if (mSwapChain != nullptr) {
-				closeRenderPasses();
-				closeAppSceneDepthResources();
-				closeFrameBuffers();
+			closeRenderPasses();
+			closeAppSceneDepthResources();
+			closeFrameBuffers();
+			mImGuiWrapper->closeRenderPass(mLogicDevice);
+			mImGuiWrapper->closeFrameBuffers(mLogicDevice);
 
-				mImGuiWrapper->closeRenderPass(mLogicDevice);
-				mImGuiWrapper->closeFrameBuffers(mLogicDevice);
-
-				mSwapChain->close(mLogicDevice);
-			}
-
-			//Recreate objects
 			mSwapChainCreationInfo->setWidth(width);
 			mSwapChainCreationInfo->setHeight(height);
-			mSwapChain = ObjInit::swapChain(*mSwapChainCreationInfo);
+
+			if (mSwapChain != nullptr) {
+				mSwapChain->resize(mLogicDevice, *mSwapChainCreationInfo);
+			} else {
+				mSwapChain = ObjInit::swapChain(*mSwapChainCreationInfo);
+			}
 
 			createRenderPasses();
 			mImGuiWrapper->createRenderPass(mLogicDevice, mSwapChain->getImageFormat());
@@ -211,12 +215,14 @@ namespace DOH {
 				mDescriptorPool = createDescriptorPool(totalDescTypes);
 			}
 
+			const VkExtent2D extent = mSwapChain->getExtent();
 			for (auto& pipelineGroup : mCurrentRenderState->getRenderPassGraphicsPipelineMap()) {
+				const VkRenderPass rp = getRenderPass(pipelineGroup.first).get();
 				for (auto& pipeline : pipelineGroup.second) {
 					pipeline.second->recreate(
 						mLogicDevice,
-						mSwapChain->getExtent(),
-						getRenderPass(pipelineGroup.first).get()
+						extent,
+						rp
 					);
 					createPipelineUniformObjects(*pipeline.second, mDescriptorPool);
 				}
@@ -348,8 +354,6 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::present(uint32_t imageIndex, VkCommandBuffer cmd) {
-		vkWaitForFences(mLogicDevice, 1, &mFramesInFlightFences[imageIndex], VK_TRUE, 100);
-
 		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -381,10 +385,16 @@ namespace DOH {
 		present.pSwapchains = swapChains;
 		present.pImageIndices = &imageIndex;
 
-		VK_TRY_KHR(
+		VK_TRY(
 			vkQueuePresentKHR(mPresentQueue, &present),
 			"Failed to present"
 		);
+
+		//IMPORTANT:: VK_TRY_KHR allows the TRY call to pass even though VK_SUBOPTIMAL_KHR is returned
+		//VK_TRY_KHR(
+		//	vkQueuePresentKHR(mPresentQueue, &present),
+		//	"Failed to present"
+		//);
 
 		mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 	}
@@ -912,7 +922,7 @@ namespace DOH {
 		endSingleTimeCommands(cmdBuffer);
 	}
 
-	VkImageView RenderingContextVulkan::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
+	VkImageView RenderingContextVulkan::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) const {
 		VkImageViewCreateInfo view{};
 		view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		view.image = image;

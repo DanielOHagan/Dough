@@ -16,14 +16,19 @@ namespace DOH {
 
 	struct AppDebugInfo {
 		static constexpr int FrameTimesCount = 1000;
+		static constexpr int FpsCount = 100;
 
 		float FrameTimesMillis[FrameTimesCount] = {};
+		float FpsArray[FpsCount] = {};
 
 		double LastUpdateTimeMillis = 0.0;
 		double LastRenderTimeMillis = 0.0;
 
 		int FrameTimeIndex = 0;
 		bool FrameTimesArrayIsFull = false;
+
+		int FpsCountIndex = 0;
+		bool FpsCountArrayIsFull = false;
 
 		uint32_t SceneDrawCalls = 0;
 		uint32_t UiDrawCalls = 0;

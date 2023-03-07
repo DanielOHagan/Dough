@@ -18,8 +18,8 @@ namespace DOH {
 
 	public:
 		TextString(const char* string, FontBitmap& fontBitmap, const float scale = 1.0f);
-		TextString(const TextString& copy) = default;
-		TextString& operator=(const TextString& assignment) = default;
+		TextString(const TextString& copy) = delete;
+		TextString& operator=(const TextString& assignment) = delete;
 
 		void setString(const char* string);
 		void setScale(const float scale);
@@ -30,12 +30,14 @@ namespace DOH {
 		inline const FontBitmap& getCurrentFontBitmap() const { return mFontBitmap; }
 		inline float getScale() const { return mScale; }
 
-		static std::vector<Quad> getStringAsQuads(
+		static inline std::vector<Quad> getStringAsQuads(
 			const char* string,
 			const FontBitmap& bitmap,
 			const float scale = 1.0f,
 			const ETextFlags2d flags = ETextFlags2d::NONE
-		);
+		) {
+			return TextString::getStringAsQuads(string, bitmap, { 0.0f, 0.0f, 0.0f }, scale, flags);
+		}
 		static std::vector<Quad> getStringAsQuads(
 			const char* string,
 			const FontBitmap& bitmap,

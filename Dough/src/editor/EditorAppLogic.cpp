@@ -154,7 +154,9 @@ namespace DOH::EDITOR {
 					static_cast<int>(loop.getTargetBackgroundFps())
 				);
 				EditorGui::displayHelpTooltip(
-					"Max: Current Target UPS or 360, whichever is lower. Min: 15\nFPS displayed is the count of frames in the last full second interval"
+					R"(Max: The lowest of the following: Target FPS, current monitor's refresh rate (if in presentation mode FIFO), Engine max of 360
+Min: Engine min of 15
+FPS displayed is the count of frames in the last full second interval)"
 				);
 				ImGui::Text(
 					"UPS: %i \t(Fore: %i, Back: %i)",
@@ -163,7 +165,9 @@ namespace DOH::EDITOR {
 					static_cast<int>(loop.getTargetBackgroundUps())
 				);
 				EditorGui::displayHelpTooltip(
-					"Max: 1000. Min: Current Target FPS or 15, whichever is higher.\nUPS displayed is the count of frames in the last full second interval"
+					R"(Max: The lowest of the following: Target UPS, Engine max of 1000
+Min: The higher of the following: Target FPS or Engine min of 15
+UPS displayed is the count of frames in the last full second interval)"
 				);
 				int tempTargetFps = static_cast<int>(loop.getTargetFps());
 				if (ImGui::InputInt("Target FPS", &tempTargetFps)) {
@@ -191,10 +195,13 @@ namespace DOH::EDITOR {
 				if (ImGui::Checkbox("Run In Background", &runInBackground)) {
 					loop.setRunInBackground(runInBackground);
 				}
-				if (ImGui::Button("Stop Rendering ImGui Windows")) {
+				if (ImGui::Button("Stop Rendering Editor ImGui Windows")) {
+					//NOTE:: Does not stop rendering of inner app ImGui windows
 					mEditorSettings->RenderDebugWindow = false;
 				}
-				EditorGui::displayHelpTooltip("When hidden press F1 to start rendering ImGui again");
+				EditorGui::displayHelpTooltip(
+					"Stop rendering the DOH Editor windows, this doesn't include any windows controlled by the inner app. When hidden press F1 to start rendering ImGui again."
+				);
 
 				if (ImGui::Button("Quit Application") || ImGui::IsItemActive()) {
 					mEditorSettings->QuitButtonHoldTime += delta;
@@ -224,28 +231,76 @@ namespace DOH::EDITOR {
 
 				const double frameTime = debugInfo.LastUpdateTimeMillis + debugInfo.LastRenderTimeMillis;
 
-				if (debugInfo.FrameTimeIndex == AppDebugInfo::FrameTimesCount) {
-					debugInfo.FrameTimeIndex = 0;
-					debugInfo.FrameTimesArrayIsFull = true;
+				ImGui::Checkbox("Show Performance Plot Lines", &mEditorSettings->RenderPerformancePlotLines);
+				if (mEditorSettings->RenderPerformancePlotLines) {
+					ImGui::PlotLines(
+						"Frame Times (ms)",
+						debugInfo.FrameTimesMillis,
+						debugInfo.FrameTimesArrayIsFull ? AppDebugInfo::FrameTimesCount : debugInfo.FrameTimeIndex
+					);
+
+					ImGui::PlotLines(
+						"FPS (Frames Per Second)",
+						debugInfo.FpsArray,
+						debugInfo.FpsCountArrayIsFull ? AppDebugInfo::FpsCount : debugInfo.FpsCountIndex,
+						0,
+						0,
+						0.0f, 200.0f
+					);
 				}
-				debugInfo.FrameTimesMillis[debugInfo.FrameTimeIndex] = static_cast<float>(frameTime);
-				debugInfo.FrameTimeIndex++;
 
-				ImGui::PlotLines(
-					"Frame Times (ms)",
-					debugInfo.FrameTimesMillis,
-					debugInfo.FrameTimesArrayIsFull ? AppDebugInfo::FrameTimesCount : debugInfo.FrameTimeIndex
-				);
+				ImGui::Text("Rendering Times:");
+				ImGui::SameLine();
+				ImGui::PushItemWidth(ImGui::GetWindowWidth() * 0.35f);
+				if (ImGui::BeginCombo("Unit", ETimeUnitStrings[mEditorSettings->RenderingTimeUnit])) {
+					for (const ETimeUnit unit : mEditorSettings->RenderingTimeUnitsAvailable) {
+						if (ImGui::Selectable(ETimeUnitStrings[unit])) {
+							mEditorSettings->RenderingTimeUnit = unit;
+						}
+					}
+					ImGui::EndCombo();
+				}
+				ImGui::PopItemWidth();
 
-				//Milliseconds
-				ImGui::Text("Frame: %lfms", frameTime);
-				ImGui::Text("Update: %lfms", debugInfo.LastUpdateTimeMillis);
-				ImGui::Text("Render: %lfms", debugInfo.LastRenderTimeMillis);
-				//Seconds
-				//ImGui::Text("Frame: %fs", Time::convertMillisToSeconds(frameTime));
-				//ImGui::Text("Update: %fs", Time::convertMillisToSeconds(debugInfo.LastUpdateTimeMillis));
-				//ImGui::Text("Render: %fs", Time::convertMillisToSeconds(debugInfo.LastRenderTimeMillis));
-				
+				switch (mEditorSettings->RenderingTimeUnit) {
+					case ETimeUnit::SECOND: {
+						ImGui::Text("Frame: ");
+						ImGui::SameLine();
+						EditorGui::singleUnitTime(Time::convertMillisToSeconds(frameTime), true);
+
+						ImGui::Text("Update: ");
+						ImGui::SameLine();
+						EditorGui::singleUnitTime(Time::convertMillisToSeconds(debugInfo.LastUpdateTimeMillis), true);
+
+						ImGui::Text("Render: ");
+						ImGui::SameLine();
+						EditorGui::singleUnitTime(Time::convertMillisToSeconds(debugInfo.LastRenderTimeMillis), true);
+						break;
+					}
+					case ETimeUnit::MILLISECOND: {
+						ImGui::Text("Frame: ");
+						ImGui::SameLine();
+						EditorGui::singleUnitTime(frameTime, true);
+
+						ImGui::Text("Update: ");
+						ImGui::SameLine();
+						EditorGui::singleUnitTime(debugInfo.LastUpdateTimeMillis, true);
+
+						ImGui::Text("Render: ");
+						ImGui::SameLine();
+						EditorGui::singleUnitTime(debugInfo.LastRenderTimeMillis, true);
+						break;
+					}
+
+					default:
+					case ETimeUnit::HOUR:
+					case ETimeUnit::MINUTE:
+						LOG_WARN("Displaying time as this unit in the editor is not currently supported.");
+						break;
+				}
+
+				ImGui::NewLine();
+
 				ImGui::BeginTable("Draw Call Info", 3);
 				ImGui::TableSetupColumn("Pipeline");
 				ImGui::TableSetupColumn("Draw Call Count");

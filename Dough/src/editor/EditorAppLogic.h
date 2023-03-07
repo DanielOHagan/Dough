@@ -45,6 +45,13 @@ namespace DOH::EDITOR {
 
 			bool InnerAppEditorWindowDisplay = true;
 
+			bool RenderPerformancePlotLines = false;
+			const std::array<ETimeUnit, 2> RenderingTimeUnitsAvailable = {
+				ETimeUnit::SECOND,
+				ETimeUnit::MILLISECOND
+			};
+			ETimeUnit RenderingTimeUnit = ETimeUnit::MILLISECOND;
+
 			//-----Editor Camera(s)-----
 			bool UseOrthographicCamera = true;
 

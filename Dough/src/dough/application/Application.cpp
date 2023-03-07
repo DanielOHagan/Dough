@@ -145,7 +145,13 @@ namespace DOH {
 				if (!mFocused && mWindow->getDisplayMode() == EWindowDisplayMode::FULLSCREEN) {
 					mWindow->iconify();
 				}
-				LOGLN("Focus Change: " << (mFocused ? "Focused" : "Not Focused"));
+
+				if (mFocused) {
+					LOGLN("Focus Change: " << TEXT_GREEN("FOCUSED"));
+				} else {
+					LOGLN("Focus Change: " << TEXT_RED("NOT FOCUSED"));
+				}
+
 				return;
 			case EEventType::WINDOW_RESIZE:
 			{

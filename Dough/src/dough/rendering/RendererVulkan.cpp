@@ -101,7 +101,7 @@ namespace DOH {
 
 	void RendererVulkan::onResize(int width, int height) {
 		SwapChainSupportDetails scSupport = SwapChainVulkan::querySwapChainSupport(mPhysicalDevice, mSurface);
-		mRenderingContext->onResize(scSupport, mSurface, mQueueFamilyIndices, width, height);
+		mRenderingContext->onResize(scSupport, mSurface, width, height);
 	}
 
 	void RendererVulkan::createVulkanInstance() {

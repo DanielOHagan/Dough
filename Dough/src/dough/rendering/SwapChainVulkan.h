@@ -9,39 +9,21 @@ namespace DOH {
 	class SwapChainVulkan {
 
 	private:
-
-		SwapChainSupportDetails& mSwapChainSupportDetails;
-
 		VkSwapchainKHR mSwapChain;
 		std::vector<VkImage> mImages;
 		std::vector<VkImageView> mImageViews;
 		VkFormat mImageFormat;
 		VkExtent2D mExtent;
-
 		bool mResizable;
 
 	public:
-		SwapChainVulkan(
-			VkDevice logicDevice,
-			SwapChainSupportDetails& scsd,
-			VkSurfaceKHR surface,
-			QueueFamilyIndices& indices,
-			uint32_t width,
-			uint32_t height
-		);
 		SwapChainVulkan(VkDevice logicDevice, SwapChainCreationInfo& creationInfo);
 		SwapChainVulkan(const SwapChainVulkan& copy) = delete;
 		SwapChainVulkan operator=(const SwapChainVulkan& assignment) = delete;
 
-		void init(
-			VkDevice logicDevice,
-			SwapChainSupportDetails& swapChainSupportDetails,
-			VkSurfaceKHR surface,
-			QueueFamilyIndices& indices,
-			uint32_t width,
-			uint32_t height
-		);
+		void init(VkDevice logicDevice, const SwapChainCreationInfo& scCreate);
 		void close(VkDevice logicDevice);
+		void resize(VkDevice logicDevice, const SwapChainCreationInfo& scCreate);
 
 		uint32_t aquireNextImageIndex(
 			VkDevice logicDevice,
@@ -63,10 +45,10 @@ namespace DOH {
 		//-----Static Methods-----
 		static SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
 		static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-		static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+		static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes, VkPresentModeKHR desiredPresentMode, bool fallbackToImmediatePresentMode);
 		static VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height);
 
 	private:
-		void createImageViews(VkDevice logicDevice);
+		void createSwapChainKHR(VkDevice logicDevice, const SwapChainCreationInfo& scCreate);
 	};
 }

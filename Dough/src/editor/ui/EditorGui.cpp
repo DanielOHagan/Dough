@@ -182,6 +182,38 @@ namespace DOH::EDITOR {
 		ImGui::Text(renderPass);
 	}
 
+	void EditorGui::imGuiSingleUnitTimeImpl(const uint64_t nanos, const bool attachSuffix) {
+		if (attachSuffix) {
+			ImGui::Text("%lli %s", nanos, ETimeUnitStringsShorthand[ETimeUnit::NANOSECOND]);
+		} else {
+			ImGui::Text("%lli", nanos);
+		}
+	}
+
+	void EditorGui::imGuiSingleUnitTimeImpl(const long micros, const bool attachSuffix) {
+		if (attachSuffix) {
+			ImGui::Text("%li %s", micros, ETimeUnitStringsShorthand[ETimeUnit::MICROSECOND]);
+		} else {
+			ImGui::Text("%li", micros);
+		}
+	}
+
+	void EditorGui::imGuiSingleUnitTimeImpl(const double millis, const bool attachSuffix) {
+		if (attachSuffix) {
+			ImGui::Text("%lf %s", millis, ETimeUnitStringsShorthand[ETimeUnit::MILLISECOND]);
+		} else {
+			ImGui::Text("%lf", millis);
+		}
+	}
+
+	void EditorGui::imGuiSingleUnitTimeImpl(const float seconds, const bool attachSuffix) {
+		if (attachSuffix) {
+			ImGui::Text("%f %s", seconds, ETimeUnitStringsShorthand[ETimeUnit::SECOND]);
+		} else {
+			ImGui::Text("%f", seconds);
+		}
+	}
+
 	void EditorGui::imGuiPrintMat4x4Impl(const glm::mat4x4& mat, const char* name) {
 		ImGui::Text(name);
 
@@ -294,5 +326,21 @@ namespace DOH::EDITOR {
 
 	void EditorGui::printMat4x4(const glm::mat4x4& mat, const char* name) {
 		INSTANCE->imGuiPrintMat4x4Impl(mat, name);
+	}
+
+	void EditorGui::singleUnitTime(const uint64_t nanos, const bool attachSuffix) {
+		INSTANCE->imGuiSingleUnitTimeImpl(nanos, attachSuffix);
+	}
+
+	void EditorGui::singleUnitTime(const long micros, const bool attachSuffix) {
+		INSTANCE->imGuiSingleUnitTimeImpl(micros, attachSuffix);
+	}
+
+	void EditorGui::singleUnitTime(const double millis, const bool attachSuffix) {
+		INSTANCE->imGuiSingleUnitTimeImpl(millis, attachSuffix);
+	}
+
+	void EditorGui::singleUnitTime(const float seconds, const bool attachSuffix) {
+		INSTANCE->imGuiSingleUnitTimeImpl(seconds, attachSuffix);
 	}
 }

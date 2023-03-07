@@ -35,6 +35,8 @@ namespace DOH {
 	}
 
 	void ApplicationLoop::run() {
+		AppDebugInfo& debugInfo = mApplication.getDebugInfo();
+
 		while (mApplication.isRunning()) {
 			mApplication.pollEvents();
 
@@ -62,6 +64,14 @@ namespace DOH {
 				//	(noLimitFps ? mTargetUps : mTargetBackgroundUps) << ")"
 				//);
 
+				//Add last second's fps count to debug array
+				if (debugInfo.FpsCountIndex == AppDebugInfo::FpsCount) {
+					debugInfo.FpsCountIndex = 0;
+					debugInfo.FpsCountArrayIsFull = true;
+				}
+				debugInfo.FpsArray[debugInfo.FpsCountIndex] = mPreviousFps;
+				debugInfo.FpsCountIndex++;
+
 				mPerSecondCountersTimeSpan = 0.0;
 			}
 
@@ -74,12 +84,23 @@ namespace DOH {
 			if (!(mDeltaRenderTimeSpan < mTargetFrameTimeSpan)) {
 				//NOTE:: When Iconified the app doesn't call any render functions even though
 				//	it is called here and the FPS increments here
+
+				const float deltaRender = Time::convertMillisToSeconds(mDeltaRenderTimeSpan);
 				if (!mApplication.isIconified()) {
-					mApplication.render(Time::convertMillisToSeconds(mDeltaRenderTimeSpan));
+					mApplication.render(deltaRender);
 					mCurrentFrame++;
 					mFps++;
 					mDeltaRenderTimeSpan = 0.0;
 				}
+
+				//IMPORTANT:: Update and render calls are not gauranteed to be 1-to-1 and there can be more update calls per frame than render calls.
+				//	Only update the render time on render call
+				if (debugInfo.FrameTimeIndex == AppDebugInfo::FrameTimesCount) {
+					debugInfo.FrameTimeIndex = 0;
+					debugInfo.FrameTimesArrayIsFull = true;
+				}
+				debugInfo.FrameTimesMillis[debugInfo.FrameTimeIndex] = static_cast<float>(debugInfo.LastUpdateTimeMillis + debugInfo.LastRenderTimeMillis);
+				debugInfo.FrameTimeIndex++;
 			}
 
 			mLastCycleTimePoint = currentTimePoint;

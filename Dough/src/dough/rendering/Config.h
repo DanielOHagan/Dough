@@ -30,18 +30,24 @@ namespace DOH {
 	};
 
 	struct SwapChainCreationInfo {
-		SwapChainCreationInfo(
-			SwapChainSupportDetails supportDetails,
-			VkSurfaceKHR surface,
-			QueueFamilyIndices& indices
-		) :	SupportDetails(supportDetails),
-			Surface(surface),
-			Indices(indices)
-		{}
-
 		SwapChainSupportDetails SupportDetails;
 		VkSurfaceKHR Surface;
 		QueueFamilyIndices& Indices;
+		VkPresentModeKHR DesiredPresentMode;
+		bool FallbackToImmediatePresentMode;
+
+		SwapChainCreationInfo(
+			SwapChainSupportDetails supportDetails,
+			VkSurfaceKHR surface,
+			QueueFamilyIndices& indices,
+			VkPresentModeKHR desiredPresentMode,
+			bool fallBackToImmediatePresentMode
+		) : SupportDetails(supportDetails),
+			Surface(surface),
+			Indices(indices),
+			DesiredPresentMode(desiredPresentMode),
+			FallbackToImmediatePresentMode(fallBackToImmediatePresentMode)
+		{}
 
 		inline uint32_t getWidth() const { return SupportDetails.capabilities.currentExtent.width; }
 		inline void setWidth(uint32_t width) { SupportDetails.capabilities.currentExtent.width = width; }

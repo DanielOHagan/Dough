@@ -135,11 +135,10 @@ namespace DOH {
 		inline void onResize(
 			SwapChainSupportDetails& scSupport,
 			VkSurfaceKHR surface,
-			QueueFamilyIndices& queueFamilyIndices,
 			int width,
 			int height
 		) {
-			resizeSwapChain(scSupport, surface, queueFamilyIndices, width, height);
+			resizeSwapChain(scSupport, surface, width, height);
 			mImGuiWrapper->onWindowResize(width, height);
 		};
 
@@ -198,7 +197,7 @@ namespace DOH {
 		inline VkDeviceMemory createImageMemory(VkImage image, VkMemoryPropertyFlags props) {
 			return createImageMemory(mLogicDevice, mPhysicalDevice, image, props);
 		};
-		VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+		VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) const;
 		VkSampler createSampler();
 
 		inline uint32_t getAppFrameBufferCount() const { return static_cast<uint32_t>(mAppSceneFrameBuffers.size() + mAppUiFrameBuffers.size()); }
@@ -317,7 +316,6 @@ namespace DOH {
 		void resizeSwapChain(
 			SwapChainSupportDetails& scSupport,
 			VkSurfaceKHR surface,
-			QueueFamilyIndices& queueFamilyIndices,
 			uint32_t width,
 			uint32_t height
 		);

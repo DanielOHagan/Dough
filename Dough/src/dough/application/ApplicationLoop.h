@@ -8,10 +8,11 @@ namespace DOH {
 	class ApplicationLoop {
 
 	public:
-		
-		static constexpr float MAX_TARGET_FPS = 360.0f;
+
+		// NOTE:: MAX_TARGET_XXX changed to very high values so when running in non-FIFO present mode the application can run as fast as possible.
+		static constexpr float MAX_TARGET_FPS = 10000.0f;
 		static constexpr float MIN_TARGET_FPS = 15.0f;
-		static constexpr float MAX_TARGET_UPS = 1000.0f;
+		static constexpr float MAX_TARGET_UPS = 10000.0f;
 		static constexpr float MIN_TARGET_UPS = 15.0f;
 
 	private:
