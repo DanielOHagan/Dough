@@ -1,5 +1,6 @@
 #pragma once
 
+#include "dough/input/InputLayer.h"
 #include "dough/rendering/Config.h"
 
 namespace DOH {
@@ -11,62 +12,35 @@ namespace DOH {
 	private:
 		static std::unique_ptr<Input> INSTANCE;
 
-		static const std::array<int, 53> DEFAULT_KEY_CODES;
-		static const std::array<int, 3> DEFAULT_MOUSE_BUTTON_CODES;
+		//TODO:: Make this into a queue or something in-which there is a clearly defined priority for event handling
+		//	(e.g. inputLayer[0] has the highest priority and inputLayer[inputLayer.size() - 1] has the least.
+		std::unordered_map<const char*, std::shared_ptr<AInputLayer>> mInputLayers;
 
-		std::unordered_map<int, bool> mPressedKeysMap;
-		std::unordered_map<int, bool> mPressedMouseButtonsMap;
-
-		glm::vec2 mMouseScreenPos;
-		glm::vec2 mMouseScrollOffset;
-
-	private:
 		Input(const Input& copy) = delete;
 		Input operator=(const Input& assignment) = delete;
 
-		bool isKeyPressedImpl(int keyCode);
-		bool isMouseButtonPressedImpl(int button);
-		inline bool isMouseScrollingUpImpl() const { return mMouseScrollOffset.y > 0.0f; };
-		inline bool isMouseScrollingDownImpl() const { return mMouseScrollOffset.y < 0.0f; };
-
-		inline bool isKeyCodeInPossibleMap(int keyCode) const { return mPressedKeysMap.find(keyCode) != mPressedKeysMap.end(); }
-		inline bool isMouseButtonInPossibleMap(int button) const { return mPressedMouseButtonsMap.find(button) != mPressedMouseButtonsMap.end(); }
-
-		void onKeyEvent(int keyCode, bool pressed);
-		void onMouseButtonEvent(int button, bool pressed);
-		inline void onMouseMove(float x, float y) { mMouseScreenPos.x = x; mMouseScreenPos.y = y; };
-		inline void onMouseScroll(float offsetX, float offsetY) { mMouseScrollOffset.x = offsetX; mMouseScrollOffset.y = offsetY; };
-		inline void resetCycleData() { mMouseScrollOffset.x = 0.0f; mMouseScrollOffset.y = 0.0f; };
+		//Pressed Event includes EEventType::MOUSE_BUTTON_DOWN & EEventType::MOUSE_BUTTON_UP, the difference passed as the pressed param
+		void onKeyPressedEvent(int keyCode, bool pressed);
+		//Pressed Event includes EEventType::MOUSE_BUTTON_DOWN & EEventType::MOUSE_BUTTON_UP, the difference passed as the pressed param
+		void onMouseButtonPressedEvent(int button, bool pressed);
+		void onMouseMoveEvent(float x, float y);
+		void onMouseScrollEvent(float offsetX, float offsetY);
+		void resetCycleData();
 
 		static void init();
 		static void close();
 		inline static Input& get() { return *INSTANCE; }
 
-		void setKeyPressedFlag(int keyCode, bool pressed);
-		void setMouseButtonPressedFlag(int button, bool pressed);
-
 	public:
-		Input();
+		static const std::array<int, 53> DEFAULT_KEY_CODES;
+		static const std::array<int, 3> DEFAULT_MOUSE_BUTTON_CODES;
 
-		void setPossibleKeyInputs(const std::vector<int>& keyCodes);
-		void setPossibleMouseInputs(const std::vector<int>& buttons);
+		Input() = default;
 
-		//TODO::
-		//void setEnabledPossibleKeyCode(int keyCode, bool enabled);
-		//void setEnabledPossibleMouseButton(int button, bool enabled);
-		//std::vector<int> getAllPossibleKeyCodes();
-		//std::vector<int> getAllPossibleMouseButtons();
+		inline bool hasInput() const { return mInputLayers.size() > 0; }
 
-		inline static glm::vec2& getCursorPos() { return INSTANCE->mMouseScreenPos; }
-		inline static glm::vec2& getScrollOffset() { return INSTANCE->mMouseScrollOffset; }
-
-		inline static bool isKeyPressed(int keyCode) { return INSTANCE->isKeyPressedImpl(keyCode); };
-		inline static bool isMouseButtonPressed(int button) { return INSTANCE->isMouseButtonPressedImpl(button); };
-		inline static bool isMouseScrollingUp() { return INSTANCE->isMouseScrollingUpImpl(); }
-		inline static bool isMouseScrollingDown() { return INSTANCE->isMouseScrollingDownImpl(); }
-
-		//TODO::
-		//static std::string getKeyName(int keyCode);
-		//static std::string getMouseButtonName(int button);
+		static void addInputLayer(const char* name, std::shared_ptr<AInputLayer> inputLayer);
+		static void removeInputLayer(const char* name);
+		static std::optional<std::reference_wrapper<AInputLayer>> getInputLayer(const char* name);
 	};
 }

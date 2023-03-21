@@ -6,10 +6,10 @@
 
 namespace DOH {
 
-	const std::string Renderer2dStorageVulkan::QUAD_SHADER_PATH_VERT = "res/shaders/spv/QuadBatch.vert.spv";
-	const std::string Renderer2dStorageVulkan::QUAD_SHADER_PATH_FRAG = "res/shaders/spv/QuadBatch.frag.spv";
-	const std::string Renderer2dStorageVulkan::TEXT_2D_SHADER_PATH_VERT = "res/shaders/spv/Text2d.vert.spv";
-	const std::string Renderer2dStorageVulkan::TEXT_2D_SHADER_PATH_FRAG = "res/shaders/spv/Text2d.frag.spv";
+	const std::string Renderer2dStorageVulkan::QUAD_SHADER_PATH_VERT = "Dough/res/shaders/spv/QuadBatch.vert.spv";
+	const std::string Renderer2dStorageVulkan::QUAD_SHADER_PATH_FRAG = "Dough/res/shaders/spv/QuadBatch.frag.spv";
+	const std::string Renderer2dStorageVulkan::TEXT_2D_SHADER_PATH_VERT = "Dough/res/shaders/spv/Text2d.vert.spv";
+	const std::string Renderer2dStorageVulkan::TEXT_2D_SHADER_PATH_FRAG = "Dough/res/shaders/spv/Text2d.frag.spv";
 
 	Renderer2dStorageVulkan::Renderer2dStorageVulkan(RenderingContextVulkan& context)
 	:	mContext(context),
@@ -162,7 +162,7 @@ namespace DOH {
 		//}
 		
 		mTestTexturesAtlas = ObjInit::monoSpaceTextureAtlas(
-			"res/images/test textures/texturesAtlas.png",
+			"Dough/res/images/test textures/texturesAtlas.png",
 			5,
 			5
 		);
@@ -223,7 +223,7 @@ namespace DOH {
 		mFontBitmaps = {};
 		const auto& arialFont = mFontBitmaps.emplace(
 			Renderer2dStorageVulkan::DEFAULT_FONT_BITMAP_NAME, //Store Arial font as default
-			ObjInit::fontBitmap("res/fonts/arial_latin_32px.fnt", "res/fonts/")
+			ObjInit::fontBitmap("Dough/res/fonts/arial_latin_32px.fnt", "Dough/res/fonts/")
 		);
 		if (arialFont.second) {
 			addFontBitmapToTextTextureArray(*arialFont.first->second);

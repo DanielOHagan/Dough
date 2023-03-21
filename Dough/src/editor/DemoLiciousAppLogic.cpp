@@ -9,11 +9,14 @@
 
 namespace DOH::EDITOR {
 
-	const std::string DemoLiciousAppLogic::SharedDemoResources::TexturedShaderVertPath = "res/shaders/spv/Textured.vert.spv";
-	const std::string DemoLiciousAppLogic::SharedDemoResources::TexturedShaderFragPath = "res/shaders/spv/Textured.frag.spv";
+	const std::string DemoLiciousAppLogic::SharedDemoResources::TexturedShaderVertPath = "Dough/res/shaders/spv/Textured.vert.spv";
+	const std::string DemoLiciousAppLogic::SharedDemoResources::TexturedShaderFragPath = "Dough/res/shaders/spv/Textured.frag.spv";
 
 	void DemoLiciousAppLogic::init(float aspectRatio) {
 		mImGuiSettings = std::make_unique<ImGuiSettings>();
+
+		mInputLayer = std::make_shared<DefaultInputLayer>();
+		Input::addInputLayer("InnerApp", mInputLayer);
 
 		initDemos();
 
@@ -90,47 +93,22 @@ namespace DOH::EDITOR {
 		}
 
 		if (mGridDemo->Render) {
-			//Different ways of drawing quads (inserting into RenderBatches)
-			//
-			//for (Quad& quad : quadArray) {
-			//	rrenderer2d.drawQuadScene(quad);
-			//}
-			//for (Quad& quad : sameTexturedQuads) {
-			//	renderer2d.drawQuadTexturedScene(quad);
-			//}
-			//renderer2d.drawQuadArrayScene(sameTexturedQuads);
-			//renderer2d.drawQuadArrayTexturedScene(sameTexturedQuads);
-			//renderer2d.drawQuadArraySameTextureScene(sameTexturedQuads);
-
 			if (mGridDemo->QuadDrawColour) {
-				for (std::vector<Quad>& sameTexturedQuads : mGridDemo->TexturedTestGrid) {
+				for (const std::vector<Quad>& sameTexturedQuads : mGridDemo->TexturedTestGrid) {
 					renderer2d.drawQuadArrayScene(sameTexturedQuads);
 				}
 			} else {
-				for (std::vector<Quad>& sameTexturedQuads : mGridDemo->TexturedTestGrid) {
+				for (const std::vector<Quad>& sameTexturedQuads : mGridDemo->TexturedTestGrid) {
 					renderer2d.drawQuadArraySameTextureScene(sameTexturedQuads);
 				}
 			}
 		}
 
 		if (mBouncingQuadDemo->Render) {
-			//for (Quad& quad : mBouncingQuadDemo.BouncingQuads) {
-			//	renderer2d.drawQuadScene(quad);
-			//}
-			//for (Quad& quad : mBouncingQuadDemo.BouncingQuads) {
-			//	renderer2d.drawQuadTexturedScene(quad);
-			//}
-			//renderer2d.drawQuadArrayScene(mBouncingQuadDemo.BouncingQuads);
-			//renderer2d.drawQuadArrayTexturedScene(mBouncingQuadDemo.BouncingQuads);
-
 			if (mBouncingQuadDemo->QuadDrawColour) {
-				for (Quad& quad : mBouncingQuadDemo->BouncingQuads) {
-					renderer2d.drawQuadScene(quad);
-				}
+				renderer2d.drawQuadArrayScene(mBouncingQuadDemo->BouncingQuads);
 			} else {
-				for (Quad& quad : mBouncingQuadDemo->BouncingQuads) {
-					renderer2d.drawQuadTexturedScene(quad);
-				}
+				renderer2d.drawQuadArrayTexturedScene(mBouncingQuadDemo->BouncingQuads);
 			}
 		}
 
@@ -205,7 +183,7 @@ namespace DOH::EDITOR {
 					mGridDemo->IsUpToDate = false;
 				}
 
-				if (ImGui::ColorPicker4("Grid Colour", &mGridDemo->QuadColour.x)) {
+				if (ImGui::ColorEdit4("Grid Colour", &mGridDemo->QuadColour.x)) {
 					mGridDemo->IsUpToDate = false;
 				}
 
@@ -327,15 +305,8 @@ namespace DOH::EDITOR {
 					mTextDemo->TextString->setScale(tempScale);
 				}
 
-				if (ImGui::ColorPicker4("String Colour", mTextDemo->Colour)) {
-					for (Quad& quad : mTextDemo->TextString->getQuads()) {
-						quad.setColourRGBA(
-							mTextDemo->Colour[0],
-							mTextDemo->Colour[1],
-							mTextDemo->Colour[2],
-							mTextDemo->Colour[3]
-						);
-					}
+				if (ImGui::ColorEdit4("String Colour", &mTextDemo->Colour.x)) {
+					mTextDemo->TextString->setColour(mTextDemo->Colour);
 				}
 
 				ImGui::EndTabItem();
@@ -772,7 +743,7 @@ namespace DOH::EDITOR {
 			*mObjModelsDemo->SceneWireframePipelineInfo
 		);
 
-		mObjModelsDemo->TexturedModel = ModelVulkan::createModel("res/models/textured_cube.obj", EVertexType::VERTEX_3D_TEXTURED);
+		mObjModelsDemo->TexturedModel = ModelVulkan::createModel("Dough/res/models/textured_cube.obj", EVertexType::VERTEX_3D_TEXTURED);
 		mObjModelsDemo->RenderableTexturedModel = std::make_shared<RenderableModelVulkan>(
 			"TexturedObjModel",
 			mObjModelsDemo->TexturedModel

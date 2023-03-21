@@ -26,7 +26,7 @@ namespace DOH {
 		mStorage->onSwapChainResize(logicDevice, swapChain);
 	}
 
-	void Renderer2dVulkan::drawQuadScene(Quad& quad) {
+	void Renderer2dVulkan::drawQuadScene(const Quad& quad) {
 		bool added = false;
 		for (RenderBatchQuad& batch : mStorage->getQuadRenderBatches()) {
 			if (batch.hasSpace(1)) {
@@ -51,7 +51,7 @@ namespace DOH {
 		}
 	}
 
-	void Renderer2dVulkan::drawQuadTexturedScene(Quad& quad) {
+	void Renderer2dVulkan::drawQuadTexturedScene(const Quad& quad) {
 		bool added = false;
 		TextureArray& texArr = mStorage->getQuadBatchTextureArray();
 
@@ -97,14 +97,14 @@ namespace DOH {
 		}
 	}
 
-	void Renderer2dVulkan::drawQuadArrayScene(std::vector<Quad>& quadArr) {
+	void Renderer2dVulkan::drawQuadArrayScene(const std::vector<Quad>& quadArr) {
 		const size_t arrSize = quadArr.size();
 		TextureArray& texArr = mStorage->getQuadBatchTextureArray();
 
 		uint32_t quadBatchStartIndex = 0;
 
 		for (size_t addedCount = 0; addedCount < arrSize; /* addedCount is changed inside loop, breaks loop when no more space or all quads added */) {
-			Quad& quad = quadArr[addedCount];
+			const Quad& quad = quadArr[addedCount];
 			bool added = false;
 
 			for (uint32_t batchIndex = quadBatchStartIndex; batchIndex < mStorage->getQuadRenderBatches().size(); batchIndex++) {
@@ -134,14 +134,14 @@ namespace DOH {
 		}
 	}
 
-	void Renderer2dVulkan::drawQuadArrayTexturedScene(std::vector<Quad>& quadArr) {
+	void Renderer2dVulkan::drawQuadArrayTexturedScene(const std::vector<Quad>& quadArr) {
 		const size_t arrSize = quadArr.size();
 		TextureArray& texArr = mStorage->getQuadBatchTextureArray();
 
 		uint32_t quadBatchStartIndex = 0;
 
 		for (size_t addedCount = 0; addedCount < arrSize; /* addedCount is changed inside loop, breaks loop when no more space or all quads added */) {
-			Quad& quad = quadArr[addedCount];
+			const Quad& quad = quadArr[addedCount];
 			bool added = false;
 
 			const uint32_t textureSlotIndex =
@@ -178,7 +178,7 @@ namespace DOH {
 		}
 	}
 
-	void Renderer2dVulkan::drawQuadArraySameTextureScene(std::vector<Quad>& quadArr) {
+	void Renderer2dVulkan::drawQuadArraySameTextureScene(const std::vector<Quad>& quadArr) {
 		size_t addedCount = 0;
 		const size_t arrSize = quadArr.size();
 		if (arrSize == 0) {
@@ -202,7 +202,7 @@ namespace DOH {
 		uint32_t quadBatchStartIndex = 0;
 
 		for (size_t addedCount = 0; addedCount < arrSize; /* addedCount is changed inside loop, breaks loop when no more space */) {
-			Quad& quad = quadArr[addedCount];
+			const Quad& quad = quadArr[addedCount];
 
 			for (uint32_t batchIndex = quadBatchStartIndex; batchIndex < mStorage->getQuadRenderBatches().size(); batchIndex++) {
 				RenderBatchQuad& batch = mStorage->getQuadRenderBatches()[batchIndex];
@@ -256,7 +256,7 @@ namespace DOH {
 		}
 	}
 
-	void Renderer2dVulkan::drawTextFromQuads(std::vector<Quad>& quadArr) {
+	void Renderer2dVulkan::drawTextFromQuads(const std::vector<Quad>& quadArr) {
 		RenderBatchQuad& textBatch = mStorage->getTextRenderBatch();
 		TextureArray& textTextureArr = mStorage->getTextTextureArray();
 
@@ -270,7 +270,7 @@ namespace DOH {
 		mDrawnQuadCount += static_cast<uint32_t>(quadArr.size());
 	}
 
-	void Renderer2dVulkan::drawTextSameTextureFromQuads(std::vector<Quad>& quadArr) {
+	void Renderer2dVulkan::drawTextSameTextureFromQuads(const std::vector<Quad>& quadArr) {
 		if (quadArr.size() == 0) {
 			//TODO:: Is this worth a warning?
 			//LOG_WARN("drawTextSameTextureFromQuads() quadArr size = 0");

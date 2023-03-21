@@ -30,43 +30,50 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorPerspectiveCameraController::handleInput(float delta) {
-		const float translationDelta = Input::isKeyPressed(DOH_KEY_LEFT_SHIFT) ?
+		const auto& innerAppInputLayerQuery = Input::getInputLayer("InnerApp");
+		if (!innerAppInputLayerQuery.has_value()) {
+			//LOG_ERR("Failed to get input layer: " << "InnerApp");
+			return;
+		}
+		const auto& inputLayer = innerAppInputLayerQuery.value().get();
+
+		const float translationDelta = inputLayer.isKeyPressed(DOH_KEY_LEFT_SHIFT) ?
 			mTranslationSpeed * 6.0f * delta : mTranslationSpeed * delta;
 
-		if (Input::isKeyPressed(DOH_KEY_A)) {
+		if (inputLayer.isKeyPressed(DOH_KEY_A)) {
 			mPosition.x -= translationDelta;
 		}
-		if (Input::isKeyPressed(DOH_KEY_D)) {
+		if (inputLayer.isKeyPressed(DOH_KEY_D)) {
 			mPosition.x += translationDelta;
 		}
-		if (Input::isKeyPressed(DOH_KEY_W)) {
+		if (inputLayer.isKeyPressed(DOH_KEY_W)) {
 			mPosition.z -= translationDelta;
 		}
-		if (Input::isKeyPressed(DOH_KEY_S)) {
+		if (inputLayer.isKeyPressed(DOH_KEY_S)) {
 			mPosition.z += translationDelta;
 		}
-		if (Input::isKeyPressed(DOH_KEY_SPACE)) {
+		if (inputLayer.isKeyPressed(DOH_KEY_SPACE)) {
 			mPosition.y += translationDelta;
 		}
-		if (Input::isKeyPressed(DOH_KEY_C)) {
+		if (inputLayer.isKeyPressed(DOH_KEY_C)) {
 			mPosition.y -= translationDelta;
 		}
-		if (Input::isKeyPressed(DOH_KEY_Z)) {
+		if (inputLayer.isKeyPressed(DOH_KEY_Z)) {
 			mDirectionFacing.z += translationDelta;
 		}
-		if (Input::isKeyPressed(DOH_KEY_X)) {
+		if (inputLayer.isKeyPressed(DOH_KEY_X)) {
 			mDirectionFacing.z -= translationDelta;
 		}
-		if (Input::isKeyPressed(DOH_KEY_UP)) {
+		if (inputLayer.isKeyPressed(DOH_KEY_UP)) {
 			mDirectionFacing.y += translationDelta;
 		}
-		if (Input::isKeyPressed(DOH_KEY_DOWN)) {
+		if (inputLayer.isKeyPressed(DOH_KEY_DOWN)) {
 			mDirectionFacing.y -= translationDelta;
 		}
-		if (Input::isKeyPressed(DOH_KEY_RIGHT)) {
+		if (inputLayer.isKeyPressed(DOH_KEY_RIGHT)) {
 			mDirectionFacing.x += translationDelta;
 		}
-		if (Input::isKeyPressed(DOH_KEY_LEFT)) {
+		if (inputLayer.isKeyPressed(DOH_KEY_LEFT)) {
 			mDirectionFacing.x -= translationDelta;
 		}
 
@@ -74,8 +81,8 @@ namespace DOH::EDITOR {
 		//TODO:: separate mClickAndDragTranslationSpeed ?
 		//	Change cursor appearence when dragging?
 		glm::vec3 rotation{ 0.0f, 0.0f, 0.0f };
-		if (Input::isMouseButtonPressed(DOH_MOUSE_BUTTON_RIGHT)) {
-			const glm::vec2 currentMousePos = Input::getCursorPos();
+		if (inputLayer.isMouseButtonPressed(DOH_MOUSE_BUTTON_RIGHT)) {
+			const glm::vec2 currentMousePos = inputLayer.getCursorPos();
 
 			rotation.x += (mCursorLastPosUpdate.x - currentMousePos.x) * delta;
 			rotation.y += (currentMousePos.y - mCursorLastPosUpdate.y) * delta;
@@ -85,7 +92,7 @@ namespace DOH::EDITOR {
 			}
 		}
 
-		mCursorLastPosUpdate = Input::getCursorPos();
+		mCursorLastPosUpdate = inputLayer.getCursorPos();
 	}
 
 	void EditorPerspectiveCameraController::updateViewMatrices() {

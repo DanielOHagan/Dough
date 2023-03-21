@@ -14,9 +14,10 @@ namespace DOH::EDITOR {
 	EditorAppLogic::EditorAppLogic(std::shared_ptr<IApplicationLogic> innerAppLogic)
 	:	IApplicationLogic(),
 		mInnerAppLogic(innerAppLogic),
-		mInnerAppState(EInnerAppState::STOPPED)
+		mInnerAppState(EInnerAppState::STOPPED),
+		mEditorGuiFocused(false)
 	{
-		if (mInnerAppLogic == nullptr) {
+		if (mInnerAppLogic == nullptr){
 			THROW("EditorAppLogic: Inner app was nullptr");
 		}
 
@@ -33,16 +34,36 @@ namespace DOH::EDITOR {
 
 		mEditorSettings->UseOrthographicCamera = false;
 
+		mEditorInputLayer = std::make_shared<EditorInputLayer>();
+		Input::addInputLayer("Editor", mEditorInputLayer);
+
 		mInnerAppLogic->init(aspectRatio);
 
 		EditorGui::init();
 	}
 
 	void EditorAppLogic::update(float delta) {
-		//Handle input first
-		if (Input::isKeyPressed(DOH_KEY_F1)) {
+		const auto& innerAppInputLayerQuery = Input::getInputLayer("InnerApp");
+		if (!innerAppInputLayerQuery.has_value()) {
+			LOG_ERR("Failed to get input layer: " << "InnerApp");
+			return;
+		}
+		auto& inputLayer = innerAppInputLayerQuery.value().get();
+		if (inputLayer.isKeyPressed(DOH_KEY_F1)) {
 			mEditorSettings->RenderDebugWindow = true;
 		}
+
+		//When focus switches from inner app to EditorGUI reset inner app input
+		//NOTE:: This still results in a reset being called each focusing of the GUI even if the inner app didn't get "focus".
+		bool editorGuiFocused =
+			ImGui::IsAnyItemActive() ||
+			ImGui::IsAnyItemFocused() ||
+			(ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow) && ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow));
+
+		if (mEditorGuiFocused && !editorGuiFocused) {
+			inputLayer.reset();
+		}
+		mEditorGuiFocused = editorGuiFocused;
 
 		if (mEditorSettings->UseOrthographicCamera) {
 			mOrthoCameraController->onUpdate(delta);
@@ -183,7 +204,7 @@ UPS displayed is the count of frames in the last full second interval)"
 				}
 
 				{
-					const glm::vec2 cursorPos = Input::getCursorPos();
+					const glm::vec2& cursorPos = mEditorInputLayer->getCursorPos();
 					ImGui::Text(
 						"Cursor Position: X: %i, Y: %i",
 						static_cast<int>(cursorPos.x),

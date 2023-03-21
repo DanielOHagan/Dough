@@ -1,4 +1,5 @@
 #include "dough/application/Application.h"
+
 #include "dough/Logging.h"
 
 namespace DOH {
@@ -206,11 +207,11 @@ namespace DOH {
 	void Application::onKeyEvent(KeyEvent& keyEvent) {
 		switch (keyEvent.getType()) {
 			case EEventType::KEY_DOWN:
-				Input::get().onKeyEvent(keyEvent.getKeyCode(), true);
+				Input::get().onKeyPressedEvent(keyEvent.getKeyCode(), true);
 				return;
 
 			case EEventType::KEY_UP:
-				Input::get().onKeyEvent(keyEvent.getKeyCode(), false);
+				Input::get().onKeyPressedEvent(keyEvent.getKeyCode(), false);
 				return;
 
 			default:
@@ -222,22 +223,22 @@ namespace DOH {
 	void Application::onMouseEvent(MouseEvent& mouseEvent) {
 		switch (mouseEvent.getType()) {
 			case EEventType::MOUSE_BUTTON_DOWN:
-				Input::get().onMouseButtonEvent(((MouseButtonEvent&) mouseEvent).getButton(), true);
+				Input::get().onMouseButtonPressedEvent(((MouseButtonEvent&) mouseEvent).getButton(), true);
 				return;
 
 			case EEventType::MOUSE_BUTTON_UP:
-				Input::get().onMouseButtonEvent(((MouseButtonEvent&) mouseEvent).getButton(), false);
+				Input::get().onMouseButtonPressedEvent(((MouseButtonEvent&) mouseEvent).getButton(), false);
 				return;
 			
 			case EEventType::MOUSE_MOVE: {
 				MouseMoveEvent& move = (MouseMoveEvent&) mouseEvent;
-				Input::get().onMouseMove(move.getPosX(), move.getPosY());
+				Input::get().onMouseMoveEvent(move.getPosX(), move.getPosY());
 				return;
 			}
 			
 			case EEventType::MOUSE_SCROLL: {
 				MouseScrollEvent& scroll = (MouseScrollEvent&) mouseEvent;
-				Input::get().onMouseScroll(scroll.getOffsetX(), scroll.getOffsetY());
+				Input::get().onMouseScrollEvent(scroll.getOffsetX(), scroll.getOffsetY());
 				return;
 			}
 

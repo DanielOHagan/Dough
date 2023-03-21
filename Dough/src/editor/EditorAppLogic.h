@@ -10,6 +10,8 @@
 #include "dough/rendering/renderables/SimpleRenderable.h"
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 #include "dough/time/PausableTimer.h"
+#include "dough/input/Input.h"
+#include "dough/input/InputLayer.h"
 
 #include "editor/EditorOrthoCameraController.h"
 #include "editor/EditorPerspectiveCameraController.h"
@@ -28,11 +30,32 @@ namespace DOH::EDITOR {
 		STOPPED
 	};
 
+	class EditorInputLayer : public AInputLayer {
+	
+	public:
+		EditorInputLayer() : AInputLayer() {}
+
+		//EditorInputLayer isn't manually handling events so all functions are empty, return false, or return 
+		virtual bool handleKeyPressed(int keyCode, bool pressed) override { return EditorGui::isGuiHandlingKeyboardInput(); }
+		virtual bool handleMouseButtonPressed(int button, bool pressed) override { return EditorGui::isGuiHandlingMouseInput(); }
+		virtual bool handleMouseMoved(float x, float y) override { return EditorGui::isGuiHandlingMouseInput(); }
+		virtual bool handleMouseScroll(float offsetX, float offsetY) override { return EditorGui::isGuiHandlingMouseInput(); }
+		virtual void resetCycleData() override {};
+		virtual void reset() override {};
+
+		//NOTE:: Device Input is handled by EditorUI, no need to handle it manually so no need to override original function
+		//virtual inline bool hasDeviceInput() const override { return false; }
+
+		virtual bool isKeyPressed(int keyCode) const override { return false; }
+		virtual bool isMouseButtonPressed(int button) const override { return false; }
+		virtual inline bool isMouseScrollingUp() const override { return false; }
+		virtual inline bool isMouseScrollingDown() const override { return false; }
+		virtual inline const glm::vec2 getCursorPos() const override { return { 0.0f, 0.0f }; }
+	};
+
 	class EditorAppLogic : public IApplicationLogic {
 
 	private:
-		std::shared_ptr<IApplicationLogic> mInnerAppLogic;
-
 		struct EditorSettings {
 			//ImGui window rendering controls
 			bool RenderDebugWindow = true;
@@ -60,6 +83,10 @@ namespace DOH::EDITOR {
 			float QuitButtonHoldTime = 0.0f;
 		};
 
+		std::shared_ptr<IApplicationLogic> mInnerAppLogic;
+
+		std::shared_ptr<EditorInputLayer> mEditorInputLayer;
+
 		//Editor Cameras
 		std::shared_ptr<EditorOrthoCameraController> mOrthoCameraController;
 		std::shared_ptr<EditorPerspectiveCameraController> mPerspectiveCameraController;
@@ -68,6 +95,7 @@ namespace DOH::EDITOR {
 		std::unique_ptr<EditorSettings> mEditorSettings;
 		std::unique_ptr<PausableTimer> mInnerAppTimer;
 		EInnerAppState mInnerAppState;
+		bool mEditorGuiFocused;
 
 	public:
 		EditorAppLogic(std::shared_ptr<IApplicationLogic> innerApp);

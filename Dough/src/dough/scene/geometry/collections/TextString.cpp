@@ -8,13 +8,14 @@ namespace DOH {
 	:	AGeometry({0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, 0.0f),
 		mString(string),
 		mFontBitmap(fontBitmap),
-		mScale(scale)
+		mScale(scale),
+		mColour({ 1.0f, 1.0f, 1.0f, 1.0f })
 	{
 		if (strlen(string) == 0) {
 			LOG_WARN("TextString given empty string");
 		}
 
-		mStringQuads = TextString::getStringAsQuads(string, fontBitmap, Position);
+		mStringQuads = TextString::getStringAsQuads(string, fontBitmap, Position, mScale, mColour);
 	}
 
 	void TextString::setString(const char* string) {
@@ -27,7 +28,8 @@ namespace DOH {
 
 		mString = string;
 
-		mStringQuads = TextString::getStringAsQuads(mString, mFontBitmap, Position, mScale);
+		//Immediately change quad data
+		mStringQuads = TextString::getStringAsQuads(mString, mFontBitmap, Position, mScale, mColour);
 	}
 
 	void TextString::setScale(const float scale) {
@@ -38,6 +40,7 @@ namespace DOH {
 			return;
 		}
 
+		//Immediately change quad data
 		const size_t stringLength = strlen(mString);
 		size_t quadIndex = 0;
 		for (size_t stringIndex = 0; stringIndex < stringLength; stringIndex++) {
@@ -64,11 +67,21 @@ namespace DOH {
 		mScale = scale;
 	}
 
+	void TextString::setColour(const glm::vec4& colourRgba) {
+		mColour = colourRgba;
+		
+		//Immediately change quad data
+		for (Quad& quad : mStringQuads) {
+			quad.Colour = colourRgba;
+		}
+	}
+
 	std::vector<Quad> TextString::getStringAsQuads(
 		const char* string,
 		const FontBitmap& bitmap,
 		const glm::vec3 rootPos,
 		const float scale,
+		const glm::vec4& colour,
 		const ETextFlags2d flags
 	) {
 		const size_t stringLength = strlen(string);
@@ -134,7 +147,7 @@ namespace DOH {
 					g->second.TexCoordTopLeft.y
 				};
 
-				quad.Colour = { 1.0f, 1.0f, 1.0f, 1.0f };
+				quad.Colour = colour;
 
 				lastCharId = charId;
 

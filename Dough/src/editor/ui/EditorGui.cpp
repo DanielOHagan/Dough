@@ -214,6 +214,18 @@ namespace DOH::EDITOR {
 		}
 	}
 
+	bool EditorGui::isGuiHandlingKeyboardInputImpl() {
+		return ImGui::GetIO().WantCaptureKeyboard;
+	}
+	
+	bool EditorGui::isGuiHandlingMouseInputImpl() {
+		return ImGui::GetIO().WantCaptureMouse;
+	}
+
+	bool EditorGui::isGuiHandlingTextInputImpl() {
+		return ImGui::GetIO().WantTextInput;
+	}
+
 	void EditorGui::imGuiPrintMat4x4Impl(const glm::mat4x4& mat, const char* name) {
 		ImGui::Text(name);
 
@@ -342,5 +354,17 @@ namespace DOH::EDITOR {
 
 	void EditorGui::singleUnitTime(const float seconds, const bool attachSuffix) {
 		INSTANCE->imGuiSingleUnitTimeImpl(seconds, attachSuffix);
+	}
+
+	bool EditorGui::isGuiHandlingKeyboardInput() {
+		return INSTANCE->isGuiHandlingKeyboardInputImpl();
+	}
+	
+	bool EditorGui::isGuiHandlingMouseInput() {
+		return INSTANCE->isGuiHandlingMouseInputImpl();
+	}
+	
+	bool EditorGui::isGuiHandlingTextInput() {
+		return INSTANCE->isGuiHandlingTextInputImpl();
 	}
 }

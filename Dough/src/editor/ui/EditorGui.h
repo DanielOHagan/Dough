@@ -39,6 +39,10 @@ namespace DOH::EDITOR {
 		void imGuiSingleUnitTimeImpl(const double millis, const bool attachSuffix);
 		void imGuiSingleUnitTimeImpl(const float seconds, const bool attachSuffix);
 
+		bool isGuiHandlingKeyboardInputImpl();
+		bool isGuiHandlingMouseInputImpl();
+		bool isGuiHandlingTextInputImpl();
+
 		//-----GUI Implementation Agnostic Functions-----
 		void openTextureViewerWindowImpl(const TextureVulkan& texture);
 		void openMonoSpaceTextureAtlasViewerWindowImpl(const MonoSpaceTextureAtlas& textureAtlas);
@@ -203,6 +207,26 @@ namespace DOH::EDITOR {
 		*/
 		static void printMat4x4(const glm::mat4x4& mat, const char* name);
 
+
+		//-----Input Handling-----
+		/**
+		* Whether the Editor GUI is currently handling any keyboard events for this frame.
+		* 
+		* @returns If the GUI is handling any keyboard event.
+		*/
+		static bool isGuiHandlingKeyboardInput();
+		/**
+		* Whether the Editor GUI is currently handling any mouse events for this frame.
+		*
+		* @returns If the GUI is handling any mouse event.
+		*/
+		static bool isGuiHandlingMouseInput();
+		/**
+		* Whether the Editor GUI is currently handling any text events for this frame.
+		*
+		* @returns If the GUI is handling any text event.
+		*/
+		static bool isGuiHandlingTextInput();
 		
 		
 		//IMPORTANT:: Calling this function outside of the table start/end is undefined behaviour.

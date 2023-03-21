@@ -6,6 +6,8 @@
 #include "dough/scene/geometry/collections/TextString.h"
 #include "dough/rendering/RendererVulkan.h"
 #include "dough/rendering/renderables/RenderableModel.h"
+#include "dough/input/Input.h"
+#include "dough/input/DefaultInputLayer.h"
 
 #define BOUNCING_QUAD_COUNT
 #if defined (_DEBUG)
@@ -33,16 +35,16 @@ namespace DOH::EDITOR {
 
 			//Models using EVertexType::VERTEX_3D
 			const std::array<const char*, 4> ObjModelFilePaths = {
-				"res/models/testCube.obj",
-				"res/models/spoon.obj",
-				"res/models/teacup.obj",
-				"res/models/teapot.obj"
+				"Dough/res/models/testCube.obj",
+				"Dough/res/models/spoon.obj",
+				"Dough/res/models/teacup.obj",
+				"Dough/res/models/teapot.obj"
 			};
 			const uint32_t DefaultObjFilePathIndex = 0;
 
 			//TODO:: Loading shaders with const char* crashes, strings work, FIX
-			const std::string FlatColourShaderVertPath = "res/shaders/spv/FlatColour.vert.spv";
-			const std::string FlatColourShaderFragPath = "res/shaders/spv/FlatColour.frag.spv";
+			const std::string FlatColourShaderVertPath = "Dough/res/shaders/spv/FlatColour.vert.spv";
+			const std::string FlatColourShaderFragPath = "Dough/res/shaders/spv/FlatColour.frag.spv";
 			const char* ScenePipelineName = "ObjScene";
 			const char* SceneWireframePipelineName = "ObjWireframe";
 			const EVertexType FlatColourVertexType = EVertexType::VERTEX_3D;
@@ -92,8 +94,8 @@ namespace DOH::EDITOR {
 				4, 5, 6, 6, 7, 4
 			};
 
-			const std::string UiShaderVertPath = "res/shaders/spv/SimpleUi.vert.spv";
-			const std::string UiShaderFragPath = "res/shaders/spv/SimpleUi.frag.spv";
+			const std::string UiShaderVertPath = "Dough/res/shaders/spv/SimpleUi.vert.spv";
+			const std::string UiShaderFragPath = "Dough/res/shaders/spv/SimpleUi.frag.spv";
 			const std::vector<Vertex2d> UiVertices = {
 				//	x		y			r		g		b		a
 				{{	-1.0f,	-0.90f},	{0.0f,	1.0f,	0.0f,	1.0f}},	//bot-left
@@ -160,7 +162,7 @@ namespace DOH::EDITOR {
 		
 			std::unique_ptr<TextString> TextString;
 			char StringBuffer[StringLengthLimit] = "This is the default text string. Use the Text Field to change me!";
-			float Colour[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+			glm::vec4 Colour = { 1.0f, 1.0f, 1.0f, 1.0f };
 		
 			bool Update = false;
 			bool Render = false;
@@ -179,8 +181,8 @@ namespace DOH::EDITOR {
 
 			PipelineRenderableConveyor TexturedConveyor;
 
-			const char* TestTexturePath = "res/images/testTexture.jpg";
-			const char* TestTexture2Path = "res/images/testTexture2.jpg";
+			const char* TestTexturePath = "Dough/res/images/testTexture.jpg";
+			const char* TestTexture2Path = "Dough/res/images/testTexture2.jpg";
 			std::shared_ptr<TextureVulkan> TestTexture1;
 			std::shared_ptr<TextureVulkan> TestTexture2;
 		};
@@ -199,9 +201,10 @@ namespace DOH::EDITOR {
 		std::unique_ptr<TextDemo> mTextDemo;
 
 		std::unique_ptr<ImGuiSettings> mImGuiSettings;
+		std::shared_ptr<DefaultInputLayer> mInputLayer;
 
 		//TODO:: allow for apps to pass in textures to batch renderer so their lifetime is controlled by the app and not the engine
-		//const char* testTexturesPath = "res/images/test textures/";
+		//const char* testTexturesPath = "Dough/res/images/test textures/";
 		//std::shared_ptr<MonoSpaceTextureAtlas> mTestTexturesAtlas;
 
 	public:

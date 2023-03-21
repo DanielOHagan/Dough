@@ -58,7 +58,7 @@ namespace DOH {
 		std::unordered_map<std::string, std::shared_ptr<FontBitmap>> mFontBitmaps;
 
 		//TEMP::
-		const char* testTexturesPath = "res/images/test textures/";
+		const char* testTexturesPath = "Dough/res/images/test textures/";
 		std::vector<std::shared_ptr<TextureVulkan>> mTestTextures;
 		std::shared_ptr<MonoSpaceTextureAtlas> mTestTexturesAtlas;
 

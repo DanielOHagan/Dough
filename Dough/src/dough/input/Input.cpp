@@ -1,4 +1,5 @@
 #include "dough/input/Input.h"
+
 #include "dough/input/InputCodes.h"
 #include "dough/Logging.h"
 
@@ -29,86 +30,75 @@ namespace DOH {
 		DOH_MOUSE_BUTTON_LEFT, DOH_MOUSE_BUTTON_MIDDLE, DOH_MOUSE_BUTTON_RIGHT
 	};
 
-	Input::Input()
-	:	mMouseScreenPos(0.0f, 0.0f),
-		mMouseScrollOffset(0.0f, 0.0f)
-	{}
-
 	void Input::init() {
-		//TODO:: pass in possible key and mouse inputs or use some other kind of input masking system
 		INSTANCE = std::make_unique<Input>();
-
-		std::vector<int> keyCodes{ DEFAULT_KEY_CODES.begin(),DEFAULT_KEY_CODES.end() };
-		std::vector<int> mouseButtons{ DEFAULT_MOUSE_BUTTON_CODES.begin(), DEFAULT_MOUSE_BUTTON_CODES.end() };
-
-		INSTANCE->setPossibleKeyInputs(keyCodes);
-		INSTANCE->setPossibleMouseInputs(mouseButtons);
 	}
 
 	void Input::close() {
 		if (INSTANCE != nullptr) {
+			INSTANCE->mInputLayers.clear();
 			INSTANCE.reset();
 			INSTANCE = nullptr;
 		}
 	}
 
-	void Input::setPossibleKeyInputs(const std::vector<int>& keyCodes) {
-		INSTANCE->mPressedKeysMap.clear();
-
-		INSTANCE->mPressedKeysMap.reserve(keyCodes.size());
-
-		for (int keyCode : keyCodes) {
-			INSTANCE->mPressedKeysMap.emplace(keyCode, false);
+	void Input::onKeyPressedEvent(int keyCode, bool pressed) {
+		for (auto& inputLayer : mInputLayers) {
+			if (inputLayer.second->handleKeyPressed(keyCode, pressed)) {
+				return;
+			}
 		}
 	}
 
-	void Input::setPossibleMouseInputs(const std::vector<int>& buttons) {
-		INSTANCE->mPressedMouseButtonsMap.clear();
-
-		INSTANCE->mPressedMouseButtonsMap.reserve(buttons.size());
-
-		for (int btn : buttons) {
-			INSTANCE->mPressedMouseButtonsMap.emplace(btn, false);
+	void Input::onMouseButtonPressedEvent(int button, bool pressed) {
+		for (auto& inputLayer : mInputLayers) {
+			if (inputLayer.second->handleMouseButtonPressed(button, pressed)) {
+				return;
+			}
 		}
 	}
 
-	void Input::onKeyEvent(int keyCode, bool pressed) {
-		if (isKeyCodeInPossibleMap(keyCode)) {
-			setKeyPressedFlag(keyCode, pressed);
+	void Input::onMouseMoveEvent(float x, float y) {
+		for (auto& inputLayer : mInputLayers) {
+			if (inputLayer.second->handleMouseMoved(x, y)) {
+				return;
+			}
 		}
 	}
 
-	void Input::onMouseButtonEvent(int button, bool pressed) {
-		if (isMouseButtonInPossibleMap(button)) {
-			setMouseButtonPressedFlag(button, pressed);
+	void Input::onMouseScrollEvent(float offsetX, float offsetY) {
+		for (auto& inputLayer : mInputLayers) {
+			if (inputLayer.second->handleMouseScroll(offsetX, offsetY)) {
+				return;
+			}
 		}
 	}
 
-	void Input::setKeyPressedFlag(int keyCode, bool pressed) {
-		mPressedKeysMap[keyCode] = pressed;
+	void Input::resetCycleData() {
+		for (auto& inputLayer : mInputLayers) {
+			inputLayer.second->resetCycleData();
+		}
 	}
 
-	void Input::setMouseButtonPressedFlag(int button, bool pressed) {
-		mPressedMouseButtonsMap[button] = pressed;
+	void Input::addInputLayer(const char* name, std::shared_ptr<AInputLayer> inputLayer) {
+		const auto& result = INSTANCE->mInputLayers.emplace(name, inputLayer);
+		if (!result.second) {
+			LOG_ERR("Failed to add input layer: " << name);
+		}
 	}
 
-	bool Input::isKeyPressedImpl(int keyCode) {
-		if (isKeyCodeInPossibleMap(keyCode)) {
-			return mPressedKeysMap.at(keyCode);
+	void Input::removeInputLayer(const char* name) {
+		if (INSTANCE->mInputLayers.erase(name) == 0) {
+			LOG_ERR("Failed to remove input layer: " << name);
+		}
+	}
+
+	std::optional<std::reference_wrapper<AInputLayer>> Input::getInputLayer(const char* name) {
+		const auto& itr = INSTANCE->mInputLayers.find(name);
+		if (itr != INSTANCE->mInputLayers.end()) {
+			return { *itr->second };
 		} else {
-			LOG_WARN("Key not in current key map: " << keyCode);
+			return {};
 		}
-
-		return false;
-	}
-
-	bool Input::isMouseButtonPressedImpl(int button) {
-		if (isMouseButtonInPossibleMap(button)) {
-			return mPressedMouseButtonsMap.at(button);
-		} else {
-			LOG_WARN("Mouse button not in current mouse button map: " << button);
-		}
-
-		return false;
 	}
 }

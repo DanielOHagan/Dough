@@ -4,7 +4,6 @@
 #include "dough/scene/geometry/primitives/Quad.h"
 #include "dough/rendering/Config.h"
 
-
 namespace DOH {
 
 	class RenderBatchQuad : public ARenderBatch<Quad> {

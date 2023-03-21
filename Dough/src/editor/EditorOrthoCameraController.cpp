@@ -58,42 +58,49 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorOrthoCameraController::handleInput(float delta) {
-		const float translationDelta = Input::isKeyPressed(DOH_KEY_LEFT_SHIFT) ?
+		const auto& innerAppInputLayerQuery = Input::getInputLayer("InnerApp");
+		if (!innerAppInputLayerQuery.has_value()) {
+			//LOG_ERR("No input device to handle input.");
+			return;
+		}
+		const auto& inputLayer = innerAppInputLayerQuery.value().get();
+
+		const float translationDelta = inputLayer.isKeyPressed(DOH_KEY_LEFT_SHIFT) ?
 			mTranslationSpeed * 6.0f * delta : mTranslationSpeed * delta;
 
 		//Zooming
-		if (Input::isKeyPressed(DOH_KEY_X)) {
+		if (inputLayer.isKeyPressed(DOH_KEY_X)) {
 			zoom(-mZoomSpeed * delta);
 		}
-		if (Input::isKeyPressed(DOH_KEY_Z)) {
+		if (inputLayer.isKeyPressed(DOH_KEY_Z)) {
 			zoom(mZoomSpeed * delta);
 		}
 
 		//WASD translation
-		if (Input::isKeyPressed(DOH_KEY_A)) {
+		if (inputLayer.isKeyPressed(DOH_KEY_A)) {
 			translateX(-translationDelta);
 		}
-		if (Input::isKeyPressed(DOH_KEY_D)) {
+		if (inputLayer.isKeyPressed(DOH_KEY_D)) {
 			translateX(translationDelta);
 		}
-		if (Input::isKeyPressed(DOH_KEY_W)) {
+		if (inputLayer.isKeyPressed(DOH_KEY_W)) {
 			translateY(translationDelta);
 		}
-		if (Input::isKeyPressed(DOH_KEY_S)) {
+		if (inputLayer.isKeyPressed(DOH_KEY_S)) {
 			translateY(-translationDelta);
 		}
 
 		//Click and Drag
 		//TODO:: separate mClickAndDragTranslationSpeed ?
 		//	Change cursor appearence when dragging?
-		if (Input::isMouseButtonPressed(DOH_MOUSE_BUTTON_RIGHT)) {
+		if (inputLayer.isMouseButtonPressed(DOH_MOUSE_BUTTON_RIGHT)) {
 			if (!mClickAndDragActive) {
 				mClickAndDragActive = true;
 			}
 
 			//TODO:: fix differing speeds on differing UPS rates
 			//Invert axes for a "drag" effect
-			const glm::vec2 currentMousePos = Input::getCursorPos();
+			const glm::vec2 currentMousePos = inputLayer.getCursorPos();
 
 			translateXY(
 				(mCursorLastPosUpdate.x - currentMousePos.x) * translationDelta,
@@ -103,6 +110,6 @@ namespace DOH::EDITOR {
 			mClickAndDragActive = false;
 		}
 
-		mCursorLastPosUpdate = Input::getCursorPos();
+		mCursorLastPosUpdate = inputLayer.getCursorPos();
 	}
 }

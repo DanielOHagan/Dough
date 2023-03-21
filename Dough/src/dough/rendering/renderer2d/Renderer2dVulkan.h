@@ -42,15 +42,15 @@ namespace DOH {
 
 
 		//-----Primitive Objects-----
-		void drawQuadScene(Quad& quad);
-		void drawQuadTexturedScene(Quad& quad);
-		void drawQuadArrayScene(std::vector<Quad>& quadArr);
-		void drawQuadArrayTexturedScene(std::vector<Quad>& quadArr);
-		void drawQuadArraySameTextureScene(std::vector<Quad>& quadArr);
+		void drawQuadScene(const Quad& quad);
+		void drawQuadTexturedScene(const Quad& quad);
+		void drawQuadArrayScene(const std::vector<Quad>& quadArr);
+		void drawQuadArrayTexturedScene(const std::vector<Quad>& quadArr);
+		void drawQuadArraySameTextureScene(const std::vector<Quad>& quadArr);
 		//void drawQuadUi(Quad& quad);
 
-		void drawTextFromQuads(std::vector<Quad>& quadArr);
-		void drawTextSameTextureFromQuads(std::vector<Quad>& quadArr);
+		void drawTextFromQuads(const std::vector<Quad>& quadArr);
+		void drawTextSameTextureFromQuads(const std::vector<Quad>& quadArr);
 
 
 		//-----Collection Objects-----
