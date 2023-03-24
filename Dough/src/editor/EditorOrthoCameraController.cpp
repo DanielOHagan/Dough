@@ -9,7 +9,7 @@ using namespace DOH;
 
 namespace DOH::EDITOR {
 
-	EditorOrthoCameraController::EditorOrthoCameraController(float aspectRatio)
+	EditorOrthoCameraController::EditorOrthoCameraController(std::shared_ptr<AInputLayer> inputLayer, float aspectRatio)
 	:	mCamera(std::make_unique<OrthographicCamera>(
 			-aspectRatio,
 			aspectRatio,
@@ -25,7 +25,8 @@ namespace DOH::EDITOR {
 		mZoomSpeed(0.1f),
 		mZoomMax(50.00f),
 		mZoomMin(0.25f),
-		mTranslationSpeed(0.3f)
+		mTranslationSpeed(0.3f),
+		mInputLayer(inputLayer)
 	{}
 
 	void EditorOrthoCameraController::onUpdate(float delta) {
@@ -58,49 +59,42 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorOrthoCameraController::handleInput(float delta) {
-		const auto& innerAppInputLayerQuery = Input::getInputLayer("InnerApp");
-		if (!innerAppInputLayerQuery.has_value()) {
-			//LOG_ERR("No input device to handle input.");
-			return;
-		}
-		const auto& inputLayer = innerAppInputLayerQuery.value().get();
-
-		const float translationDelta = inputLayer.isKeyPressed(DOH_KEY_LEFT_SHIFT) ?
+		const float translationDelta = mInputLayer->isKeyPressed(DOH_KEY_LEFT_SHIFT) ?
 			mTranslationSpeed * 6.0f * delta : mTranslationSpeed * delta;
 
 		//Zooming
-		if (inputLayer.isKeyPressed(DOH_KEY_X)) {
+		if (mInputLayer->isKeyPressed(DOH_KEY_X)) {
 			zoom(-mZoomSpeed * delta);
 		}
-		if (inputLayer.isKeyPressed(DOH_KEY_Z)) {
+		if (mInputLayer->isKeyPressed(DOH_KEY_Z)) {
 			zoom(mZoomSpeed * delta);
 		}
 
 		//WASD translation
-		if (inputLayer.isKeyPressed(DOH_KEY_A)) {
+		if (mInputLayer->isKeyPressed(DOH_KEY_A)) {
 			translateX(-translationDelta);
 		}
-		if (inputLayer.isKeyPressed(DOH_KEY_D)) {
+		if (mInputLayer->isKeyPressed(DOH_KEY_D)) {
 			translateX(translationDelta);
 		}
-		if (inputLayer.isKeyPressed(DOH_KEY_W)) {
+		if (mInputLayer->isKeyPressed(DOH_KEY_W)) {
 			translateY(translationDelta);
 		}
-		if (inputLayer.isKeyPressed(DOH_KEY_S)) {
+		if (mInputLayer->isKeyPressed(DOH_KEY_S)) {
 			translateY(-translationDelta);
 		}
 
 		//Click and Drag
 		//TODO:: separate mClickAndDragTranslationSpeed ?
 		//	Change cursor appearence when dragging?
-		if (inputLayer.isMouseButtonPressed(DOH_MOUSE_BUTTON_RIGHT)) {
+		if (mInputLayer->isMouseButtonPressed(DOH_MOUSE_BUTTON_RIGHT)) {
 			if (!mClickAndDragActive) {
 				mClickAndDragActive = true;
 			}
 
 			//TODO:: fix differing speeds on differing UPS rates
 			//Invert axes for a "drag" effect
-			const glm::vec2 currentMousePos = inputLayer.getCursorPos();
+			const glm::vec2 currentMousePos = mInputLayer->getCursorPos();
 
 			translateXY(
 				(mCursorLastPosUpdate.x - currentMousePos.x) * translationDelta,
@@ -110,6 +104,6 @@ namespace DOH::EDITOR {
 			mClickAndDragActive = false;
 		}
 
-		mCursorLastPosUpdate = inputLayer.getCursorPos();
+		mCursorLastPosUpdate = mInputLayer->getCursorPos();
 	}
 }

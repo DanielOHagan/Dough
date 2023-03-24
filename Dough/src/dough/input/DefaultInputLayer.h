@@ -1,7 +1,7 @@
 #pragma once
 
 #include "dough/Core.h"
-#include "dough/input/InputLayer.h"
+#include "dough/input/AInputLayer.h"
 #include "dough/input/DeviceInput.h"
 
 namespace DOH {
@@ -11,7 +11,7 @@ namespace DOH {
 		std::shared_ptr<DeviceInputKeyboardMouse> mKeyboardMouseInput;
 
 	public:
-		DefaultInputLayer();
+		DefaultInputLayer(const char* name);
 
 		virtual bool handleKeyPressed(int keyCode, bool pressed) override;
 		virtual bool handleMouseButtonPressed(int button, bool pressed) override;

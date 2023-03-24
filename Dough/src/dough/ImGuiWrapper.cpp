@@ -198,7 +198,7 @@ namespace DOH {
 				}
 			}
 		};
-		
+
 		mRenderPass = std::make_shared<RenderPassVulkan>(logicDevice, imGuiSubPass);
 	}
 

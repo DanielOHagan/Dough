@@ -44,7 +44,7 @@ namespace DOH {
 
 	void Input::onKeyPressedEvent(int keyCode, bool pressed) {
 		for (auto& inputLayer : mInputLayers) {
-			if (inputLayer.second->handleKeyPressed(keyCode, pressed)) {
+			if (inputLayer->handleKeyPressed(keyCode, pressed)) {
 				return;
 			}
 		}
@@ -52,7 +52,7 @@ namespace DOH {
 
 	void Input::onMouseButtonPressedEvent(int button, bool pressed) {
 		for (auto& inputLayer : mInputLayers) {
-			if (inputLayer.second->handleMouseButtonPressed(button, pressed)) {
+			if (inputLayer->handleMouseButtonPressed(button, pressed)) {
 				return;
 			}
 		}
@@ -60,7 +60,7 @@ namespace DOH {
 
 	void Input::onMouseMoveEvent(float x, float y) {
 		for (auto& inputLayer : mInputLayers) {
-			if (inputLayer.second->handleMouseMoved(x, y)) {
+			if (inputLayer->handleMouseMoved(x, y)) {
 				return;
 			}
 		}
@@ -68,7 +68,7 @@ namespace DOH {
 
 	void Input::onMouseScrollEvent(float offsetX, float offsetY) {
 		for (auto& inputLayer : mInputLayers) {
-			if (inputLayer.second->handleMouseScroll(offsetX, offsetY)) {
+			if (inputLayer->handleMouseScroll(offsetX, offsetY)) {
 				return;
 			}
 		}
@@ -76,29 +76,52 @@ namespace DOH {
 
 	void Input::resetCycleData() {
 		for (auto& inputLayer : mInputLayers) {
-			inputLayer.second->resetCycleData();
+			inputLayer->resetCycleData();
 		}
 	}
 
-	void Input::addInputLayer(const char* name, std::shared_ptr<AInputLayer> inputLayer) {
-		const auto& result = INSTANCE->mInputLayers.emplace(name, inputLayer);
-		if (!result.second) {
-			LOG_ERR("Failed to add input layer: " << name);
+	void Input::addInputLayer(std::shared_ptr<AInputLayer> inputLayer) {
+		for (auto itr = INSTANCE->mInputLayers.begin(); itr != INSTANCE->mInputLayers.end(); itr++) {
+			if (strcmp(itr->get()->getName(), inputLayer->getName()) == 0) {
+				LOG_ERR("Input Layer add failed, name taken: " << inputLayer->getName());
+				return;
+			}
 		}
+
+		INSTANCE->mInputLayers.emplace_back(inputLayer);
 	}
 
 	void Input::removeInputLayer(const char* name) {
-		if (INSTANCE->mInputLayers.erase(name) == 0) {
-			LOG_ERR("Failed to remove input layer: " << name);
+		for (auto itr = INSTANCE->mInputLayers.begin(); itr != INSTANCE->mInputLayers.end(); itr++) {
+			if (strcmp(itr->get()->getName(), name) == 0) {
+				INSTANCE->mInputLayers.erase(itr);
+				return;
+			}
 		}
+
+		LOG_WARN("Input Layer not found when trying to remove: " << name);
 	}
 
 	std::optional<std::reference_wrapper<AInputLayer>> Input::getInputLayer(const char* name) {
-		const auto& itr = INSTANCE->mInputLayers.find(name);
-		if (itr != INSTANCE->mInputLayers.end()) {
-			return { *itr->second };
-		} else {
-			return {};
+		for (auto itr = INSTANCE->mInputLayers.begin(); itr != INSTANCE->mInputLayers.end(); itr++) {
+			if (strcmp(itr->get()->getName(), name) == 0) {
+				return { *itr->get() };
+			}
 		}
+
+		LOG_ERR("Failed to get Input Layer: " << name);
+		return {};
+	}
+
+	std::optional<std::shared_ptr<AInputLayer>> Input::getInputLayerPtr(const char* name) {
+		for (auto itr = INSTANCE->mInputLayers.begin(); itr != INSTANCE->mInputLayers.end(); itr++) {
+			if (strcmp(itr->get()->getName(), name) == 0) {
+				auto d = itr->get();
+				return { *itr };
+			}
+		}
+
+		LOG_ERR("Failed to get Input Layer: " << name);
+		return {};
 	}
 }

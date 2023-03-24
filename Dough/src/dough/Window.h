@@ -45,7 +45,7 @@ namespace DOH {
 		void selectMonitor(int selectedMonitorIndex);
 		void setTitle(const std::string& title);
 		const std::string& getSelectedMonitorName() const;
-		const std::vector<std::string> getAllAvailableMonitorNames() const;
+		const std::vector<std::pair<GLFWmonitor*, std::string>> getAllAvailableMonitors() const { return mAvailableMonitors; }
 
 		inline uint32_t getWidth() const { return mWidth; }
 		inline uint32_t getHeight() const { return mHeight; }

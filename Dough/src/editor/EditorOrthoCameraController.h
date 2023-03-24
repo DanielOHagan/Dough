@@ -3,15 +3,13 @@
 #include "dough/scene/camera/ICameraController.h"
 #include "dough/scene/camera/OrthographicCamera.h"
 #include "dough/Core.h"
+#include "dough/input/AInputLayer.h"
 
 using namespace DOH;
 
 namespace DOH::EDITOR {
 
 	class EditorOrthoCameraController : public ICameraController {
-
-		//TODO:: mMaxTranslation and/or mMaxPosition ?
-
 	private:
 		std::unique_ptr<OrthographicCamera> mCamera;
 		glm::vec3 mPosition;
@@ -25,14 +23,20 @@ namespace DOH::EDITOR {
 		float mZoomMin;
 		float mTranslationSpeed;
 
+		//NOTE:: using a shared pointer so the input layer isn't invalidated if removed from Input::mInputLayers
+		std::shared_ptr<AInputLayer> mInputLayer;
+
 	public:
-		EditorOrthoCameraController(float aspectRatio);
+		EditorOrthoCameraController(std::shared_ptr<AInputLayer> inputLayer, float aspectRatio);
 		EditorOrthoCameraController(const EditorOrthoCameraController& copy) = delete;
 		EditorOrthoCameraController operator=(const EditorOrthoCameraController& assignment) = delete;
 
 		virtual void onUpdate(float delta) override;
 		virtual void onViewportResize(float aspectRatio) override;
 		inline virtual ICamera& getCamera() const override { return *mCamera; }
+
+		inline void setInputLayer(std::shared_ptr<AInputLayer> inputLayer) { mInputLayer = inputLayer; }
+		inline AInputLayer& getInputLayer() const { return *mInputLayer; }
 
 		//All delta multiplications are expected to have been performed on arguments
 		void translate(glm::vec3& translation);

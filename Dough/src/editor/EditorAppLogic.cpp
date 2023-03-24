@@ -20,37 +20,42 @@ namespace DOH::EDITOR {
 		if (mInnerAppLogic == nullptr){
 			THROW("EditorAppLogic: Inner app was nullptr");
 		}
-
-		mInnerAppTimer = std::make_unique<PausableTimer>();
-
-		mEditorSettings = std::make_unique<EditorSettings>();
 	}
 
 	void EditorAppLogic::init(float aspectRatio) {
-		mOrthoCameraController = std::make_shared<EditorOrthoCameraController>(aspectRatio);
-		mPerspectiveCameraController = std::make_shared<EditorPerspectiveCameraController>(aspectRatio);
-
-		mPerspectiveCameraController->setPosition({ 0.0f, 0.0f, 5.0f });
+		mInnerAppTimer = std::make_unique<PausableTimer>();
+		mEditorSettings = std::make_unique<EditorSettings>();
 
 		mEditorSettings->UseOrthographicCamera = false;
 
 		mEditorInputLayer = std::make_shared<EditorInputLayer>();
-		Input::addInputLayer("Editor", mEditorInputLayer);
+		Input::addInputLayer(mEditorInputLayer);
 
 		mInnerAppLogic->init(aspectRatio);
+
+		mInnerAppInputLayer = Input::getInputLayerPtr("DemoLicious");
+		if (mInnerAppInputLayer.has_value()) {
+			mOrthoCameraController = std::make_shared<EditorOrthoCameraController>(mInnerAppInputLayer.value(), aspectRatio);
+			mPerspectiveCameraController = std::make_shared<EditorPerspectiveCameraController>(mInnerAppInputLayer.value(), aspectRatio);
+		} else {
+			LOG_WARN("Failed to get inner app input layer");
+
+			mOrthoCameraController = std::make_shared<EditorOrthoCameraController>(mEditorInputLayer, aspectRatio);
+			mPerspectiveCameraController = std::make_shared<EditorPerspectiveCameraController>(mEditorInputLayer, aspectRatio);
+		}
+
+		mPerspectiveCameraController->setPosition({ 0.0f, 0.0f, 5.0f });
 
 		EditorGui::init();
 	}
 
 	void EditorAppLogic::update(float delta) {
-		const auto& innerAppInputLayerQuery = Input::getInputLayer("InnerApp");
-		if (!innerAppInputLayerQuery.has_value()) {
-			LOG_ERR("Failed to get input layer: " << "InnerApp");
-			return;
-		}
-		auto& inputLayer = innerAppInputLayerQuery.value().get();
-		if (inputLayer.isKeyPressed(DOH_KEY_F1)) {
-			mEditorSettings->RenderDebugWindow = true;
+		const bool innerAppInputLayerExists = mInnerAppInputLayer.has_value();
+
+		if (innerAppInputLayerExists) {
+			if (mInnerAppInputLayer.value()->isKeyPressed(DOH_KEY_F1)) {
+				mEditorSettings->RenderDebugWindow = true;
+			}
 		}
 
 		//When focus switches from inner app to EditorGUI reset inner app input
@@ -60,8 +65,8 @@ namespace DOH::EDITOR {
 			ImGui::IsAnyItemFocused() ||
 			(ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow) && ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow));
 
-		if (mEditorGuiFocused && !editorGuiFocused) {
-			inputLayer.reset();
+		if (mEditorGuiFocused && !editorGuiFocused && innerAppInputLayerExists) {
+			mInnerAppInputLayer.value()->reset();
 		}
 		mEditorGuiFocused = editorGuiFocused;
 
@@ -126,12 +131,12 @@ namespace DOH::EDITOR {
 				bool focused = Application::get().isFocused();
 				
 				ImGui::Text("Editor Runtime: %fs", Time::convertMillisToSeconds(Application::get().getAppInfoTimer().getCurrentTickingTimeMillis()));
-				std::vector<std::string> monitorNames = window.getAllAvailableMonitorNames();
+				const std::vector<std::pair<GLFWmonitor*, std::string>>& monitors = window.getAllAvailableMonitors();
 				if (ImGui::BeginCombo("Monitor", window.getSelectedMonitorName().c_str())) {
 					int monitorNameIndex2 = -1;
-					for (const std::string& name : monitorNames) {
+					for (const auto& monitor : monitors) {
 						bool selected = false;
-						ImGui::Selectable(name.c_str(), &selected);
+						ImGui::Selectable(monitor.second.c_str(), &selected);
 						monitorNameIndex2++;
 						if (selected) {
 							window.selectMonitor(monitorNameIndex2);
@@ -400,7 +405,7 @@ UPS displayed is the count of frames in the last full second interval)"
 				if (ImGui::Button("Close All Empty Quad Batches")) {
 					renderer2d.closeEmptyQuadBatches();
 				}
-				EditorGui::displayHelpTooltip("Close Empty Quad Batches. This can help clean-up when 1 or more batches have geo counts of 0");
+				EditorGui::displayHelpTooltip("Close Empty Quad Batches. This can help clean-up when 1 or more batches have geo counts of 0. Does not include the TextQuad batch.");
 			}
 
 			ImGui::SetNextItemOpen(mEditorSettings->InnerAppCollapseMenu);

@@ -11,7 +11,7 @@
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 #include "dough/time/PausableTimer.h"
 #include "dough/input/Input.h"
-#include "dough/input/InputLayer.h"
+#include "dough/input/AInputLayer.h"
 
 #include "editor/EditorOrthoCameraController.h"
 #include "editor/EditorPerspectiveCameraController.h"
@@ -33,7 +33,9 @@ namespace DOH::EDITOR {
 	class EditorInputLayer : public AInputLayer {
 	
 	public:
-		EditorInputLayer() : AInputLayer() {}
+		EditorInputLayer()
+		:	AInputLayer("Editor")
+		{}
 
 		//EditorInputLayer isn't manually handling events so all functions are empty, return false, or return 
 		virtual bool handleKeyPressed(int keyCode, bool pressed) override { return EditorGui::isGuiHandlingKeyboardInput(); }
@@ -86,6 +88,7 @@ namespace DOH::EDITOR {
 		std::shared_ptr<IApplicationLogic> mInnerAppLogic;
 
 		std::shared_ptr<EditorInputLayer> mEditorInputLayer;
+		std::optional<std::shared_ptr<AInputLayer>> mInnerAppInputLayer;
 
 		//Editor Cameras
 		std::shared_ptr<EditorOrthoCameraController> mOrthoCameraController;

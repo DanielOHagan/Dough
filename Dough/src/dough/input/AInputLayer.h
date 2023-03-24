@@ -6,7 +6,11 @@ namespace DOH {
 
 	class AInputLayer {
 	protected:
-		AInputLayer() {}
+		const char* mName;
+
+		AInputLayer(const char* name)
+		:	mName(name)
+		{}
 
 	public:
 		virtual bool handleKeyPressed(int keyCode, bool pressed) = 0;
@@ -23,5 +27,7 @@ namespace DOH {
 		virtual inline bool isMouseScrollingUp() const = 0;
 		virtual inline bool isMouseScrollingDown() const = 0;
 		virtual inline const glm::vec2 getCursorPos() const = 0;
+
+		inline const char* getName() const { return mName; }
 	};
 }

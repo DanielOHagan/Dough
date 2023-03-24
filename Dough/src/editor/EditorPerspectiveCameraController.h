@@ -3,6 +3,7 @@
 #include "dough/scene/camera/ICameraController.h"
 #include "dough/scene/camera/PerspectiveCamera.h"
 #include "dough/Core.h"
+#include "dough/input/AInputLayer.h"
 
 using namespace DOH;
 
@@ -20,10 +21,16 @@ namespace DOH::EDITOR {
 		float mTranslationSpeed;
 		bool mClickAndDragActive;
 
+		//NOTE:: using a shared pointer so the input layer isn't invalidated if removed from Input::mInputLayers
+		std::shared_ptr<AInputLayer> mInputLayer;
+
 	public:
-		EditorPerspectiveCameraController(float aspectRatio, float fov = 60.0f);
+		EditorPerspectiveCameraController(std::shared_ptr<AInputLayer> inputLayer, float aspectRatio, float fov = 60.0f);
 		EditorPerspectiveCameraController(const EditorPerspectiveCameraController& copy) = delete;
 		EditorPerspectiveCameraController operator=(const EditorPerspectiveCameraController& assignment) = delete;
+
+		inline void setInputLayer(std::shared_ptr<AInputLayer> inputLayer) { mInputLayer = inputLayer; }
+		inline AInputLayer& getInputLayer() const { return *mInputLayer; }
 
 		virtual void onUpdate(float delta) override;
 		virtual void onViewportResize(float aspectRatio) override;

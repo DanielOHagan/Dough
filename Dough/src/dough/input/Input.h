@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dough/input/InputLayer.h"
+#include "dough/input/AInputLayer.h"
 #include "dough/rendering/Config.h"
 
 namespace DOH {
@@ -14,7 +14,7 @@ namespace DOH {
 
 		//TODO:: Make this into a queue or something in-which there is a clearly defined priority for event handling
 		//	(e.g. inputLayer[0] has the highest priority and inputLayer[inputLayer.size() - 1] has the least.
-		std::unordered_map<const char*, std::shared_ptr<AInputLayer>> mInputLayers;
+		std::vector<std::shared_ptr<AInputLayer>> mInputLayers;
 
 		Input(const Input& copy) = delete;
 		Input operator=(const Input& assignment) = delete;
@@ -39,8 +39,9 @@ namespace DOH {
 
 		inline bool hasInput() const { return mInputLayers.size() > 0; }
 
-		static void addInputLayer(const char* name, std::shared_ptr<AInputLayer> inputLayer);
+		static void addInputLayer(std::shared_ptr<AInputLayer> inputLayer);
 		static void removeInputLayer(const char* name);
 		static std::optional<std::reference_wrapper<AInputLayer>> getInputLayer(const char* name);
+		static std::optional<std::shared_ptr<AInputLayer>> getInputLayerPtr(const char* name);
 	};
 }

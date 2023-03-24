@@ -178,16 +178,6 @@ namespace DOH {
 		THROW("Unable to find selected monitor");
 	}
 
-	const std::vector<std::string> Window::getAllAvailableMonitorNames() const {
-		std::vector<std::string> names;
-
-		for (const auto& monitor : mAvailableMonitors) {
-			names.emplace_back(monitor.second);
-		}
-
-		return names;
-	}
-
 	void Window::setResolution(uint32_t width, uint32_t height) {
 		glfwSetWindowSize(mWindowPtr, width, height);
 	}

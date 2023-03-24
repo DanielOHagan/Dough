@@ -15,8 +15,8 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::init(float aspectRatio) {
 		mImGuiSettings = std::make_unique<ImGuiSettings>();
 
-		mInputLayer = std::make_shared<DefaultInputLayer>();
-		Input::addInputLayer("InnerApp", mInputLayer);
+		mInputLayer = std::make_shared<DefaultInputLayer>("DemoLicious");
+		Input::addInputLayer(mInputLayer);
 
 		initDemos();
 
