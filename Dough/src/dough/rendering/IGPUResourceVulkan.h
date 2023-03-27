@@ -2,15 +2,11 @@
 
 #include <vulkan/vulkan_core.h>
 
+#include "dough/Logging.h"
+
 namespace DOH {
 
 	class IGPUResourceVulkan {
-	public:
-		virtual void close(VkDevice logicDevice) = 0;
-		virtual bool isUsingGpuResource() const { return mUsingGpuResource; }
-
-		//TODO:: virtual destructor? use for debugging?
-
 	protected:
 		IGPUResourceVulkan()
 		:	mUsingGpuResource(false)
@@ -18,6 +14,11 @@ namespace DOH {
 		IGPUResourceVulkan(bool usingResource) 
 		:	mUsingGpuResource(usingResource)
 		{}
+		virtual ~IGPUResourceVulkan() {
+			if (mUsingGpuResource) {
+				LOG_ERR("GPU resource of UNKNOWN type not closed");
+			}
+		}
 
 		//NOTE:: Some CPU objects use heap allocated objects as well as storing GPU resource handles,
 		// therfore, this alone shouldn't be responsible for the "closing" of an entire object.
@@ -29,5 +30,10 @@ namespace DOH {
 		//To be called internally by this object when GPU resources are closed.
 		//virtual void onClosed() = 0;
 
+	public:
+		virtual void close(VkDevice logicDevice) = 0;
+		virtual bool isUsingGpuResource() const { return mUsingGpuResource; }
+
+		//TODO:: virtual destructor? use for debugging?
 	};
 }

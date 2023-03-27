@@ -105,6 +105,15 @@ namespace DOH {
 		mBufferLayout(std::make_unique<BufferLayout>(vertexType))
 	{}
 
+	VertexBufferVulkan::~VertexBufferVulkan() {
+		if (isUsingGpuResource()) {
+			LOG_ERR(
+				"Vertex Array GPU resource NOT released before destructor was called." <<
+				" Handle: " << mBuffer << " Device Memory: " << mBufferMemory << " Size: "<< mSize
+			);
+		}
+	}
+
 	void VertexBufferVulkan::close(VkDevice logicDevice) {
 		BufferVulkan::close(logicDevice);
 		mBufferLayout.reset();

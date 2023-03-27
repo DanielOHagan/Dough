@@ -115,7 +115,6 @@ namespace DOH {
 		//Finalise the creation of custom pipelines
 		void createPipelineUniformObjects(GraphicsPipelineVulkan& pipeline, VkDescriptorPool descPool);
 		void createPipelineUniformObjects();
-		void closeAppPipelines();
 		VkDescriptorPool createDescriptorPool(const std::vector<DescriptorTypeInfo>& descTypes);
 		bool isReady() const;
 
@@ -151,8 +150,8 @@ namespace DOH {
 
 		//TODO:: Ability for better control over when GPU resources can be released (e.g. after certain program stages or as soon as possible)
 		inline void addGpuResourceToCloseAfterUse(std::shared_ptr<IGPUResourceVulkan> res) { mToReleaseGpuResources.emplace_back(res); }
-		void closeGpuResourceImmediately(std::shared_ptr<IGPUResourceVulkan> res);
-		void closeGpuResourceImmediately(IGPUResourceVulkan& res);
+		inline void closeGpuResourceImmediately(std::shared_ptr<IGPUResourceVulkan> res) const { res->close(mLogicDevice); }
+		inline void closeGpuResourceImmediately(IGPUResourceVulkan& res) const { res.close(mLogicDevice); }
 		void releaseGpuResources();
 
 		//TODO:: Prefer grouping commands together then flushing rather than only single commands

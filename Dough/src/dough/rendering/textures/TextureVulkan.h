@@ -26,6 +26,8 @@ namespace DOH {
 		TextureVulkan(const TextureVulkan& copy) = delete;
 		TextureVulkan operator=(const TextureVulkan& assignment) = delete;
 
+		virtual ~TextureVulkan() override;
+
 		TextureVulkan(
 			VkDevice logicDevice,
 			VkPhysicalDevice physicalDevice,

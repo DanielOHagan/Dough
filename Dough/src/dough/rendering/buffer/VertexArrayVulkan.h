@@ -27,12 +27,14 @@ namespace DOH {
 		VertexArrayVulkan(const VertexArrayVulkan& copy) = delete;
 		VertexArrayVulkan operator=(const VertexArrayVulkan& assignment) = delete;
 
+		virtual ~VertexArrayVulkan() override;
+
+		virtual void close(VkDevice logicDevice) override;
 		virtual bool isUsingGpuResource() const override;
 
 		void bind(VkCommandBuffer cmdBuffer);
 		void addVertexBuffer(std::shared_ptr<VertexBufferVulkan> vertexBuffer);
 		void closeVertexBuffers(VkDevice logicDevice);
-		virtual void close(VkDevice logicDevice) override;
 
 		inline void setDrawCount(uint32_t drawCount) { mDrawCount = drawCount; }
 		inline uint32_t getDrawCount() const { return mDrawCount; }

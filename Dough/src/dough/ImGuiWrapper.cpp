@@ -18,7 +18,8 @@ namespace DOH {
 
 	ImGuiWrapper::ImGuiWrapper()
 	:	mDescriptorPool(VK_NULL_HANDLE),
-		mTextureCount(0)
+		mTextureCount(0),
+		mUsingGpuResources(false)
 	{}
 
 	void ImGuiWrapper::init(Window& window, ImGuiInitInfo& imGuiInit) {
@@ -75,20 +76,20 @@ namespace DOH {
 		ImGui_ImplGlfw_InitForVulkan(window.getNativeWindow(), true);
 		ImGui_ImplVulkan_Init(&initInfo, mRenderPass->get());
 
-		mUsingGpuResource = true;
+		mUsingGpuResources = true;
 
 		mLoadedTextures = {};
 	}
 
 	void ImGuiWrapper::close(VkDevice logicDevice) {
-		if (isUsingGpuResource()) {
+		if (mUsingGpuResources) {
 			ImGui_ImplVulkan_Shutdown();
 			ImGui_ImplGlfw_Shutdown();
 			ImGui::DestroyContext();
 
 			vkDestroyDescriptorPool(logicDevice, mDescriptorPool, nullptr);
 
-			mUsingGpuResource = false;
+			mUsingGpuResources = false;
 		}
 
 		closeRenderPass(logicDevice);

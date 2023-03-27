@@ -3,6 +3,7 @@
 #include <vulkan/vulkan_core.h>
 
 #include "dough/Core.h"
+#include "dough/rendering/IGPUResourceVulkan.h"
 
 namespace DOH {
 
@@ -61,7 +62,7 @@ namespace DOH {
 		SubPassVulkan operator=(const SubPassVulkan& assignment) = delete;
 	};
 
-	class RenderPassVulkan {
+	class RenderPassVulkan : public IGPUResourceVulkan {
 
 	private:
 		
@@ -85,13 +86,14 @@ namespace DOH {
 		RenderPassVulkan(const RenderPassVulkan& copy) = delete;
 		RenderPassVulkan operator=(const RenderPassVulkan& assignment) = delete;
 
+		virtual void close(VkDevice logicDevice) override;
+
 		void begin(
 			VkFramebuffer frameBuffer,
 			VkExtent2D extent,
 			VkCommandBuffer cmd,
 			bool inlineCommands = true
 		);
-		void close(VkDevice logicDevice);
 
 		inline VkRenderPass get() const { return mRenderPass; }
 

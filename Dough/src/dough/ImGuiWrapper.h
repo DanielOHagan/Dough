@@ -31,7 +31,7 @@ namespace DOH {
 		VIEWPORTS = ImGuiConfigFlags_ViewportsEnable
 	};
 
-	class ImGuiWrapper : public IGPUResourceVulkan {
+	class ImGuiWrapper {
 
 		//TODO:: 
 		// Interacting with "detatched" ImGui windows does NOT keep the main window focused
@@ -48,6 +48,9 @@ namespace DOH {
 		std::vector<VkFramebuffer> mFrameBuffers;
 		std::shared_ptr<RenderPassVulkan> mRenderPass;
 		uint32_t mTextureCount;
+
+		//NOTE:: Not using IGPUResourceVulkan as ImGuiWrapper isn't a resource but a "manager" class that holds resources
+		bool mUsingGpuResources;
 
 		//IMPORTANT:: ImGui has not confirmed exactly how this works in vulkan, currently images are drawn from
 		// a descriptor set created by ImGui

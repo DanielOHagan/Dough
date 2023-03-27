@@ -13,6 +13,27 @@ namespace DOH {
 		mPushConstantData(nullptr)
 	{}
 
+	VertexArrayVulkan::~VertexArrayVulkan() {
+		if (isUsingGpuResource()) {
+			
+			LOG_ERR("Vertex Array GPU resource NOT released before destructor was called.");
+
+			//Verbose error message extra info
+			//std::vector<VkBuffer> vertexBufferHandles;
+			//const size_t vertexBuffercount = mVertexBuffers.size();
+			//vertexBufferHandles.reserve(vertexBuffercount);
+			//for (const auto& vertexBuffer : mVertexBuffers) {
+			//	vertexBufferHandles.emplace_back(vertexBuffer->getBuffer());
+			//}
+			//
+			//LOG_ERR("Vertex Buffer Handles: ");
+			//for (size_t i = 0; i < vertexBuffercount; i++) {
+			//	LOG_ERR_INLINE(" " << vertexBufferHandles[i] << " ");
+			//}
+			//LOG_ERR((mSharingIndexBuffer ? "Shared Index Buffer Handle: " : "Index Buffer Handle: ") << mIndexBuffer->getBuffer());
+		}
+	}
+
 	void VertexArrayVulkan::bind(VkCommandBuffer cmd) {
 		std::vector<VkBuffer> vertexBuffers;
 		std::vector<VkDeviceSize> offsets;

@@ -178,9 +178,14 @@
 	#define LOGLN_BRIGHT_WHITE(message)		LOGLN(message)
 #endif
 
-#define LOG_ERR(message)	LOGLN_RED(message)
-#define LOG_WARN(message)	LOGLN_BRIGHT_YELLOW(message)
-#define LOG_INFO(message)	LOGLN_BRIGHT_BLACK(message)
+#define LOG_ERR(message)			LOGLN_RED(message)
+#define LOG_WARN(message)			LOGLN_BRIGHT_YELLOW(message)
+#define LOG_INFO(message)			LOGLN_BRIGHT_BLACK(message)
+
+//LOG_XXX Severity messages by default use a new line char, this is an override that follows the same styling but removes the new line char
+#define LOG_ERR_INLINE(message)		LOG_RED(message)
+#define LOG_ERR_INLINE(message)		LOG_RED(message)
+#define LOG_ERR_INLINE(message)		LOG_RED(message)
 
 namespace DOH {
 	static void displaySampleLogText() {

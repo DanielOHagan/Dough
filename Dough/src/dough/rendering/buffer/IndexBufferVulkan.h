@@ -27,6 +27,8 @@ namespace DOH {
 			VkDeviceSize size
 		);
 
+		virtual ~IndexBufferVulkan() override;
+
 		void bind(VkCommandBuffer cmd);
 	};
 }

@@ -71,6 +71,7 @@ namespace DOH {
 			VkMemoryPropertyFlags props
 		);
 		
+		virtual ~VertexBufferVulkan() override;
 
 		/** 
 		* Close Vertex Buffer including Layout

@@ -158,6 +158,12 @@ namespace DOH {
 		mUsingGpuResource = true;
 	}
 
+	TextureVulkan::~TextureVulkan() {
+		if (isUsingGpuResource()) {
+			LOG_ERR("Texture GPU resource NOT released before destructor was called." << " Name: " << mName);
+		}
+	}
+
 	void TextureVulkan::close(VkDevice logicDevice) {
 		vkDestroySampler(logicDevice, mSampler, nullptr);
 		mTextureImage->close(logicDevice);

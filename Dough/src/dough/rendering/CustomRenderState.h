@@ -10,6 +10,7 @@ namespace DOH {
 
 	/**
 	* A group of objects required for rendering a specified custom state.
+	* The CustomRenderState does not have ownership of of 
 	*
 	* TODO::
 	*	Allow for CustomRenderStates to be "merged", or for multiple CustomRenderStates or

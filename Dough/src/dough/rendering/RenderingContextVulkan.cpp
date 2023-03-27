@@ -130,25 +130,15 @@ namespace DOH {
 		if (mSwapChain != nullptr) {
 			mSwapChain->close(mLogicDevice);
 		}
-		closeAppPipelines();
+		if (mCurrentRenderState != nullptr) {
+			mCurrentRenderState->close(mLogicDevice);
+		}
 
 		if (mDescriptorPool != VK_NULL_HANDLE) {
 			vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
 		}
 
 		vkDestroyCommandPool(mLogicDevice, mCommandPool, nullptr);
-	}
-	
-	void RenderingContextVulkan::closeAppPipelines() {
-		mCurrentRenderState->close(mLogicDevice);
-	}
-
-	void RenderingContextVulkan::closeGpuResourceImmediately(std::shared_ptr<IGPUResourceVulkan> res) {
-		res->close(mLogicDevice);
-	}
-
-	void RenderingContextVulkan::closeGpuResourceImmediately(IGPUResourceVulkan& res) {
-		res.close(mLogicDevice);
 	}
 
 	void RenderingContextVulkan::releaseGpuResources() {
@@ -250,10 +240,6 @@ namespace DOH {
 		VkCommandBuffer cmd = mCommandBuffers[imageIndex];
 		beginCommandBuffer(cmd);
 
-		//TODO::
-		//	Possible idea for drawing API, not guaranteed:
-		//	drawRenderPass(mSwapChain->getRenderPass(SwapChainVulkan::ERenderPassType::/*Whichever render pass*/, imageIndex, cmd);
-
 		//Draw scene
 		drawScene(imageIndex, cmd);
 
@@ -267,7 +253,6 @@ namespace DOH {
 		mImGuiWrapper->beginRenderPass(imageIndex, mSwapChain->getExtent(), cmd);
 		mImGuiWrapper->render(cmd);
 		RenderPassVulkan::endRenderPass(cmd);
-
 		mImGuiWrapper->endFrame();
 
 		endCommandBuffer(cmd);

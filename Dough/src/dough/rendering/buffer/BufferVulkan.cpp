@@ -3,18 +3,7 @@
 #include "dough/rendering/RendererVulkan.h"
 #include "dough/application/Application.h"
 
-#include "dough/Logging.h"
-
 namespace DOH {
-
-	BufferVulkan::~BufferVulkan() {
-		//GPU resources MUST be released separately from destructor
-		if (isUsingGpuResource()) {
-			LOG_ERR("Buffer GPU resource NOT released before destructor was called");
-
-			//TODO:: some kind of "lost GPU resources" list to manage?
-		}
-	}
 
 	//Non-staged
 	BufferVulkan::BufferVulkan(
@@ -48,6 +37,18 @@ namespace DOH {
 	{
 		if (size > 0) {
 			initStaged(logicDevice, physicalDevice, cmdPool, graphicsQueue, data, size, usage, props);
+		}
+	}
+
+	BufferVulkan::~BufferVulkan() {
+		//GPU resources MUST already be released separately from destructor
+		if (isUsingGpuResource()) {
+			LOG_ERR(
+				"Buffer GPU resource NOT released before destructor was called." << 
+				" Handle: " << mBuffer << " Memory: " << mBufferMemory << " Size: " << mSize
+			);
+
+			//TODO:: some kind of "lost GPU resources" list to manage?
 		}
 	}
 

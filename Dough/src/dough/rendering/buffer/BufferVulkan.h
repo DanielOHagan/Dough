@@ -17,7 +17,7 @@ namespace DOH {
 		BufferVulkan(const BufferVulkan& copy) = delete;
 		BufferVulkan operator=(const BufferVulkan& assignment) = delete;
 
-		~BufferVulkan();
+		virtual ~BufferVulkan() override;
 
 		//Non-Staged
 		BufferVulkan(
