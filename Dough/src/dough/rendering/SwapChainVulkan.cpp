@@ -14,6 +14,15 @@ namespace DOH {
 		init(logicDevice, scCreate);
 	}
 
+	SwapChainVulkan::~SwapChainVulkan() {
+		if (isUsingGpuResource()) {
+			LOG_ERR(
+				"SwapChain GPU resource NOT released before destructor was called." <<
+				"Handle: " << mSwapChain << " Format: " << mImageFormat
+			);
+		}
+	}
+
 	void SwapChainVulkan::init(VkDevice logicDevice, const SwapChainCreationInfo& scCreate) {
 		createSwapChainKHR(logicDevice, scCreate);
 	}
@@ -24,10 +33,12 @@ namespace DOH {
 		}
 
 		//NOTE:: destroying presentable images is handled based on device implementation,
-		// vkDestroySwapchainKHR allows devic eimplementation to handle the destruction of
+		// vkDestroySwapchainKHR allows device implementation to handle the destruction of
 		// images associated with the given swapchain (see Vulkan Spec for info)
 
 		vkDestroySwapchainKHR(logicDevice, mSwapChain, nullptr);
+
+		mUsingGpuResource = false;
 	}
 
 	void SwapChainVulkan::resize(VkDevice logicDevice, const SwapChainCreationInfo& scCreate) {
@@ -208,5 +219,7 @@ namespace DOH {
 		for (size_t i = 0; i < imageCount; i++) {
 			mImageViews[i] = context.createImageView(mImages[i], mImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 		}
+
+		mUsingGpuResource = true;
 	}
 }

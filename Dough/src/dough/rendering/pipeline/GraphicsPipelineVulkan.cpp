@@ -22,6 +22,18 @@ namespace DOH {
 		createPipeline(logicDevice, extent, renderPass);
 	}
 
+	GraphicsPipelineVulkan::~GraphicsPipelineVulkan() {
+		if (isUsingGpuResource()) {
+			LOG_ERR(
+				"GraphicsPipeline GPU resource NOT released before destructor was called." <<
+				" Handle: " << mGraphicsPipeline << " Layout:" << mGraphicsPipelineLayout
+			);
+
+			//TODO:: Verbose error message to include mInstanceInfo
+
+		}
+	}
+
 	void GraphicsPipelineVulkan::createPipelineLayout(VkDevice logicDevice) {
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -47,6 +59,8 @@ namespace DOH {
 			),
 			"Failed to create Pipeline Layout."
 		);
+
+		mUsingGpuResource = true;
 	}
 
 	void GraphicsPipelineVulkan::createPipeline(
@@ -170,12 +184,16 @@ namespace DOH {
 			"Failed to create Graphics Pipeline."
 		);
 
+		mUsingGpuResource = true;
+
 		mInstanceInfo.getShaderProgram().closeModules(logicDevice);
 	}
 
 	void GraphicsPipelineVulkan::close(VkDevice logicDevice) {
 		vkDestroyPipeline(logicDevice, mGraphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(logicDevice, mGraphicsPipelineLayout, nullptr);
+
+		mUsingGpuResource = false;
 	}
 
 	void GraphicsPipelineVulkan::recreate(
@@ -215,7 +233,7 @@ namespace DOH {
 	
 	void GraphicsPipelineVulkan::setFrameUniformData(VkDevice logicDevice, uint32_t image, uint32_t binding, void* data, size_t size) {
 		mInstanceInfo.getShaderProgram().getShaderDescriptorLayout().getBuffersFromBinding(binding)[image]
-			->setData(logicDevice, data, size);
+			->setDataUnmapped(logicDevice, data, size);
 	}
 
 	void GraphicsPipelineVulkan::recordDrawCommands(uint32_t imageIndex, VkCommandBuffer cmd) {

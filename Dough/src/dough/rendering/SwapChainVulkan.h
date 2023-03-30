@@ -6,7 +6,7 @@
 
 namespace DOH {
 
-	class SwapChainVulkan {
+	class SwapChainVulkan : public IGPUResourceVulkan {
 
 	private:
 		VkSwapchainKHR mSwapChain;
@@ -21,8 +21,10 @@ namespace DOH {
 		SwapChainVulkan(const SwapChainVulkan& copy) = delete;
 		SwapChainVulkan operator=(const SwapChainVulkan& assignment) = delete;
 
+		virtual ~SwapChainVulkan() override;
+		virtual void close(VkDevice logicDevice) override;
+
 		void init(VkDevice logicDevice, const SwapChainCreationInfo& scCreate);
-		void close(VkDevice logicDevice);
 		void resize(VkDevice logicDevice, const SwapChainCreationInfo& scCreate);
 
 		uint32_t aquireNextImageIndex(

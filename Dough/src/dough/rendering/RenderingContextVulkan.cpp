@@ -85,7 +85,7 @@ namespace DOH {
 		createSyncObjects();
 
 		mRenderer2d = std::make_unique<Renderer2dVulkan>(*this);
-		mRenderer2d->init(mLogicDevice);
+		mRenderer2d->init();
 
 		mImGuiWrapper = std::make_unique<ImGuiWrapper>();
 		ImGuiInitInfo imGuiInitInfo = {};
@@ -116,7 +116,7 @@ namespace DOH {
 		);
 
 		if (mRenderer2d != nullptr) {
-			mRenderer2d->close(mLogicDevice);
+			mRenderer2d->close();
 		}
 		if (mImGuiWrapper != nullptr) {
 			mImGuiWrapper->close(mLogicDevice);
@@ -218,7 +218,7 @@ namespace DOH {
 				}
 			}
 
-			mRenderer2d->onSwapChainResize(mLogicDevice, *mSwapChain);
+			mRenderer2d->onSwapChainResize(*mSwapChain);
 		}
 	}
 
@@ -235,7 +235,7 @@ namespace DOH {
 
 		mRenderer2d->resetDrawCount();
 
-		mRenderer2d->updateRenderer2dUniformData(mLogicDevice, imageIndex, mAppSceneUbo.ProjectionViewMat);
+		mRenderer2d->updateRenderer2dUniformData(imageIndex, mAppSceneUbo.ProjectionViewMat);
 
 		VkCommandBuffer cmd = mCommandBuffers[imageIndex];
 		beginCommandBuffer(cmd);
@@ -297,7 +297,7 @@ namespace DOH {
 		}
 		
 		//Batch VAOs should have only one VAO and if the batch has at least one quad then there is a draw call
-		mRenderer2d->flushScene(mLogicDevice, imageIndex, cmd);
+		mRenderer2d->flushScene(imageIndex, cmd);
 		debugInfo.BatchRendererDrawCalls = mRenderer2d->getDrawCount();
 
 		RenderPassVulkan::endRenderPass(cmd);

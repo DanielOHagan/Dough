@@ -14,7 +14,8 @@ namespace DOH {
 		VkMemoryPropertyFlags props
 	) : mBuffer(VK_NULL_HANDLE),
 		mBufferMemory(VK_NULL_HANDLE),
-		mSize(size)
+		mSize(size),
+		mData(nullptr)
 	{
 		if (size > 0) {
 			init(logicDevice, physicalDevice, size, usage, props);
@@ -33,7 +34,8 @@ namespace DOH {
 		VkMemoryPropertyFlags props
 	) : mBuffer(VK_NULL_HANDLE),
 		mBufferMemory(VK_NULL_HANDLE),
-		mSize(size)
+		mSize(size),
+		mData(nullptr)
 	{
 		if (size > 0) {
 			initStaged(logicDevice, physicalDevice, cmdPool, graphicsQueue, data, size, usage, props);
@@ -49,6 +51,17 @@ namespace DOH {
 			);
 
 			//TODO:: some kind of "lost GPU resources" list to manage?
+
+		}
+	}
+
+	void BufferVulkan::close(VkDevice logicDevice) {
+		if (isMapped()) {
+			unmap(logicDevice);
+		}
+
+		if (isUsingGpuResource()) {
+			clearBuffer(logicDevice);
 		}
 	}
 
@@ -116,7 +129,7 @@ namespace DOH {
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 		);
-		stagingBuffer.setData(logicDevice, data, size);
+		stagingBuffer.setDataUnmapped(logicDevice, data, size);
 
 		init(logicDevice, physicalDevice, size, usage, props);
 		BufferVulkan::copyBuffer(logicDevice, cmdPool, graphicsQueue, stagingBuffer.getBuffer(), mBuffer, size);
@@ -149,27 +162,25 @@ namespace DOH {
 		initStaged(logicDevice, physicalDevice, cmdPool, graphicsQueue, data, size, usage, props);
 	}
 
-	void BufferVulkan::close(VkDevice logicDevice) {
-		if (isUsingGpuResource()) {
-			clearBuffer(logicDevice);
-		}
-	}
-
-	void BufferVulkan::setData(VkDevice logicDevice, const void* data, size_t size) {
-		mSize = size;
-		void* mappedData = map(logicDevice, size);
-		memcpy(mappedData, data, size);
+	void BufferVulkan::setDataUnmapped(VkDevice logicDevice, const void* data, size_t size) {
+		//mSize = size;
+		mData = map(logicDevice, size);
+		memcpy(mData, data, size);
 		unmap(logicDevice);
 	}
 
+	void BufferVulkan::setDataMapped(VkDevice logicDevice, const void* data, size_t size) {
+		memcpy(mData, data, size);
+	}
+
 	void* BufferVulkan::map(VkDevice logicDevice, size_t size) {
-		void* mappedData;
-		vkMapMemory(logicDevice, mBufferMemory, 0, size, 0, &mappedData);
-		return mappedData;
+		vkMapMemory(logicDevice, mBufferMemory, 0, size, 0, &mData);
+		return mData;
 	}
 
 	void BufferVulkan::unmap(VkDevice logicDevice) {
 		vkUnmapMemory(logicDevice, mBufferMemory);
+		mData = nullptr;
 	}
 
 	void BufferVulkan::clearBuffer(VkDevice logicDevice) {

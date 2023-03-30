@@ -16,10 +16,12 @@ namespace DOH {
 		//	Incorporate or remove the use of RenderingContextVulkan::createImage()
 		ImageVulkan(VkImage image, VkDeviceMemory imageMemory, VkImageView imageView);
 
+		virtual ~ImageVulkan() override;
+		virtual void close(VkDevice logicDevice) override;
+
 		inline VkImage get() const { return mImage; }
 		inline VkDeviceMemory getMemory() const { return mImageMemory; }
 		inline VkImageView getImageView() const { return mImageView; }
 
-		virtual void close(VkDevice logicDevice) override;
 	};
 }

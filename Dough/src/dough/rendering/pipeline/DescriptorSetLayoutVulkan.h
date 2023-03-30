@@ -27,6 +27,8 @@ namespace DOH {
 		DescriptorSetLayoutVulkan(const DescriptorSetLayoutVulkan& copy) = delete;
 		DescriptorSetLayoutVulkan operator=(const DescriptorSetLayoutVulkan& assignment) = delete;
 
+		virtual ~DescriptorSetLayoutVulkan() override;
+		virtual void close(VkDevice logicDevice) override;
 		bool isUsingGpuResource() const override { return mDescriptorSetLayoutCreated || mValueBuffersCreated; }
 
 		void createDescriptorSetLayout(VkDevice logicDevice);
@@ -40,7 +42,6 @@ namespace DOH {
 
 		void closeBuffers(VkDevice logicDevice);
 		void closeDescriptorSetLayout(VkDevice logicDevice);
-		void close(VkDevice logicDevice);
 
 		inline const VkDescriptorSetLayout& getDescriptorSetLayout() const { return mDescriptorSetLayout; }
 		inline std::vector<std::shared_ptr<BufferVulkan>>& getBuffersFromBinding(uint32_t binding) { return mValueBufferMap.at(binding); }

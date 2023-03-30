@@ -12,6 +12,17 @@ namespace DOH {
 		mValueBuffersCreated(false)
 	{}
 
+	DescriptorSetLayoutVulkan::~DescriptorSetLayoutVulkan() {
+		if (isUsingGpuResource()) {
+			LOG_ERR(
+				"Desciptor Set Layout GPU resource NOT released before destructor was called." <<
+				"Handle:" << mDescriptorSetLayout
+			);
+
+			//TODO:: More verbose err message
+		}
+	}
+
 	void DescriptorSetLayoutVulkan::createDescriptorSetLayout(VkDevice logicDevice) {
 		if (mDescriptorSetLayoutCreated) {
 			//TODO:: Since pipelines can share the same instance of this class and createDescLayout() is called for each pipeline

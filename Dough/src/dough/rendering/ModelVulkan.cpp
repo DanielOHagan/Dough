@@ -25,9 +25,15 @@ namespace DOH {
 		mUsingGpuResource = true;
 	}
 
+	ModelVulkan::~ModelVulkan() {
+		if (isUsingGpuResource()) {
+			//Model is mainly a syntactic veil for a VAO. The VAO destructor will also run an isUsingGpuResource() check.
+			LOG_ERR("Model GPU resource NOT released before destructor was called.");
+		}
+	}
+
 	void ModelVulkan::close(VkDevice logicDevice) {
 		mVao->close(logicDevice);
-
 		mUsingGpuResource = false;
 	}
 

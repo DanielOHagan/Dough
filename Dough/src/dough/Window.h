@@ -8,8 +8,6 @@
 
 namespace DOH {
 
-	//TODO:: monitor connect/disconnect callback handling
-
 	enum class EWindowDisplayMode {
 		WINDOWED,
 		BORDERLESS_FULLSCREEN,

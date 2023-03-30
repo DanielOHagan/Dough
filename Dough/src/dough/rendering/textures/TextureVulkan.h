@@ -27,6 +27,7 @@ namespace DOH {
 		TextureVulkan operator=(const TextureVulkan& assignment) = delete;
 
 		virtual ~TextureVulkan() override;
+		virtual void close(VkDevice logicDevice) override;
 
 		TextureVulkan(
 			VkDevice logicDevice,
@@ -46,8 +47,6 @@ namespace DOH {
 			bool rgbaNormalised,
 			const char* name = "Un-named Texture"
 		);
-
-		virtual void close(VkDevice logicDevice) override;
 
 		inline const std::string& getName() const { return mName; }
 		inline uint32_t getId() const { return mId; }

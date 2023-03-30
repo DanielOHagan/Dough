@@ -217,6 +217,20 @@ namespace DOH {
 	//	);
 	//}
 
+	RenderPassVulkan::~RenderPassVulkan() {
+		if (isUsingGpuResource()) {
+			LOG_ERR(
+				"Render Pass GPU resource NOT released before destructor was called." <<
+				"Handle:" << mRenderPass
+			);
+		}
+	}
+	
+	void RenderPassVulkan::close(VkDevice logicDevice) {
+		vkDestroyRenderPass(logicDevice, mRenderPass, nullptr);
+		mUsingGpuResource = false;
+	}
+
 	void RenderPassVulkan::begin(
 		VkFramebuffer frameBuffer,
 		VkExtent2D extent,
@@ -238,9 +252,5 @@ namespace DOH {
 			&renderPassBegin,
 			inlineCommands ? VK_SUBPASS_CONTENTS_INLINE : VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS
 		);
-	}
-
-	void RenderPassVulkan::close(VkDevice logicDevice) {
-		vkDestroyRenderPass(logicDevice, mRenderPass, nullptr);
 	}
 }

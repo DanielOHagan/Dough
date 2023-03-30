@@ -117,6 +117,7 @@ namespace DOH {
 		void createPipelineUniformObjects();
 		VkDescriptorPool createDescriptorPool(const std::vector<DescriptorTypeInfo>& descTypes);
 		bool isReady() const;
+		inline VkDevice getLogicDevice() const { return mLogicDevice; }
 
 		//TODO:: Take in a pipeline builder object?
 		PipelineRenderableConveyor createPipeline(

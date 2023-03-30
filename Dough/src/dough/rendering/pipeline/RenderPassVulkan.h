@@ -86,6 +86,7 @@ namespace DOH {
 		RenderPassVulkan(const RenderPassVulkan& copy) = delete;
 		RenderPassVulkan operator=(const RenderPassVulkan& assignment) = delete;
 
+		virtual ~RenderPassVulkan() override;
 		virtual void close(VkDevice logicDevice) override;
 
 		void begin(

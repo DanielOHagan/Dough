@@ -8,8 +8,10 @@ namespace DOH {
 
 	class VertexArrayVulkan;
 
+	//NOTE:: ModelVulkan has ownership over the VAO created by createModel()
+	//	While ModelVulkan itself doesn't have any direct GPU resources by inheriting IGPUResourceVulkan
+	//	this adds extra information for debugging GPU resource closing.
 	class ModelVulkan : public IGPUResourceVulkan {
-
 	private:
 		std::shared_ptr<VertexArrayVulkan> mVao;
 
@@ -20,9 +22,10 @@ namespace DOH {
 	public:
 		ModelVulkan(std::shared_ptr<Model3dCreationData> modelCreationData);
 
-		inline VertexArrayVulkan& getVao() const { return *mVao; }
-
+		virtual ~ModelVulkan() override;
 		virtual void close(VkDevice logicDevice) override;
+
+		inline VertexArrayVulkan& getVao() const { return *mVao; }
 
 		static std::shared_ptr<ModelVulkan> createModel(const std::string& filepath, const EVertexType vertextype);
 	};

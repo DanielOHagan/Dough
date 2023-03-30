@@ -28,12 +28,12 @@ namespace DOH {
 		void operator=(const Renderer2dVulkan& assignment) = delete;
 
 
-		void init(VkDevice logicDevce);
-		void close(VkDevice logicDevice);
-		void onSwapChainResize(VkDevice logicDevice, SwapChainVulkan& swapChain);
+		void init();
+		void close();
+		void onSwapChainResize(SwapChainVulkan& swapChain);
 
-		void updateRenderer2dUniformData(VkDevice logicDevice, uint32_t currentImage, glm::mat4x4& sceneProjView);
-		void flushScene(VkDevice logicDevice, uint32_t imageIndex, VkCommandBuffer cmd);
+		void updateRenderer2dUniformData(uint32_t currentImage, glm::mat4x4& sceneProjView);
+		void flushScene(uint32_t imageIndex, VkCommandBuffer cmd);
 		//TODO:: separate flush functions for rendering in different render passes
 		//void flushUi();
 

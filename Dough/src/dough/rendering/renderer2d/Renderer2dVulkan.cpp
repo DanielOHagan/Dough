@@ -13,17 +13,17 @@ namespace DOH {
 		mTruncatedQuadCount(0)
 	{}
 
-	void Renderer2dVulkan::init(VkDevice logicDevice) {
+	void Renderer2dVulkan::init() {
 		mStorage = std::make_unique<Renderer2dStorageVulkan>(mContext);
-		mStorage->init(logicDevice);
+		mStorage->init();
 	}
 
-	void Renderer2dVulkan::close(VkDevice logicDevice) {
-		mStorage->close(logicDevice);
+	void Renderer2dVulkan::close() {
+		mStorage->close();
 	}
 
-	void Renderer2dVulkan::onSwapChainResize(VkDevice logicDevice, SwapChainVulkan& swapChain) {
-		mStorage->onSwapChainResize(logicDevice, swapChain);
+	void Renderer2dVulkan::onSwapChainResize(SwapChainVulkan& swapChain) {
+		mStorage->onSwapChainResize(swapChain);
 	}
 
 	void Renderer2dVulkan::drawQuadScene(const Quad& quad) {
@@ -296,11 +296,8 @@ namespace DOH {
 		}
 	}
 
-	void Renderer2dVulkan::updateRenderer2dUniformData(
-		VkDevice logicDevice,
-		uint32_t currentImage,
-		glm::mat4x4& sceneProjView
-	) {
+	void Renderer2dVulkan::updateRenderer2dUniformData(uint32_t currentImage, glm::mat4x4& sceneProjView) {
+		VkDevice logicDevice = mContext.getLogicDevice();
 		const uint32_t uboBinding = 0;
 
 		mStorage->getQuadGraphicsPipeline().setFrameUniformData(
@@ -321,8 +318,8 @@ namespace DOH {
 		//TODO:: UI
 	}
 
-	void Renderer2dVulkan::flushScene(VkDevice logicDevice, uint32_t imageIndex, VkCommandBuffer cmd) {
-
+	void Renderer2dVulkan::flushScene(uint32_t imageIndex, VkCommandBuffer cmd) {
+		VkDevice logicDevice = mContext.getLogicDevice();
 		bool quadIboBound = false;
 
 		{ //Draw Quads
@@ -346,7 +343,9 @@ namespace DOH {
 					const auto& renderableBatch = mStorage->getRenderableQuadBatches()[index];
 					VertexArrayVulkan& vao = renderableBatch->getVao();
 
-					vao.getVertexBuffers()[0]->setData(
+					
+
+					vao.getVertexBuffers()[0]->setDataMapped(
 						logicDevice,
 						batch.getData().data(),
 						Renderer2dStorageVulkan::BatchSizeLimits::BATCH_QUAD_BYTE_SIZE
@@ -383,7 +382,7 @@ namespace DOH {
 				const auto& renderableBatch = mStorage->getRenderableTextBatch();
 				VertexArrayVulkan& vao = renderableBatch->getVao();
 
-				vao.getVertexBuffers()[0]->setData(
+				vao.getVertexBuffers()[0]->setDataMapped(
 					logicDevice,
 					textBatch.getData().data(),
 					textQuadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_BYTE_SIZE

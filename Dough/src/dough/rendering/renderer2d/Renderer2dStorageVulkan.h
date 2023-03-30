@@ -62,8 +62,8 @@ namespace DOH {
 		std::vector<std::shared_ptr<TextureVulkan>> mTestTextures;
 		std::shared_ptr<MonoSpaceTextureAtlas> mTestTexturesAtlas;
 
-		void initForQuads(VkDevice logicDevice);
-		void initForText(VkDevice logicDevice);
+		void initForQuads();
+		void initForText();
 
 		void addFontBitmapToTextTextureArray(const FontBitmap& fontBitmap);
 
@@ -100,9 +100,9 @@ namespace DOH {
 		Renderer2dStorageVulkan(const Renderer2dStorageVulkan& copy) = delete;
 		void operator=(const Renderer2dStorageVulkan& assignment) = delete;
 
-		void init(VkDevice logicDevice);
-		void close(VkDevice logicDevice);
-		void onSwapChainResize(VkDevice logicDevice, SwapChainVulkan& swapChain);
+		void init();
+		void close();
+		void onSwapChainResize(SwapChainVulkan& swapChain);
 		size_t createNewBatchQuad();
 
 		inline VkDescriptorPool getDescriptorPool() const { return mDescriptorPool; }

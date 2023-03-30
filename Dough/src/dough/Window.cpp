@@ -64,8 +64,8 @@ namespace DOH {
 		TRY(mWindowPtr == nullptr, "Failed to create GLFW window");
 
 		glfwSetWindowUserPointer(mWindowPtr, this);
-
 		glfwSetWindowSizeLimits(mWindowPtr, 1, 1, GLFW_DONT_CARE, GLFW_DONT_CARE);
+		glfwMakeContextCurrent(mWindowPtr);
 
 		setUpCallbacks();
 	}

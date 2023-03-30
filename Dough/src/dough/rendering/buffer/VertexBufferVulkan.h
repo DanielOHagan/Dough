@@ -76,7 +76,7 @@ namespace DOH {
 		/** 
 		* Close Vertex Buffer including Layout
 		*/
-		void close(VkDevice logicDevice) override;
+		virtual void close(VkDevice logicDevice) override;
 
 		inline BufferLayout& getBufferLayout() const { return *mBufferLayout; }
 	};

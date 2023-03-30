@@ -84,7 +84,7 @@ namespace DOH {
 		inline GraphicsPipelineOptionalFields& getOptionalFields() { return *mOptionalFields; }
 	};
 
-	class GraphicsPipelineVulkan {
+	class GraphicsPipelineVulkan : public IGPUResourceVulkan {
 
 	private:
 		VkPipeline mGraphicsPipeline;
@@ -105,6 +105,9 @@ namespace DOH {
 			VkExtent2D extent
 		);
 
+		virtual ~GraphicsPipelineVulkan() override;
+		virtual void close(VkDevice logicDevice) override;
+
 		void createUniformObjects(VkDevice logicDevice);
 		void createShaderUniforms(
 			VkDevice logicDevice,
@@ -118,7 +121,6 @@ namespace DOH {
 		inline void addRenderableToDraw(std::shared_ptr<IRenderable> renderable) { mRenderableDrawList.emplace_back(renderable); }
 		inline void clearRenderableToDraw() { mRenderableDrawList.clear(); }
 		inline void bind(VkCommandBuffer cmd) const { vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline); }
-		void close(VkDevice logicDevice);
 		void recreate(VkDevice logicDevice, VkExtent2D extent, VkRenderPass renderPass);
 
 		inline VkPipelineLayout getPipelineLayout() const { return mGraphicsPipelineLayout; }

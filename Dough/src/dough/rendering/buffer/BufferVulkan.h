@@ -10,14 +10,13 @@ namespace DOH {
 		VkBuffer mBuffer;
 		VkDeviceMemory mBufferMemory;
 		VkDeviceSize mSize;
+		void* mData;
 
 	public:
 
 		BufferVulkan() = delete;
 		BufferVulkan(const BufferVulkan& copy) = delete;
 		BufferVulkan operator=(const BufferVulkan& assignment) = delete;
-
-		virtual ~BufferVulkan() override;
 
 		//Non-Staged
 		BufferVulkan(
@@ -39,11 +38,16 @@ namespace DOH {
 			VkMemoryPropertyFlags props
 		);
 
+		virtual ~BufferVulkan() override;
+		virtual void close(VkDevice logicDevice) override;
+
 		//TODO::mem offset and flags
 		void* map(VkDevice logicDevice, size_t size);
 		void unmap(VkDevice logicDevice);
-		void setData(VkDevice logicDevice, const void* data, size_t size);
-		void setData(VkDevice logicDevice, void* data, size_t size) { setData(logicDevice, (const void*) data, size); }
+		void setDataUnmapped(VkDevice logicDevice, const void* data, size_t size);
+		inline void setDataUnmapped(VkDevice logicDevice, void* data, size_t size) { setDataUnmapped(logicDevice, (const void*) data, size); }
+		void setDataMapped(VkDevice logicDevice, const void* data, size_t size);
+		inline void setDataMapped(VkDevice logicDevice, void* data, size_t size) { setDataMapped(logicDevice, (const void*) data, size); }
 		void clearBuffer(VkDevice logicDevice);
 
 		void copyToBuffer(BufferVulkan& destination, VkCommandBuffer cmd);
@@ -88,11 +92,11 @@ namespace DOH {
 				props
 			);
 		}
-		virtual void close(VkDevice logicDevice) override;
 
 		inline VkBuffer getBuffer() const { return mBuffer; }
 		inline VkDeviceMemory getDeviceMemory() const { return mBufferMemory; }
 		inline size_t getSize() const { return mSize; }
+		inline bool isMapped() const { return mData != nullptr; }
 
 	protected:
 		void init(

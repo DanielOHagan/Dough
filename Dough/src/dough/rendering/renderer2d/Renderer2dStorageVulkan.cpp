@@ -16,7 +16,7 @@ namespace DOH {
 		mDescriptorPool(VK_NULL_HANDLE)
 	{}
 
-	void Renderer2dStorageVulkan::init(VkDevice logicDevice) {
+	void Renderer2dStorageVulkan::init() {
 		mWhiteTexture = ObjInit::texture(
 			255.0f,
 			255.0f,
@@ -26,8 +26,8 @@ namespace DOH {
 			"White Texture"
 		);
 
-		initForQuads(logicDevice);
-		initForText(logicDevice);
+		initForQuads();
+		initForText();
 
 		createDescriptorPool();
 
@@ -35,7 +35,9 @@ namespace DOH {
 		mContext.createPipelineUniformObjects(*mTextGraphicsPipeline, mDescriptorPool);
 	}
 
-	void Renderer2dStorageVulkan::close(VkDevice logicDevice) {
+	void Renderer2dStorageVulkan::close() {
+		VkDevice logicDevice = mContext.getLogicDevice();
+
 		mQuadShaderProgram->close(logicDevice);
 		mQuadGraphicsPipeline->close(logicDevice);
 
@@ -91,7 +93,9 @@ namespace DOH {
 		mDescriptorPool = mContext.createDescriptorPool(totalDescTypes);
 	}
 
-	void Renderer2dStorageVulkan::onSwapChainResize(VkDevice logicDevice, SwapChainVulkan& swapChain) {
+	void Renderer2dStorageVulkan::onSwapChainResize(SwapChainVulkan& swapChain) {
+		VkDevice logicDevice = mContext.getLogicDevice();
+		
 		vkDestroyDescriptorPool(logicDevice, mDescriptorPool, nullptr);
 
 		createDescriptorPool();
@@ -113,6 +117,9 @@ namespace DOH {
 
 	size_t Renderer2dStorageVulkan::createNewBatchQuad() {
 		if (mQuadRenderBatches.size() < BatchSizeLimits::MAX_BATCH_COUNT_QUAD) {
+
+			constexpr size_t batchSizeBytes = BatchSizeLimits::BATCH_QUAD_BYTE_SIZE;
+
 			RenderBatchQuad& batch = mQuadRenderBatches.emplace_back(
 				BatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD,
 				BatchSizeLimits::BATCH_MAX_COUNT_TEXTURE
@@ -121,14 +128,16 @@ namespace DOH {
 			std::shared_ptr<VertexArrayVulkan> vao = ObjInit::vertexArray();
 			std::shared_ptr<VertexBufferVulkan> vbo = ObjInit::vertexBuffer(
 				RenderBatchQuad::VERTEX_INPUT_TYPE,
-				BatchSizeLimits::BATCH_QUAD_BYTE_SIZE,
+				batchSizeBytes,
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
 			);
 			vao->addVertexBuffer(vbo);
 			vao->setIndexBuffer(mQuadSharedIndexBuffer, true);
+			vao->getVertexBuffers()[0]->map(mContext.getLogicDevice(), batchSizeBytes);
 
 			mRenderableQuadBatches.emplace_back(std::make_shared<SimpleRenderable>(vao));
+			
 
 			return mQuadRenderBatches.size() - 1;
 		} else {
@@ -136,7 +145,7 @@ namespace DOH {
 		}
 	}
 
-	void Renderer2dStorageVulkan::initForQuads(VkDevice logicDevice) {
+	void Renderer2dStorageVulkan::initForQuads() {
 		mQuadShaderProgram = ObjInit::shaderProgram(
 			ObjInit::shader(EShaderType::VERTEX, Renderer2dStorageVulkan::QUAD_SHADER_PATH_VERT),
 			ObjInit::shader(EShaderType::FRAGMENT, Renderer2dStorageVulkan::QUAD_SHADER_PATH_FRAG)
@@ -214,7 +223,7 @@ namespace DOH {
 		);
 	}
 
-	void Renderer2dStorageVulkan::initForText(VkDevice logicDevice) {
+	void Renderer2dStorageVulkan::initForText() {
 		mTextBatchTextureArray = std::make_unique<TextureArray>(
 			BatchSizeLimits::BATCH_MAX_COUNT_TEXTURE,
 			*mWhiteTexture
@@ -246,15 +255,18 @@ namespace DOH {
 			BatchSizeLimits::BATCH_MAX_COUNT_TEXTURE
 		);
 
+		constexpr size_t batchSizeBytes = BatchSizeLimits::BATCH_QUAD_BYTE_SIZE;
+
 		std::shared_ptr<VertexArrayVulkan> vao = ObjInit::vertexArray();
 		std::shared_ptr<VertexBufferVulkan> vbo = ObjInit::vertexBuffer(
 			RenderBatchQuad::VERTEX_INPUT_TYPE,
-			BatchSizeLimits::BATCH_QUAD_BYTE_SIZE,
+			batchSizeBytes,
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
 		);
 		vao->addVertexBuffer(vbo);
 		vao->setIndexBuffer(mQuadSharedIndexBuffer, true);
+		vao->getVertexBuffers()[0]->map(mContext.getLogicDevice(), batchSizeBytes);
 
 		mRenderableTextBatch = std::make_shared<SimpleRenderable>(vao);
 
