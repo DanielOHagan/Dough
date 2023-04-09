@@ -5,7 +5,7 @@
 #include "dough/Window.h"
 #include "dough/rendering/IGPUResourceVulkan.h"
 #include "dough/rendering/textures/TextureVulkan.h"
-#include "dough/rendering/pipeline/RenderPassVulkan.h"
+#include "dough/rendering/RenderPassVulkan.h"
 
 #include <imgui/imgui.h>
 

@@ -2,7 +2,6 @@
 
 #include "dough/Utils.h"
 #include "dough/Logging.h"
-#include "dough/rendering/buffer/BufferElement.h"
 #include "dough/files/readers/FntFileReader.h"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -76,8 +75,8 @@ namespace DOH {
 		return ResourceHandler::INSTANCE.loadTextureImpl(filepath);
 	}
 
-	std::shared_ptr<Model3dCreationData> ResourceHandler::loadObjModel(const std::string& filepath, const EVertexType vertexType) {
-		return ResourceHandler::INSTANCE.loadObjModelImpl(filepath, vertexType);
+	std::shared_ptr<Model3dCreationData> ResourceHandler::loadObjModel(const std::string& filepath, const AVertexInputLayout& vertexInputLayout) {
+		return ResourceHandler::INSTANCE.loadObjModelImpl(filepath, vertexInputLayout);
 	}
 
 	std::shared_ptr<FntFileData> ResourceHandler::loadFntFile(const char* filepath) {
@@ -128,7 +127,7 @@ namespace DOH {
 		stbi_image_free(imageData);
 	}
 
-	std::shared_ptr<Model3dCreationData> ResourceHandler::loadObjModelImpl(const std::string& filePath, const EVertexType vertexType) {
+	std::shared_ptr<Model3dCreationData> ResourceHandler::loadObjModelImpl(const std::string& filePath, const AVertexInputLayout& vertexInputLayout) {
 		tinyobj::attrib_t attrib;
 		std::vector<tinyobj::shape_t> shapes;
 		std::vector<tinyobj::material_t> materials;
@@ -139,13 +138,18 @@ namespace DOH {
 			THROW("OBJ load fail: " + warn + err);
 		}
 
-		std::shared_ptr<Model3dCreationData> fileData = std::make_shared<Model3dCreationData>(vertexType);
+		if (vertexInputLayout.getVertexInputLayoutType() != EVertexInputLayoutType::STATIC) {
+			THROW("Currently Models only support StaticVertexInputLayouts");
+			return nullptr;
+		}
 
-		switch (vertexType) {
+		std::shared_ptr<Model3dCreationData> fileData = std::make_shared<Model3dCreationData>(vertexInputLayout);
+
+		const StaticVertexInputLayout& staticVertexInputLayout = (const StaticVertexInputLayout&) vertexInputLayout;
+		switch (staticVertexInputLayout.getVertexType()) {
 			case EVertexType::VERTEX_3D:
 			{
 				const auto& verticesAndIndices = extractObjFileDataAsVertex3d(attrib, shapes, materials);
-				fileData->BufferElements = Vertex3d::asBufferElements();
 				fileData->Vertices = verticesAndIndices.first;
 				fileData->Indices = verticesAndIndices.second;
 				break;
@@ -154,7 +158,6 @@ namespace DOH {
 			case EVertexType::VERTEX_3D_TEXTURED:
 			{
 				const auto& verticesAndIndices = extractObjFileDataAsVertex3dTextured(attrib, shapes, materials);
-				fileData->BufferElements = Vertex3dTextured::asBufferElements();
 				fileData->Vertices = verticesAndIndices.first;
 				fileData->Indices = verticesAndIndices.second;
 				break;
@@ -163,14 +166,13 @@ namespace DOH {
 			case EVertexType::VERTEX_3D_LIT_TEXTURED:
 			{
 				const auto& verticesAndIndices = extractObjFileDataAsVertex3dTextured(attrib, shapes, materials);
-				fileData->BufferElements = Vertex3dLitTextured::asBufferElements();
 				fileData->Vertices = verticesAndIndices.first;
 				fileData->Indices = verticesAndIndices.second;
 				break;
 			}
 
 			default:
-				LOG_ERR("Given vertex type is not supported for .obj files.");
+				LOG_ERR("Can't read vertex type from .obj files. VertexType: " << EVertexTypeStrings[static_cast<uint32_t>(staticVertexInputLayout.getVertexType())]);
 				break;
 		}
 

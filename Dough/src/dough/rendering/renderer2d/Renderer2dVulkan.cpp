@@ -343,8 +343,6 @@ namespace DOH {
 					const auto& renderableBatch = mStorage->getRenderableQuadBatches()[index];
 					VertexArrayVulkan& vao = renderableBatch->getVao();
 
-					
-
 					vao.getVertexBuffers()[0]->setDataMapped(
 						logicDevice,
 						batch.getData().data(),

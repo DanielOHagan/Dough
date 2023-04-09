@@ -3,6 +3,8 @@
 
 namespace DOH {
 
+	std::shared_ptr<StaticVertexInputLayout> RenderBatchQuad::VERTEX_INPUT_LAYOUT = std::make_shared<StaticVertexInputLayout>(RenderBatchQuad::VERTEX_INPUT_TYPE);
+
 	RenderBatchQuad::RenderBatchQuad(const uint32_t maxGeometryCount, const uint32_t maxTextureCount)
 	:	ARenderBatch(
 			maxGeometryCount,

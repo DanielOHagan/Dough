@@ -238,40 +238,13 @@ namespace DOH {
 		//-----VAO & Buffers-----
 		std::shared_ptr<VertexArrayVulkan> createVertexArray();
 		std::shared_ptr<VertexBufferVulkan> createVertexBuffer(
-			const std::initializer_list<BufferElement>& elements,
-			VkDeviceSize size,
-			VkBufferUsageFlags usage,
-			VkMemoryPropertyFlags props
-		);
-		std::shared_ptr<VertexBufferVulkan> createVertexBuffer(
-			const std::vector<BufferElement>& elements,
+			const AVertexInputLayout& vertexInputLayout,
 			VkDeviceSize size,
 			VkBufferUsageFlags usage,
 			VkMemoryPropertyFlags props
 		);
 		std::shared_ptr<VertexBufferVulkan> createStagedVertexBuffer(
-			const std::initializer_list<BufferElement>& elements,
-			void* data,
-			VkDeviceSize size,
-			VkBufferUsageFlags usage,
-			VkMemoryPropertyFlags props
-		);
-		std::shared_ptr<VertexBufferVulkan> createStagedVertexBuffer(
-			const std::initializer_list<BufferElement>& elements,
-			const void* data,
-			VkDeviceSize size,
-			VkBufferUsageFlags usage,
-			VkMemoryPropertyFlags props
-		);
-		std::shared_ptr<VertexBufferVulkan> createStagedVertexBuffer(
-			const std::vector<BufferElement>& elements,
-			const void* data,
-			VkDeviceSize size,
-			VkBufferUsageFlags usage,
-			VkMemoryPropertyFlags props
-		);
-		std::shared_ptr<VertexBufferVulkan> createStagedVertexBuffer(
-			const EVertexType vertexType,
+			const AVertexInputLayout& vertexInputLayout,
 			const void* data,
 			VkDeviceSize size,
 			VkBufferUsageFlags usage,

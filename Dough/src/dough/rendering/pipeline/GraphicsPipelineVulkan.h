@@ -4,6 +4,7 @@
 #include "dough/rendering/textures/TextureVulkan.h"
 #include "dough/rendering/renderables/IRenderable.h"
 #include "dough/rendering/pipeline/shader/ShaderProgramVulkan.h"
+#include "dough/rendering/VertexInputLayout.h"
 
 namespace DOH {
 
@@ -61,8 +62,8 @@ namespace DOH {
 	class GraphicsPipelineInstanceInfo {
 
 	private:
+		std::shared_ptr<AVertexInputLayout> mVertexInputLayout;
 		ShaderProgramVulkan& mShaderProgram;
-		const EVertexType mVertexType;
 		const ERenderPass mRenderPass;
 
 		std::unique_ptr<GraphicsPipelineOptionalFields> mOptionalFields;
@@ -72,14 +73,34 @@ namespace DOH {
 			EVertexType vertexType,
 			ShaderProgramVulkan& shaderProgram,
 			ERenderPass renderPass
-		) : mShaderProgram(shaderProgram),
-			mVertexType(vertexType),
+		) : mVertexInputLayout(std::make_shared<StaticVertexInputLayout>(vertexType)),
+			mShaderProgram(shaderProgram),
+			mRenderPass(renderPass),
+			mOptionalFields(std::make_unique<GraphicsPipelineOptionalFields>())
+		{}
+
+		GraphicsPipelineInstanceInfo(
+			std::initializer_list<EDataType> vertexInputLayout,
+			ShaderProgramVulkan& shaderProgram,
+			ERenderPass renderPass
+		) : mVertexInputLayout(std::make_shared<CustomVertexInputLayout>(vertexInputLayout)),
+			mShaderProgram(shaderProgram),
+			mRenderPass(renderPass),
+			mOptionalFields(std::make_unique<GraphicsPipelineOptionalFields>())
+		{}
+
+		GraphicsPipelineInstanceInfo(
+			std::shared_ptr<AVertexInputLayout> vertexInputLayout,
+			ShaderProgramVulkan& shaderProgram,
+			ERenderPass renderPass
+		) : mVertexInputLayout(vertexInputLayout),
+			mShaderProgram(shaderProgram),
 			mRenderPass(renderPass),
 			mOptionalFields(std::make_unique<GraphicsPipelineOptionalFields>())
 		{}
 
 		inline ShaderProgramVulkan& getShaderProgram() const { return mShaderProgram; }
-		inline const EVertexType getVertexType() const { return mVertexType; }
+		inline const AVertexInputLayout& getVertexInputLayout() const { return *mVertexInputLayout; }
 		inline const ERenderPass getRenderPass() const { return mRenderPass; }
 		inline GraphicsPipelineOptionalFields& getOptionalFields() { return *mOptionalFields; }
 	};

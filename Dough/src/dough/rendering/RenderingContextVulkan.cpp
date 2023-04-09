@@ -1055,62 +1055,24 @@ namespace DOH {
 		return std::make_shared<VertexArrayVulkan>();
 	}
 
-	std::shared_ptr<VertexBufferVulkan> RenderingContextVulkan::createVertexBuffer(
-		const std::initializer_list<BufferElement>& elements,
-		VkDeviceSize size,
-		VkBufferUsageFlags usage,
-		VkMemoryPropertyFlags props
-	) {
-		return std::make_shared<VertexBufferVulkan>(elements, mLogicDevice, mPhysicalDevice, size, usage, props);
-	}
 
 	std::shared_ptr<VertexBufferVulkan> RenderingContextVulkan::createVertexBuffer(
-		const std::vector<BufferElement>& elements,
+		const AVertexInputLayout& vertexInputLayout,
 		VkDeviceSize size,
 		VkBufferUsageFlags usage,
 		VkMemoryPropertyFlags props
 	) {
-		return std::make_shared<VertexBufferVulkan>(elements, mLogicDevice, mPhysicalDevice, size, usage, props);
+		return std::make_shared<VertexBufferVulkan>(vertexInputLayout, mLogicDevice, mPhysicalDevice, size, usage, props);
 	}
 
 	std::shared_ptr<VertexBufferVulkan> RenderingContextVulkan::createStagedVertexBuffer(
-		const std::initializer_list<BufferElement>& elements,
-		void* data,
-		VkDeviceSize size,
-		VkBufferUsageFlags usage,
-		VkMemoryPropertyFlags props
-	) {
-		return std::make_shared<VertexBufferVulkan>(elements, mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, (const void*)data, size, usage, props);
-	}
-
-	std::shared_ptr<VertexBufferVulkan> RenderingContextVulkan::createStagedVertexBuffer(
-		const std::initializer_list<BufferElement>& elements,
+		const AVertexInputLayout& vertexInputLayout,
 		const void* data,
 		VkDeviceSize size,
 		VkBufferUsageFlags usage,
 		VkMemoryPropertyFlags props
 	) {
-		return std::make_shared<VertexBufferVulkan>(elements, mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size, usage, props);
-	}
-
-	std::shared_ptr<VertexBufferVulkan> RenderingContextVulkan::createStagedVertexBuffer(
-		const std::vector<BufferElement>& elements,
-		const void* data,
-		VkDeviceSize size,
-		VkBufferUsageFlags usage,
-		VkMemoryPropertyFlags props
-	) {
-		return std::make_shared<VertexBufferVulkan>(elements, mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size, usage, props);
-	}
-
-	std::shared_ptr<VertexBufferVulkan> RenderingContextVulkan::createStagedVertexBuffer(
-		const EVertexType vertexType,
-		const void* data,
-		VkDeviceSize size,
-		VkBufferUsageFlags usage,
-		VkMemoryPropertyFlags props
-	) {
-		return std::make_shared<VertexBufferVulkan>(vertexType, mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size, usage, props);
+		return std::make_shared<VertexBufferVulkan>(vertexInputLayout, mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size, usage, props);
 	}
 
 	std::shared_ptr<IndexBufferVulkan> RenderingContextVulkan::createIndexBuffer(VkDeviceSize size) {

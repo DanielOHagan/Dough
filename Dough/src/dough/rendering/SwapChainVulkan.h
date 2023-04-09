@@ -1,7 +1,7 @@
 #pragma once
 
 #include "dough/rendering/Config.h"
-#include "dough/rendering/pipeline/RenderPassVulkan.h"
+#include "dough/rendering/RenderPassVulkan.h"
 #include "dough/rendering/ImageVulkan.h"
 
 namespace DOH {

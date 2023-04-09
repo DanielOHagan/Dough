@@ -44,7 +44,7 @@ namespace DOH {
 
 	void Input::onKeyPressedEvent(int keyCode, bool pressed) {
 		for (auto& inputLayer : mInputLayers) {
-			if (inputLayer->handleKeyPressed(keyCode, pressed)) {
+			if (inputLayer->isEnabled() && inputLayer->handleKeyPressed(keyCode, pressed)) {
 				return;
 			}
 		}
@@ -52,7 +52,7 @@ namespace DOH {
 
 	void Input::onMouseButtonPressedEvent(int button, bool pressed) {
 		for (auto& inputLayer : mInputLayers) {
-			if (inputLayer->handleMouseButtonPressed(button, pressed)) {
+			if (inputLayer->isEnabled() && inputLayer->handleMouseButtonPressed(button, pressed)) {
 				return;
 			}
 		}
@@ -60,7 +60,7 @@ namespace DOH {
 
 	void Input::onMouseMoveEvent(float x, float y) {
 		for (auto& inputLayer : mInputLayers) {
-			if (inputLayer->handleMouseMoved(x, y)) {
+			if (inputLayer->isEnabled() && inputLayer->handleMouseMoved(x, y)) {
 				return;
 			}
 		}
@@ -68,7 +68,7 @@ namespace DOH {
 
 	void Input::onMouseScrollEvent(float offsetX, float offsetY) {
 		for (auto& inputLayer : mInputLayers) {
-			if (inputLayer->handleMouseScroll(offsetX, offsetY)) {
+			if (inputLayer->isEnabled() && inputLayer->handleMouseScroll(offsetX, offsetY)) {
 				return;
 			}
 		}
@@ -100,6 +100,10 @@ namespace DOH {
 		}
 
 		LOG_WARN("Input Layer not found when trying to remove: " << name);
+	}
+
+	std::vector<std::shared_ptr<AInputLayer>>& Input::getInputLayers() {
+		return INSTANCE->mInputLayers;
 	}
 
 	std::optional<std::reference_wrapper<AInputLayer>> Input::getInputLayer(const char* name) {

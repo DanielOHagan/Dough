@@ -127,7 +127,7 @@ namespace DOH {
 
 			std::shared_ptr<VertexArrayVulkan> vao = ObjInit::vertexArray();
 			std::shared_ptr<VertexBufferVulkan> vbo = ObjInit::vertexBuffer(
-				RenderBatchQuad::VERTEX_INPUT_TYPE,
+				*RenderBatchQuad::VERTEX_INPUT_LAYOUT,
 				batchSizeBytes,
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
@@ -182,7 +182,7 @@ namespace DOH {
 		layout.setTextureArray(1, *mQuadBatchTextureArray);
 
 		mQuadGraphicsPipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-			RenderBatchQuad::VERTEX_INPUT_TYPE,
+			RenderBatchQuad::VERTEX_INPUT_LAYOUT,
 			*mQuadShaderProgram,
 			ERenderPass::APP_SCENE
 		);
@@ -259,7 +259,7 @@ namespace DOH {
 
 		std::shared_ptr<VertexArrayVulkan> vao = ObjInit::vertexArray();
 		std::shared_ptr<VertexBufferVulkan> vbo = ObjInit::vertexBuffer(
-			RenderBatchQuad::VERTEX_INPUT_TYPE,
+			*RenderBatchQuad::VERTEX_INPUT_LAYOUT,
 			batchSizeBytes,
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
@@ -271,7 +271,7 @@ namespace DOH {
 		mRenderableTextBatch = std::make_shared<SimpleRenderable>(vao);
 
 		mTextGraphicsPipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-			RenderBatchQuad::VERTEX_INPUT_TYPE,
+			RenderBatchQuad::VERTEX_INPUT_LAYOUT,
 			*mTextShaderProgram,
 			ERenderPass::APP_SCENE
 		);

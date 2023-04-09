@@ -142,6 +142,7 @@
 					"Alloc-Free count difference: " << getCurrentTotalAllocCountDifference() <<
 					" (" << getCurrentTotalAllocSizeDifference() << " bytes)"
 				);
+				LOG_WARN("Statically stored objects are destroyed after this print so they may be identified here as a mem leak.");
 			} else {
 				LOGLN_GREEN("No mem leak detected");
 			}

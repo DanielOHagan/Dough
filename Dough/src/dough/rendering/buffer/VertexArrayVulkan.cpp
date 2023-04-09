@@ -35,26 +35,42 @@ namespace DOH {
 	}
 
 	void VertexArrayVulkan::bind(VkCommandBuffer cmd) {
-		std::vector<VkBuffer> vertexBuffers;
-		std::vector<VkDeviceSize> offsets;
-
 		const size_t vbCount = mVertexBuffers.size();
-		vertexBuffers.resize(vbCount);
-		offsets.resize(vbCount + 1);
-		offsets[0] = 0;
 
-		for (size_t i = 0; i < vbCount; i++) {
-			vertexBuffers[i] = mVertexBuffers[i]->getBuffer();
-			offsets[i + 1] = static_cast<VkDeviceSize>(mVertexBuffers[i]->getBufferLayout().getStride());
+		if (vbCount == 0) {
+			LOG_WARN("Attempt to bind VAO with 0 attached VBO's");
+			return;
+		} else if (vbCount > 1) {
+			std::vector<VkBuffer> vertexBuffers;
+			std::vector<VkDeviceSize> offsets;
+
+			vertexBuffers.resize(vbCount);
+			offsets.resize(vbCount + 1);
+			offsets[0] = 0;
+
+			for (size_t i = 0; i < vbCount; i++) {
+				vertexBuffers[i] = mVertexBuffers[i]->getBuffer();
+				offsets[i + 1] = static_cast<VkDeviceSize>(mVertexBuffers[i]->getVertexInputLayout().getStride());
+			}
+
+			vkCmdBindVertexBuffers(
+				cmd,
+				0,
+				static_cast<uint32_t>(vbCount),
+				vertexBuffers.data(),
+				offsets.data()
+			);
+		} else {
+			VkBuffer buffer = mVertexBuffers[0]->getBuffer();
+			VkDeviceSize offset = 0;
+			vkCmdBindVertexBuffers(
+				cmd,
+				0,
+				1,
+				&buffer,
+				&offset
+			);
 		}
-
-		vkCmdBindVertexBuffers(
-			cmd,
-			0,
-			static_cast<uint32_t>(vbCount),
-			vertexBuffers.data(),
-			offsets.data()
-		);
 
 		if (!mSharingIndexBuffer) {
 			mIndexBuffer->bind(cmd);

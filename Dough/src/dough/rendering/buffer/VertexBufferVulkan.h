@@ -3,7 +3,7 @@
 #include "dough/Utils.h"
 #include "dough/rendering/Config.h"
 #include "dough/rendering/buffer/BufferVulkan.h"
-#include "dough/rendering/buffer/BufferLayout.h"
+#include "dough/rendering/VertexInputLayout.h"
 
 
 namespace DOH {
@@ -11,7 +11,7 @@ namespace DOH {
 	class VertexBufferVulkan : public BufferVulkan {
 
 	private:
-		std::unique_ptr<BufferLayout> mBufferLayout;
+		const AVertexInputLayout& mVertexInputLayout;
 
 	public:
 		VertexBufferVulkan() = delete;
@@ -20,47 +20,16 @@ namespace DOH {
 
 		//Non-Staged
 		VertexBufferVulkan(
-			const std::initializer_list<BufferElement>& elements,
+			const AVertexInputLayout& vertexInputLayout,
 			VkDevice logicDevice,
 			VkPhysicalDevice physicalDevice,
 			VkDeviceSize size,
 			VkBufferUsageFlags usage,
 			VkMemoryPropertyFlags props
 		);
-		VertexBufferVulkan(
-			const std::vector<BufferElement>& elements,
-			VkDevice logicDevice,
-			VkPhysicalDevice physicalDevice,
-			VkDeviceSize size,
-			VkBufferUsageFlags usage,
-			VkMemoryPropertyFlags props
-		);
-
 		//Staged
 		VertexBufferVulkan(
-			const std::initializer_list<BufferElement>& elements,
-			VkDevice logicDevice,
-			VkPhysicalDevice physicalDevice,
-			VkCommandPool cmdPool,
-			VkQueue graphicsQueue,
-			const void* data,
-			VkDeviceSize size,
-			VkBufferUsageFlags usage,
-			VkMemoryPropertyFlags props
-		);
-		VertexBufferVulkan(
-			const std::vector<BufferElement>& elements,
-			VkDevice logicDevice,
-			VkPhysicalDevice physicalDevice,
-			VkCommandPool cmdPool,
-			VkQueue graphicsQueue,
-			const void* data,
-			VkDeviceSize size,
-			VkBufferUsageFlags usage,
-			VkMemoryPropertyFlags props
-		);
-		VertexBufferVulkan(
-			const EVertexType vertexType,
+			const AVertexInputLayout& vertexInputLayout,
 			VkDevice logicDevice,
 			VkPhysicalDevice physicalDevice,
 			VkCommandPool cmdPool,
@@ -73,11 +42,8 @@ namespace DOH {
 		
 		virtual ~VertexBufferVulkan() override;
 
-		/** 
-		* Close Vertex Buffer including Layout
-		*/
 		virtual void close(VkDevice logicDevice) override;
 
-		inline BufferLayout& getBufferLayout() const { return *mBufferLayout; }
+		inline const AVertexInputLayout& getVertexInputLayout() const { return mVertexInputLayout; }
 	};
 }

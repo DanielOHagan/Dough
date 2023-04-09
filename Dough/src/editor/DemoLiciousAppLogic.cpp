@@ -602,6 +602,9 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::initCustomDemo() {
 		mCustomDemo = std::make_unique<CustomDemo>();
 
+		mCustomDemo->SceneVertexInputLayout = std::make_shared<StaticVertexInputLayout>(SharedDemoResources::TexturedVertexType);
+		mCustomDemo->UiVertexInputLayout = std::make_shared<StaticVertexInputLayout>(EVertexType::VERTEX_2D);
+
 		//for (int i = 0; i < 8; i++) {
 		//	std::string path = testTexturesPath + "texture" + std::to_string(i) + ".png";
 		//	std::shared_ptr<TextureVulkan> testTexture = ObjInit::texture(path);
@@ -610,9 +613,9 @@ namespace DOH::EDITOR {
 	
 		mCustomDemo->SceneVao = ObjInit::vertexArray();
 		std::shared_ptr<VertexBufferVulkan> sceneVb = ObjInit::stagedVertexBuffer(
-			SharedDemoResources::TexturedVertexType,
+			*mCustomDemo->SceneVertexInputLayout,
 			mCustomDemo->SceneVertices.data(),
-			(size_t) SharedDemoResources::TexturedVertexType * mCustomDemo->SceneVertices.size(),
+			static_cast<size_t>(mCustomDemo->SceneVertexInputLayout->getStride()) * mCustomDemo->SceneVertices.size(),
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
@@ -633,9 +636,9 @@ namespace DOH::EDITOR {
 	
 		mCustomDemo->UiVao = ObjInit::vertexArray();
 		std::shared_ptr<VertexBufferVulkan> appUiVb = ObjInit::stagedVertexBuffer(
-			mCustomDemo->UiVertexType,
+			*mCustomDemo->UiVertexInputLayout,
 			mCustomDemo->UiVertices.data(),
-			static_cast<size_t>(mCustomDemo->UiVertexType) * mCustomDemo->UiVertices.size(),
+			static_cast<size_t>(mCustomDemo->UiVertexInputLayout->getStride()) * mCustomDemo->UiVertices.size(),
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
@@ -649,7 +652,7 @@ namespace DOH::EDITOR {
 		mCustomDemo->UiRenderable = std::make_shared<SimpleRenderable>(mCustomDemo->UiVao);
 	
 		mCustomDemo->UiPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-			mCustomDemo->UiVertexType,
+			mCustomDemo->UiVertexInputLayout,
 			*mCustomDemo->UiShaderProgram,
 			ERenderPass::APP_UI
 		);
@@ -664,8 +667,11 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::initObjModelsDemo() {
 		mObjModelsDemo = std::make_unique<ObjModelsDemo>();
 
+		mObjModelsDemo->ColouredVertexInputLayout = std::make_shared<StaticVertexInputLayout>(EVertexType::VERTEX_3D);
+		mObjModelsDemo->TexturedVertexInputLayout = std::make_shared<StaticVertexInputLayout>(EVertexType::VERTEX_3D_TEXTURED);
+
 		for (const auto& filePath : mObjModelsDemo->ObjModelFilePaths) {
-			mObjModelsDemo->LoadedModels.emplace_back(ModelVulkan::createModel(filePath, EVertexType::VERTEX_3D));
+			mObjModelsDemo->LoadedModels.emplace_back(ModelVulkan::createModel(filePath, *mObjModelsDemo->ColouredVertexInputLayout));
 		}
 	
 		//Spwan objects on incrementing x/y values of a grid with random z value
@@ -717,7 +723,7 @@ namespace DOH::EDITOR {
 		cubeLayout.addPushConstant(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::mat4x4));
 	
 		mObjModelsDemo->ScenePipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-			mObjModelsDemo->FlatColourVertexType,
+			mObjModelsDemo->ColouredVertexInputLayout,
 			*mObjModelsDemo->SceneShaderProgram,
 			ERenderPass::APP_SCENE
 		);
@@ -725,7 +731,7 @@ namespace DOH::EDITOR {
 
 		//TODO:: wireframe for each vertex type
 		mObjModelsDemo->SceneWireframePipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-			mObjModelsDemo->FlatColourVertexType,
+			mObjModelsDemo->ColouredVertexInputLayout,
 			*mObjModelsDemo->SceneShaderProgram,
 			ERenderPass::APP_SCENE
 		);
@@ -743,7 +749,7 @@ namespace DOH::EDITOR {
 			*mObjModelsDemo->SceneWireframePipelineInfo
 		);
 
-		mObjModelsDemo->TexturedModel = ModelVulkan::createModel("Dough/res/models/textured_cube.obj", EVertexType::VERTEX_3D_TEXTURED);
+		mObjModelsDemo->TexturedModel = ModelVulkan::createModel("Dough/res/models/textured_cube.obj", *mObjModelsDemo->TexturedVertexInputLayout);
 		mObjModelsDemo->RenderableTexturedModel = std::make_shared<RenderableModelVulkan>(
 			"TexturedObjModel",
 			mObjModelsDemo->TexturedModel

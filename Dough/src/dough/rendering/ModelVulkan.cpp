@@ -6,7 +6,7 @@ namespace DOH {
 
 	ModelVulkan::ModelVulkan(std::shared_ptr<Model3dCreationData> modelCreationData) {
 		std::shared_ptr<VertexBufferVulkan> vbo = ObjInit::stagedVertexBuffer(
-			modelCreationData->BufferElements,
+			modelCreationData->VertexInputLayout,
 			modelCreationData->Vertices.data(),
 			modelCreationData->Vertices.size() * sizeof(float),
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -37,7 +37,7 @@ namespace DOH {
 		mUsingGpuResource = false;
 	}
 
-	std::shared_ptr<ModelVulkan> ModelVulkan::createModel(const std::string& filepath, const EVertexType vertexType) {
-		return std::make_shared<ModelVulkan>(ResourceHandler::loadObjModel(filepath, vertexType));
+	std::shared_ptr<ModelVulkan> ModelVulkan::createModel(const std::string& filepath, const AVertexInputLayout& vertexInputLayout) {
+		return std::make_shared<ModelVulkan>(ResourceHandler::loadObjModel(filepath, vertexInputLayout));
 	}
 }

@@ -55,6 +55,10 @@ namespace DOH::EDITOR {
 		if (innerAppInputLayerExists) {
 			if (mInnerAppInputLayer.value()->isKeyPressed(DOH_KEY_F1)) {
 				mEditorSettings->RenderDebugWindow = true;
+				auto editorInputLayer = Input::getInputLayer(EditorInputLayer::EDITOR_INPUT_LAYER_NAME);
+				if (editorInputLayer.has_value()) {
+					editorInputLayer->get().setEnabled(true);
+				}
 			}
 		}
 
@@ -533,11 +537,44 @@ UPS displayed is the count of frames in the last full second interval)"
 				}
 			}
 
+			ImGui::SetNextItemOpen(mEditorSettings->InputCollapseMenuOpen);
+			if (mEditorSettings->InputCollapseMenuOpen = ImGui::CollapsingHeader("Input")) {
+				auto& inputLayers = Input::getInputLayers();
+
+				ImGui::Text("Input Layers Stack:");
+				EditorGui::displayHelpTooltip(
+					"Input is passed through the Input Layer Stack, the first layer is indexed at 0 (the highest priority layer). Input Layers may handle the event and prevent the event from being passed through the stack further, or it may just ignore the event and pass it on to the next layer."
+				);
+				
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(252.0f / 255.0f, 182.0f / 255.0f, 3.0f / 255.0f, 1.0f));
+				ImGui::PopStyleColor(1);
+				uint32_t i = 0;
+				for (auto& inputLayer : inputLayers) {
+					bool enabled = inputLayer->isEnabled();
+
+					ImGui::Text("[%i] ", i);
+					ImGui::SameLine();
+					ImGui::Text(inputLayer->getName());
+
+					//Add enable/disable checkbox to all layers except the EDITOR_INPUT_LAYER_NAME layer
+					if (strcmp(inputLayer->getName(), EditorInputLayer::EDITOR_INPUT_LAYER_NAME) != 0) {
+						ImGui::SameLine();
+						std::string enabledLabel = "Enabled##";
+						enabledLabel.append(std::to_string(i));
+						if (ImGui::Checkbox(enabledLabel.c_str(), &enabled)) {
+							inputLayer->setEnabled(enabled);
+						}
+					} else {
+						EditorGui::displayHelpTooltip("DOH Editor Input Layer can't be disabled.");
+					}
+					i++;
+				}
+			}
+
 			ImGui::EndTabItem();
 		}
-		
-		if (ImGui::BeginTabItem("UI Style")) {
 
+		if (ImGui::BeginTabItem("UI Style")) {
 			//TODO::
 			ImGui::Text("NOTE: Currently UI style selection is not persistent");
 
@@ -594,7 +631,6 @@ UPS displayed is the count of frames in the last full second interval)"
 
 	void EditorAppLogic::close() {
 		mInnerAppLogic->close();
-
 		EditorGui::close();
 	}
 

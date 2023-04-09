@@ -3,6 +3,7 @@
 #include "dough/rendering/renderer2d/ARenderBatch.h"
 #include "dough/scene/geometry/primitives/Quad.h"
 #include "dough/rendering/Config.h"
+#include "dough/rendering/VertexInputLayout.h"
 
 namespace DOH {
 
@@ -10,6 +11,7 @@ namespace DOH {
 
 	public:
 		constexpr static EVertexType VERTEX_INPUT_TYPE = EVertexType::VERTEX_3D_TEXTURED_INDEXED;
+		static std::shared_ptr<StaticVertexInputLayout> VERTEX_INPUT_LAYOUT;
 
 		RenderBatchQuad(const uint32_t maxGeometryCount, const uint32_t maxTextureCount);
 

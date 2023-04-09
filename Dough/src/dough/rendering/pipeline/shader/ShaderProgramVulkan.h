@@ -3,7 +3,6 @@
 #include "dough/rendering/pipeline/shader/ShaderVulkan.h"
 #include "dough/rendering/pipeline/shader/ShaderUniformLayout.h"
 #include "dough/rendering/pipeline/DescriptorSetLayoutVulkan.h"
-#include "dough/rendering/buffer/BufferLayout.h"
 
 namespace DOH {
 

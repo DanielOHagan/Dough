@@ -3,7 +3,6 @@
 #include "dough/Core.h"
 #include "dough/Maths.h"
 #include "dough/rendering/buffer/DataType.h"
-#include "dough/rendering/buffer/BufferElement.h"
 
 #include <vulkan/vulkan_core.h>
 
@@ -55,17 +54,6 @@ namespace DOH {
 		inline void setHeight(uint32_t height) {SupportDetails.capabilities.currentExtent.height = height;}
 	};
 
-	//TODO:: Some kind of Vertex Input builder?
-	//	Instead of using pre-defined structs (Vertex2d, Vertex3d, etc...)
-
-	static VkVertexInputBindingDescription createBindingDescription(uint32_t binding, uint32_t stride, VkVertexInputRate inputRate) {
-		VkVertexInputBindingDescription bindDesc = {};
-		bindDesc.binding = binding;
-		bindDesc.stride = stride;
-		bindDesc.inputRate = inputRate;
-		return bindDesc;
-	}
-
 	struct Vertex2d {
 		glm::vec2 Pos;
 		glm::vec4 Colour;
@@ -78,10 +66,6 @@ namespace DOH {
 				{ 0, binding, VK_FORMAT_R32G32_SFLOAT		, offsetof(Vertex2d, Pos) },
 				{ 1, binding, VK_FORMAT_R32G32B32A32_SFLOAT	, offsetof(Vertex2d, Colour) }
 			};
-		}
-
-		static std::initializer_list<BufferElement> asBufferElements() {
-			return { EDataType::FLOAT2, EDataType::FLOAT4 };
 		}
 
 		bool operator==(const Vertex2d& other) const {
@@ -103,10 +87,6 @@ namespace DOH {
 			};
 		}
 
-		static std::initializer_list<BufferElement> asBufferElements() {
-			return { EDataType::FLOAT3, EDataType::FLOAT4 };
-		}
-
 		bool operator==(const Vertex3d& other) const {
 			return Pos == other.Pos && Colour == other.Colour;
 		}
@@ -126,10 +106,6 @@ namespace DOH {
 				{ 1, binding, VK_FORMAT_R32G32B32A32_SFLOAT	, offsetof(Vertex3dTextured, Colour) },
 				{ 2, binding, VK_FORMAT_R32G32_SFLOAT		, offsetof(Vertex3dTextured, TexCoord) }
 			};
-		}
-
-		static std::initializer_list<BufferElement> asBufferElements() {
-			return { EDataType::FLOAT3, EDataType::FLOAT4, EDataType::FLOAT2 }; //, EDataType::FLOAT };
 		}
 
 		bool operator==(const Vertex3dTextured& other) const {
@@ -156,10 +132,6 @@ namespace DOH {
 			};
 		}
 
-		static std::initializer_list<BufferElement> asBufferElements() {
-			return { EDataType::FLOAT3, EDataType::FLOAT4, EDataType::FLOAT2, EDataType::FLOAT };
-		}
-
 		bool operator==(const Vertex3dTexturedIndexed& other) const {
 			return Pos == other.Pos && Colour == other.Colour && TexCoord == other.TexCoord && TexIndex == other.TexIndex;
 		}
@@ -183,13 +155,18 @@ namespace DOH {
 			};
 		}
 
-		static std::initializer_list<BufferElement> asBufferElements() {
-			return { EDataType::FLOAT3, EDataType::FLOAT4, EDataType::FLOAT3, EDataType::FLOAT2 };
-		}
-
 		bool operator==(const Vertex3dLitTextured& other) const {
 			return Pos == other.Pos && Colour == other.Colour && Normal == other.Normal && TexCoord == other.TexCoord;
 		}
+	};
+
+	constexpr static std::array<const char*, 6> EVertexTypeStrings = {
+		"NONE",
+		"VERTEX_2D",
+		"VERTEX_3D",
+		"VERTEX_3D_TEXTURED",
+		"VERTEX_3D_TEXTURED_INDEXED",
+		"VERTEX_3D_LIT_TEXTURED"
 	};
 
 	enum class EVertexType {
@@ -300,28 +277,6 @@ namespace DOH {
 
 			default:
 				return 0;
-		}
-	}
-
-	constexpr static std::initializer_list<BufferElement> getVertexTypeAsBufferElements(const EVertexType vertexType) {
-		switch (vertexType) {
-			case EVertexType::VERTEX_2D:
-				return Vertex2d::asBufferElements();
-
-			case EVertexType::VERTEX_3D:
-				return Vertex3d::asBufferElements();
-
-			case EVertexType::VERTEX_3D_TEXTURED:
-				return Vertex3dTextured::asBufferElements();
-
-			case EVertexType::VERTEX_3D_TEXTURED_INDEXED:
-				return Vertex3dTexturedIndexed::asBufferElements();
-
-			case EVertexType::VERTEX_3D_LIT_TEXTURED:
-				return Vertex3dLitTextured::asBufferElements();
-
-			default:
-				return {};
 		}
 	}
 

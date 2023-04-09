@@ -90,11 +90,15 @@ namespace DOH {
 
 		//IMPORTANT:: vertex input binding is always slot 0
 		const uint32_t binding = 0;
-		const auto bindingDesc = getVertexTypeBindingDesc(mInstanceInfo.getVertexType(), binding, VK_VERTEX_INPUT_RATE_VERTEX);
-		const auto vertexAttribs = getVertexTypeAsAttribDesc(mInstanceInfo.getVertexType(), binding);
+		const auto vertexAttribs = mInstanceInfo.getVertexInputLayout().asAttribDesc(binding);//;getVertexTypeAsAttribDesc(mInstanceInfo.getVertexType(), binding);
+
+		VkVertexInputBindingDescription vertexBindingDesc = {};
+		vertexBindingDesc.binding = binding;
+		vertexBindingDesc.stride = mInstanceInfo.getVertexInputLayout().getStride();
+		vertexBindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 		vertexInputInfo.vertexBindingDescriptionCount = 1;
-		vertexInputInfo.pVertexBindingDescriptions = &bindingDesc;
+		vertexInputInfo.pVertexBindingDescriptions = &vertexBindingDesc;
 		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttribs.size());
 		vertexInputInfo.pVertexAttributeDescriptions = vertexAttribs.data();
 

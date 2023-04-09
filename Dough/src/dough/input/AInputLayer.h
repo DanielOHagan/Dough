@@ -7,9 +7,11 @@ namespace DOH {
 	class AInputLayer {
 	protected:
 		const char* mName;
+		bool mEnabled;
 
 		AInputLayer(const char* name)
-		:	mName(name)
+		:	mName(name),
+			mEnabled(true)
 		{}
 
 	public:
@@ -28,6 +30,8 @@ namespace DOH {
 		virtual inline bool isMouseScrollingDown() const = 0;
 		virtual inline const glm::vec2 getCursorPos() const = 0;
 
+		inline void setEnabled(bool enabled) { mEnabled = enabled; }
+		inline const bool isEnabled() const { return mEnabled; }
 		inline const char* getName() const { return mName; }
 	};
 }

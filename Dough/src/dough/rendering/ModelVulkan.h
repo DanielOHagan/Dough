@@ -27,6 +27,6 @@ namespace DOH {
 
 		inline VertexArrayVulkan& getVao() const { return *mVao; }
 
-		static std::shared_ptr<ModelVulkan> createModel(const std::string& filepath, const EVertexType vertextype);
+		static std::shared_ptr<ModelVulkan> createModel(const std::string& filepath, const AVertexInputLayout& vertexInputLayout);
 	};
 }

@@ -33,8 +33,10 @@ namespace DOH::EDITOR {
 	class EditorInputLayer : public AInputLayer {
 	
 	public:
+		constexpr static const char* EDITOR_INPUT_LAYER_NAME = "DOH Editor";
+
 		EditorInputLayer()
-		:	AInputLayer("Editor")
+		:	AInputLayer(EditorInputLayer::EDITOR_INPUT_LAYER_NAME)
 		{}
 
 		//EditorInputLayer isn't manually handling events so all functions are empty, return false, or return 
@@ -67,6 +69,7 @@ namespace DOH::EDITOR {
 			bool InnerAppCollapseMenu = true;
 			bool RenderingCollapseMenuOpen = true;
 			bool CameraCollapseMenuOpen = true;
+			bool InputCollapseMenuOpen = true;
 
 			bool InnerAppEditorWindowDisplay = true;
 

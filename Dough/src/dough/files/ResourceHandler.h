@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dough/rendering/Config.h"
+#include "dough/rendering/VertexInputLayout.h"
 
 namespace tinyobj {
 	struct attrib_t;
@@ -10,7 +11,6 @@ namespace tinyobj {
 
 namespace DOH {
 
-	struct BufferElement;
 	struct FntFileData;
 	struct ObjFileData;
 
@@ -22,14 +22,15 @@ namespace DOH {
 	};
 
 	struct Model3dCreationData {
-		Model3dCreationData(const EVertexType vertexType)
-		:	VertexType(vertexType)
+		Model3dCreationData(const AVertexInputLayout& vertexInputLayout)
+		:	VertexInputLayout(vertexInputLayout)
 		{};
 
-		std::vector<BufferElement> BufferElements;
 		std::vector<float> Vertices;
 		std::vector<uint32_t> Indices;
-		const EVertexType VertexType;
+
+		//IMPORTANT:: Since model file reading only supports statically defined types the VertexInputLayout is defined by EVertexType
+		const AVertexInputLayout& VertexInputLayout;
 	};
 
 	class ResourceHandler {
@@ -45,7 +46,7 @@ namespace DOH {
 		TextureCreationData loadTextureImpl(const char* filepath);
 		void freeImageImpl(void* imageData);
 		std::shared_ptr<FntFileData> loadFntFileImpl(const char* filepath);
-		std::shared_ptr<Model3dCreationData> loadObjModelImpl(const std::string& filePath, const EVertexType vertexType);
+		std::shared_ptr<Model3dCreationData> loadObjModelImpl(const std::string& filePath, const AVertexInputLayout& vertexInputLayout);
 
 		static std::pair<std::vector<float>, std::vector<uint32_t>> extractObjFileDataAsVertex3d(
 			const tinyobj::attrib_t& attrib,
@@ -86,6 +87,6 @@ namespace DOH {
 		//-----File type helpers-----
 		static const bool isFileOfType(const char* filepath, const char* type);
 
-		static std::shared_ptr<Model3dCreationData> loadObjModel(const std::string& filePath, const EVertexType vertexType);
+		static std::shared_ptr<Model3dCreationData> loadObjModel(const std::string& filePath, const AVertexInputLayout& vertexInputLayout);
 	};
 }

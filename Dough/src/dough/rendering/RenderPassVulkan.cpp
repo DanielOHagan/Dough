@@ -1,4 +1,4 @@
-#include "dough/rendering/pipeline/RenderPassVulkan.h"
+#include "dough/rendering/RenderPassVulkan.h"
 
 #include "dough/Utils.h"
 
@@ -26,7 +26,7 @@ namespace DOH {
 			colourAttachDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			colourAttachDesc.initialLayout = colourAttach.InitLayout;
 			colourAttachDesc.finalLayout = colourAttach.FinalLayout;
-		
+
 			VkAttachmentReference colourAttachRef = {};
 			colourAttachRef.attachment = subPassAttachIndex;
 			colourAttachRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;

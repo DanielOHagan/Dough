@@ -41,6 +41,7 @@ namespace DOH {
 
 		static void addInputLayer(std::shared_ptr<AInputLayer> inputLayer);
 		static void removeInputLayer(const char* name);
+		static std::vector<std::shared_ptr<AInputLayer>>& getInputLayers();
 		static std::optional<std::reference_wrapper<AInputLayer>> getInputLayer(const char* name);
 		static std::optional<std::shared_ptr<AInputLayer>> getInputLayerPtr(const char* name);
 	};
