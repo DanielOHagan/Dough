@@ -25,15 +25,14 @@ namespace DOH {
 	public:
 		Renderer2dVulkan(RenderingContextVulkan& context);
 		Renderer2dVulkan(const Renderer2dVulkan& copy) = delete;
-		void operator=(const Renderer2dVulkan& assignment) = delete;
-
+		Renderer2dVulkan operator=(const Renderer2dVulkan& assignment) = delete;
 
 		void init();
 		void close();
 		void onSwapChainResize(SwapChainVulkan& swapChain);
 
 		void updateRenderer2dUniformData(uint32_t currentImage, glm::mat4x4& sceneProjView);
-		void flushScene(uint32_t imageIndex, VkCommandBuffer cmd);
+		void flushScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 		//TODO:: separate flush functions for rendering in different render passes
 		//void flushUi();
 

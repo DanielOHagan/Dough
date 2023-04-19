@@ -225,7 +225,7 @@ namespace DOH {
 	//Draw then Present rendered frame
 	void RenderingContextVulkan::drawFrame() {
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
-		debugInfo.resetDrawCallsCount();
+		debugInfo.resetPerFrameData();
 
 		uint32_t imageIndex = mSwapChain->aquireNextImageIndex(
 			mLogicDevice,
@@ -240,14 +240,16 @@ namespace DOH {
 		VkCommandBuffer cmd = mCommandBuffers[imageIndex];
 		beginCommandBuffer(cmd);
 
+		CurrentBindingsState currentBindings = {};
+
 		//Draw scene
-		drawScene(imageIndex, cmd);
+		drawScene(imageIndex, cmd, currentBindings);
 
 		//NOTE:: If using subpasses to separate rendering scene/UI, increment subpass index
 		//vkCmdNextSubpass(cmd, VK_SUBPASS_CONTENTS_INLINE);
 
 		//Draw Application UI
-		drawUi(imageIndex, cmd);
+		drawUi(imageIndex, cmd, currentBindings);
 
 		//Draw ImGui
 		mImGuiWrapper->beginRenderPass(imageIndex, mSwapChain->getExtent(), cmd);
@@ -262,10 +264,10 @@ namespace DOH {
 		//TODO:: A way of closing/removing last frame specific gpu resources
 		//releaseFrameSpecificGpuResources(lastFrameIndex);
 
-		debugInfo.updateTotalDrawCallCount();
+		debugInfo.updatePerFrameData();
 	}
 
-	void RenderingContextVulkan::drawScene(uint32_t imageIndex, VkCommandBuffer cmd) {
+	void RenderingContextVulkan::drawScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 
 		mAppSceneRenderPass->begin(mAppSceneFrameBuffers[imageIndex], mSwapChain->getExtent(), cmd);
@@ -273,7 +275,6 @@ namespace DOH {
 		if (scenePipelines.has_value()) {
 			for (auto& pipeline : scenePipelines.value()) {
 				if (pipeline.second->isEnabled() && pipeline.second->getVaoDrawCount() > 0) {
-
 					//TODO:: 
 					// FIX:: This sets the data for all shader programs used by scene graphics pipelines in the frame.
 					// Even if the data in the descriptors has already been set when a prior pipeline, which has
@@ -289,21 +290,26 @@ namespace DOH {
 						sizeof(UniformBufferObject)
 					);
 
+					if (currentBindings.Pipeline != pipeline.second->get()) {
+						pipeline.second->bind(cmd);
+						debugInfo.PipelineBinds++;
+						currentBindings.Pipeline = pipeline.second->get();
+					}
+
+					pipeline.second->recordDrawCommands(imageIndex, cmd, currentBindings);
 					debugInfo.SceneDrawCalls += pipeline.second->getVaoDrawCount();
-					pipeline.second->bind(cmd);
-					pipeline.second->recordDrawCommands(imageIndex, cmd);
 				}
 			}
 		}
 		
 		//Batch VAOs should have only one VAO and if the batch has at least one quad then there is a draw call
-		mRenderer2d->flushScene(imageIndex, cmd);
+		mRenderer2d->flushScene(imageIndex, cmd, currentBindings);
 		debugInfo.BatchRendererDrawCalls = mRenderer2d->getDrawCount();
 
 		RenderPassVulkan::endRenderPass(cmd);
 	}
 
-	void RenderingContextVulkan::drawUi(uint32_t imageIndex, VkCommandBuffer cmd) {
+	void RenderingContextVulkan::drawUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 
 		mAppUiRenderPass->begin(mAppUiFrameBuffers[imageIndex], mSwapChain->getExtent(), cmd);
@@ -328,9 +334,13 @@ namespace DOH {
 						sizeof(UniformBufferObject)
 					);
 
+					if (currentBindings.Pipeline != pipeline.second->get()) {
+						pipeline.second->bind(cmd);
+						debugInfo.PipelineBinds++;
+					}
+
+					pipeline.second->recordDrawCommands(imageIndex, cmd, currentBindings);
 					debugInfo.UiDrawCalls += pipeline.second->getVaoDrawCount();
-					pipeline.second->bind(cmd);
-					pipeline.second->recordDrawCommands(imageIndex, cmd);
 				}
 			}
 		}
@@ -1024,18 +1034,6 @@ namespace DOH {
 		return imageMemory;
 	}
 
-	std::shared_ptr<GraphicsPipelineVulkan> RenderingContextVulkan::createGraphicsPipeline(
-		GraphicsPipelineInstanceInfo& instanceInfo,
-		VkExtent2D extent
-	) {
-		return std::make_shared<GraphicsPipelineVulkan>(
-			mLogicDevice,
-			instanceInfo,
-			getRenderPass(instanceInfo.getRenderPass()).get(),
-			extent
-		);
-	}
-
 	RenderPassVulkan& RenderingContextVulkan::getRenderPass(const ERenderPass renderPass) const {
 		switch (renderPass) {
 			case ERenderPass::APP_SCENE:
@@ -1045,89 +1043,5 @@ namespace DOH {
 		}
 
 		THROW("Unknown render pass");
-	}
-
-	std::shared_ptr<SwapChainVulkan> RenderingContextVulkan::createSwapChain(SwapChainCreationInfo& swapChainCreate) {
-		return std::make_shared<SwapChainVulkan>(mLogicDevice, swapChainCreate);
-	}
-
-	std::shared_ptr<VertexArrayVulkan> RenderingContextVulkan::createVertexArray() {
-		return std::make_shared<VertexArrayVulkan>();
-	}
-
-
-	std::shared_ptr<VertexBufferVulkan> RenderingContextVulkan::createVertexBuffer(
-		const AVertexInputLayout& vertexInputLayout,
-		VkDeviceSize size,
-		VkBufferUsageFlags usage,
-		VkMemoryPropertyFlags props
-	) {
-		return std::make_shared<VertexBufferVulkan>(vertexInputLayout, mLogicDevice, mPhysicalDevice, size, usage, props);
-	}
-
-	std::shared_ptr<VertexBufferVulkan> RenderingContextVulkan::createStagedVertexBuffer(
-		const AVertexInputLayout& vertexInputLayout,
-		const void* data,
-		VkDeviceSize size,
-		VkBufferUsageFlags usage,
-		VkMemoryPropertyFlags props
-	) {
-		return std::make_shared<VertexBufferVulkan>(vertexInputLayout, mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size, usage, props);
-	}
-
-	std::shared_ptr<IndexBufferVulkan> RenderingContextVulkan::createIndexBuffer(VkDeviceSize size) {
-		return std::make_shared<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, size);
-	}
-
-	std::shared_ptr<IndexBufferVulkan> RenderingContextVulkan::createStagedIndexBuffer(void* data, VkDeviceSize size) {
-		return std::make_shared<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, (const void*) data, size);
-	}
-
-	std::shared_ptr<IndexBufferVulkan> RenderingContextVulkan::createStagedIndexBuffer(const void* data, VkDeviceSize size) {
-		return std::make_shared<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size);
-	}
-
-	std::unique_ptr<IndexBufferVulkan> RenderingContextVulkan::createSharedStagedIndexBuffer(const void* data, VkDeviceSize size) {
-		return std::make_unique<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size);
-	}
-
-	std::shared_ptr<BufferVulkan> RenderingContextVulkan::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props) {
-		return std::make_shared<BufferVulkan>(mLogicDevice, mPhysicalDevice, size, usage, props);
-	}
-
-	std::shared_ptr<BufferVulkan> RenderingContextVulkan::createStagedBuffer(void* data, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props) {
-		return std::make_shared<BufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, (const void*) data, size, usage, props);
-	}
-
-	std::shared_ptr<BufferVulkan> RenderingContextVulkan::createStagedBuffer(const void* data, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props) {
-		return std::make_shared<BufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size, usage, props);
-	}
-
-	std::shared_ptr<ShaderProgramVulkan> RenderingContextVulkan::createShaderProgram(std::shared_ptr<ShaderVulkan> vertShader, std::shared_ptr<ShaderVulkan> fragShader) {
-		return std::make_shared<ShaderProgramVulkan>(vertShader, fragShader);
-	}
-
-	std::shared_ptr<ShaderVulkan> RenderingContextVulkan::createShader(EShaderType type, const std::string& filePath) {
-		return std::make_shared<ShaderVulkan>(type, filePath);
-	}
-
-	std::shared_ptr<TextureVulkan> RenderingContextVulkan::createTexture(const std::string& filePath) {
-		return std::make_shared<TextureVulkan>(mLogicDevice, mPhysicalDevice, filePath);
-	}
-
-	std::shared_ptr<TextureVulkan> RenderingContextVulkan::createTexture(float r, float g, float b, float a, bool colourRgbaNormalised, const char* name) {
-		return std::make_shared<TextureVulkan>(mLogicDevice, mPhysicalDevice, r, g, b, a, colourRgbaNormalised, name);
-	}
-
-	std::shared_ptr<MonoSpaceTextureAtlas> RenderingContextVulkan::createMonoSpaceTextureAtlas(
-		const std::string& filePath,
-		const uint32_t rowCount,
-		const uint32_t colCount
-	) {
-		return std::make_shared<MonoSpaceTextureAtlas>(mLogicDevice, mPhysicalDevice, filePath, rowCount, colCount);
-	}
-
-	std::shared_ptr<FontBitmap> RenderingContextVulkan::createFontBitmap(const char* filepath, const char* imageDir) {
-		return std::make_shared<FontBitmap>(filepath, imageDir);
 	}
 }

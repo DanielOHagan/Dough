@@ -9,6 +9,7 @@
 namespace DOH {
 
 	enum class ERenderPass;
+	struct CurrentBindingsState;
 
 	/**
 	* Fields used in the creation of a GraphicsPipeline that have default values
@@ -138,7 +139,7 @@ namespace DOH {
 		);
 		void updateShaderUniforms(VkDevice logicDevice, uint32_t imageCount);
 		void setFrameUniformData(VkDevice logicDevice, uint32_t image, uint32_t binding, void* data, size_t size);
-		void recordDrawCommands(uint32_t imageIndex, VkCommandBuffer cmd);
+		void recordDrawCommands(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 		inline void addRenderableToDraw(std::shared_ptr<IRenderable> renderable) { mRenderableDrawList.emplace_back(renderable); }
 		inline void clearRenderableToDraw() { mRenderableDrawList.clear(); }
 		inline void bind(VkCommandBuffer cmd) const { vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline); }

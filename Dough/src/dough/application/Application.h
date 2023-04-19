@@ -36,6 +36,12 @@ namespace DOH {
 
 		uint32_t TotalDrawCalls = 0;
 
+		uint32_t PipelineBinds = 0;
+		uint32_t VertexArrayBinds = 0;
+		uint32_t VertexBufferBinds = 0;
+		uint32_t IndexBufferBinds = 0;
+		uint32_t DescriptorSetBinds = 0;
+
 		inline void updateTotalDrawCallCount() {
 			TotalDrawCalls = SceneDrawCalls + UiDrawCalls + BatchRendererDrawCalls;
 		}
@@ -44,6 +50,23 @@ namespace DOH {
 			SceneDrawCalls = 0;
 			UiDrawCalls = 0;
 			BatchRendererDrawCalls = 0;
+		}
+
+		inline void resetBindingCount() {
+			PipelineBinds = 0;
+			VertexArrayBinds = 0;
+			VertexBufferBinds = 0;
+			IndexBufferBinds = 0;
+			DescriptorSetBinds = 0;
+		}
+
+		inline void updatePerFrameData() {
+			updateTotalDrawCallCount();
+		}
+
+		inline void resetPerFrameData() {
+			resetDrawCallsCount();
+			resetBindingCount();
 		}
 	};
 

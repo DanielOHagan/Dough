@@ -90,7 +90,7 @@ namespace DOH {
 
 		//IMPORTANT:: vertex input binding is always slot 0
 		const uint32_t binding = 0;
-		const auto vertexAttribs = mInstanceInfo.getVertexInputLayout().asAttribDesc(binding);//;getVertexTypeAsAttribDesc(mInstanceInfo.getVertexType(), binding);
+		const auto vertexAttribs = mInstanceInfo.getVertexInputLayout().asAttribDesc(binding);
 
 		VkVertexInputBindingDescription vertexBindingDesc = {};
 		vertexBindingDesc.binding = binding;
@@ -240,7 +240,7 @@ namespace DOH {
 			->setDataUnmapped(logicDevice, data, size);
 	}
 
-	void GraphicsPipelineVulkan::recordDrawCommands(uint32_t imageIndex, VkCommandBuffer cmd) {
+	void GraphicsPipelineVulkan::recordDrawCommands(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
 		if (mInstanceInfo.getShaderProgram().getUniformLayout().hasUniforms()) {
 			mInstanceInfo.getShaderProgram().getShaderDescriptorLayout().bindDescriptorSets(
 				cmd,
@@ -250,7 +250,13 @@ namespace DOH {
 		}
 
 		for (const auto& renderable : mRenderableDrawList) {
-			renderable->getVao().bind(cmd);
+			const VkBuffer vb = renderable->getVao().getVertexBuffers()[0]->getBuffer();
+			const VkBuffer ib = renderable->getVao().getIndexBuffer().getBuffer();
+			if (currentBindings.VertexBuffer != vb || currentBindings.IndexBuffer != ib) {
+				renderable->getVao().bind(cmd);
+				currentBindings.VertexBuffer = vb;
+				currentBindings.IndexBuffer = ib;
+			}
 
 			for (const VkPushConstantRange& pushConstant : mInstanceInfo.getShaderProgram().getUniformLayout().getPushConstantRanges()) {
 				vkCmdPushConstants(

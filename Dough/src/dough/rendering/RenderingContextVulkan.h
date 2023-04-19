@@ -23,6 +23,13 @@ namespace DOH {
 		APP_UI = 1
 	};
 
+	struct CurrentBindingsState {
+		VkPipeline Pipeline = VK_NULL_HANDLE;
+		//NOTE:: Assumes only one VertexBuffer is bound at a time
+		VkBuffer VertexBuffer = VK_NULL_HANDLE;
+		VkBuffer IndexBuffer = VK_NULL_HANDLE;
+	};
+
 	class RenderingContextVulkan {
 
 	private:
@@ -227,52 +234,38 @@ namespace DOH {
 
 		//-----Pipeline-----
 		//TODO:: having a "createPipeline" and "createGraphicsPipeline" is confusing
-		std::shared_ptr<GraphicsPipelineVulkan> createGraphicsPipeline(
-			GraphicsPipelineInstanceInfo& instanceInfo,
-			VkExtent2D extent
-		);
+		inline std::shared_ptr<GraphicsPipelineVulkan> createGraphicsPipeline(GraphicsPipelineInstanceInfo& instanceInfo, VkExtent2D extent) const { return std::make_shared<GraphicsPipelineVulkan>(mLogicDevice, instanceInfo, getRenderPass(instanceInfo.getRenderPass()).get(), extent); }
 
 		//-----Context-----
-		std::shared_ptr<SwapChainVulkan> createSwapChain(SwapChainCreationInfo& swapChainCreate);
+		inline std::shared_ptr<SwapChainVulkan> createSwapChain(SwapChainCreationInfo& swapChainCreate) const { return std::make_shared<SwapChainVulkan>(mLogicDevice, swapChainCreate); }
 
 		//-----VAO & Buffers-----
-		std::shared_ptr<VertexArrayVulkan> createVertexArray();
-		std::shared_ptr<VertexBufferVulkan> createVertexBuffer(
-			const AVertexInputLayout& vertexInputLayout,
-			VkDeviceSize size,
-			VkBufferUsageFlags usage,
-			VkMemoryPropertyFlags props
-		);
-		std::shared_ptr<VertexBufferVulkan> createStagedVertexBuffer(
-			const AVertexInputLayout& vertexInputLayout,
-			const void* data,
-			VkDeviceSize size,
-			VkBufferUsageFlags usage,
-			VkMemoryPropertyFlags props
-		);
-		std::shared_ptr<IndexBufferVulkan> createIndexBuffer(VkDeviceSize size);
-		std::shared_ptr<IndexBufferVulkan> createStagedIndexBuffer(void* data, VkDeviceSize size);
-		std::shared_ptr<IndexBufferVulkan> createStagedIndexBuffer(const void* data, VkDeviceSize size);
-		std::unique_ptr<IndexBufferVulkan> createSharedStagedIndexBuffer(const void* data, VkDeviceSize size);
-		std::shared_ptr<BufferVulkan> createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props);
-		std::shared_ptr<BufferVulkan> createStagedBuffer(void* data, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props);
-		std::shared_ptr<BufferVulkan> createStagedBuffer(const void* data, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props);
+		inline std::shared_ptr<VertexArrayVulkan> createVertexArray() const { return std::make_shared<VertexArrayVulkan>(); }
+		inline std::shared_ptr<VertexBufferVulkan> createVertexBuffer(const AVertexInputLayout& vertexInputLayout, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props) const { return std::make_shared<VertexBufferVulkan>(vertexInputLayout, mLogicDevice, mPhysicalDevice, size, usage, props); }
+		inline std::shared_ptr<VertexBufferVulkan> createStagedVertexBuffer(const AVertexInputLayout& vertexInputLayout, const void* data, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props) const { return std::make_shared<VertexBufferVulkan>(vertexInputLayout, mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size, usage, props); }
+		inline std::shared_ptr<IndexBufferVulkan> createIndexBuffer(VkDeviceSize size) const { return std::make_shared<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, size); }
+		inline std::shared_ptr<IndexBufferVulkan> createStagedIndexBuffer(void* data, VkDeviceSize size) const { return std::make_shared<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, (const void*) data, size); }
+		inline std::shared_ptr<IndexBufferVulkan> createStagedIndexBuffer(const void* data, VkDeviceSize size) const { return std::make_shared<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size); }
+		inline std::unique_ptr<IndexBufferVulkan> createSharedStagedIndexBuffer(const void* data, VkDeviceSize size) const { return std::make_unique<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size); }
+		inline std::shared_ptr<BufferVulkan> createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props) const { return std::make_shared<BufferVulkan>(mLogicDevice, mPhysicalDevice, size, usage, props); }
+		inline std::shared_ptr<BufferVulkan> createStagedBuffer(void* data, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props) const { return std::make_shared<BufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, (const void*) data, size, usage, props); }
+		inline std::shared_ptr<BufferVulkan> createStagedBuffer(const void* data, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props) const { return std::make_shared<BufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size, usage, props); }
 
 		//-----Shader-----
-		std::shared_ptr<ShaderProgramVulkan> createShaderProgram(std::shared_ptr<ShaderVulkan> vertShader, std::shared_ptr<ShaderVulkan> fragShader);
-		std::shared_ptr<ShaderVulkan> createShader(EShaderType type, const std::string& filePath);
+		inline std::shared_ptr<ShaderProgramVulkan> createShaderProgram(std::shared_ptr<ShaderVulkan> vertShader, std::shared_ptr<ShaderVulkan> fragShader) const { return std::make_shared<ShaderProgramVulkan>(vertShader, fragShader); }
+		inline std::shared_ptr<ShaderVulkan> createShader(EShaderType type, const std::string& filePath) const { return std::make_shared<ShaderVulkan>(type, filePath); }
 
 		//-----Texture-----
-		std::shared_ptr<TextureVulkan> createTexture(const std::string& filePath);
-		std::shared_ptr<TextureVulkan> createTexture(float r, float g, float b, float a, bool colourRgbaNormalised = false, const char* name = "Un-named Texture");
-		std::shared_ptr<MonoSpaceTextureAtlas> createMonoSpaceTextureAtlas(
+		inline std::shared_ptr<TextureVulkan> createTexture(const std::string& filePath) const { return std::make_shared<TextureVulkan>(mLogicDevice, mPhysicalDevice, filePath); }
+		inline std::shared_ptr<TextureVulkan> createTexture(float r, float g, float b, float a, bool colourRgbaNormalised = false, const char* name = "Un-named Texture") const { return std::make_shared<TextureVulkan>(mLogicDevice, mPhysicalDevice, r, g, b, a, colourRgbaNormalised, name); }
+		inline std::shared_ptr<MonoSpaceTextureAtlas> createMonoSpaceTextureAtlas(
 			const std::string& filePath,
 			const uint32_t rowCount,
 			const uint32_t columnCount
-		);
+		) const { return std::make_shared<MonoSpaceTextureAtlas>(mLogicDevice, mPhysicalDevice, filePath, rowCount, columnCount); }
 
 		//-----Font-----
-		std::shared_ptr<FontBitmap> createFontBitmap(const char* filepath, const char* imageDir);
+		inline std::shared_ptr<FontBitmap> createFontBitmap(const char* filepath, const char* imageDir) const { return std::make_shared<FontBitmap>(filepath, imageDir); }
 
 	private:
 		void createQueues(QueueFamilyIndices& queueFamilyIndices);
@@ -292,8 +285,8 @@ namespace DOH {
 			uint32_t width,
 			uint32_t height
 		);
-		void drawScene(uint32_t imageIndex, VkCommandBuffer cmd);
-		void drawUi(uint32_t imageIndex, VkCommandBuffer cmd);
+		void drawScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
+		void drawUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 		void present(uint32_t imageIndex, VkCommandBuffer cmd);
 	};
 }

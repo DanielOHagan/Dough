@@ -2,6 +2,7 @@
 
 #include "dough/rendering/ObjInit.h"
 #include "dough/Logging.h"
+#include "dough/application/Application.h"
 
 namespace DOH {
 
@@ -245,6 +246,7 @@ namespace DOH {
 			0,
 			nullptr
 		);
+		Application::get().getDebugInfo().DescriptorSetBinds++;
 	}
 
 	void DescriptorSetLayoutVulkan::closeBuffers(VkDevice logicDevice) {

@@ -13,7 +13,6 @@ namespace DOH {
 		void* mData;
 
 	public:
-
 		BufferVulkan() = delete;
 		BufferVulkan(const BufferVulkan& copy) = delete;
 		BufferVulkan operator=(const BufferVulkan& assignment) = delete;

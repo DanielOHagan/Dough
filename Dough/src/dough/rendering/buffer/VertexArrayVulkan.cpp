@@ -1,6 +1,7 @@
 #include "dough/rendering/buffer/VertexArrayVulkan.h"
 
 #include "dough/Logging.h"
+#include "dough/application/Application.h"
 
 namespace DOH {
 
@@ -35,31 +36,36 @@ namespace DOH {
 	}
 
 	void VertexArrayVulkan::bind(VkCommandBuffer cmd) {
-		const size_t vbCount = mVertexBuffers.size();
+		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
+		const size_t vbSize = mVertexBuffers.size();
 
-		if (vbCount == 0) {
+		if (vbSize == 0) {
 			LOG_WARN("Attempt to bind VAO with 0 attached VBO's");
 			return;
-		} else if (vbCount > 1) {
+		} else if (vbSize > 1) {
 			std::vector<VkBuffer> vertexBuffers;
 			std::vector<VkDeviceSize> offsets;
 
-			vertexBuffers.resize(vbCount);
-			offsets.resize(vbCount + 1);
+			vertexBuffers.resize(vbSize);
+			offsets.resize(vbSize + 1);
 			offsets[0] = 0;
 
-			for (size_t i = 0; i < vbCount; i++) {
+			for (size_t i = 0; i < vbSize; i++) {
 				vertexBuffers[i] = mVertexBuffers[i]->getBuffer();
 				offsets[i + 1] = static_cast<VkDeviceSize>(mVertexBuffers[i]->getVertexInputLayout().getStride());
 			}
 
+			const uint32_t vbCount = static_cast<uint32_t>(vbSize);
+
 			vkCmdBindVertexBuffers(
 				cmd,
 				0,
-				static_cast<uint32_t>(vbCount),
+				vbCount,
 				vertexBuffers.data(),
 				offsets.data()
 			);
+			debugInfo.VertexBufferBinds += vbCount;
+			debugInfo.VertexArrayBinds++;
 		} else {
 			VkBuffer buffer = mVertexBuffers[0]->getBuffer();
 			VkDeviceSize offset = 0;
@@ -70,10 +76,13 @@ namespace DOH {
 				&buffer,
 				&offset
 			);
+			debugInfo.VertexBufferBinds++;
+			debugInfo.VertexArrayBinds++;
 		}
 
 		if (!mSharingIndexBuffer) {
 			mIndexBuffer->bind(cmd);
+			debugInfo.IndexBufferBinds++;
 		}
 	}
 

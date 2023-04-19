@@ -3,6 +3,7 @@
 #include "dough/rendering/RenderingContextVulkan.h"
 #include "dough/Logging.h"
 #include "dough/rendering/ObjInit.h"
+#include "dough/application/Application.h"
 
 namespace DOH {
 
@@ -318,26 +319,30 @@ namespace DOH {
 		//TODO:: UI
 	}
 
-	void Renderer2dVulkan::flushScene(uint32_t imageIndex, VkCommandBuffer cmd) {
+	void Renderer2dVulkan::flushScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
 		VkDevice logicDevice = mContext.getLogicDevice();
-		bool quadIboBound = false;
+		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 
 		{ //Draw Quads
 			GraphicsPipelineVulkan& quadPipeline = mStorage->getQuadGraphicsPipeline();
 
-			bool quadPipelineBound = false;
+			bool hasQuadToDraw = false;
 
 			uint32_t index = 0;
 			for (RenderBatchQuad& batch : mStorage->getQuadRenderBatches()) {
 				const uint32_t quadCount = static_cast<uint32_t>(batch.getGeometryCount());
 
 				if (quadCount > 0) {
-					if (!quadPipelineBound) {
+					if (quadPipeline.get() != currentBindings.Pipeline) {
 						quadPipeline.bind(cmd);
+						currentBindings.Pipeline = quadPipeline.get();
+						debugInfo.PipelineBinds++;
 					}
 
-					if (!quadIboBound) {
+					if (mStorage->getQuadBatchIndexBuffer().getBuffer() != currentBindings.IndexBuffer) {
 						mStorage->getQuadBatchIndexBuffer().bind(cmd);
+						currentBindings.IndexBuffer = mStorage->getQuadBatchIndexBuffer().getBuffer();
+						debugInfo.IndexBufferBinds++;
 					}
 
 					const auto& renderableBatch = mStorage->getRenderableQuadBatches()[index];
@@ -354,14 +359,16 @@ namespace DOH {
 					mDebugInfoDrawCount++;
 
 					batch.reset();
+
+					hasQuadToDraw = true;
 				}
 
 				index++;
 			}
 
-			quadPipeline.recordDrawCommands(imageIndex, cmd);
-
-			quadPipeline.clearRenderableToDraw();
+			if (hasQuadToDraw) {
+				quadPipeline.recordDrawCommands(imageIndex, cmd, currentBindings);
+			}
 		}
 
 		{ //Draw Text
@@ -370,11 +377,18 @@ namespace DOH {
 			const size_t textQuadCount = textBatch.getGeometryCount();
 
 			if (textQuadCount > 0) {
-				textPipeline.bind(cmd);
+				
+				if (currentBindings.Pipeline != textPipeline.get()) {
+					textPipeline.bind(cmd);
+					debugInfo.PipelineBinds++;
+					currentBindings.Pipeline = textPipeline.get();
+				}
 
-				if (!quadIboBound) {
+				if (mStorage->getQuadBatchIndexBuffer().getBuffer() != currentBindings.IndexBuffer) {
 					//NOTE:: Text is currently rendered as a Quad so it can share the Quad batch index buffer
 					mStorage->getQuadBatchIndexBuffer().bind(cmd);
+					currentBindings.IndexBuffer = mStorage->getQuadBatchIndexBuffer().getBuffer();
+					debugInfo.IndexBufferBinds++;
 				}
 
 				const auto& renderableBatch = mStorage->getRenderableTextBatch();
@@ -391,9 +405,9 @@ namespace DOH {
 				mDebugInfoDrawCount++;
 
 				textBatch.reset();
-			}
 
-			textPipeline.recordDrawCommands(imageIndex, cmd);
+				textPipeline.recordDrawCommands(imageIndex, cmd, currentBindings);
+			}
 		}
 
 		mDrawnQuadCount = 0;

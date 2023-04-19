@@ -54,13 +54,13 @@ namespace DOH {
 		VkFence frameInFlightFence,
 		VkSemaphore imageAvailableSemaphore
 	) {
-		vkWaitForFences(logicDevice, 1, &frameInFlightFence, VK_TRUE, 100);
+		vkWaitForFences(logicDevice, 1, &frameInFlightFence, VK_TRUE, 1000000000); //1 Second timout
 
 		uint32_t imageIndex;
 		vkAcquireNextImageKHR(
 			logicDevice,
 			mSwapChain,
-			UINT64_MAX,
+			1000000000, //1 Second timout
 			imageAvailableSemaphore,
 			VK_NULL_HANDLE,
 			&imageIndex

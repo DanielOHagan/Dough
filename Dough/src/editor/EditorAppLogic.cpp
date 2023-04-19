@@ -374,6 +374,19 @@ UPS displayed is the count of frames in the last full second interval)"
 
 				ImGui::EndTable();
 
+				//Binds info
+				ImGui::NewLine();
+				ImGui::Text("Bindings Info:");
+				EditorGui::displayHelpTooltip("Does not include Editor GUI");
+				ImGui::Text("Pipeline Binds: %i", debugInfo.PipelineBinds);
+				ImGui::Text("VertexArray Binds: %i", debugInfo.VertexArrayBinds);
+				ImGui::Text("VertexBuffer Binds: %i", debugInfo.VertexBufferBinds);
+				ImGui::Text("IndexBuffer Binds: %i", debugInfo.IndexBufferBinds);
+				ImGui::Text("DescriptorSet Binds: %i", debugInfo.DescriptorSetBinds);
+
+				//Batch renderer info
+				ImGui::NewLine();
+				ImGui::Text("Batch Renderer Info:");
 				ImGui::Text("Quads Drawn: %i", renderer2d.getDrawnQuadCount());
 				ImGui::Text("Quads Truncated: %i", renderer2d.getTruncatedQuadCount());
 				ImGui::Text("Quad Batch Max Size: %i", Renderer2dStorageVulkan::BatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD);
