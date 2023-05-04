@@ -28,7 +28,14 @@ namespace DOH::EDITOR {
 
 	private:
 
-		struct ObjModelsDemo {
+		class IDemo {
+		public:
+			virtual void init() = 0;
+			virtual void close() = 0;
+		};
+
+		class ObjModelsDemo : public IDemo {
+		public:
 			struct UniformBufferObject {
 				glm::mat4x4 ProjView;
 			};
@@ -70,9 +77,42 @@ namespace DOH::EDITOR {
 			bool Render = false;
 			bool RenderAllStandard = false; //Force all models to be rendered normally (ignores individual model Render bool)
 			bool RenderAllWireframe = false; //Force all models to be rendered as wireframe (ignores individual model Wireframe bool)
+
+			bool GpuResourcesLoaded = false;
+
+			virtual void init() override;
+			virtual void close() override;
+
+			void addObject(
+				const uint32_t modelIndex = 0,
+				const float x = 0.0f,
+				const float y = 0.0f,
+				const float z = 0.0f,
+				const float posPadding = 0.5f,
+				const float yaw = 0.0f,
+				const float pitch = 0.0f,
+				const float roll = 0.0f,
+				const float scale = 1.0f
+			);
+			inline void addRandomisedObject() {
+				addObject(
+					rand() % LoadedModels.size(),
+					static_cast<float>(rand() % 5) * (rand() % 2 > 0 ? 1.0f : -1.0f),
+					static_cast<float>(rand() % 5) * (rand() % 2 > 0 ? 1.0f : -1.0f),
+					static_cast<float>(rand() % 5) * (rand() % 2 > 0 ? 1.0f : -1.0f),
+					0.5f,
+					static_cast<float>(rand() % 360),
+					static_cast<float>(rand() % 360),
+					static_cast<float>(rand() % 360),
+					1.0f
+				);
+			}
+
+			void imGuiDrawObjDemoItem(DOH::RenderableModelVulkan& model, const std::string& uniqueImGuiId);
 		};
 
-		struct CustomDemo {
+		class CustomDemo : public IDemo {
+		public:
 			struct UniformBufferObject {
 				glm::mat4 ProjView;
 			};
@@ -89,7 +129,7 @@ namespace DOH::EDITOR {
 				{{	1.00f,	1.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{1.0f,	0.0f} },
 				{{	0.00f,	1.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{0.0f,	0.0f} }
 			};
-			const std::vector<uint32_t> Indices{
+			const std::vector<uint32_t> Indices = {
 				0, 1, 2, 2, 3, 0,
 				4, 5, 6, 6, 7, 4
 			};
@@ -103,7 +143,7 @@ namespace DOH::EDITOR {
 				{{	-0.75f,	-0.65f},	{0.0f,	0.0f,	1.0f,	1.0f}},	//top-right
 				{{	-1.0f,	-0.65f},	{0.0f,	0.5f,	0.5f,	1.0f}}	//top-left
 			};
-			const std::vector<uint32_t> UiIndices{
+			const std::vector<uint32_t> UiIndices = {
 				0, 1, 2, 2, 3, 0
 			};
 
@@ -126,9 +166,13 @@ namespace DOH::EDITOR {
 			bool Update = false;
 			bool RenderScene = false;
 			bool RenderUi = false;
+
+			virtual void init() override;
+			virtual void close() override;
 		};
 
-		struct GridDemo {
+		class GridDemo : public IDemo {
+		public:
 			std::vector<std::vector<Quad>> TexturedTestGrid;
 			glm::vec4 QuadColour = { 1.0f, 1.0f, 1.0f, 1.0f };
 			bool QuadDrawColour = false;
@@ -143,11 +187,16 @@ namespace DOH::EDITOR {
 			bool Render = false;
 
 			bool IsUpToDate = false;
+
+			virtual void init() override;
+			virtual void close() override;
 		};
 
-		struct BouncingQuadDemo {
+		class BouncingQuadDemo : public IDemo {
+		public:
 			std::vector<Quad> BouncingQuads;
 			std::vector<glm::vec2> BouncingQuadVelocities;
+			glm::vec2 QuadSize = { 0.1f, 0.1f };
 			size_t MaxBouncingQuadCount = BOUNCING_QUAD_COUNT;
 			bool QuadDrawColour = false;
 		
@@ -156,17 +205,27 @@ namespace DOH::EDITOR {
 		
 			bool Update = false;
 			bool Render = false;
+		
+			virtual void init() override;
+			virtual void close() override;
+		
+			void addRandomQuads(size_t count);
+			void popQuads(size_t count);
 		};
 
-		struct TextDemo {
+		class TextDemo : public IDemo {
+		public:
 			static constexpr size_t StringLengthLimit = 1000; //Arbitrary limit
 		
-			std::unique_ptr<TextString> TextString;
+			std::unique_ptr<TextString> Text;
 			char StringBuffer[StringLengthLimit] = "This is the default text string. Use the Text Field to change me!";
 			glm::vec4 Colour = { 1.0f, 1.0f, 1.0f, 1.0f };
 		
 			bool Update = false;
 			bool Render = false;
+
+			virtual void init() override;
+			virtual void close() override;
 		};
 
 		//Resources used by more than one demo
@@ -226,39 +285,8 @@ namespace DOH::EDITOR {
 		void populateTestGrid(uint32_t width, uint32_t height);
 
 		void initDemos();
+		void closeDemos();
 		void initSharedResources();
-		//void initGridDemo(); //Doesn't currently need any form of initialisation, commented-out declaration just here in case it ever needs it
-		void initBouncingQuadsDemo();
-		void initCustomDemo();
-		void initObjModelsDemo();
-		void initTextDemo();
-		void bouncingQuadsDemoAddRandomQuads(size_t count);
-		void bouncingQaudsDemoPopQuads(size_t count);
-		void objModelsDemoAddObject(
-			const uint32_t modelIndex = 0,
-			const float x = 0.0f,
-			const float y = 0.0f,
-			const float z = 0.0f,
-			const float posPadding = 0.5f,
-			const float yaw = 0.0f,
-			const float pitch = 0.0f,
-			const float roll = 0.0f,
-			const float scale = 1.0f
-		);
-		inline void objModelsDemoAddRandomisedObject() {
-			objModelsDemoAddObject(
-				rand() % mObjModelsDemo->LoadedModels.size(),
-				static_cast<float>(rand() % 5) * (rand() % 2 > 0 ? 1.0f : -1.0f),
-				static_cast<float>(rand() % 5) * (rand() % 2 > 0 ? 1.0f : -1.0f),
-				static_cast<float>(rand() % 5) * (rand() % 2 > 0 ? 1.0f : -1.0f),
-				0.5f,
-				static_cast<float>(rand() % 360),
-				static_cast<float>(rand() % 360),
-				static_cast<float>(rand() % 360),
-				1.0f
-			);
-		}
-
-		void imGuiDrawObjDemoItem(DOH::RenderableModelVulkan& model, const std::string& uniqueImGuiId);
+		void closeSharedResources();
 	};
 }

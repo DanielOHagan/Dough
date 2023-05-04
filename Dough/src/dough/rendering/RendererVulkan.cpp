@@ -93,12 +93,6 @@ namespace DOH {
 		vkDestroyInstance(mInstance, nullptr);
 	}
 
-	void RendererVulkan::closeGpuResource(std::shared_ptr<IGPUResourceVulkan> res) {
-		if (res != nullptr) {
-			mRenderingContext->addGpuResourceToCloseAfterUse(res);
-		}
-	}
-
 	void RendererVulkan::onResize(int width, int height) {
 		SwapChainSupportDetails scSupport = SwapChainVulkan::querySwapChainSupport(mPhysicalDevice, mSurface);
 		mRenderingContext->onResize(scSupport, mSurface, width, height);

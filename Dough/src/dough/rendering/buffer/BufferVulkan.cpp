@@ -163,7 +163,7 @@ namespace DOH {
 	}
 
 	void BufferVulkan::setDataUnmapped(VkDevice logicDevice, const void* data, size_t size) {
-		//mSize = size;
+		mSize = size;
 		mData = map(logicDevice, size);
 		memcpy(mData, data, size);
 		unmap(logicDevice);
@@ -241,7 +241,7 @@ namespace DOH {
 	}
 
 	void BufferVulkan::copyBuffer(BufferVulkan& source, BufferVulkan& destination, VkCommandBuffer cmd) {
-		VkBufferCopy copy{};
+		VkBufferCopy copy = {};
 		copy.size = source.getSize();
 		vkCmdCopyBuffer(cmd, source.getBuffer(), destination.getBuffer(), 1, &copy);
 	}

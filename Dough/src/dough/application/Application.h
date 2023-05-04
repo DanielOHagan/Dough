@@ -109,7 +109,7 @@ namespace DOH {
 		inline bool isIconified() const { return mIconified; }
 
 		static int start(std::shared_ptr<IApplicationLogic> appLogic, ApplicationInitSettings initSettings);
-		static bool isInstantiated() { return INSTANCE != nullptr; };
+		static bool isInstantiated() { return INSTANCE != nullptr; }
 
 	private:
 		Application();

@@ -17,7 +17,7 @@ namespace DOH::EDITOR {
 		mInnerAppState(EInnerAppState::STOPPED),
 		mEditorGuiFocused(false)
 	{
-		if (mInnerAppLogic == nullptr){
+		if (mInnerAppLogic == nullptr) {
 			THROW("EditorAppLogic: Inner app was nullptr");
 		}
 	}
@@ -199,16 +199,19 @@ FPS displayed is the count of frames in the last full second interval)"
 Min: The higher of the following: Target FPS or Engine min of 15
 UPS displayed is the count of frames in the last full second interval)"
 				);
-				int tempTargetFps = static_cast<int>(loop.getTargetFps());
-				if (ImGui::InputInt("Target FPS", &tempTargetFps)) {
-					if (loop.isValidTargetFps(static_cast<float>(tempTargetFps))) {
-						loop.setTargetFps(static_cast<float>(tempTargetFps));
+
+				{
+					int tempTargetFps = static_cast<int>(loop.getTargetFps());
+					if (ImGui::InputInt("Target FPS", &tempTargetFps)) {
+						if (loop.isValidTargetFps(static_cast<float>(tempTargetFps))) {
+							loop.setTargetFps(static_cast<float>(tempTargetFps));
+						}
 					}
-				}
-				int tempTargetUps = static_cast<int>(loop.getTargetUps());
-				if (ImGui::InputInt("Target UPS", &tempTargetUps)) {
-					if (loop.isValidTargetUps(static_cast<float>(tempTargetUps))) {
-						loop.setTargetUps(static_cast<float>(tempTargetUps));
+					int tempTargetUps = static_cast<int>(loop.getTargetUps());
+					if (ImGui::InputInt("Target UPS", &tempTargetUps)) {
+						if (loop.isValidTargetUps(static_cast<float>(tempTargetUps))) {
+							loop.setTargetUps(static_cast<float>(tempTargetUps));
+						}
 					}
 				}
 

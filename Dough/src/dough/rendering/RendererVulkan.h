@@ -52,7 +52,7 @@ namespace DOH {
 
 		void init(Window& window);
 		void close();
-		void closeGpuResource(std::shared_ptr<IGPUResourceVulkan> res);
+		inline void closeGpuResource(std::shared_ptr<IGPUResourceVulkan> res) { if (res != nullptr) mRenderingContext->addGpuResourceToClose(res); }
 
 		bool isReady() const;
 		inline bool isClosed() const { return mInstance == VK_NULL_HANDLE; }

@@ -52,8 +52,8 @@ namespace DOH::EDITOR {
 		// UI has control over the transform data. And recalculating x number of object's transformation is a lot of wasted
 		// work.
 		// 
-		//if (mObjModelsDemo.Update) {
-		//	for (const auto& obj : mObjModelsDemo.mRenderableObjects) {
+		//if (mObjModelsDemo->Update) {
+		//	for (const auto& obj : mObjModelsDemo->mRenderableObjects) {
 		//		obj->Transformation->updateTranslationMatrix();
 		//	}
 		//}
@@ -75,13 +75,16 @@ namespace DOH::EDITOR {
 			mSharedDemoResources->TexturedConveyor.safeAddRenderable(mCustomDemo->SceneRenderable);
 		}
 
-		if (mObjModelsDemo->Render) {
+		if (mObjModelsDemo->GpuResourcesLoaded && mObjModelsDemo->Render) {
 			if (mObjModelsDemo->ScenePipelineConveyor.isValid() && mObjModelsDemo->WireframePipelineConveyor.isValid()) {
+				const bool renderAllStandard = mObjModelsDemo->RenderAllStandard;
+				const bool renderAllWireframe = mObjModelsDemo->RenderAllWireframe;
+
 				for (auto& obj : mObjModelsDemo->RenderableObjects) {
-					if (obj->Render || mObjModelsDemo->RenderAllStandard) {
+					if (renderAllStandard || obj->Render) {
 						mObjModelsDemo->ScenePipelineConveyor.addRenderable(obj);
 					}
-					if (obj->RenderWireframe || mObjModelsDemo->RenderAllWireframe) {
+					if (renderAllWireframe || obj->RenderWireframe) {
 						mObjModelsDemo->WireframePipelineConveyor.addRenderable(obj);
 					}
 				}
@@ -113,7 +116,7 @@ namespace DOH::EDITOR {
 		}
 
 		if (mTextDemo->Render) {
-			renderer2d.drawTextString(*mTextDemo->TextString);
+			renderer2d.drawTextString(*mTextDemo->Text);
 		}
 
 		renderer.endScene();
@@ -214,7 +217,7 @@ namespace DOH::EDITOR {
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Add Quads")) {
-					bouncingQuadsDemoAddRandomQuads(demo->AddNewQuadCount);
+					mBouncingQuadDemo->addRandomQuads(demo->AddNewQuadCount);
 				}
 				if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop").c_str(), &demo->PopQuadCount, 5, 5)) {
 					if (demo->PopQuadCount < 0) {
@@ -223,10 +226,10 @@ namespace DOH::EDITOR {
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Pop Quads")) {
-					bouncingQaudsDemoPopQuads(demo->PopQuadCount);
+					mBouncingQuadDemo->popQuads(demo->PopQuadCount);
 				}
 				if (ImGui::Button("Clear Quads")) {
-					bouncingQaudsDemoPopQuads(static_cast<int>(demo->BouncingQuads.size()));
+					mBouncingQuadDemo->BouncingQuads.clear();
 				}
 
 				ImGui::EndTabItem();
@@ -244,6 +247,14 @@ namespace DOH::EDITOR {
 				static const std::string addLabel = std::string(ImGuiWrapper::EMPTY_LABEL) + "Add";
 				static const std::string popLabel = std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop";
 
+				//TEMP:: Unload demo GPU resources (except pipeline) for unload demonstration
+				if (ImGui::Button("Unload") && mObjModelsDemo->GpuResourcesLoaded) {
+					mObjModelsDemo->close();
+					mObjModelsDemo->GpuResourcesLoaded = false;
+				}
+				EditorGui::displayHelpTooltip("TEMP:: Currently only unloading certain GPU resources during runtime is supported, this is ONLY a demonstration and once unloaded this demo can only be loaded again by restarting.");
+				ImGui::TextColored(mObjModelsDemo->GpuResourcesLoaded ? ImVec4(0, 1, 0, 1) : ImVec4(1, 0, 0, 1), mObjModelsDemo->GpuResourcesLoaded ? "LOADED" : "NOT LOADED");
+
 				ImGui::Checkbox("Render", &demo->Render);
 				ImGui::Checkbox("Update", &demo->Update);
 				ImGui::Text("Object Count: %i", renderables.size());
@@ -257,7 +268,7 @@ namespace DOH::EDITOR {
 				ImGui::SameLine();
 				if (ImGui::Button("Add Object")) {
 					for (int i = 0; i < demo->AddNewObjectsCount; i++) {
-						objModelsDemoAddRandomisedObject();
+						mObjModelsDemo->addRandomisedObject();
 					}
 				}
 				if (ImGui::InputInt(popLabel.c_str(), &demo->PopObjectsCount, 5, 5)) {
@@ -297,16 +308,16 @@ namespace DOH::EDITOR {
 				);
 
 				if (ImGui::InputTextMultiline("Display Text", mTextDemo->StringBuffer, sizeof(mTextDemo->StringBuffer))) {
-					mTextDemo->TextString->setString(mTextDemo->StringBuffer);
+					mTextDemo->Text->setString(mTextDemo->StringBuffer);
 				}
 
-				float tempScale = mTextDemo->TextString->getScale();
+				float tempScale = mTextDemo->Text->getScale();
 				if (ImGui::DragFloat("Text Scale", &tempScale, 0.05f, 0.05f, 5.0f)) {
-					mTextDemo->TextString->setScale(tempScale);
+					mTextDemo->Text->setScale(tempScale);
 				}
 
 				if (ImGui::ColorEdit4("String Colour", &mTextDemo->Colour.x)) {
-					mTextDemo->TextString->setColour(mTextDemo->Colour);
+					mTextDemo->Text->setColour(mTextDemo->Colour);
 				}
 
 				ImGui::EndTabItem();
@@ -364,7 +375,7 @@ namespace DOH::EDITOR {
 						if (ImGui::TreeNode(std::to_string(objIndex).c_str())) {
 							for (int i = objIndex; i < nodeIterator + objectsPerNode && i < size; i++) {
 								std::string uniqueImGuiId = "##" + std::to_string(i);
-								imGuiDrawObjDemoItem(*renderables[i], uniqueImGuiId);
+								mObjModelsDemo->imGuiDrawObjDemoItem(*renderables[i], uniqueImGuiId);
 
 								//Separate individual OBJ model's UI for easier viewing by displaying an empty
 								// line in-between each one in the same node
@@ -392,45 +403,271 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::close() {
-		RendererVulkan& renderer = GET_RENDERER;
-
-		//Custom demo
-		renderer.closeGpuResource(mCustomDemo->SceneVao);
-		renderer.closeGpuResource(mCustomDemo->UiShaderProgram);
-		renderer.closeGpuResource(mCustomDemo->UiVao);
-
-		//Obj Models Demo
-		for (const auto& model : mObjModelsDemo->LoadedModels) {
-			renderer.closeGpuResource(model);
-		}
-		renderer.closeGpuResource(mObjModelsDemo->TexturedModel);
-		mObjModelsDemo->LoadedModels.clear();
-		mObjModelsDemo->RenderableObjects.clear();
-		renderer.closeGpuResource(mObjModelsDemo->SceneShaderProgram);
-
-		//Shared resources
-		renderer.closeGpuResource(mSharedDemoResources->TexturedShaderProgram);
-		renderer.closeGpuResource(mSharedDemoResources->TestTexture1);
-		renderer.closeGpuResource(mSharedDemoResources->TestTexture2);
+		closeDemos();
 	}
 
 	void DemoLiciousAppLogic::onResize(float aspectRatio) {
 		setUiProjection(aspectRatio);
 	}
 
-	void DemoLiciousAppLogic::imGuiDrawObjDemoItem(DOH::RenderableModelVulkan& model, const std::string& uniqueImGuiId) {
+	void DemoLiciousAppLogic::initDemos() {
+		RenderingContextVulkan& context = GET_RENDERER.getContext();
+	
+		//Test grid is repopulated per update to apply changes from editor. To only populate once remove re-population from update and populate here.
+		//populateTestGrid(static_cast<uint32_t>(mGridDemo.TestGridSize[0]), static_cast<uint32_t>(mGridDemo.TestGridSize[1]));
+
+		initSharedResources();
+
+		mGridDemo = std::make_unique<GridDemo>();
+		mGridDemo->init();
+
+		mBouncingQuadDemo = std::make_unique<BouncingQuadDemo>();
+		mBouncingQuadDemo->init();
+
+		if (mSharedDemoResources != nullptr) {
+			mCustomDemo = std::make_unique<CustomDemo>();
+			mCustomDemo->init();
+			
+			mObjModelsDemo = std::make_unique<ObjModelsDemo>();
+			mObjModelsDemo->init();
+		}
+		
+		mTextDemo = std::make_unique<TextDemo>();
+		mTextDemo->init();
+
+		context.createPipelineUniformObjects();
+	}
+
+	void DemoLiciousAppLogic::closeDemos() {
+		mObjModelsDemo->close();
+		mObjModelsDemo.release();
+
+		mCustomDemo->close();
+		mCustomDemo.release();
+
+		mTextDemo->close();
+		mTextDemo.release();
+
+		mGridDemo->close();
+		mGridDemo.release();
+
+		closeSharedResources();
+	}
+	
+	void DemoLiciousAppLogic::populateTestGrid(uint32_t width, uint32_t height) {
+		const auto& storage = GET_RENDERER.getContext().getRenderer2d().getStorage();
+		const auto& atlas = storage.getTestTextureAtlas();
+	
+		mGridDemo->TexturedTestGrid.clear();
+		mGridDemo->TexturedTestGrid.resize(storage.getQuadBatchTextureArray().getTextureSlots().size());
+		const uint32_t textureSlot = storage.getQuadBatchTextureArray().getTextureSlotIndex(atlas->getId());
+	
+		uint32_t index = 0;
+		for (uint32_t y = 0; y < height; y++) {
+			for (uint32_t x = 0; x < width; x++) {
+	
+				//Push back a Quad with both a texture and a custom colour,
+				// in this case whether it is drawn with a texture or with a colour
+				// is determined by mGridDemo.QuadDrawColour
+	
+				mGridDemo->TexturedTestGrid[textureSlot].push_back({
+					{
+						static_cast<float>(x) * mGridDemo->TestGridQuadGapSize[0],
+						static_cast<float>(y) * mGridDemo->TestGridQuadGapSize[1],
+						0.5f
+					},
+					{ mGridDemo->TestGridQuadSize[0], mGridDemo->TestGridQuadSize[1] },
+					{ mGridDemo->QuadColour.x, mGridDemo->QuadColour.y, mGridDemo->QuadColour.z, mGridDemo->QuadColour.w },
+					0.0f,
+					atlas,
+					atlas->getInnerTextureCoords(
+						x + mGridDemo->TestTexturesRowOffset,
+						y + mGridDemo->TestTexturesColumnOffset
+					)
+				});
+				index++;
+			}
+		}
+	
+		mGridDemo->IsUpToDate = true;
+	}
+
+	void DemoLiciousAppLogic::initSharedResources() {
+		mSharedDemoResources = std::make_unique<SharedDemoResources>();
+
+		mSharedDemoResources->TestTexture1 = ObjInit::texture(mSharedDemoResources->TestTexturePath);
+		mSharedDemoResources->TestTexture2 = ObjInit::texture(mSharedDemoResources->TestTexture2Path);
+
+		mSharedDemoResources->TexturedShaderProgram = ObjInit::shaderProgram(
+			ObjInit::shader(EShaderType::VERTEX, SharedDemoResources::TexturedShaderVertPath),
+			ObjInit::shader(EShaderType::FRAGMENT, SharedDemoResources::TexturedShaderFragPath)
+		);
+
+		ShaderUniformLayout& customLayout = mSharedDemoResources->TexturedShaderProgram->getUniformLayout();
+		customLayout.setValue(0, sizeof(CustomDemo::UniformBufferObject));
+		customLayout.setTexture(1, *mSharedDemoResources->TestTexture1);
+
+		mSharedDemoResources->TexturedPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
+			SharedDemoResources::TexturedVertexType,
+			*mSharedDemoResources->TexturedShaderProgram,
+			ERenderPass::APP_SCENE
+		);
+		mSharedDemoResources->TexturedPipelineInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS);
+
+		RenderingContextVulkan& context = Application::get().getRenderer().getContext();
+		mSharedDemoResources->TexturedConveyor = context.createPipeline(
+			mSharedDemoResources->TexturedPipelineName,
+			*mSharedDemoResources->TexturedPipelineInfo
+		);
+	}
+
+	void DemoLiciousAppLogic::closeSharedResources() {
+		if (mCustomDemo != nullptr || mObjModelsDemo != nullptr) {
+			LOG_WARN("All demos using shared resources must be closed before closing shared resources");
+		} else {
+			RendererVulkan& renderer = GET_RENDERER;
+			renderer.closeGpuResource(mSharedDemoResources->TexturedShaderProgram);
+			renderer.closeGpuResource(mSharedDemoResources->TestTexture1);
+			renderer.closeGpuResource(mSharedDemoResources->TestTexture2);
+		}
+	}
+
+	void DemoLiciousAppLogic::ObjModelsDemo::init() {
+		ColouredVertexInputLayout = std::make_shared<StaticVertexInputLayout>(EVertexType::VERTEX_3D);
+		TexturedVertexInputLayout = std::make_shared<StaticVertexInputLayout>(EVertexType::VERTEX_3D_TEXTURED);
+
+		for (const auto& filePath : ObjModelFilePaths) {
+			LoadedModels.emplace_back(ModelVulkan::createModel(filePath, *ColouredVertexInputLayout));
+		}
+	
+		//Spwan objects on incrementing x/y values of a grid with random z value
+		const float padding = 0.5f;
+		for (uint32_t x = 0; x < 10; x++) {
+			for (uint32_t y = 0; y < 10; y++) {
+				//Add an object with a position based off of x & y value from loop, creates a grid like result
+				const uint32_t modelIndex = rand() % LoadedModels.size();
+				std::shared_ptr<TransformationData> transform = std::make_shared<TransformationData>(
+					glm::vec3(
+					(static_cast<float>(x) + padding) * 3.0f,
+					(static_cast<float>(y) + padding) * 3.0f,
+					static_cast<float>(rand() % 10)
+				),
+					glm::vec3(
+					static_cast<float>(rand() % 360),
+					static_cast<float>(rand() % 360),
+					static_cast<float>(rand() % 360)
+				),
+					1.0f
+				);
+				transform->updateTranslationMatrix();
+				
+				RenderableObjects.emplace_back(std::make_shared<RenderableModelVulkan>(
+					ObjModelFilePaths[modelIndex],
+					LoadedModels[modelIndex],
+					transform
+				));
+			}
+		}
+
+		//for (uint32_t i = 0; i < 100; i++) {
+		//	objModelsDemoAddRandomisedObject();
+		//}
+	
+		SceneShaderProgram = ObjInit::shaderProgram(
+			ObjInit::shader(
+				EShaderType::VERTEX,
+				FlatColourShaderVertPath
+			),
+			ObjInit::shader(
+				EShaderType::FRAGMENT,
+				FlatColourShaderFragPath
+			)
+		);
+		ShaderUniformLayout& cubeLayout = SceneShaderProgram->getUniformLayout();
+		cubeLayout.setValue(0, sizeof(ObjModelsDemo::UniformBufferObject));
+		//Push constant for transformation matrix
+		cubeLayout.addPushConstant(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::mat4x4));
+	
+		ScenePipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
+			ColouredVertexInputLayout,
+			*SceneShaderProgram,
+			ERenderPass::APP_SCENE
+		);
+		ScenePipelineInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS);
+
+		//TODO:: wireframe for each vertex type
+		SceneWireframePipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
+			ColouredVertexInputLayout,
+			*SceneShaderProgram,
+			ERenderPass::APP_SCENE
+		);
+		SceneWireframePipelineInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS);
+		SceneWireframePipelineInfo->getOptionalFields().CullMode = VK_CULL_MODE_NONE;
+		SceneWireframePipelineInfo->getOptionalFields().PolygonMode = VK_POLYGON_MODE_LINE;
+	
+		auto& context = Application::get().getRenderer().getContext();
+		ScenePipelineConveyor = context.createPipeline(ScenePipelineName, *ScenePipelineInfo);
+		WireframePipelineConveyor = context.createPipeline(
+			SceneWireframePipelineName,
+			*SceneWireframePipelineInfo
+		);
+
+		TexturedModel = ModelVulkan::createModel("Dough/res/models/textured_cube.obj", *TexturedVertexInputLayout);
+		RenderableTexturedModel = std::make_shared<RenderableModelVulkan>("TexturedObjModel", TexturedModel);
+
+		GpuResourcesLoaded = true;
+	}
+
+	void DemoLiciousAppLogic::ObjModelsDemo::close() {
+		RendererVulkan& renderer = GET_RENDERER;
+		for (const auto& model : LoadedModels) {
+			renderer.closeGpuResource(model);
+		}
+
+		renderer.closeGpuResource(TexturedModel);
+		LoadedModels.clear();
+		RenderableObjects.clear();
+		renderer.closeGpuResource(SceneShaderProgram);
+	}
+
+	void DemoLiciousAppLogic::ObjModelsDemo::addObject(
+		const uint32_t modelIndex,
+		const float x,
+		const float y,
+		const float z,
+		const float posPadding,
+		const float yaw,
+		const float pitch,
+		const float roll,
+		const float scale
+	) {
+		std::shared_ptr<TransformationData> transform = std::make_shared<TransformationData>(
+			glm::vec3((x + posPadding) * 3.0f, (y + posPadding) * 3.0f, (z + posPadding) * 3.0f),
+			glm::vec3(yaw, pitch, roll),
+			scale
+		);
+		transform->updateTranslationMatrix();
+	
+		RenderableObjects.emplace_back(std::make_shared<RenderableModelVulkan>(
+			ObjModelFilePaths[modelIndex],
+			LoadedModels[modelIndex],
+			transform
+		));
+	}
+
+	void DemoLiciousAppLogic::ObjModelsDemo::imGuiDrawObjDemoItem(DOH::RenderableModelVulkan& model, const std::string& uniqueImGuiId) {
 		if (ImGui::BeginCombo(("Obj Model" + uniqueImGuiId).c_str(), model.getName().c_str())) {
 			int modelFilePathIndex = -1;
 
-			for (const auto& filePath : mObjModelsDemo->ObjModelFilePaths) {
+			for (const auto& filePath : ObjModelFilePaths) {
 				bool selected = false;
 				modelFilePathIndex++;
 
 				std::string label = filePath + uniqueImGuiId;
 
 				if (ImGui::Selectable(label.c_str(), &selected)) {
-					model.Model = mObjModelsDemo->LoadedModels[modelFilePathIndex];
-					model.Name = mObjModelsDemo->ObjModelFilePaths[modelFilePathIndex];
+					model.Model = LoadedModels[modelFilePathIndex];
+					model.Name = ObjModelFilePaths[modelFilePathIndex];
 					break;
 				}
 			}
@@ -502,292 +739,118 @@ namespace DOH::EDITOR {
 			transformed = true;
 		}
 
-		if (transformed && mObjModelsDemo->Update) {
+		if (transformed && Update) {
 			transformation.updateTranslationMatrix();
 		}
 	}
 
-	void DemoLiciousAppLogic::initDemos() {
-		RenderingContextVulkan& context = GET_RENDERER.getContext();
-	
-		//Test grid is repopulated per update to apply changes from editor. To only populate once remove re-population from update and populate here.
-		//populateTestGrid(static_cast<uint32_t>(mGridDemo.TestGridSize[0]), static_cast<uint32_t>(mGridDemo.TestGridSize[1]));
-
-		initSharedResources();
-
-		mGridDemo = std::make_unique<GridDemo>();
-		mGridDemo->TestGridMaxQuadCount = Renderer2dStorageVulkan::MAX_BATCH_COUNT_QUAD * Renderer2dStorageVulkan::BATCH_MAX_GEO_COUNT_QUAD;
-
-		initBouncingQuadsDemo();
-		initCustomDemo();
-		initObjModelsDemo();
-		initTextDemo();
-
-		context.createPipelineUniformObjects();
-	}
-	
-	void DemoLiciousAppLogic::populateTestGrid(uint32_t width, uint32_t height) {
-		const auto& storage = GET_RENDERER.getContext().getRenderer2d().getStorage();
-		const auto& atlas = storage.getTestTextureAtlas();
-	
-		mGridDemo->TexturedTestGrid.clear();
-		mGridDemo->TexturedTestGrid.resize(storage.getQuadBatchTextureArray().getTextureSlots().size());
-		const uint32_t textureSlot = storage.getQuadBatchTextureArray().getTextureSlotIndex(atlas->getId());
-	
-		uint32_t index = 0;
-		for (uint32_t y = 0; y < height; y++) {
-			for (uint32_t x = 0; x < width; x++) {
-	
-				//Push back a Quad with both a texture and a custom colour,
-				// in this case whether it is drawn with a texture or with a colour
-				// is determined by mGridDemo.QuadDrawColour
-	
-				mGridDemo->TexturedTestGrid[textureSlot].push_back({
-					{
-						static_cast<float>(x) * mGridDemo->TestGridQuadGapSize[0],
-						static_cast<float>(y) * mGridDemo->TestGridQuadGapSize[1],
-						0.5f
-					},
-					{ mGridDemo->TestGridQuadSize[0], mGridDemo->TestGridQuadSize[1] },
-					{ mGridDemo->QuadColour.x, mGridDemo->QuadColour.y, mGridDemo->QuadColour.z, mGridDemo->QuadColour.w },
-					0.0f,
-					atlas,
-					atlas->getInnerTextureCoords(
-						x + mGridDemo->TestTexturesRowOffset,
-						y + mGridDemo->TestTexturesColumnOffset
-					)
-				});
-				index++;
-			}
-		}
-	
-		mGridDemo->IsUpToDate = true;
-	}
-
-	void DemoLiciousAppLogic::initSharedResources() {
-		mSharedDemoResources = std::make_unique<SharedDemoResources>();
-
-		mSharedDemoResources->TestTexture1 = ObjInit::texture(mSharedDemoResources->TestTexturePath);
-		mSharedDemoResources->TestTexture2 = ObjInit::texture(mSharedDemoResources->TestTexture2Path);
-
-		mSharedDemoResources->TexturedShaderProgram = ObjInit::shaderProgram(
-			ObjInit::shader(EShaderType::VERTEX, SharedDemoResources::TexturedShaderVertPath),
-			ObjInit::shader(EShaderType::FRAGMENT, SharedDemoResources::TexturedShaderFragPath)
-		);
-
-		ShaderUniformLayout& customLayout = mSharedDemoResources->TexturedShaderProgram->getUniformLayout();
-		customLayout.setValue(0, sizeof(CustomDemo::UniformBufferObject));
-		customLayout.setTexture(1, *mSharedDemoResources->TestTexture1);
-
-		mSharedDemoResources->TexturedPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-			SharedDemoResources::TexturedVertexType,
-			*mSharedDemoResources->TexturedShaderProgram,
-			ERenderPass::APP_SCENE
-		);
-		mSharedDemoResources->TexturedPipelineInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS);
-
-		RenderingContextVulkan& context = Application::get().getRenderer().getContext();
-		mSharedDemoResources->TexturedConveyor = context.createPipeline(
-			mSharedDemoResources->TexturedPipelineName,
-			*mSharedDemoResources->TexturedPipelineInfo
-		);
-	}
-	
-	void DemoLiciousAppLogic::initBouncingQuadsDemo() {
-		mBouncingQuadDemo = std::make_unique<BouncingQuadDemo>();
-
-		bouncingQuadsDemoAddRandomQuads(5000);
-	}
-	
-	void DemoLiciousAppLogic::initCustomDemo() {
-		mCustomDemo = std::make_unique<CustomDemo>();
-
-		mCustomDemo->SceneVertexInputLayout = std::make_shared<StaticVertexInputLayout>(SharedDemoResources::TexturedVertexType);
-		mCustomDemo->UiVertexInputLayout = std::make_shared<StaticVertexInputLayout>(EVertexType::VERTEX_2D);
+	void DemoLiciousAppLogic::CustomDemo::init() {
+		SceneVertexInputLayout = std::make_shared<StaticVertexInputLayout>(SharedDemoResources::TexturedVertexType);
+		UiVertexInputLayout = std::make_shared<StaticVertexInputLayout>(EVertexType::VERTEX_2D);
 
 		//for (int i = 0; i < 8; i++) {
 		//	std::string path = testTexturesPath + "texture" + std::to_string(i) + ".png";
 		//	std::shared_ptr<TextureVulkan> testTexture = ObjInit::texture(path);
 		//	mTestTextures.push_back(testTexture);
 		//}
-	
-		mCustomDemo->SceneVao = ObjInit::vertexArray();
+
+		SceneVao = ObjInit::vertexArray();
 		std::shared_ptr<VertexBufferVulkan> sceneVb = ObjInit::stagedVertexBuffer(
-			*mCustomDemo->SceneVertexInputLayout,
-			mCustomDemo->SceneVertices.data(),
-			static_cast<size_t>(mCustomDemo->SceneVertexInputLayout->getStride()) * mCustomDemo->SceneVertices.size(),
+			*SceneVertexInputLayout,
+			SceneVertices.data(),
+			static_cast<size_t>(SceneVertexInputLayout->getStride()) * SceneVertices.size(),
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
-		mCustomDemo->SceneVao->addVertexBuffer(sceneVb);
+		SceneVao->addVertexBuffer(sceneVb);
 		std::shared_ptr<IndexBufferVulkan> sceneIb = ObjInit::stagedIndexBuffer(
-			mCustomDemo->Indices.data(),
-			sizeof(uint32_t) * mCustomDemo->Indices.size()
+			Indices.data(),
+			sizeof(uint32_t) * Indices.size()
 		);
-		mCustomDemo->SceneVao->setDrawCount(static_cast<uint32_t>(mCustomDemo->Indices.size()));
-		mCustomDemo->SceneVao->setIndexBuffer(sceneIb);
-		mCustomDemo->SceneRenderable = std::make_shared<SimpleRenderable>(mCustomDemo->SceneVao);
+		SceneVao->setDrawCount(static_cast<uint32_t>(Indices.size()));
+		SceneVao->setIndexBuffer(sceneIb);
+		SceneRenderable = std::make_shared<SimpleRenderable>(SceneVao);
 	
-		mCustomDemo->UiShaderProgram = ObjInit::shaderProgram(
-			ObjInit::shader(EShaderType::VERTEX, mCustomDemo->UiShaderVertPath),
-			ObjInit::shader(EShaderType::FRAGMENT, mCustomDemo->UiShaderFragPath)
+		UiShaderProgram = ObjInit::shaderProgram(
+			ObjInit::shader(EShaderType::VERTEX, UiShaderVertPath),
+			ObjInit::shader(EShaderType::FRAGMENT, UiShaderFragPath)
 		);
-		mCustomDemo->UiShaderProgram->getUniformLayout().setValue(0, sizeof(CustomDemo::UniformBufferObject));
+		UiShaderProgram->getUniformLayout().setValue(0, sizeof(CustomDemo::UniformBufferObject));
 	
-		mCustomDemo->UiVao = ObjInit::vertexArray();
+		UiVao = ObjInit::vertexArray();
 		std::shared_ptr<VertexBufferVulkan> appUiVb = ObjInit::stagedVertexBuffer(
-			*mCustomDemo->UiVertexInputLayout,
-			mCustomDemo->UiVertices.data(),
-			static_cast<size_t>(mCustomDemo->UiVertexInputLayout->getStride()) * mCustomDemo->UiVertices.size(),
+			*UiVertexInputLayout,
+			UiVertices.data(),
+			static_cast<size_t>(UiVertexInputLayout->getStride()) * UiVertices.size(),
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
-		mCustomDemo->UiVao->addVertexBuffer(appUiVb);
+		UiVao->addVertexBuffer(appUiVb);
 		std::shared_ptr<IndexBufferVulkan> appUiIb = ObjInit::stagedIndexBuffer(
-			mCustomDemo->UiIndices.data(),
-			sizeof(mCustomDemo->UiIndices[0]) * mCustomDemo->UiIndices.size()
+			UiIndices.data(),
+			sizeof(UiIndices[0]) * UiIndices.size()
 		);
-		mCustomDemo->UiVao->setDrawCount(static_cast<uint32_t>(mCustomDemo->UiIndices.size()));
-		mCustomDemo->UiVao->setIndexBuffer(appUiIb);
-		mCustomDemo->UiRenderable = std::make_shared<SimpleRenderable>(mCustomDemo->UiVao);
+		UiVao->setDrawCount(static_cast<uint32_t>(UiIndices.size()));
+		UiVao->setIndexBuffer(appUiIb);
+		UiRenderable = std::make_shared<SimpleRenderable>(UiVao);
 	
-		mCustomDemo->UiPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-			mCustomDemo->UiVertexInputLayout,
-			*mCustomDemo->UiShaderProgram,
+		UiPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
+			UiVertexInputLayout,
+			*UiShaderProgram,
 			ERenderPass::APP_UI
 		);
 	
 		RenderingContextVulkan& context = Application::get().getRenderer().getContext();
-		mCustomDemo->CustomUiConveyor = context.createPipeline(
-			mCustomDemo->UiPipelineName,
-			*mCustomDemo->UiPipelineInfo
-		);
+		CustomUiConveyor = context.createPipeline(UiPipelineName, *UiPipelineInfo);
 	}
-	
-	void DemoLiciousAppLogic::initObjModelsDemo() {
-		mObjModelsDemo = std::make_unique<ObjModelsDemo>();
 
-		mObjModelsDemo->ColouredVertexInputLayout = std::make_shared<StaticVertexInputLayout>(EVertexType::VERTEX_3D);
-		mObjModelsDemo->TexturedVertexInputLayout = std::make_shared<StaticVertexInputLayout>(EVertexType::VERTEX_3D_TEXTURED);
+	void DemoLiciousAppLogic::CustomDemo::close() {
+		RenderScene = false;
+		RenderUi = false;
+		Update = false;
 
-		for (const auto& filePath : mObjModelsDemo->ObjModelFilePaths) {
-			mObjModelsDemo->LoadedModels.emplace_back(ModelVulkan::createModel(filePath, *mObjModelsDemo->ColouredVertexInputLayout));
-		}
-	
-		//Spwan objects on incrementing x/y values of a grid with random z value
-		const float padding = 0.5f;
-		for (uint32_t x = 0; x < 10; x++) {
-			for (uint32_t y = 0; y < 10; y++) {
-				//Add an object with a position based off of x & y value from loop, creates a grid like result
-				const uint32_t modelIndex = rand() % mObjModelsDemo->LoadedModels.size();
-				std::shared_ptr<TransformationData> transform = std::make_shared<TransformationData>(
-					glm::vec3(
-						(static_cast<float>(x) + padding) * 3.0f,
-						(static_cast<float>(y) + padding) * 3.0f,
-						static_cast<float>(rand() % 10)
-					),
-					glm::vec3(
-						static_cast<float>(rand() % 360),
-						static_cast<float>(rand() % 360),
-						static_cast<float>(rand() % 360)
-					),
-					1.0f
-				);
-				transform->updateTranslationMatrix();
-				
-				mObjModelsDemo->RenderableObjects.emplace_back(std::make_shared<RenderableModelVulkan>(
-					mObjModelsDemo->ObjModelFilePaths[modelIndex],
-					mObjModelsDemo->LoadedModels[modelIndex],
-					transform
-				));
-			}
-		}
+		RendererVulkan& renderer = GET_RENDERER;
 
-		//for (uint32_t i = 0; i < 100; i++) {
-		//	objModelsDemoAddRandomisedObject();
-		//}
-	
-		mObjModelsDemo->SceneShaderProgram = ObjInit::shaderProgram(
-			ObjInit::shader(
-				EShaderType::VERTEX,
-				mObjModelsDemo->FlatColourShaderVertPath
-			),
-			ObjInit::shader(
-				EShaderType::FRAGMENT,
-				mObjModelsDemo->FlatColourShaderFragPath
-			)
-		);
-		ShaderUniformLayout& cubeLayout = mObjModelsDemo->SceneShaderProgram->getUniformLayout();
-		cubeLayout.setValue(0, sizeof(ObjModelsDemo::UniformBufferObject));
-		//Push constant for transformation matrix
-		cubeLayout.addPushConstant(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::mat4x4));
-	
-		mObjModelsDemo->ScenePipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-			mObjModelsDemo->ColouredVertexInputLayout,
-			*mObjModelsDemo->SceneShaderProgram,
-			ERenderPass::APP_SCENE
-		);
-		mObjModelsDemo->ScenePipelineInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS);
-
-		//TODO:: wireframe for each vertex type
-		mObjModelsDemo->SceneWireframePipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-			mObjModelsDemo->ColouredVertexInputLayout,
-			*mObjModelsDemo->SceneShaderProgram,
-			ERenderPass::APP_SCENE
-		);
-		mObjModelsDemo->SceneWireframePipelineInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS);
-		mObjModelsDemo->SceneWireframePipelineInfo->getOptionalFields().CullMode = VK_CULL_MODE_NONE;
-		mObjModelsDemo->SceneWireframePipelineInfo->getOptionalFields().PolygonMode = VK_POLYGON_MODE_LINE;
-	
-		auto& context = Application::get().getRenderer().getContext();
-		mObjModelsDemo->ScenePipelineConveyor = context.createPipeline(
-			mObjModelsDemo->ScenePipelineName,
-			*mObjModelsDemo->ScenePipelineInfo
-		);
-		mObjModelsDemo->WireframePipelineConveyor = context.createPipeline(
-			mObjModelsDemo->SceneWireframePipelineName,
-			*mObjModelsDemo->SceneWireframePipelineInfo
-		);
-
-		mObjModelsDemo->TexturedModel = ModelVulkan::createModel("Dough/res/models/textured_cube.obj", *mObjModelsDemo->TexturedVertexInputLayout);
-		mObjModelsDemo->RenderableTexturedModel = std::make_shared<RenderableModelVulkan>(
-			"TexturedObjModel",
-			mObjModelsDemo->TexturedModel
-		);
+		renderer.closeGpuResource(SceneVao);
+		renderer.closeGpuResource(UiShaderProgram);
+		renderer.closeGpuResource(UiVao);
 	}
-	
-	void DemoLiciousAppLogic::initTextDemo() {
-		mTextDemo = std::make_unique<TextDemo>();
 
-		const auto& renderer2d = Application::get().getRenderer().getContext().getRenderer2d();
-	
-		//Set a defualt message for the text demo here
-		
-		//Generate quads for default message
-		mTextDemo->TextString = std::make_unique<TextString>(
-			mTextDemo->StringBuffer,
-			renderer2d.getStorage().getFontBitmap("Arial")
-		);
+	void DemoLiciousAppLogic::GridDemo::init() {
+		TestGridMaxQuadCount = Renderer2dStorageVulkan::MAX_BATCH_COUNT_QUAD * Renderer2dStorageVulkan::BATCH_MAX_GEO_COUNT_QUAD;
 	}
-	
-	void DemoLiciousAppLogic::bouncingQuadsDemoAddRandomQuads(size_t count) {
+
+	void DemoLiciousAppLogic::GridDemo::close() {
+		TexturedTestGrid.clear();
+	}
+
+	void DemoLiciousAppLogic::BouncingQuadDemo::init() {
+		addRandomQuads(5000);
+	}
+
+	void DemoLiciousAppLogic::BouncingQuadDemo::close() {
+		BouncingQuads.clear();
+		BouncingQuadVelocities.clear();
+	}
+
+	void DemoLiciousAppLogic::BouncingQuadDemo::addRandomQuads(size_t count) {
 		const auto& atlas = GET_RENDERER.getContext().getRenderer2d().getStorage().getTestTextureAtlas();
 	
 		//Stop quad count going over MaxCount
-		if (count + mBouncingQuadDemo->BouncingQuads.size() > mBouncingQuadDemo->MaxBouncingQuadCount) {
-			count = mBouncingQuadDemo->MaxBouncingQuadCount - mBouncingQuadDemo->BouncingQuads.size();
+		if (count + BouncingQuads.size() > MaxBouncingQuadCount) {
+			count = MaxBouncingQuadCount - BouncingQuads.size();
 		}
 	
 		for (int i = 0; i < count; i++) {
 			//Add quads using the texture atlas
-			mBouncingQuadDemo->BouncingQuads.push_back({
+			BouncingQuads.push_back({
 				//Semi-random values for starting position, velocitiy and assigned texture
 				{
 					(static_cast<float>((rand() % 5000)) / 500.0f) - 1.0f,
 					(static_cast<float>((rand() % 5000)) / 500.0f) - 1.0f,
 					0.8f
 				},
-				{ mGridDemo->TestGridQuadSize[0], mGridDemo->TestGridQuadSize[1] },
+				{ QuadSize.x, QuadSize.y },
 				{
 					//TODO:: Easier & cleaner way of getting a random normalised RGB value
 					(1.0f / 255.0f) * static_cast<float>(rand() % static_cast<int>(TextureVulkan::COLOUR_MAX_VALUE)),
@@ -798,14 +861,14 @@ namespace DOH::EDITOR {
 				0.0f,
 				//Texture atlas
 				atlas,
-				
+
 				//Single inner texture
 				atlas->getInnerTextureCoords(
 					rand() % atlas->getRowCount(),
 					rand() % atlas->getColCount()
 				)
 				//atlas->getInnerTextureCoords(4, 4),
-				
+
 				//Display mutliple inner rows/columns (rand() % may result in two 0 values passed which returns all 0 coords)
 				//atlas->getInnerTextureCoords(
 				//	rand() % atlas->getRowCount(),
@@ -822,47 +885,35 @@ namespace DOH::EDITOR {
 				//)
 			});
 	
-			mBouncingQuadDemo->BouncingQuadVelocities.emplace_back(
+			BouncingQuadVelocities.emplace_back(
 				static_cast<float>((rand() % 800) / 60.0f),
 				static_cast<float>((rand() % 800) / 60.0f)
 			);
 		}
 	}
-	
-	void DemoLiciousAppLogic::bouncingQaudsDemoPopQuads(size_t count) {
-		const size_t size = mBouncingQuadDemo->BouncingQuads.size();
+
+	void DemoLiciousAppLogic::BouncingQuadDemo::popQuads(size_t count) {
+		const size_t size = BouncingQuads.size();
 		if (count > size) {
 			count = size;
 		}
-	
+
 		for (int i = 0; i < count; i++) {
-			mBouncingQuadDemo->BouncingQuads.pop_back();
-			mBouncingQuadDemo->BouncingQuadVelocities.pop_back();
+			BouncingQuads.pop_back();
+			BouncingQuadVelocities.pop_back();
 		}
 	}
-	
-	void DemoLiciousAppLogic::objModelsDemoAddObject(
-		const uint32_t modelIndex,
-		const float x,
-		const float y,
-		const float z,
-		const float posPadding,
-		const float yaw,
-		const float pitch,
-		const float roll,
-		const float scale
-	) {
-		std::shared_ptr<TransformationData> transform = std::make_shared<TransformationData>(
-			glm::vec3((x + posPadding) * 3.0f, (y + posPadding) * 3.0f, (z + posPadding) * 3.0f),
-			glm::vec3(yaw, pitch, roll),
-			scale
+
+	void DemoLiciousAppLogic::TextDemo::init() {
+		const auto& renderer2d = GET_RENDERER.getContext().getRenderer2d();
+		//Generate quads for default message
+		Text = std::make_unique<TextString>(
+			StringBuffer,
+			renderer2d.getStorage().getFontBitmap("Arial")
 		);
-		transform->updateTranslationMatrix();
-	
-		mObjModelsDemo->RenderableObjects.emplace_back(std::make_shared<RenderableModelVulkan>(
-			mObjModelsDemo->ObjModelFilePaths[modelIndex],
-			mObjModelsDemo->LoadedModels[modelIndex],
-			transform
-		));
+	}
+
+	void DemoLiciousAppLogic::TextDemo::close() {
+		Text.release();
 	}
 }

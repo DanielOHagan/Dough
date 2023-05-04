@@ -4,6 +4,9 @@
 
 namespace DOH {
 
+	/** 
+	* Renderables are objects that hold the information for issuing draw commands, they DO NOT own the data.
+	*/
 	class IRenderable {
 	public:
 		virtual VertexArrayVulkan& getVao() const = 0;

@@ -8,6 +8,8 @@
 #include "dough/rendering/SwapChainVulkan.h"
 #include "dough/rendering/CustomRenderState.h"
 
+#include <queue>
+
 namespace DOH {
 
 
@@ -33,6 +35,9 @@ namespace DOH {
 	class RenderingContextVulkan {
 
 	private:
+		static constexpr size_t MAX_FRAMES_IN_FLIGHT = 2;
+		static constexpr size_t GPU_RESOURCE_CLOSE_DELAY_FRAMES = 1;
+		static constexpr size_t GPU_RESOURCE_CLOSE_FRAME_INDEX_COUNT = MAX_FRAMES_IN_FLIGHT + GPU_RESOURCE_CLOSE_DELAY_FRAMES;
 
 		struct UniformBufferObject {
 			glm::mat4 ProjectionViewMat;
@@ -94,11 +99,14 @@ namespace DOH {
 
 		VkCommandPool mCommandPool;
 
-		std::vector<std::shared_ptr<IGPUResourceVulkan>> mToReleaseGpuResources;
+		std::queue<std::shared_ptr<IGPUResourceVulkan>> mGpuResourcesToClose;
+		//The number of gpu objects to close at frame: array index
+		std::array<size_t, GPU_RESOURCE_CLOSE_FRAME_INDEX_COUNT> mGpuResourcesFrameCloseCount;
+
+		size_t mCurrentFrame = 0;
+		size_t mGpuResourceCloseFrame = 0;
 
 		//Sync objects
-		const int MAX_FRAMES_IN_FLIGHT = 2;
-		size_t mCurrentFrame = 0;
 		std::vector<VkSemaphore> mImageAvailableSemaphores;
 		std::vector<VkSemaphore> mRenderFinishedSemaphores;
 		std::vector<VkFence> mFramesInFlightFences;
@@ -156,11 +164,15 @@ namespace DOH {
 		inline CustomRenderState& getCurrentRenderState() const { return *mCurrentRenderState; }
 		RenderPassVulkan& getRenderPass(const ERenderPass renderPass) const;
 
-		//TODO:: Ability for better control over when GPU resources can be released (e.g. after certain program stages or as soon as possible)
-		inline void addGpuResourceToCloseAfterUse(std::shared_ptr<IGPUResourceVulkan> res) { mToReleaseGpuResources.emplace_back(res); }
+		//Add GPU resource to close queue which is flused after GPU_OBJECT_RELEASE_FRAME_INDEX_COUNT number of frames
+		inline void addGpuResourceToClose(std::shared_ptr<IGPUResourceVulkan> res) {
+			mGpuResourcesToClose.emplace(res);
+			mGpuResourcesFrameCloseCount[getNextGpuResourceCloseFrameIndex(mGpuResourceCloseFrame + GPU_RESOURCE_CLOSE_DELAY_FRAMES)]++;
+		}
+		//Immediately closes a GPU resource. Only do this when the object is NOT IN USE!
 		inline void closeGpuResourceImmediately(std::shared_ptr<IGPUResourceVulkan> res) const { res->close(mLogicDevice); }
 		inline void closeGpuResourceImmediately(IGPUResourceVulkan& res) const { res.close(mLogicDevice); }
-		void releaseGpuResources();
+		void releaseFrameGpuResources(size_t frameIndex);
 
 		//TODO:: Prefer grouping commands together then flushing rather than only single commands
 		
@@ -288,5 +300,8 @@ namespace DOH {
 		void drawScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 		void drawUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 		void present(uint32_t imageIndex, VkCommandBuffer cmd);
+
+		inline size_t getNextFrameIndex(size_t currentFrameIndex) const { return ((currentFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT); }
+		inline size_t getNextGpuResourceCloseFrameIndex(size_t currentReleaseFrameIndex) const { return ((currentReleaseFrameIndex + 1) % GPU_RESOURCE_CLOSE_FRAME_INDEX_COUNT); }
 	};
 }

@@ -16,7 +16,7 @@ namespace DOH {
 			mPushConstantPtr(nullptr)
 		{}
 
-		virtual VertexArrayVulkan& getVao() const override { return *mVao; };
+		virtual VertexArrayVulkan& getVao() const override { return *mVao; }
 		virtual void* getPushConstantPtr() const override { return mPushConstantPtr; }
 
 		inline void setPushConstantPtr(void* ptr) { mPushConstantPtr = ptr; }

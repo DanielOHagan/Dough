@@ -25,7 +25,8 @@ namespace DOH {
 		mCommandPool(VK_NULL_HANDLE),
 		mAppSceneUbo({ glm::mat4x4(1.0f) }),
 		mAppUiProjection(1.0f),
-		mDepthFormat(VK_FORMAT_UNDEFINED)
+		mDepthFormat(VK_FORMAT_UNDEFINED),
+		mGpuResourcesFrameCloseCount({})
 	{}
 
 	bool RenderingContextVulkan::isReady() const {
@@ -106,7 +107,11 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::close() {
-		releaseGpuResources();
+		const size_t gpuResourceCount = mGpuResourcesToClose.size();
+		for (size_t i = 0; i < gpuResourceCount; i++) {
+			mGpuResourcesToClose.front()->close(mLogicDevice);
+			mGpuResourcesToClose.pop();
+		}
 
 		vkFreeCommandBuffers(
 			mLogicDevice,
@@ -141,11 +146,22 @@ namespace DOH {
 		vkDestroyCommandPool(mLogicDevice, mCommandPool, nullptr);
 	}
 
-	void RenderingContextVulkan::releaseGpuResources() {
-		for (std::shared_ptr<IGPUResourceVulkan> res : mToReleaseGpuResources) {
-			res->close(mLogicDevice);
+	void RenderingContextVulkan::releaseFrameGpuResources(size_t releaseFrameIndex) {
+		if (releaseFrameIndex < GPU_RESOURCE_CLOSE_FRAME_INDEX_COUNT) {
+			size_t count = mGpuResourcesFrameCloseCount.at(releaseFrameIndex);
+
+			if (count > 0) {
+				for (size_t i = 0; i < count; i++) {
+					mGpuResourcesToClose.front()->close(mLogicDevice);
+					mGpuResourcesToClose.pop();
+				}
+
+				mGpuResourcesFrameCloseCount[releaseFrameIndex] = 0;
+				LOG_INFO("Closed " << count << " GPU objects in frame: " << releaseFrameIndex << ". Delayed by " << GPU_RESOURCE_CLOSE_DELAY_FRAMES << " frame(s)");
+			}
+		} else {
+			LOG_ERR("Invalid releaseFrameIndex: " << releaseFrameIndex);
 		}
-		mToReleaseGpuResources.clear();
 	}
 
 	void RenderingContextVulkan::resizeSwapChain(
@@ -261,10 +277,12 @@ namespace DOH {
 
 		present(imageIndex, cmd);
 
-		//TODO:: A way of closing/removing last frame specific gpu resources
-		//releaseFrameSpecificGpuResources(lastFrameIndex);
-
 		debugInfo.updatePerFrameData();
+
+		releaseFrameGpuResources(mGpuResourceCloseFrame);
+
+		mCurrentFrame = getNextFrameIndex(mCurrentFrame);
+		mGpuResourceCloseFrame = getNextGpuResourceCloseFrameIndex(mGpuResourceCloseFrame);
 	}
 
 	void RenderingContextVulkan::drawScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
@@ -390,8 +408,6 @@ namespace DOH {
 		//	vkQueuePresentKHR(mPresentQueue, &present),
 		//	"Failed to present"
 		//);
-
-		mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 	}
 
 	void RenderingContextVulkan::createQueues(QueueFamilyIndices& queueFamilyIndices) {
@@ -709,6 +725,7 @@ namespace DOH {
 			const auto& itr = map.value().find(name);
 			if (itr != map.value().end()) {
 				itr->second->close(mLogicDevice);
+				//addGpuResourceToClose(static_cast<std::shared_ptr<IGPUResourceVulkan>>(itr->second));
 				map.value().erase(itr);
 			} else {
 				LOG_WARN("Unable to find pipeline: " << name);

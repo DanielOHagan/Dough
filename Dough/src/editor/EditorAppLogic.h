@@ -44,8 +44,8 @@ namespace DOH::EDITOR {
 		virtual bool handleMouseButtonPressed(int button, bool pressed) override { return EditorGui::isGuiHandlingMouseInput(); }
 		virtual bool handleMouseMoved(float x, float y) override { return EditorGui::isGuiHandlingMouseInput(); }
 		virtual bool handleMouseScroll(float offsetX, float offsetY) override { return EditorGui::isGuiHandlingMouseInput(); }
-		virtual void resetCycleData() override {};
-		virtual void reset() override {};
+		virtual void resetCycleData() override {}
+		virtual void reset() override {}
 
 		//NOTE:: Device Input is handled by EditorUI, no need to handle it manually so no need to override original function
 		//virtual inline bool hasDeviceInput() const override { return false; }
