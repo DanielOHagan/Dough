@@ -79,4 +79,30 @@ namespace DOH {
 
 		return false;
 	}
+
+	const std::unique_ptr<StaticVertexInputLayout> StaticVertexInputLayout::VERTEX_2D = std::make_unique<StaticVertexInputLayout>(EVertexType::VERTEX_2D);
+	const std::unique_ptr<StaticVertexInputLayout> StaticVertexInputLayout::VERTEX_3D = std::make_unique<StaticVertexInputLayout>(EVertexType::VERTEX_3D);
+	const std::unique_ptr<StaticVertexInputLayout> StaticVertexInputLayout::VERTEX_3D_TEXTURED = std::make_unique<StaticVertexInputLayout>(EVertexType::VERTEX_3D_TEXTURED);
+	const std::unique_ptr<StaticVertexInputLayout> StaticVertexInputLayout::VERTEX_3D_TEXTURED_INDEXED = std::make_unique<StaticVertexInputLayout>(EVertexType::VERTEX_3D_TEXTURED_INDEXED);
+	const std::unique_ptr<StaticVertexInputLayout> StaticVertexInputLayout::VERTEX_3D_LIT_TEXTURED = std::make_unique<StaticVertexInputLayout>(EVertexType::VERTEX_3D_LIT_TEXTURED);
+
+	const StaticVertexInputLayout& StaticVertexInputLayout::get(const EVertexType vertexType) {
+		switch (vertexType) {
+			case EVertexType::VERTEX_2D:
+				return *VERTEX_2D;
+			case EVertexType::VERTEX_3D:
+				return *VERTEX_3D;
+			case EVertexType::VERTEX_3D_TEXTURED:
+				return *VERTEX_3D_TEXTURED;
+			case EVertexType::VERTEX_3D_TEXTURED_INDEXED:
+				return *VERTEX_3D_TEXTURED_INDEXED;
+			case EVertexType::VERTEX_3D_LIT_TEXTURED:
+				return *VERTEX_3D_LIT_TEXTURED;
+
+			case EVertexType::NONE:
+			default:
+				LOG_ERR("Unknown vertexType or NONE given. Returning DOH_STATIC_VERTEX_INPUT_LAYOUT_VERTEX_3D");
+				return *VERTEX_3D;
+		}
+	}
 }

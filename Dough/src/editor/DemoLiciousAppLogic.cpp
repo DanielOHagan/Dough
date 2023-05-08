@@ -508,7 +508,7 @@ namespace DOH::EDITOR {
 		customLayout.setTexture(1, *mSharedDemoResources->TestTexture1);
 
 		mSharedDemoResources->TexturedPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-			SharedDemoResources::TexturedVertexType,
+			StaticVertexInputLayout::get(SharedDemoResources::TexturedVertexType),
 			*mSharedDemoResources->TexturedShaderProgram,
 			ERenderPass::APP_SCENE
 		);
@@ -533,11 +533,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::ObjModelsDemo::init() {
-		ColouredVertexInputLayout = std::make_shared<StaticVertexInputLayout>(EVertexType::VERTEX_3D);
-		TexturedVertexInputLayout = std::make_shared<StaticVertexInputLayout>(EVertexType::VERTEX_3D_TEXTURED);
-
 		for (const auto& filePath : ObjModelFilePaths) {
-			LoadedModels.emplace_back(ModelVulkan::createModel(filePath, *ColouredVertexInputLayout));
+			LoadedModels.emplace_back(ModelVulkan::createModel(filePath, ColouredVertexInputLayout));
 		}
 	
 		//Spwan objects on incrementing x/y values of a grid with random z value
@@ -612,7 +609,7 @@ namespace DOH::EDITOR {
 			*SceneWireframePipelineInfo
 		);
 
-		TexturedModel = ModelVulkan::createModel("Dough/res/models/textured_cube.obj", *TexturedVertexInputLayout);
+		TexturedModel = ModelVulkan::createModel("Dough/res/models/textured_cube.obj", TexturedVertexInputLayout);
 		RenderableTexturedModel = std::make_shared<RenderableModelVulkan>("TexturedObjModel", TexturedModel);
 
 		GpuResourcesLoaded = true;
@@ -745,9 +742,6 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::CustomDemo::init() {
-		SceneVertexInputLayout = std::make_shared<StaticVertexInputLayout>(SharedDemoResources::TexturedVertexType);
-		UiVertexInputLayout = std::make_shared<StaticVertexInputLayout>(EVertexType::VERTEX_2D);
-
 		//for (int i = 0; i < 8; i++) {
 		//	std::string path = testTexturesPath + "texture" + std::to_string(i) + ".png";
 		//	std::shared_ptr<TextureVulkan> testTexture = ObjInit::texture(path);
@@ -756,9 +750,9 @@ namespace DOH::EDITOR {
 
 		SceneVao = ObjInit::vertexArray();
 		std::shared_ptr<VertexBufferVulkan> sceneVb = ObjInit::stagedVertexBuffer(
-			*SceneVertexInputLayout,
+			SceneVertexInputLayout,
 			SceneVertices.data(),
-			static_cast<size_t>(SceneVertexInputLayout->getStride()) * SceneVertices.size(),
+			static_cast<size_t>(SceneVertexInputLayout.getStride()) * SceneVertices.size(),
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
@@ -779,9 +773,9 @@ namespace DOH::EDITOR {
 	
 		UiVao = ObjInit::vertexArray();
 		std::shared_ptr<VertexBufferVulkan> appUiVb = ObjInit::stagedVertexBuffer(
-			*UiVertexInputLayout,
+			UiVertexInputLayout,
 			UiVertices.data(),
-			static_cast<size_t>(UiVertexInputLayout->getStride()) * UiVertices.size(),
+			static_cast<size_t>(UiVertexInputLayout.getStride()) * UiVertices.size(),
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);

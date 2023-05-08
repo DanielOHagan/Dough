@@ -3,12 +3,10 @@
 
 namespace DOH {
 
-	std::shared_ptr<StaticVertexInputLayout> RenderBatchQuad::VERTEX_INPUT_LAYOUT = std::make_shared<StaticVertexInputLayout>(RenderBatchQuad::VERTEX_INPUT_TYPE);
-
 	RenderBatchQuad::RenderBatchQuad(const uint32_t maxGeometryCount, const uint32_t maxTextureCount)
 	:	ARenderBatch(
 			maxGeometryCount,
-			getVertexTypeSize(VERTEX_INPUT_TYPE) * 4 /* Renderer2dVulkan::BatchSizeLimits::SINGLE_QUAD_VERTEX_COUNT*/,
+			getVertexTypeSize(RenderBatchQuad::VERTEX_INPUT_TYPE) * 4 /* Renderer2dVulkan::BatchSizeLimits::SINGLE_QUAD_VERTEX_COUNT*/,
 			maxTextureCount
 		)
 	{}

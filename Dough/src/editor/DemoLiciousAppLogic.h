@@ -54,8 +54,8 @@ namespace DOH::EDITOR {
 			const std::string FlatColourShaderFragPath = "Dough/res/shaders/spv/FlatColour.frag.spv";
 			const char* ScenePipelineName = "ObjScene";
 			const char* SceneWireframePipelineName = "ObjWireframe";
-			std::shared_ptr<StaticVertexInputLayout> ColouredVertexInputLayout;
-			std::shared_ptr<StaticVertexInputLayout> TexturedVertexInputLayout;
+			const StaticVertexInputLayout& ColouredVertexInputLayout = StaticVertexInputLayout::get(EVertexType::VERTEX_3D);
+			const StaticVertexInputLayout& TexturedVertexInputLayout = StaticVertexInputLayout::get(EVertexType::VERTEX_3D_TEXTURED);
 			std::shared_ptr<ShaderProgramVulkan> SceneShaderProgram;
 
 			std::unique_ptr<GraphicsPipelineInstanceInfo> ScenePipelineInfo;
@@ -158,10 +158,10 @@ namespace DOH::EDITOR {
 			// therefore, they are not responsible for clearing up resources
 			std::shared_ptr<SimpleRenderable> SceneRenderable;
 			std::shared_ptr<VertexArrayVulkan> SceneVao;
-			std::shared_ptr<StaticVertexInputLayout> SceneVertexInputLayout;
+			const StaticVertexInputLayout& SceneVertexInputLayout = StaticVertexInputLayout::get(SharedDemoResources::TexturedVertexType);
 			std::shared_ptr<SimpleRenderable> UiRenderable;
 			std::shared_ptr<VertexArrayVulkan> UiVao;
-			std::shared_ptr<StaticVertexInputLayout> UiVertexInputLayout;
+			const StaticVertexInputLayout& UiVertexInputLayout = StaticVertexInputLayout::get(EVertexType::VERTEX_2D);
 
 			bool Update = false;
 			bool RenderScene = false;

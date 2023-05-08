@@ -63,7 +63,7 @@ namespace DOH {
 	class GraphicsPipelineInstanceInfo {
 
 	private:
-		std::shared_ptr<AVertexInputLayout> mVertexInputLayout;
+		const AVertexInputLayout& mVertexInputLayout;
 		ShaderProgramVulkan& mShaderProgram;
 		const ERenderPass mRenderPass;
 
@@ -71,27 +71,7 @@ namespace DOH {
 
 	public:
 		GraphicsPipelineInstanceInfo(
-			EVertexType vertexType,
-			ShaderProgramVulkan& shaderProgram,
-			ERenderPass renderPass
-		) : mVertexInputLayout(std::make_shared<StaticVertexInputLayout>(vertexType)),
-			mShaderProgram(shaderProgram),
-			mRenderPass(renderPass),
-			mOptionalFields(std::make_unique<GraphicsPipelineOptionalFields>())
-		{}
-
-		GraphicsPipelineInstanceInfo(
-			std::initializer_list<EDataType> vertexInputLayout,
-			ShaderProgramVulkan& shaderProgram,
-			ERenderPass renderPass
-		) : mVertexInputLayout(std::make_shared<CustomVertexInputLayout>(vertexInputLayout)),
-			mShaderProgram(shaderProgram),
-			mRenderPass(renderPass),
-			mOptionalFields(std::make_unique<GraphicsPipelineOptionalFields>())
-		{}
-
-		GraphicsPipelineInstanceInfo(
-			std::shared_ptr<AVertexInputLayout> vertexInputLayout,
+			const AVertexInputLayout& vertexInputLayout,
 			ShaderProgramVulkan& shaderProgram,
 			ERenderPass renderPass
 		) : mVertexInputLayout(vertexInputLayout),
@@ -101,7 +81,7 @@ namespace DOH {
 		{}
 
 		inline ShaderProgramVulkan& getShaderProgram() const { return mShaderProgram; }
-		inline const AVertexInputLayout& getVertexInputLayout() const { return *mVertexInputLayout; }
+		inline const AVertexInputLayout& getVertexInputLayout() const { return mVertexInputLayout; }
 		inline const ERenderPass getRenderPass() const { return mRenderPass; }
 		inline GraphicsPipelineOptionalFields& getOptionalFields() { return *mOptionalFields; }
 	};
