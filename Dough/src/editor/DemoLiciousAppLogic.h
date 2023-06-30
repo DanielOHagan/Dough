@@ -152,7 +152,7 @@ namespace DOH::EDITOR {
 			std::unique_ptr<GraphicsPipelineInstanceInfo> UiPipelineInfo;
 			std::shared_ptr<ShaderProgramVulkan> UiShaderProgram;
 			PipelineRenderableConveyor CustomUiConveyor;
-			const char* UiPipelineName = "CustomUi";
+			constexpr static const char* UiPipelineName = "CustomUi";
 
 			//Renderables are for an easier API overall, they do not fully "own" an object,
 			// therefore, they are not responsible for clearing up resources
@@ -166,6 +166,7 @@ namespace DOH::EDITOR {
 			bool Update = false;
 			bool RenderScene = false;
 			bool RenderUi = false;
+			bool GpuResourcesLoaded = false;
 
 			virtual void init() override;
 			virtual void close() override;
@@ -228,6 +229,69 @@ namespace DOH::EDITOR {
 			virtual void close() override;
 		};
 
+		class LineDemo : public IDemo {
+		public:
+			static constexpr uint32_t LINE_2D_INPUT_COMPONENT_COUNT = 8;
+			static constexpr uint32_t LINE_3D_INPUT_COMPONENT_COUNT = 10; //3 for start, 3 for end, 4 for colour
+			std::vector<float> LineData2d;
+			std::vector<float> LineData3d;
+			float LineDataInput[LINE_3D_INPUT_COMPONENT_COUNT];
+			uint32_t LineCount2d = 0;
+			uint32_t LineCount3d = 0;
+			uint32_t LineDataIndex2d = 0;
+			uint32_t LineDataIndex3d = 0;
+			int LinePopCount = 0;
+
+			bool Update = false;
+			bool Render = false;
+
+			virtual void init() override;
+			virtual void close() override;
+
+			void addLine2d(glm::vec2 start, glm::vec2 end, glm::vec4 colour);
+			void addLine3d(glm::vec3 start, glm::vec3 end, glm::vec4 colour);
+			inline void popLine2d() {
+				if (LineData2d.size() > 0) {
+					LineData2d.resize(LineData2d.size() - static_cast<size_t>(LINE_2D_INPUT_COMPONENT_COUNT));
+					LineCount2d--;
+					LineDataIndex2d -= LINE_2D_INPUT_COMPONENT_COUNT;
+				}
+			};
+			inline void popLine3d() {
+				if (LineData3d.size() > 0) {
+					LineData3d.resize(LineData3d.size() - static_cast<size_t>(LINE_3D_INPUT_COMPONENT_COUNT));
+					LineCount3d--;
+					LineDataIndex3d -= LINE_3D_INPUT_COMPONENT_COUNT;
+				}
+			};
+			inline void popLines2d(const uint32_t count) {
+				if (LineCount2d > 0) {
+					if (count > LineData2d.size()) {
+						LineData2d.clear();
+						LineCount2d = 0;
+						LineDataIndex2d = 0;
+					} else if (count > 0) {
+						LineData2d.resize(LineData2d.size() - static_cast<size_t>(count * LINE_2D_INPUT_COMPONENT_COUNT));
+						LineCount2d -= count;
+						LineDataIndex2d -= count * LINE_2D_INPUT_COMPONENT_COUNT;
+					}
+				}
+			}
+			inline void popLines3d(const uint32_t count) {
+				if (LineCount3d > 0) {
+					if (count > LineData3d.size()) {
+						LineData3d.clear();
+						LineCount3d = 0;
+						LineDataIndex3d = 0;
+					} else if (count > 0) {
+						LineData3d.resize(LineData3d.size() - static_cast<size_t>(count * LINE_3D_INPUT_COMPONENT_COUNT));
+						LineCount3d -= count;
+						LineDataIndex3d -= count * LINE_3D_INPUT_COMPONENT_COUNT;
+					}
+				}
+			}
+		};
+
 		//Resources used by more than one demo
 		struct SharedDemoResources {
 			static const EVertexType TexturedVertexType = EVertexType::VERTEX_3D_TEXTURED;
@@ -235,7 +299,7 @@ namespace DOH::EDITOR {
 			static const std::string TexturedShaderVertPath;
 			static const std::string TexturedShaderFragPath;
 
-			const char* TexturedPipelineName = "Textured";
+			constexpr static const char* TexturedPipelineName = "Textured";
 			std::unique_ptr<GraphicsPipelineInstanceInfo> TexturedPipelineInfo;
 			std::shared_ptr<ShaderProgramVulkan> TexturedShaderProgram;
 
@@ -245,6 +309,8 @@ namespace DOH::EDITOR {
 			const char* TestTexture2Path = "Dough/res/images/testTexture2.jpg";
 			std::shared_ptr<TextureVulkan> TestTexture1;
 			std::shared_ptr<TextureVulkan> TestTexture2;
+
+			bool GpuResourcesLoaded = false;
 		};
 
 		struct ImGuiSettings {
@@ -259,6 +325,7 @@ namespace DOH::EDITOR {
 		std::unique_ptr<GridDemo> mGridDemo;
 		std::unique_ptr<BouncingQuadDemo> mBouncingQuadDemo;
 		std::unique_ptr<TextDemo> mTextDemo;
+		std::unique_ptr<LineDemo> mLineDemo;
 
 		std::unique_ptr<ImGuiSettings> mImGuiSettings;
 		std::shared_ptr<DefaultInputLayer> mInputLayer;

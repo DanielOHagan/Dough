@@ -17,7 +17,7 @@ namespace DOH {
 
 		std::vector<std::shared_ptr<VertexBufferVulkan>> mVertexBuffers;
 		std::shared_ptr<IndexBufferVulkan> mIndexBuffer;
-		uint32_t mDrawCount;
+		uint32_t mDrawCount; //Index Count for drawIndexed or Vertex Count for drawVertex
 		bool mSharingIndexBuffer;
 		void* mPushConstantData;
 

@@ -14,6 +14,8 @@ namespace DOH {
 	void ShaderProgramVulkan::loadModules(VkDevice logicDevice) {
 		mVertexShader->loadModule(logicDevice);
 		mFragmentShader->loadModule(logicDevice);
+
+		mUsingGpuResource = true;
 	}
 	
 	void ShaderProgramVulkan::closeModules(VkDevice logicDevice) {
@@ -32,5 +34,7 @@ namespace DOH {
 
 		mVertexShader->close(logicDevice);
 		mFragmentShader->close(logicDevice);
+
+		mUsingGpuResource = false;
 	}
 }

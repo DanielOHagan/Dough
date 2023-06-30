@@ -351,7 +351,7 @@ namespace DOH {
 					vao.getVertexBuffers()[0]->setDataMapped(
 						logicDevice,
 						batch.getData().data(),
-						Renderer2dStorageVulkan::BatchSizeLimits::BATCH_QUAD_BYTE_SIZE
+						quadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_BYTE_SIZE
 					);
 					vao.setDrawCount(quadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT);
 
@@ -377,7 +377,6 @@ namespace DOH {
 			const size_t textQuadCount = textBatch.getGeometryCount();
 
 			if (textQuadCount > 0) {
-				
 				if (currentBindings.Pipeline != textPipeline.get()) {
 					textPipeline.bind(cmd);
 					debugInfo.PipelineBinds++;

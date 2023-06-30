@@ -19,6 +19,7 @@ namespace DOH {
 		GraphicsPipelineOptionalFields() = default;
 
 		VkPolygonMode PolygonMode = VK_POLYGON_MODE_FILL;
+		VkPrimitiveTopology Topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		VkFrontFace FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
 		VkCompareOp DepthCompareOp = VK_COMPARE_OP_NEVER;

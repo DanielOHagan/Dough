@@ -104,7 +104,7 @@ namespace DOH {
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		inputAssembly.topology = mInstanceInfo.getOptionalFields().Topology;
 		inputAssembly.primitiveRestartEnable = VK_FALSE;
 
 		VkViewport viewport = {};
@@ -251,7 +251,7 @@ namespace DOH {
 
 		for (const auto& renderable : mRenderableDrawList) {
 			const VkBuffer vb = renderable->getVao().getVertexBuffers()[0]->getBuffer();
-			const VkBuffer ib = renderable->getVao().getIndexBuffer().getBuffer();
+			const VkBuffer ib = renderable->isIndexed() ? renderable->getVao().getIndexBuffer().getBuffer() : currentBindings.IndexBuffer;
 			if (currentBindings.VertexBuffer != vb || currentBindings.IndexBuffer != ib) {
 				renderable->getVao().bind(cmd);
 				currentBindings.VertexBuffer = vb;
@@ -269,14 +269,19 @@ namespace DOH {
 				);
 			}
 
-			vkCmdDrawIndexed(
-				cmd,
-				renderable->getVao().getDrawCount(),
-				1,
-				0,
-				0,
-				0
-			);
+			//TODO:: better way of calling the intended draw cmd. e.g. renderable->draw(cmd) or switch(renderable->getDrawCmd())
+			if (renderable->isIndexed()) {
+				vkCmdDrawIndexed(
+					cmd,
+					renderable->getVao().getDrawCount(),
+					1,
+					0,
+					0,
+					0
+				);
+			} else {
+				vkCmdDraw(cmd, renderable->getVao().getDrawCount(), 1, 0, 0);
+			}
 		}
 
 		if (mInstanceInfo.getOptionalFields().ClearRenderablesAfterDraw) {

@@ -334,6 +334,8 @@ UPS displayed is the count of frames in the last full second interval)"
 
 				ImGui::NewLine();
 
+
+				//TODO:: better way of displaying this for pipelines, instead of having a list of every pipeline here
 				ImGui::BeginTable("Draw Call Info", 3);
 				ImGui::TableSetupColumn("Pipeline");
 				ImGui::TableSetupColumn("Draw Call Count");

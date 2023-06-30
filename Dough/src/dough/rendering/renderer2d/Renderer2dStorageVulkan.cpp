@@ -137,7 +137,6 @@ namespace DOH {
 			vao->getVertexBuffers()[0]->map(mContext.getLogicDevice(), batchSizeBytes);
 
 			mRenderableQuadBatches.emplace_back(std::make_shared<SimpleRenderable>(vao));
-			
 
 			return mQuadRenderBatches.size() - 1;
 		} else {

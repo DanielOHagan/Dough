@@ -7,6 +7,7 @@
 #include "dough/rendering/renderer2d/Renderer2dVulkan.h"
 #include "dough/rendering/SwapChainVulkan.h"
 #include "dough/rendering/CustomRenderState.h"
+#include "dough/rendering/RenderBatchLine.h"
 
 #include <queue>
 
@@ -80,6 +81,29 @@ namespace DOH {
 
 		std::unique_ptr<CustomRenderState> mCurrentRenderState;
 
+		//Line Renderer
+		//App Scene
+		static constexpr const EVertexType APP_SCENE_LINE_VERTEX_TYPE = EVertexType::VERTEX_3D;
+		std::unique_ptr<RenderBatchLineList> mAppSceneLineBatch;
+		//std::unique_ptr<RenderBatchLineStrip> mAppSceneLineBatch;
+		std::shared_ptr<ShaderProgramVulkan> mAppSceneLineShaderProgram;
+		std::unique_ptr<GraphicsPipelineInstanceInfo> mAppSceneLineGraphicsPipelineInfo;
+		std::shared_ptr<GraphicsPipelineVulkan> mAppSceneLineGraphicsPipeline;
+		std::shared_ptr<SimpleRenderable> mAppSceneLineRenderable;
+		const std::string mAppSceneLineRendererVertexShaderPath = "Dough/res/shaders/spv/LineRenderer3d.vert.spv";
+		const std::string mAppSceneLineRendererFragmentShaderPath = "Dough/res/shaders/spv/LineRenderer3d.frag.spv";
+		//App UI
+		static constexpr const EVertexType APP_UI_LINE_VERTEX_TYPE = EVertexType::VERTEX_2D;
+		std::unique_ptr<RenderBatchLineList> mAppUiLineBatch;
+		//std::unique_ptr<RenderBatchLineStrip> mAppUiLineBatch;
+		std::shared_ptr<ShaderProgramVulkan> mAppUiLineShaderProgram;
+		std::unique_ptr<GraphicsPipelineInstanceInfo> mAppUiLineGraphicsPipelineInfo;
+		std::shared_ptr<GraphicsPipelineVulkan> mAppUiLineGraphicsPipeline;
+		std::shared_ptr<SimpleRenderable> mAppUiLineRenderable;
+		const std::string mAppUiLineRendererVertexShaderPath = "Dough/res/shaders/spv/LineRenderer2d.vert.spv";
+		const std::string mAppUiLineRendererFragmentShaderPath = "Dough/res/shaders/spv/LineRenderer2d.frag.spv";
+
+
 		std::unique_ptr<Renderer2dVulkan> mRenderer2d;
 		std::unique_ptr<ImGuiWrapper> mImGuiWrapper;
 
@@ -145,7 +169,7 @@ namespace DOH {
 			const std::string& name
 		);
 		void enablePipeline(const ERenderPass renderPass, const std::string& name, bool enable);
-		void closePipeline(const ERenderPass renderPass, const std::string& name);
+		void closePipeline(const ERenderPass renderPass, const char* name);
 
 		inline void onResize(
 			SwapChainSupportDetails& scSupport,
@@ -164,7 +188,7 @@ namespace DOH {
 		inline CustomRenderState& getCurrentRenderState() const { return *mCurrentRenderState; }
 		RenderPassVulkan& getRenderPass(const ERenderPass renderPass) const;
 
-		//Add GPU resource to close queue which is flused after GPU_OBJECT_RELEASE_FRAME_INDEX_COUNT number of frames
+		//Add GPU resource to close queue which is flushed after GPU_OBJECT_RELEASE_FRAME_INDEX_COUNT number of frames
 		inline void addGpuResourceToClose(std::shared_ptr<IGPUResourceVulkan> res) {
 			mGpuResourcesToClose.emplace(res);
 			mGpuResourcesFrameCloseCount[getNextGpuResourceCloseFrameIndex(mGpuResourceCloseFrame + GPU_RESOURCE_CLOSE_DELAY_FRAMES)]++;
@@ -227,6 +251,12 @@ namespace DOH {
 		void setPhysicalDevice(VkPhysicalDevice physicalDevice);
 		inline RenderingDeviceInfo& getRenderingDeviceInfo() const { return *mRenderingDeviceInfo; }
 		inline size_t getCurrentFrame() const { return mCurrentFrame; }
+
+		inline PipelineRenderableConveyor getAppSceneLineConveyor() const { return { *mAppSceneLineGraphicsPipeline }; }
+		inline PipelineRenderableConveyor getAppUiLineConveyor() const { return { *mAppUiLineGraphicsPipeline }; }
+
+		void drawLine2d(const glm::vec2& start, const glm::vec2& end, const glm::vec4& colour);
+		void drawLine3d(const glm::vec3& start, const glm::vec3& end, const glm::vec4& colour);
 
 		static VkImage createImage(
 			VkDevice logicDevice,
@@ -291,6 +321,8 @@ namespace DOH {
 		void closeRenderPasses();
 		void createFrameBuffers();
 		void closeFrameBuffers();
+		void createLineRenderer();
+		void closeLineRenderer();
 		void resizeSwapChain(
 			SwapChainSupportDetails& scSupport,
 			VkSurfaceKHR surface,

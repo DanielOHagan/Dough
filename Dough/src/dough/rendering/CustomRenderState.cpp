@@ -1,27 +1,27 @@
 #include "dough/rendering/CustomRenderState.h"
 
 #include "dough/Logging.h"
+#include "dough/application/Application.h"
 
 namespace DOH {
 
-	CustomRenderState::CustomRenderState()
+	CustomRenderState::CustomRenderState(const char* name)
 	:	mRenderPassGraphicsPipelines({}),
+		mName(name),
 		mPipelineCount(0)
 	{}
 
 	void CustomRenderState::addRenderPassGroup(const ERenderPass renderPass) {
 		const auto& group = mRenderPassGraphicsPipelines.emplace(renderPass, GraphicsPipelineMap());
 		if (!group.second) {
-			//LOG_WARN("Render pass group already exists: " << ERenderPassStrings[static_cast<uint32_t>(renderPass)]);
-			LOG_WARN("Render pass group already exists: " << static_cast<uint32_t>(renderPass));
+			LOG_WARN("Render pass group already exists: " << ERenderPassStrings[static_cast<uint32_t>(renderPass)]);
 		}
 	}
 
 	void CustomRenderState::addRenderPassGroup(const ERenderPass renderPass, const GraphicsPipelineMap& pipelineMap) {
 		const auto& group = mRenderPassGraphicsPipelines.emplace(renderPass, pipelineMap);
 		if (!group.second) {
-			//LOG_WARN("Render pass group already exists: " << ERenderPassStrings[static_cast<uint32_t>(renderPass)]);
-			LOG_WARN("Render pass group already exists: " << static_cast<uint32_t>(renderPass));
+			LOG_WARN("Render pass group already exists: " << ERenderPassStrings[static_cast<uint32_t>(renderPass)]);
 		} else {
 			mPipelineCount += static_cast<uint32_t>(pipelineMap.size());
 		}
@@ -37,23 +37,24 @@ namespace DOH {
 			if (group->second.emplace(name, graphicsPipeline).second) {
 				mPipelineCount++;
 			} else {
-				LOG_WARN("Failed to add pipeline: " << name << " to group: " << static_cast<uint32_t>(renderPass));
+				LOG_WARN("Failed to add pipeline: " << name << " to group: " << ERenderPassStrings[static_cast<uint32_t>(renderPass)]);
 			}
 		} else {
-			//LOG_WARN("RenderPass does not have pipeline group: " << ERenderPassStrings[static_cast<uint32_t>(renderPass)]);
-			LOG_WARN("RenderPass does not have pipeline group: " << static_cast<uint32_t>(renderPass));
+			LOG_WARN("RenderPass does not have pipeline group: " << ERenderPassStrings[static_cast<uint32_t>(renderPass)]);
 		}
 	}
 
 	void CustomRenderState::closePipeline(VkDevice logicDevice, const ERenderPass renderPass, const std::string& name) {
-		const auto group = getRenderPassGraphicsPipelineGroup(renderPass);
+		std::optional<std::reference_wrapper<GraphicsPipelineMap>> group = getRenderPassGraphicsPipelineGroup(renderPass);
 		if (group.has_value()) {
-			const auto pipeline = group.value().find(name);
-			if (pipeline != group.value().end()) {
-				pipeline->second->close(logicDevice);
+			const auto pipeline = group->get().find(name);
+			if (pipeline != group->get().end()) {
+				auto& renderer = Application::get().getRenderer();
+				renderer.closeGpuResource(pipeline->second);
 				mPipelineCount--;
+				group->get().erase(pipeline);
 			} else {
-				LOG_WARN("Pipeline: " << name.c_str() << " not found in group: " << static_cast<uint32_t>(renderPass));
+				LOG_WARN("Pipeline: " << name.c_str() << " not found in group: " << ERenderPassStrings[static_cast<uint32_t>(renderPass)]);
 			}
 		}
 	}
@@ -63,22 +64,25 @@ namespace DOH {
 
 		if (group != mRenderPassGraphicsPipelines.end()) {
 			for (const auto& pipeline : group->second) {
-				pipeline.second->close(logicDevice);
+				auto& renderer = Application::get().getRenderer();
+				renderer.closeGpuResource(pipeline.second);
 				mPipelineCount--;
 			}
+
+			mRenderPassGraphicsPipelines.erase(group);
 		}
 	}
 
 	void CustomRenderState::close(VkDevice logicDevice) {
 		for (auto& pipelineGroup : mRenderPassGraphicsPipelines) {
 			for (auto& pipeline : pipelineGroup.second) {
-				pipeline.second->close(logicDevice);
+				auto& renderer = Application::get().getRenderer();
+				renderer.closeGpuResource(pipeline.second);
 			}
 
 			pipelineGroup.second.clear();
 		}
 
-		mRenderPassGraphicsPipelines.clear();
-		mPipelineCount = 0;
+		clearRenderPassGroups();
 	}
 }

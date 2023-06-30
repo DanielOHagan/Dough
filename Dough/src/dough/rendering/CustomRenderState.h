@@ -8,23 +8,7 @@ namespace DOH {
 	using GraphicsPipelineMap = std::unordered_map<std::string, std::shared_ptr<GraphicsPipelineVulkan>>;
 	using RenderPassGraphicsPipelineMap = std::unordered_map<ERenderPass, GraphicsPipelineMap>;
 
-	/**
-	* A group of objects required for rendering a specified custom state.
-	* The CustomRenderState does not have ownership of of 
-	*
-	* TODO::
-	*	Allow for CustomRenderStates to be "merged", or for multiple CustomRenderStates or
-	*	so they changed more dynamically.
-	*	One case in which this would help is in EditorAppLogic and its inner app.
-	*	The two AppLogic classes may both require a CustomRenderState at some point,
-	*	for now only one instance of CustomRenderState is supported.
-	*	Currently the CustomRenderState is the assumed owner of the stored GraphicsPipelines,
-	*	in future it might be very useful to have support for multiple CustomRenderStates that
-	*	use 1 or more of the same GraphicsPipelines.
-	*
-	* TODO::
-	*	Is this a suitable place for a camera for this render state or camera for each render pass.
-	*
+	/** 
 	* TODO::
 	*	Allow for an optimised version of this for production runtime. No map, only an array for enabled pipelines
 	*	(maybe a separate one for disabled ones).
@@ -33,16 +17,14 @@ namespace DOH {
 	class CustomRenderState {
 
 	private:
-		//Rendering resources
 		RenderPassGraphicsPipelineMap mRenderPassGraphicsPipelines;
-		//std::unordered_map<uint32_t id OR string and have pipelines hold references, std::reference_wrapper<ShaderProgramVulkan>> mShaderPrograms;
 
 		//Render State info
+		const char* mName;
 		uint32_t mPipelineCount;
-		//std::string mName; //Debug info
 
 	public:
-		CustomRenderState();
+		CustomRenderState(const char* name);
 		CustomRenderState(const CustomRenderState& copy) = delete;
 		CustomRenderState operator=(const CustomRenderState& assignment) = delete;
 
@@ -57,7 +39,7 @@ namespace DOH {
 		void closeRenderPassGroup(VkDevice logicDevice, const ERenderPass renderPass);
 		void close(VkDevice logicDevice);
 
-		inline std::optional<GraphicsPipelineMap> getRenderPassGraphicsPipelineGroup(const ERenderPass renderPass) {
+		inline std::optional<std::reference_wrapper<GraphicsPipelineMap>> getRenderPassGraphicsPipelineGroup(const ERenderPass renderPass) {
 			return { mRenderPassGraphicsPipelines[renderPass] };
 		}
 		inline RenderPassGraphicsPipelineMap& getRenderPassGraphicsPipelineMap() { return mRenderPassGraphicsPipelines; }
@@ -70,15 +52,23 @@ namespace DOH {
 			return group != mRenderPassGraphicsPipelines.end() && (group->second.find(name) != group->second.end());
 		}
 
+		/**
+		* Clear the list of graphics pipelines for given render pass. Does NOT close their GPU resources.
+		*/
 		inline void clearRenderPassGraphicsPipelines(const ERenderPass renderPass) {
 			const auto groupItr = mRenderPassGraphicsPipelines.find(renderPass);
 			if (groupItr != mRenderPassGraphicsPipelines.end()) {
+				mPipelineCount -= static_cast<uint32_t>(groupItr->second.size());
 				groupItr->second.clear();
 			}
 		}
-		inline void clearRenderPassGroups() { mRenderPassGraphicsPipelines.clear(); }
+		/**
+		* Clear the entire map, all graphics pipelines for all render passes. Does NOT close their GPU resources.
+		*/
+		inline void clearRenderPassGroups() { mRenderPassGraphicsPipelines.clear(); mPipelineCount = 0; }
 		
 		inline uint32_t getRenderPassGroupCount() const { return static_cast<uint32_t>(mRenderPassGraphicsPipelines.size()); }
 		inline uint32_t getPipelineCount() const { return mPipelineCount; }
+		inline const char* getName() const { return mName; }
 	};
 }

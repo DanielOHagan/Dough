@@ -119,12 +119,53 @@ namespace DOH::EDITOR {
 			renderer2d.drawTextString(*mTextDemo->Text);
 		}
 
+		if (mLineDemo->Render) {
+			for (size_t i = 0; i < mLineDemo->LineCount3d; i++) {
+				const size_t lineStartIndex = i * LineDemo::LINE_3D_INPUT_COMPONENT_COUNT;
+				context.drawLine3d(
+					{
+						mLineDemo->LineData3d[lineStartIndex + 0],
+						mLineDemo->LineData3d[lineStartIndex + 1],
+						mLineDemo->LineData3d[lineStartIndex + 2]
+					},
+					{
+						mLineDemo->LineData3d[lineStartIndex + 3],
+						mLineDemo->LineData3d[lineStartIndex + 4],
+						mLineDemo->LineData3d[lineStartIndex + 5],
+					},
+					{
+						mLineDemo->LineData3d[lineStartIndex + 6],
+						mLineDemo->LineData3d[lineStartIndex + 7],
+						mLineDemo->LineData3d[lineStartIndex + 8],
+						mLineDemo->LineData3d[lineStartIndex + 9]
+					}
+				);
+			}
+		}
+
 		renderer.endScene();
 
 		renderer.beginUi(mCustomDemo->UiProjMat);
 		if (mCustomDemo->RenderUi) {
 			mCustomDemo->CustomUiConveyor.safeAddRenderable(mCustomDemo->UiRenderable);
 		}
+
+		if (mLineDemo->Render) {
+			for (size_t i = 0; i < mLineDemo->LineCount2d; i++) {
+				const size_t lineStartIndex = i * LineDemo::LINE_2D_INPUT_COMPONENT_COUNT;
+				context.drawLine2d(
+					{ mLineDemo->LineData2d[lineStartIndex + 0], mLineDemo->LineData2d[lineStartIndex + 1] },
+					{ mLineDemo->LineData2d[lineStartIndex + 2], mLineDemo->LineData2d[lineStartIndex + 3] },
+					{
+						mLineDemo->LineData2d[lineStartIndex + 4],
+						mLineDemo->LineData2d[lineStartIndex + 5],
+						mLineDemo->LineData2d[lineStartIndex + 6],
+						mLineDemo->LineData2d[lineStartIndex + 7]
+					}
+				);
+			}
+		}
+
 		renderer.endUi();
 	}
 
@@ -247,10 +288,13 @@ namespace DOH::EDITOR {
 				static const std::string addLabel = std::string(ImGuiWrapper::EMPTY_LABEL) + "Add";
 				static const std::string popLabel = std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop";
 
-				//TEMP:: Unload demo GPU resources (except pipeline) for unload demonstration
+				//TODO:: Pipeline uniform objects are NOT re-created during runtime causing a crash when trying to access them (e.g. camera UBO's)
+				//if (ImGui::Button("Load") && !mObjModelsDemo->GpuResourcesLoaded) {
+				//	mObjModelsDemo->init();
+				//}
+				//ImGui::SameLine();
 				if (ImGui::Button("Unload") && mObjModelsDemo->GpuResourcesLoaded) {
 					mObjModelsDemo->close();
-					mObjModelsDemo->GpuResourcesLoaded = false;
 				}
 				EditorGui::displayHelpTooltip("TEMP:: Currently only unloading certain GPU resources during runtime is supported, this is ONLY a demonstration and once unloaded this demo can only be loaded again by restarting.");
 				ImGui::TextColored(mObjModelsDemo->GpuResourcesLoaded ? ImVec4(0, 1, 0, 1) : ImVec4(1, 0, 0, 1), mObjModelsDemo->GpuResourcesLoaded ? "LOADED" : "NOT LOADED");
@@ -323,6 +367,57 @@ namespace DOH::EDITOR {
 				ImGui::EndTabItem();
 			}
 
+			if (ImGui::BeginTabItem("Line")) {
+				ImGui::Checkbox("Render", &mLineDemo->Render);
+
+				ImGui::Text("Scene Line Count: %i", mLineDemo->LineCount3d);
+				ImGui::Text("UI Line Count: %i", mLineDemo->LineCount2d);
+
+				float lineData[LineDemo::LINE_3D_INPUT_COMPONENT_COUNT] = {};
+				for (int i = 0; i < LineDemo::LINE_3D_INPUT_COMPONENT_COUNT; i++) {
+					lineData[i] = mLineDemo->LineDataInput[i];
+				}
+				ImGui::InputFloat3("Start", lineData);
+				ImGui::InputFloat3("End", &lineData[3]);
+				ImGui::ColorEdit4("Colour", &lineData[6]);
+				if (ImGui::Button("Add Line Scene")) {
+					if (lineData[0] != lineData[3] || lineData[1] != lineData[4] || lineData[2] != lineData[5]) {
+						mLineDemo->addLine3d(
+							{ lineData[0], lineData[1], lineData[2] },
+							{ lineData[3], lineData[4], lineData[5] },
+							{ lineData[6], lineData[7], lineData[8], lineData[9] }
+						);
+					} else {
+						LOG_WARN("Line Start and End are at the same point, line has not been added.")
+					}
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Add Line UI")) {
+					if (lineData[0] != lineData[3] || lineData[1] != lineData[4]) {
+						mLineDemo->addLine2d(
+							{ lineData[0], lineData[1] },
+							{ lineData[3], lineData[4] },
+							{ lineData[6], lineData[7], lineData[8], lineData[9] }
+						);
+					} else {
+						LOG_WARN("Line Start and End are at the same point, line has not been added.")
+					}
+				}
+				for (int i = 0; i < LineDemo::LINE_3D_INPUT_COMPONENT_COUNT; i++) {
+					mLineDemo->LineDataInput[i] = lineData[i];
+				}
+				ImGui::InputInt("Pop count", &mLineDemo->LinePopCount);
+				if (ImGui::Button("Pop Line(s) Scene")) {
+					mLineDemo->popLines3d(mLineDemo->LinePopCount);
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Pop Line(s) UI")) {
+					mLineDemo->popLines2d(mLineDemo->LinePopCount);
+				}
+
+				ImGui::EndTabItem();
+			}
+
 			ImGui::EndTabBar();
 
 			ImGui::NewLine();
@@ -343,6 +438,9 @@ namespace DOH::EDITOR {
 
 				mTextDemo->Render = false;
 				mTextDemo->Update = false;
+
+				mLineDemo->Render = false;
+				mLineDemo->Update = false;
 			}
 			if (ImGui::Button("View atlas texture")) {
 				EditorGui::openMonoSpaceTextureAtlasViewerWindow(*renderer2d.getStorage().getTestTextureAtlas());
@@ -435,14 +533,21 @@ namespace DOH::EDITOR {
 		mTextDemo = std::make_unique<TextDemo>();
 		mTextDemo->init();
 
+		mLineDemo = std::make_unique<LineDemo>();
+		mLineDemo->init();
+
 		context.createPipelineUniformObjects();
 	}
 
 	void DemoLiciousAppLogic::closeDemos() {
-		mObjModelsDemo->close();
+		if (mObjModelsDemo->GpuResourcesLoaded) {
+			mObjModelsDemo->close();
+		}
 		mObjModelsDemo.release();
 
-		mCustomDemo->close();
+		if (mCustomDemo->GpuResourcesLoaded) {
+			mCustomDemo->close();
+		}
 		mCustomDemo.release();
 
 		mTextDemo->close();
@@ -450,6 +555,9 @@ namespace DOH::EDITOR {
 
 		mGridDemo->close();
 		mGridDemo.release();
+
+		mLineDemo->close();
+		mLineDemo.release();
 
 		closeSharedResources();
 	}
@@ -519,16 +627,24 @@ namespace DOH::EDITOR {
 			mSharedDemoResources->TexturedPipelineName,
 			*mSharedDemoResources->TexturedPipelineInfo
 		);
+
+		mSharedDemoResources->GpuResourcesLoaded = true;
 	}
 
 	void DemoLiciousAppLogic::closeSharedResources() {
 		if (mCustomDemo != nullptr || mObjModelsDemo != nullptr) {
 			LOG_WARN("All demos using shared resources must be closed before closing shared resources");
-		} else {
+		} else if (mSharedDemoResources->GpuResourcesLoaded) {
 			RendererVulkan& renderer = GET_RENDERER;
 			renderer.closeGpuResource(mSharedDemoResources->TexturedShaderProgram);
+			renderer.getContext().closePipeline(
+				mSharedDemoResources->TexturedPipelineInfo->getRenderPass(),
+				SharedDemoResources::TexturedPipelineName
+			);
 			renderer.closeGpuResource(mSharedDemoResources->TestTexture1);
 			renderer.closeGpuResource(mSharedDemoResources->TestTexture2);
+
+			mSharedDemoResources->GpuResourcesLoaded = false;
 		}
 	}
 
@@ -625,6 +741,12 @@ namespace DOH::EDITOR {
 		LoadedModels.clear();
 		RenderableObjects.clear();
 		renderer.closeGpuResource(SceneShaderProgram);
+
+		auto& context = renderer.getContext();
+		context.closePipeline(ScenePipelineInfo->getRenderPass(), ScenePipelineName);
+		context.closePipeline(SceneWireframePipelineInfo->getRenderPass(), SceneWireframePipelineName);
+
+		GpuResourcesLoaded = false;
 	}
 
 	void DemoLiciousAppLogic::ObjModelsDemo::addObject(
@@ -796,6 +918,8 @@ namespace DOH::EDITOR {
 	
 		RenderingContextVulkan& context = Application::get().getRenderer().getContext();
 		CustomUiConveyor = context.createPipeline(UiPipelineName, *UiPipelineInfo);
+
+		GpuResourcesLoaded = true;
 	}
 
 	void DemoLiciousAppLogic::CustomDemo::close() {
@@ -808,6 +932,9 @@ namespace DOH::EDITOR {
 		renderer.closeGpuResource(SceneVao);
 		renderer.closeGpuResource(UiShaderProgram);
 		renderer.closeGpuResource(UiVao);
+		renderer.getContext().closePipeline(UiPipelineInfo->getRenderPass(), UiPipelineName);
+
+		GpuResourcesLoaded = false;
 	}
 
 	void DemoLiciousAppLogic::GridDemo::init() {
@@ -909,5 +1036,61 @@ namespace DOH::EDITOR {
 
 	void DemoLiciousAppLogic::TextDemo::close() {
 		Text.release();
+	}
+
+	void DemoLiciousAppLogic::LineDemo::init() {
+		LineData2d = {};
+		LineData3d = {};
+		LineDataInput[0] = 0.0f;
+		LineDataInput[1] = 0.0f;
+		LineDataInput[2] = 0.0f;
+		LineDataInput[3] = 0.0f;
+		LineDataInput[4] = 0.0f;
+		LineDataInput[5] = 0.0f;
+		LineDataInput[6] = 0.0f;
+		LineDataInput[7] = 0.0f;
+		LineDataInput[8] = 0.0f;
+		LineDataInput[9] = 1.0f;
+	}
+
+	void DemoLiciousAppLogic::LineDemo::close() {
+		LineData2d.clear();
+		LineData3d.clear();
+	}
+
+	void DemoLiciousAppLogic::LineDemo::addLine2d(glm::vec2 start, glm::vec2 end, glm::vec4 colour) {
+		if (LineCount2d < LINE_BATCH_MAX_LINE_COUNT) {
+			LineData2d.reserve(LineData2d.size() + static_cast<size_t>(LINE_2D_INPUT_COMPONENT_COUNT));
+			LineData2d.emplace_back(start.x);
+			LineData2d.emplace_back(start.y);
+			LineData2d.emplace_back(end.x);
+			LineData2d.emplace_back(end.y);
+			LineData2d.emplace_back(colour.r);
+			LineData2d.emplace_back(colour.g);
+			LineData2d.emplace_back(colour.b);
+			LineData2d.emplace_back(colour.a);
+
+			LineCount2d++;
+			LineDataIndex2d += LINE_2D_INPUT_COMPONENT_COUNT;
+		}
+	}
+
+	void DemoLiciousAppLogic::LineDemo::addLine3d(glm::vec3 start, glm::vec3 end, glm::vec4 colour) {
+		if (LineCount3d < LINE_BATCH_MAX_LINE_COUNT) {
+			LineData3d.reserve(LineData3d.size() + static_cast<size_t>(LINE_3D_INPUT_COMPONENT_COUNT));
+			LineData3d.emplace_back(start.x);
+			LineData3d.emplace_back(start.y);
+			LineData3d.emplace_back(start.z);
+			LineData3d.emplace_back(end.x);
+			LineData3d.emplace_back(end.y);
+			LineData3d.emplace_back(end.z);
+			LineData3d.emplace_back(colour.r);
+			LineData3d.emplace_back(colour.g);
+			LineData3d.emplace_back(colour.b);
+			LineData3d.emplace_back(colour.a);
+
+			LineCount3d++;
+			LineDataIndex3d += LINE_3D_INPUT_COMPONENT_COUNT;
+		}
 	}
 }

@@ -76,6 +76,7 @@ namespace DOH {
 		virtual VertexArrayVulkan& getVao() const override { return Model->getVao(); };
 		//NOTE::Assumes pipeline wants transformation data for push constant
 		virtual void* getPushConstantPtr() const override { return &Transformation->Translation; };
+		virtual bool isIndexed() const override { return true; }
 
 		inline std::shared_ptr<ModelVulkan> getModel() const { return Model; }
 		inline const std::string& getName() const { return Name; }

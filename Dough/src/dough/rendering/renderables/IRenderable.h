@@ -11,5 +11,7 @@ namespace DOH {
 	public:
 		virtual VertexArrayVulkan& getVao() const = 0;
 		virtual void* getPushConstantPtr() const = 0;
+
+		virtual bool isIndexed() const = 0;
 	};
 }

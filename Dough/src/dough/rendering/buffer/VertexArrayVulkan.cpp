@@ -80,7 +80,7 @@ namespace DOH {
 			debugInfo.VertexArrayBinds++;
 		}
 
-		if (!mSharingIndexBuffer) {
+		if (!mSharingIndexBuffer && mIndexBuffer != nullptr) {
 			mIndexBuffer->bind(cmd);
 			debugInfo.IndexBufferBinds++;
 		}
@@ -111,7 +111,7 @@ namespace DOH {
 			vertexBuffer->close(logicDevice);
 		}
 
-		if (!mSharingIndexBuffer) {
+		if (!mSharingIndexBuffer && mIndexBuffer != nullptr) {
 			mIndexBuffer->close(logicDevice);
 		}
 
@@ -125,6 +125,6 @@ namespace DOH {
 			}
 		}
 
-		return !mSharingIndexBuffer && mIndexBuffer->isUsingGpuResource();
+		return !mSharingIndexBuffer && mIndexBuffer != nullptr && mIndexBuffer->isUsingGpuResource();
 	}
 }
