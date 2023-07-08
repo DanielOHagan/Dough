@@ -15,7 +15,8 @@ namespace DOH {
 		VkExtent2D extent
 	) : mGraphicsPipeline(VK_NULL_HANDLE),
 		mGraphicsPipelineLayout(VK_NULL_HANDLE),
-		mInstanceInfo(instanceInfo)
+		mInstanceInfo(instanceInfo),
+		mEnabled(true)
 	{
 		createUniformObjects(logicDevice);
 		createPipelineLayout(logicDevice);

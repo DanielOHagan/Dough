@@ -88,6 +88,9 @@ namespace DOH {
 		mRenderer2d = std::make_unique<Renderer2dVulkan>(*this);
 		mRenderer2d->init();
 
+		mLineRenderer = std::make_unique<LineRenderer>();
+		mLineRenderer->init(mLogicDevice, mSwapChain->getExtent(), sizeof(UniformBufferObject));
+
 		mImGuiWrapper = std::make_unique<ImGuiWrapper>();
 		ImGuiInitInfo imGuiInitInfo = {};
 		imGuiInitInfo.ImageCount = mSwapChain->getImageCount();
@@ -105,8 +108,6 @@ namespace DOH {
 
 		//TEMP:: In future multiple custom render states will be possible at once along with "built-in" render states (e.g. 2D batch renderer and Text)
 		mCurrentRenderState = std::make_unique<CustomRenderState>("Application Render State");
-
-		createLineRenderer();
 	}
 
 	void RenderingContextVulkan::close() {
@@ -129,7 +130,9 @@ namespace DOH {
 		if (mImGuiWrapper != nullptr) {
 			mImGuiWrapper->close(mLogicDevice);
 		}
-		closeLineRenderer();
+		if (mLineRenderer != nullptr) {
+			mLineRenderer->close(mLogicDevice);
+		}
 
 		closeSyncObjects();
 		closeRenderPasses();
@@ -193,17 +196,10 @@ namespace DOH {
 				}
 			}
 
-			{ //Line renderer
-				std::vector<DescriptorTypeInfo> sceneDescTypes = mAppSceneLineGraphicsPipeline->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes();
-				std::vector<DescriptorTypeInfo> uiDescTypes = mAppUiLineGraphicsPipeline->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes();
-				totalDescTypes.reserve(totalDescTypes.size() + sceneDescTypes.size() + uiDescTypes.size());
-
-				for (const DescriptorTypeInfo& descType : sceneDescTypes) {
-					totalDescTypes.emplace_back(descType);
-				}
-				for (const DescriptorTypeInfo& descType : uiDescTypes) {
-					totalDescTypes.emplace_back(descType);
-				}
+			std::vector<DescriptorTypeInfo> lineDescTypes = mLineRenderer->getDescriptorTypeInfo();
+			totalDescTypes.reserve(totalDescTypes.size() + lineDescTypes.size());
+			for (const auto& descType : lineDescTypes) {
+				totalDescTypes.emplace_back(descType);
 			}
 
 			if (totalDescTypes.size() > 0) {
@@ -251,13 +247,13 @@ namespace DOH {
 				}
 			}
 
-			{ //Line Renderer
-				mAppSceneLineGraphicsPipeline->recreate(mLogicDevice, extent, mAppSceneRenderPass->get());
-				createPipelineUniformObjects(*mAppSceneLineGraphicsPipeline, mDescriptorPool);
-
-				mAppUiLineGraphicsPipeline->recreate(mLogicDevice, extent, mAppUiRenderPass->get());
-				createPipelineUniformObjects(*mAppUiLineGraphicsPipeline, mDescriptorPool);
-			}
+			mLineRenderer->recreateGraphicsPipelines(
+				mLogicDevice,
+				extent,
+				*mAppSceneRenderPass,
+				*mAppUiRenderPass,
+				mDescriptorPool
+			);
 
 			mRenderer2d->onSwapChainResize(*mSwapChain);
 		}
@@ -345,41 +341,19 @@ namespace DOH {
 			}
 		}
 
-		{ //Draw Lines
-			if (mAppSceneLineGraphicsPipeline->isEnabled() && mAppSceneLineGraphicsPipeline->getVaoDrawCount() > 0) {
-				const uint32_t binding = 0;
-				mAppSceneLineGraphicsPipeline->setFrameUniformData(
-					mLogicDevice,
-					imageIndex,
-					binding,
-					&mAppSceneUbo,
-					sizeof(UniformBufferObject)
-				);
-
-				if (currentBindings.Pipeline != mAppSceneLineGraphicsPipeline->get()) {
-					mAppSceneLineGraphicsPipeline->bind(cmd);
-					debugInfo.PipelineBinds++;
-					currentBindings.Pipeline = mAppSceneLineGraphicsPipeline->get();
-				}
-
-				mAppSceneLineRenderable->getVao().setDrawCount(mAppSceneLineBatch->getVertexCount());
-
-				mAppSceneLineGraphicsPipeline->recordDrawCommands(imageIndex, cmd, currentBindings);
-				debugInfo.SceneDrawCalls += mAppSceneLineGraphicsPipeline->getVaoDrawCount();
-
-				mAppSceneLineRenderable->getVao().getVertexBuffers()[0]->setDataMapped(
-					mLogicDevice,
-					mAppSceneLineBatch->getData().data(),
-					mAppSceneLineBatch->getLineCount() * RenderBatchLineList::LINE_3D_SIZE
-				);
-
-				mAppSceneLineBatch->reset();
-			}
-		}
-
 		//Batch VAOs should have only one VAO and if the batch has at least one quad then there is a draw call
 		mRenderer2d->flushScene(imageIndex, cmd, currentBindings);
 		debugInfo.BatchRendererDrawCalls = mRenderer2d->getDrawCount();
+
+		mLineRenderer->drawScene(
+			mLogicDevice,
+			imageIndex,
+			&mAppSceneUbo,
+			sizeof(UniformBufferObject),
+			cmd,
+			currentBindings,
+			debugInfo
+		);
 
 		RenderPassVulkan::endRenderPass(cmd);
 	}
@@ -420,37 +394,15 @@ namespace DOH {
 			}
 		}
 
-		{ //Draw Lines
-			if (mAppUiLineGraphicsPipeline->isEnabled() && mAppUiLineGraphicsPipeline->getVaoDrawCount() > 0) {
-				const uint32_t binding = 0;
-				mAppUiLineGraphicsPipeline->setFrameUniformData(
-					mLogicDevice,
-					imageIndex,
-					binding,
-					&mAppUiProjection,
-					sizeof(UniformBufferObject)
-				);
-
-				if (currentBindings.Pipeline != mAppUiLineGraphicsPipeline->get()) {
-					mAppUiLineGraphicsPipeline->bind(cmd);
-					debugInfo.PipelineBinds++;
-					currentBindings.Pipeline = mAppUiLineGraphicsPipeline->get();
-				}
-
-				mAppUiLineRenderable->getVao().setDrawCount(mAppUiLineBatch->getVertexCount());
-
-				mAppUiLineGraphicsPipeline->recordDrawCommands(imageIndex, cmd, currentBindings);
-				debugInfo.UiDrawCalls += mAppUiLineGraphicsPipeline->getVaoDrawCount();
-
-				mAppUiLineRenderable->getVao().getVertexBuffers()[0]->setDataMapped(
-					mLogicDevice,
-					mAppUiLineBatch->getData().data(),
-					mAppUiLineBatch->getLineCount() * RenderBatchLineList::LINE_2D_SIZE
-				);
-
-				mAppUiLineBatch->reset();
-			}
-		}
+		mLineRenderer->drawUi(
+			mLogicDevice,
+			imageIndex,
+			&mAppUiProjection,
+			sizeof(UniformBufferObject),
+			cmd,
+			currentBindings,
+			debugInfo
+		);
 
 		RenderPassVulkan::endRenderPass(cmd);
 	}
@@ -729,124 +681,6 @@ namespace DOH {
 		}
 	}
 
-	void RenderingContextVulkan::createLineRenderer() {
-		{
-			//Scene
-			const StaticVertexInputLayout& sceneVertexLayout = StaticVertexInputLayout::get(APP_SCENE_LINE_VERTEX_TYPE);
-			const uint32_t line3dBatchSizeBytes = LINE_BATCH_MAX_LINE_COUNT * sceneVertexLayout.getStride();
-			std::shared_ptr<VertexArrayVulkan> vao = createVertexArray();
-			std::shared_ptr<VertexBufferVulkan> vbo = createVertexBuffer(
-				sceneVertexLayout,
-				static_cast<VkDeviceSize>(line3dBatchSizeBytes),
-				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-			);
-			vao->addVertexBuffer(vbo);
-			vao->getVertexBuffers()[0]->map(mLogicDevice, line3dBatchSizeBytes);
-
-			//TODO:: Index buffer usage?
-
-			mAppSceneLineRenderable = std::make_shared<SimpleRenderable>(vao, false);
-
-			mAppSceneLineShaderProgram = createShaderProgram(
-				createShader(EShaderType::VERTEX, mAppSceneLineRendererVertexShaderPath),
-				createShader(EShaderType::FRAGMENT, mAppSceneLineRendererFragmentShaderPath)
-			);
-
-			ShaderUniformLayout& layout = mAppSceneLineShaderProgram->getUniformLayout();
-			layout.setValue(0, sizeof(UniformBufferObject));
-
-			mAppSceneLineGraphicsPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-				sceneVertexLayout,
-				*mAppSceneLineShaderProgram,
-				ERenderPass::APP_SCENE
-			);
-			mAppSceneLineGraphicsPipelineInfo->getOptionalFields().PolygonMode = VK_POLYGON_MODE_LINE;
-			mAppSceneLineGraphicsPipelineInfo->getOptionalFields().CullMode = VK_CULL_MODE_NONE;
-			mAppSceneLineGraphicsPipelineInfo->getOptionalFields().Topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-			//mAppSceneLineGraphicsPipelineInfo->getOptionalFields().Topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
-			mAppSceneLineGraphicsPipelineInfo->getOptionalFields().ClearRenderablesAfterDraw = false;
-
-			//TODO:: Allow depth testing for line rendering?
-			//mAppSceneLineGraphicsPipelineInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS_OR_EQUAL);
-
-			mAppSceneLineGraphicsPipeline = createGraphicsPipeline(*mAppSceneLineGraphicsPipelineInfo, mSwapChain->getExtent());
-			mAppSceneLineBatch = std::make_unique<RenderBatchLineList>(APP_SCENE_LINE_VERTEX_TYPE, LINE_BATCH_MAX_LINE_COUNT);
-			mAppSceneLineGraphicsPipeline->addRenderableToDraw(mAppSceneLineRenderable);
-		}
-
-		{
-			//UI
-			const StaticVertexInputLayout& uiVertexLayout = StaticVertexInputLayout::get(APP_UI_LINE_VERTEX_TYPE);
-			const uint32_t line2dBatchSizeBytes = LINE_BATCH_MAX_LINE_COUNT * uiVertexLayout.getStride();
-			std::shared_ptr<VertexArrayVulkan> vao = createVertexArray();
-			std::shared_ptr<VertexBufferVulkan> vbo = createVertexBuffer(
-				uiVertexLayout,
-				static_cast<VkDeviceSize>(line2dBatchSizeBytes),
-				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-			);
-			vao->addVertexBuffer(vbo);
-			vao->getVertexBuffers()[0]->map(mLogicDevice, line2dBatchSizeBytes);
-
-			//TODO:: Index buffer usage
-
-			mAppUiLineRenderable = std::make_shared<SimpleRenderable>(vao, false);
-			mAppUiLineShaderProgram = createShaderProgram(
-				createShader(EShaderType::VERTEX, mAppUiLineRendererVertexShaderPath),
-				createShader(EShaderType::FRAGMENT, mAppUiLineRendererFragmentShaderPath)
-			);
-
-			ShaderUniformLayout& layout = mAppUiLineShaderProgram->getUniformLayout();
-			layout.setValue(0, sizeof(UniformBufferObject));
-
-			mAppUiLineGraphicsPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-				uiVertexLayout,
-				*mAppUiLineShaderProgram,
-				ERenderPass::APP_UI
-			);
-			mAppUiLineGraphicsPipelineInfo->getOptionalFields().PolygonMode = VK_POLYGON_MODE_LINE;
-			mAppUiLineGraphicsPipelineInfo->getOptionalFields().CullMode = VK_CULL_MODE_NONE;
-			mAppUiLineGraphicsPipelineInfo->getOptionalFields().Topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-			mAppUiLineGraphicsPipelineInfo->getOptionalFields().ClearRenderablesAfterDraw = false;
-
-			//TODO:: Allow depth testing for line rendering?
-			//mAppUiLineGraphicsPipelineInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS_OR_EQUAL);
-
-			mAppUiLineGraphicsPipeline = createGraphicsPipeline(*mAppUiLineGraphicsPipelineInfo, mSwapChain->getExtent());
-			mAppUiLineBatch = std::make_unique<RenderBatchLineList>(APP_UI_LINE_VERTEX_TYPE, LINE_BATCH_MAX_LINE_COUNT);
-			mAppUiLineGraphicsPipeline->addRenderableToDraw(mAppUiLineRenderable);
-		}
-	}
-
-	void RenderingContextVulkan::drawLine2d(const glm::vec2& start, const glm::vec2& end, const glm::vec4& colour) {
-		if (mAppUiLineBatch->hasSpace()) {
-			mAppUiLineBatch->add2d(start, end, colour);
-		} else {
-			LOG_WARN("App UI line batch max line count reached: " << mAppUiLineBatch->getMaxLineCount());
-		}
-	}
-
-	void RenderingContextVulkan::drawLine3d(const glm::vec3& start, const glm::vec3& end, const glm::vec4& colour) {
-		if (mAppSceneLineBatch->hasSpace()) {
-			mAppSceneLineBatch->add3d(start, end, colour);
-		} else {
-			LOG_WARN("App Scene line batch max line count reached: " << mAppSceneLineBatch->getMaxLineCount());
-		}
-	}
-
-	void RenderingContextVulkan::closeLineRenderer() {
-		mAppSceneLineRenderable->getVao().getVertexBuffers()[0]->unmap(mLogicDevice);
-		mAppSceneLineRenderable->getVao().close(mLogicDevice);
-		mAppSceneLineShaderProgram->close(mLogicDevice);
-		mAppSceneLineGraphicsPipeline->close(mLogicDevice);
-
-		mAppUiLineRenderable->getVao().getVertexBuffers()[0]->unmap(mLogicDevice);
-		mAppUiLineRenderable->getVao().close(mLogicDevice);
-		mAppUiLineShaderProgram->close(mLogicDevice);
-		mAppUiLineGraphicsPipeline->close(mLogicDevice);
-	}
-
 	void RenderingContextVulkan::createPipelineUniformObjects(GraphicsPipelineVulkan& pipeline, VkDescriptorPool descPool) {
 		if (pipeline.getShaderProgram().getUniformLayout().hasUniforms()) {
 			pipeline.createShaderUniforms(
@@ -878,7 +712,6 @@ namespace DOH {
 
 			const auto pipeline = createGraphicsPipeline(instanceInfo, mSwapChain->getExtent());
 			if (pipeline != nullptr) {
-				pipeline->setEnabled(enabled);
 				mCurrentRenderState->addPipelineToRenderPass(instanceInfo.getRenderPass(), name, pipeline);
 
 				return { *pipeline };
@@ -942,17 +775,11 @@ namespace DOH {
 			}
 		}
 
-		{ //Line Renderer
-			for (const auto& descType : mAppSceneLineGraphicsPipeline->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes()) {
-				descTypes.emplace_back(descType);
-			}
-			pipelineCount++;
-
-			for (const auto& descType : mAppUiLineGraphicsPipeline->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes()) {
-				descTypes.emplace_back(descType);
-			}
-			pipelineCount++;
+		for (const auto& descType : mLineRenderer->getDescriptorTypeInfo()) {
+			descTypes.emplace_back(descType);
 		}
+		pipelineCount += 2;
+
 
 		if (pipelineCount > 0) {
 			mDescriptorPool = createDescriptorPool(descTypes);
@@ -971,10 +798,8 @@ namespace DOH {
 				}
 			}
 
-			mAppSceneLineGraphicsPipeline->createShaderUniforms(mLogicDevice, mPhysicalDevice, imageCount, mDescriptorPool);
-			mAppSceneLineGraphicsPipeline->updateShaderUniforms(mLogicDevice, imageCount);
-			mAppUiLineGraphicsPipeline->createShaderUniforms(mLogicDevice, mPhysicalDevice, imageCount, mDescriptorPool);
-			mAppUiLineGraphicsPipeline->updateShaderUniforms(mLogicDevice, imageCount);
+			mLineRenderer->createShaderUniforms(mLogicDevice, mPhysicalDevice, imageCount, mDescriptorPool);
+			mLineRenderer->updateShaderUniforms(mLogicDevice, imageCount);
 		} else {
 			LOG_WARN("Attempted to create uniform objects when not using any custom pipelines");
 		}

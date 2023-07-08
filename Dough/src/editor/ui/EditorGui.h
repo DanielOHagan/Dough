@@ -4,6 +4,7 @@
 #include "dough/Core.h"
 #include "dough/rendering/textures/TextureVulkan.h"
 #include "dough/ImGuiWrapper.h"
+#include "dough/scene/geometry/primitives/Quad.h"
 
 #include "editor/ui/EditorResourceUiViewer.h"
 
@@ -42,6 +43,9 @@ namespace DOH::EDITOR {
 		bool isGuiHandlingKeyboardInputImpl();
 		bool isGuiHandlingMouseInputImpl();
 		bool isGuiHandlingTextInputImpl();
+
+		void imGuiControlsAGeometryImpl(AGeometry& geo);
+		void imGuiControlsQuadImpl(Quad& quad);
 
 		//-----GUI Implementation Agnostic Functions-----
 		void openTextureViewerWindowImpl(const TextureVulkan& texture);
@@ -227,6 +231,16 @@ namespace DOH::EDITOR {
 		* @returns If the GUI is handling any text event.
 		*/
 		static bool isGuiHandlingTextInput();
+
+		//-----Primitive Controls-----
+		/**
+		* Display controls for the Primitive Base Class: AGeometry
+		*/
+		static void controlsAGeometry(AGeometry& geo);
+		/**
+		* Display controls for the primitive: Quad
+		*/
+		static void controlsQuad(Quad& quad);
 		
 		
 		//IMPORTANT:: Calling this function outside of the table start/end is undefined behaviour.

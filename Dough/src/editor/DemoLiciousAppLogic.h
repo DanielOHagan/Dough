@@ -32,6 +32,8 @@ namespace DOH::EDITOR {
 		public:
 			virtual void init() = 0;
 			virtual void close() = 0;
+			virtual void renderImGuiMainTab() = 0;
+			virtual void renderImGuiExtras() = 0;
 		};
 
 		class ObjModelsDemo : public IDemo {
@@ -75,6 +77,7 @@ namespace DOH::EDITOR {
 
 			bool Update = false;
 			bool Render = false;
+			bool RenderObjModelsList = false;
 			bool RenderAllStandard = false; //Force all models to be rendered normally (ignores individual model Render bool)
 			bool RenderAllWireframe = false; //Force all models to be rendered as wireframe (ignores individual model Wireframe bool)
 
@@ -82,6 +85,8 @@ namespace DOH::EDITOR {
 
 			virtual void init() override;
 			virtual void close() override;
+			virtual void renderImGuiMainTab() override;
+			virtual void renderImGuiExtras() override;
 
 			void addObject(
 				const uint32_t modelIndex = 0,
@@ -170,6 +175,8 @@ namespace DOH::EDITOR {
 
 			virtual void init() override;
 			virtual void close() override;
+			virtual void renderImGuiMainTab() override;
+			virtual void renderImGuiExtras() override;
 		};
 
 		class GridDemo : public IDemo {
@@ -191,6 +198,8 @@ namespace DOH::EDITOR {
 
 			virtual void init() override;
 			virtual void close() override;
+			virtual void renderImGuiMainTab() override;
+			virtual void renderImGuiExtras() override;
 		};
 
 		class BouncingQuadDemo : public IDemo {
@@ -209,6 +218,8 @@ namespace DOH::EDITOR {
 		
 			virtual void init() override;
 			virtual void close() override;
+			virtual void renderImGuiMainTab() override;
+			virtual void renderImGuiExtras() override;
 		
 			void addRandomQuads(size_t count);
 			void popQuads(size_t count);
@@ -227,6 +238,8 @@ namespace DOH::EDITOR {
 
 			virtual void init() override;
 			virtual void close() override;
+			virtual void renderImGuiMainTab() override;
+			virtual void renderImGuiExtras() override;
 		};
 
 		class LineDemo : public IDemo {
@@ -235,42 +248,48 @@ namespace DOH::EDITOR {
 			static constexpr uint32_t LINE_3D_INPUT_COMPONENT_COUNT = 10; //3 for start, 3 for end, 4 for colour
 			std::vector<float> LineData2d;
 			std::vector<float> LineData3d;
+			Quad UiQuadTest = { {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, { 0.0f, 1.0f, 0.0f, 1.0f } };
 			float LineDataInput[LINE_3D_INPUT_COMPONENT_COUNT];
 			uint32_t LineCount2d = 0;
 			uint32_t LineCount3d = 0;
 			uint32_t LineDataIndex2d = 0;
 			uint32_t LineDataIndex3d = 0;
-			int LinePopCount = 0;
+			int LinePopCount = 1;
 
 			bool Update = false;
 			bool Render = false;
 
+			bool RenderTextDemoOutlines = false;
+			bool RenderUiQuad = false;
+
 			virtual void init() override;
 			virtual void close() override;
+			virtual void renderImGuiMainTab() override;
+			virtual void renderImGuiExtras() override;
 
 			void addLine2d(glm::vec2 start, glm::vec2 end, glm::vec4 colour);
 			void addLine3d(glm::vec3 start, glm::vec3 end, glm::vec4 colour);
 			inline void popLine2d() {
-				if (LineData2d.size() > 0) {
+				if (LineCount2d > 0) {
 					LineData2d.resize(LineData2d.size() - static_cast<size_t>(LINE_2D_INPUT_COMPONENT_COUNT));
 					LineCount2d--;
 					LineDataIndex2d -= LINE_2D_INPUT_COMPONENT_COUNT;
 				}
 			};
 			inline void popLine3d() {
-				if (LineData3d.size() > 0) {
+				if (LineCount3d > 0) {
 					LineData3d.resize(LineData3d.size() - static_cast<size_t>(LINE_3D_INPUT_COMPONENT_COUNT));
 					LineCount3d--;
 					LineDataIndex3d -= LINE_3D_INPUT_COMPONENT_COUNT;
 				}
 			};
 			inline void popLines2d(const uint32_t count) {
-				if (LineCount2d > 0) {
-					if (count > LineData2d.size()) {
+				if (LineCount2d > 0 && count > 0) {
+					if (count >= LineCount2d) {
 						LineData2d.clear();
 						LineCount2d = 0;
 						LineDataIndex2d = 0;
-					} else if (count > 0) {
+					} else {
 						LineData2d.resize(LineData2d.size() - static_cast<size_t>(count * LINE_2D_INPUT_COMPONENT_COUNT));
 						LineCount2d -= count;
 						LineDataIndex2d -= count * LINE_2D_INPUT_COMPONENT_COUNT;
@@ -278,12 +297,12 @@ namespace DOH::EDITOR {
 				}
 			}
 			inline void popLines3d(const uint32_t count) {
-				if (LineCount3d > 0) {
-					if (count > LineData3d.size()) {
+				if (LineCount3d > 0 && count > 0) {
+					if (count >= LineCount3d) {
 						LineData3d.clear();
 						LineCount3d = 0;
 						LineDataIndex3d = 0;
-					} else if (count > 0) {
+					} else {
 						LineData3d.resize(LineData3d.size() - static_cast<size_t>(count * LINE_3D_INPUT_COMPONENT_COUNT));
 						LineCount3d -= count;
 						LineDataIndex3d -= count * LINE_3D_INPUT_COMPONENT_COUNT;

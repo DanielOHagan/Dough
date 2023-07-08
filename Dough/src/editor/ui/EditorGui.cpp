@@ -226,6 +226,27 @@ namespace DOH::EDITOR {
 		return ImGui::GetIO().WantTextInput;
 	}
 
+	void EditorGui::imGuiControlsAGeometryImpl(AGeometry& geo) {
+		//TODO:: Add a UUID for ImGui inputs (e.g. ColorEdit4("Colour##" << quad.UUID))
+		//TODO:: Arbitrary limits copied from an ObjDemo DragFloat3 call, change these so they aren't so limiting.
+
+		ImGui::DragFloat3("Pos##", glm::value_ptr(geo.Position), 0.05f, -10.0f, 10.0f);
+		ImGui::DragFloat2("Size##", glm::value_ptr(geo.Size), 0.05f, -10.0f, 10.0f);
+		ImGui::DragFloat("Rotation##", &geo.Rotation);
+		displayHelpTooltip("INFO:: Rotation not currently supported by quad renderer.");
+	}
+
+	void EditorGui::imGuiControlsQuadImpl(Quad& quad) {
+		//TODO:: Add a UUID for ImGui inputs (e.g. ColorEdit4("Colour##" << quad.UUID))
+
+		imGuiControlsAGeometryImpl(quad);
+		ImGui::ColorEdit4("Colour##", glm::value_ptr(quad.Colour));
+		//ImGui::ColorEdit4("Colour", glm::value_ptr(quad.Colour));
+		const char* text = (quad.hasTexture() ? quad.getTexture().getName().c_str() : "No Texture");
+		ImGui::Text("Texture: %s", text);
+		//TODO:: Texture Coord edit?
+	}
+
 	void EditorGui::imGuiPrintMat4x4Impl(const glm::mat4x4& mat, const char* name) {
 		ImGui::Text(name);
 
@@ -366,5 +387,13 @@ namespace DOH::EDITOR {
 	
 	bool EditorGui::isGuiHandlingTextInput() {
 		return INSTANCE->isGuiHandlingTextInputImpl();
+	}
+
+	void EditorGui::controlsAGeometry(AGeometry& geo) {
+		INSTANCE->imGuiControlsAGeometryImpl(geo);
+	}
+
+	void EditorGui::controlsQuad(Quad& quad) {
+		INSTANCE->imGuiControlsQuadImpl(quad);
 	}
 }

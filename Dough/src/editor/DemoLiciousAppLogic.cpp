@@ -120,9 +120,18 @@ namespace DOH::EDITOR {
 		}
 
 		if (mLineDemo->Render) {
-			for (size_t i = 0; i < mLineDemo->LineCount3d; i++) {
-				const size_t lineStartIndex = i * LineDemo::LINE_3D_INPUT_COMPONENT_COUNT;
-				context.drawLine3d(
+			auto& lineRenderer = context.getLineRenderer();
+			const uint32_t spaceRemaining = lineRenderer.getSceneMaxLineCount() - lineRenderer.getSceneLineCount();
+
+			if (mLineDemo->RenderTextDemoOutlines) {
+				for (const Quad& quad : mTextDemo->Text->getQuads()) {
+					lineRenderer.drawQuadScene(quad, { 1.0f, 0.0f, 1.0f, 1.0f });
+				}
+			}
+
+			for (uint32_t i = 0; i < mLineDemo->LineCount3d && i < spaceRemaining; i++) {
+				const size_t lineStartIndex = static_cast<size_t>(i) * LineDemo::LINE_3D_INPUT_COMPONENT_COUNT;
+				lineRenderer.drawLineScene(
 					{
 						mLineDemo->LineData3d[lineStartIndex + 0],
 						mLineDemo->LineData3d[lineStartIndex + 1],
@@ -141,6 +150,10 @@ namespace DOH::EDITOR {
 					}
 				);
 			}
+
+			if (spaceRemaining < mLineDemo->LineCount3d) {
+				LOG_WARN("LineDemo 3D lines truncated: " << mLineDemo->LineCount3d - spaceRemaining);
+			}
 		}
 
 		renderer.endScene();
@@ -151,9 +164,18 @@ namespace DOH::EDITOR {
 		}
 
 		if (mLineDemo->Render) {
-			for (size_t i = 0; i < mLineDemo->LineCount2d; i++) {
-				const size_t lineStartIndex = i * LineDemo::LINE_2D_INPUT_COMPONENT_COUNT;
-				context.drawLine2d(
+			auto& lineRenderer = context.getLineRenderer();
+
+			if (mLineDemo->RenderUiQuad) {
+				lineRenderer.drawQuadUi(mLineDemo->UiQuadTest, mLineDemo->UiQuadTest.Colour);
+			}
+
+			
+			const uint32_t spaceRemaining = lineRenderer.getUiMaxLineCount() - lineRenderer.getUiLineCount();
+
+			for (uint32_t i = 0; i < mLineDemo->LineCount2d && i < spaceRemaining; i++) {
+				const size_t lineStartIndex = static_cast<size_t>(i) * LineDemo::LINE_2D_INPUT_COMPONENT_COUNT;
+				lineRenderer.drawLineUi(
 					{ mLineDemo->LineData2d[lineStartIndex + 0], mLineDemo->LineData2d[lineStartIndex + 1] },
 					{ mLineDemo->LineData2d[lineStartIndex + 2], mLineDemo->LineData2d[lineStartIndex + 3] },
 					{
@@ -163,6 +185,10 @@ namespace DOH::EDITOR {
 						mLineDemo->LineData2d[lineStartIndex + 7]
 					}
 				);
+
+				if (spaceRemaining < mLineDemo->LineCount2d) {
+					LOG_WARN("LineDemo 2D lines truncated: " << mLineDemo->LineCount2d - spaceRemaining);
+				}
 			}
 		}
 
@@ -177,246 +203,13 @@ namespace DOH::EDITOR {
 			ImGui::Text("Demo Settings & Info:");
 
 			ImGui::BeginTabBar("Demo Tab Bar");
-			if (ImGui::BeginTabItem("Grid")) {
-				ImGui::Checkbox("Render", &mGridDemo->Render);
-				ImGui::Checkbox("Update", &mGridDemo->Update);
-				ImGui::Checkbox("Draw Colour", &mGridDemo->QuadDrawColour);
-				ImGui::Text("Grid Quad Count: %i of Max %i", mGridDemo->TestGridSize[0] * mGridDemo->TestGridSize[1], mGridDemo->TestGridMaxQuadCount);
-				int tempTestGridSize[2] = { mGridDemo->TestGridSize[0], mGridDemo->TestGridSize[1] };
-				if (ImGui::InputInt2("Grid Size", tempTestGridSize)) {
-					if (tempTestGridSize[0] > 0 && tempTestGridSize[1] > 0) {
-						const int tempGridQuadCount = tempTestGridSize[0] * tempTestGridSize[1];
-						if (tempGridQuadCount <= mGridDemo->TestGridMaxQuadCount) {
-							mGridDemo->TestGridSize[0] = tempTestGridSize[0];
-							mGridDemo->TestGridSize[1] = tempTestGridSize[1];
-							mGridDemo->IsUpToDate = false;
-						} else {
-							LOG_WARN(
-								"New grid size of " << tempTestGridSize[0] << "x" << tempTestGridSize[1] <<
-								" (" << tempTestGridSize[0] * tempTestGridSize[1] <<
-								") is too large, max quad count is " << mGridDemo->TestGridMaxQuadCount
-							);
-						}
-					}
-				}
-				if (ImGui::DragFloat2("Quad Size", mGridDemo->TestGridQuadSize, 0.001f, 0.01f, 0.5f)) {
-					mGridDemo->IsUpToDate = false;
-				}
-				if (ImGui::DragFloat2("Quad Gap Size", mGridDemo->TestGridQuadGapSize, 0.001f, 0.01f, 0.5f)) {
-					mGridDemo->IsUpToDate = false;
-				}
-				//ImGui::DragFloat2("Test Grid Origin Pos", );
-				//ImGui::Text("UI Quad Count: %i", renderer.getContext().getRenderer2d().getStorage().getUiQuadCount());
 
-				//TOOD:: maybe have radio buttons for RenderStaticGrid or RenderDynamicGrid,
-				//	static being the default values and dynamic being from the variables determined by ths menu
-				// Maybe have the dynamic settings hidden unless dynamic is selected
-
-				MonoSpaceTextureAtlas& atlas = *renderer.getContext().getRenderer2d().getStorage().getTestTextureAtlas();
-
-				int tempTestTextureRowOffset = mGridDemo->TestTexturesRowOffset;
-				if (ImGui::InputInt("Test Texture Row Offset", &tempTestTextureRowOffset)) {
-					mGridDemo->TestTexturesRowOffset = tempTestTextureRowOffset < 0 ?
-						0 : tempTestTextureRowOffset % atlas.getRowCount();
-					mGridDemo->IsUpToDate = false;
-				}
-				int tempTestTextureColOffset = mGridDemo->TestTexturesColumnOffset;
-				if (ImGui::InputInt("Test Texture Col Offset", &tempTestTextureColOffset)) {
-					mGridDemo->TestTexturesColumnOffset = tempTestTextureColOffset < 0 ?
-						0 : tempTestTextureColOffset % atlas.getColCount();
-					mGridDemo->IsUpToDate = false;
-				}
-
-				if (ImGui::ColorEdit4("Grid Colour", &mGridDemo->QuadColour.x)) {
-					mGridDemo->IsUpToDate = false;
-				}
-
-				if (ImGui::Button("Reset Grid")) {
-					mGridDemo->TestGridSize[0] = 10;
-					mGridDemo->TestGridSize[1] = 10;
-					mGridDemo->TestGridQuadSize[0] = 0.1f;
-					mGridDemo->TestGridQuadSize[1] = 0.1f;
-					mGridDemo->TestGridQuadGapSize[0] = mGridDemo->TestGridQuadSize[0] * 1.5f;
-					mGridDemo->TestGridQuadGapSize[1] = mGridDemo->TestGridQuadSize[1] * 1.5f;
-					mGridDemo->IsUpToDate = false;
-				}
-
-				ImGui::EndTabItem();
-			}
-			if (ImGui::BeginTabItem("Bouncing Quads")) {
-				ImGui::Checkbox("Render", &mBouncingQuadDemo->Render);
-				ImGui::Checkbox("Update", &mBouncingQuadDemo->Update);
-				ImGui::Checkbox("Draw Colour", &mBouncingQuadDemo->QuadDrawColour);
-				ImGui::Text("Bouncing Quads Count: %i", mBouncingQuadDemo->BouncingQuads.size());
-				auto& demo = mBouncingQuadDemo;
-				if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Add").c_str(), &demo->AddNewQuadCount, 5, 5)) {
-					if (demo->AddNewQuadCount < 0) {
-						demo->AddNewQuadCount = 0;
-					} else if (demo->AddNewQuadCount > 1000) {
-						demo->AddNewQuadCount = 1000;
-					}
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Add Quads")) {
-					mBouncingQuadDemo->addRandomQuads(demo->AddNewQuadCount);
-				}
-				if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop").c_str(), &demo->PopQuadCount, 5, 5)) {
-					if (demo->PopQuadCount < 0) {
-						demo->PopQuadCount = 0;
-					}
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Pop Quads")) {
-					mBouncingQuadDemo->popQuads(demo->PopQuadCount);
-				}
-				if (ImGui::Button("Clear Quads")) {
-					mBouncingQuadDemo->BouncingQuads.clear();
-				}
-
-				ImGui::EndTabItem();
-			}
-			if (ImGui::BeginTabItem("Custom")) {
-				ImGui::Checkbox("Render Scene", &mCustomDemo->RenderScene);
-				ImGui::Checkbox("Render UI", &mCustomDemo->RenderUi);
-				ImGui::Checkbox("Update", &mCustomDemo->Update);
-
-				ImGui::EndTabItem();
-			}
-			if (ImGui::BeginTabItem("Obj Models")) {
-				auto& renderables = mObjModelsDemo->RenderableObjects;
-				auto& demo = mObjModelsDemo;
-				static const std::string addLabel = std::string(ImGuiWrapper::EMPTY_LABEL) + "Add";
-				static const std::string popLabel = std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop";
-
-				//TODO:: Pipeline uniform objects are NOT re-created during runtime causing a crash when trying to access them (e.g. camera UBO's)
-				//if (ImGui::Button("Load") && !mObjModelsDemo->GpuResourcesLoaded) {
-				//	mObjModelsDemo->init();
-				//}
-				//ImGui::SameLine();
-				if (ImGui::Button("Unload") && mObjModelsDemo->GpuResourcesLoaded) {
-					mObjModelsDemo->close();
-				}
-				EditorGui::displayHelpTooltip("TEMP:: Currently only unloading certain GPU resources during runtime is supported, this is ONLY a demonstration and once unloaded this demo can only be loaded again by restarting.");
-				ImGui::TextColored(mObjModelsDemo->GpuResourcesLoaded ? ImVec4(0, 1, 0, 1) : ImVec4(1, 0, 0, 1), mObjModelsDemo->GpuResourcesLoaded ? "LOADED" : "NOT LOADED");
-
-				ImGui::Checkbox("Render", &demo->Render);
-				ImGui::Checkbox("Update", &demo->Update);
-				ImGui::Text("Object Count: %i", renderables.size());
-				if (ImGui::InputInt(addLabel.c_str(), &demo->AddNewObjectsCount, 5, 5)) {
-					if (demo->AddNewObjectsCount < 0) {
-						demo->AddNewObjectsCount = 0;
-					} else if (demo->AddNewObjectsCount > 1000) {
-						demo->AddNewObjectsCount = 1000;
-					}
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Add Object")) {
-					for (int i = 0; i < demo->AddNewObjectsCount; i++) {
-						mObjModelsDemo->addRandomisedObject();
-					}
-				}
-				if (ImGui::InputInt(popLabel.c_str(), &demo->PopObjectsCount, 5, 5)) {
-					if (demo->PopObjectsCount < 0) {
-						demo->PopObjectsCount = 0;
-					}
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Pop Object")) {
-					//Max out pop count to renderables list size
-					const int size = static_cast<int>(demo->RenderableObjects.size());
-					const int popCount = demo->PopObjectsCount > size ? size : demo->PopObjectsCount;
-
-					for (int i = 0; i < popCount; i++) {
-						demo->RenderableObjects.pop_back();
-					}
-				}
-				ImGui::Checkbox("Display Renderable Models List", &mImGuiSettings->RenderObjModelsList);
-				if (ImGui::Button("Clear Objects")) {
-					renderables.clear();
-				}
-
-				ImGui::Checkbox("Render Textured Model", &mObjModelsDemo->RenderableTexturedModel->Render);
-				//TODO:: TexturedModel Wireframe rendering not currently supported
-				//ImGui::Checkbox("Render Wireframe Textured Model", &mObjModelsDemo->RenderableTexturedModel->RenderWireframe);
-
-				ImGui::EndTabItem();
-			}
-
-			if (ImGui::BeginTabItem("Text")) {
-				ImGui::Checkbox("Render", &mTextDemo->Render);
-
-				ImGui::Text("String length limit: %i", TextDemo::StringLengthLimit);
-				EditorGui::displayHelpTooltip(
-					R"(Larger strings can be displayed as the text renderer uses a Quad batch of size 10,000 (by default). )"
-					R"(The limitation is because ImGui InputText field requires extra implementation for dynamic data on the heap.)"
-				);
-
-				if (ImGui::InputTextMultiline("Display Text", mTextDemo->StringBuffer, sizeof(mTextDemo->StringBuffer))) {
-					mTextDemo->Text->setString(mTextDemo->StringBuffer);
-				}
-
-				float tempScale = mTextDemo->Text->getScale();
-				if (ImGui::DragFloat("Text Scale", &tempScale, 0.05f, 0.05f, 5.0f)) {
-					mTextDemo->Text->setScale(tempScale);
-				}
-
-				if (ImGui::ColorEdit4("String Colour", &mTextDemo->Colour.x)) {
-					mTextDemo->Text->setColour(mTextDemo->Colour);
-				}
-
-				ImGui::EndTabItem();
-			}
-
-			if (ImGui::BeginTabItem("Line")) {
-				ImGui::Checkbox("Render", &mLineDemo->Render);
-
-				ImGui::Text("Scene Line Count: %i", mLineDemo->LineCount3d);
-				ImGui::Text("UI Line Count: %i", mLineDemo->LineCount2d);
-
-				float lineData[LineDemo::LINE_3D_INPUT_COMPONENT_COUNT] = {};
-				for (int i = 0; i < LineDemo::LINE_3D_INPUT_COMPONENT_COUNT; i++) {
-					lineData[i] = mLineDemo->LineDataInput[i];
-				}
-				ImGui::InputFloat3("Start", lineData);
-				ImGui::InputFloat3("End", &lineData[3]);
-				ImGui::ColorEdit4("Colour", &lineData[6]);
-				if (ImGui::Button("Add Line Scene")) {
-					if (lineData[0] != lineData[3] || lineData[1] != lineData[4] || lineData[2] != lineData[5]) {
-						mLineDemo->addLine3d(
-							{ lineData[0], lineData[1], lineData[2] },
-							{ lineData[3], lineData[4], lineData[5] },
-							{ lineData[6], lineData[7], lineData[8], lineData[9] }
-						);
-					} else {
-						LOG_WARN("Line Start and End are at the same point, line has not been added.")
-					}
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Add Line UI")) {
-					if (lineData[0] != lineData[3] || lineData[1] != lineData[4]) {
-						mLineDemo->addLine2d(
-							{ lineData[0], lineData[1] },
-							{ lineData[3], lineData[4] },
-							{ lineData[6], lineData[7], lineData[8], lineData[9] }
-						);
-					} else {
-						LOG_WARN("Line Start and End are at the same point, line has not been added.")
-					}
-				}
-				for (int i = 0; i < LineDemo::LINE_3D_INPUT_COMPONENT_COUNT; i++) {
-					mLineDemo->LineDataInput[i] = lineData[i];
-				}
-				ImGui::InputInt("Pop count", &mLineDemo->LinePopCount);
-				if (ImGui::Button("Pop Line(s) Scene")) {
-					mLineDemo->popLines3d(mLineDemo->LinePopCount);
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Pop Line(s) UI")) {
-					mLineDemo->popLines2d(mLineDemo->LinePopCount);
-				}
-
-				ImGui::EndTabItem();
-			}
+			mGridDemo->renderImGuiMainTab();
+			mBouncingQuadDemo->renderImGuiMainTab();
+			mCustomDemo->renderImGuiMainTab();
+			mObjModelsDemo->renderImGuiMainTab();
+			mTextDemo->renderImGuiMainTab();
+			mLineDemo->renderImGuiMainTab();
 
 			ImGui::EndTabBar();
 
@@ -453,51 +246,12 @@ namespace DOH::EDITOR {
 		}
 		ImGui::End();
 
-
-		if (mImGuiSettings->RenderObjModelsList) {
-			if (ImGui::Begin("Renderable Models List", &mImGuiSettings->RenderObjModelsList)) {
-				const auto& renderables = mObjModelsDemo->RenderableObjects;
-				ImGui::Checkbox("Render All", &mObjModelsDemo->RenderAllStandard);
-				ImGui::SameLine();
-				ImGui::Checkbox("Render All Wireframe", &mObjModelsDemo->RenderAllWireframe);
-
-				//Render list of renderable OBJ models as a tree separating all into groups of 10 based on index
-				const int size = static_cast<int>(renderables.size());
-				if (size > 0) {
-					ImGui::TreePush();
-					ImGui::Unindent();
-
-					int objIndex = 0;
-					const int objectsPerNode = 10;
-					for (int nodeIterator = objIndex; nodeIterator < size; nodeIterator += objectsPerNode) {
-						if (ImGui::TreeNode(std::to_string(objIndex).c_str())) {
-							for (int i = objIndex; i < nodeIterator + objectsPerNode && i < size; i++) {
-								std::string uniqueImGuiId = "##" + std::to_string(i);
-								mObjModelsDemo->imGuiDrawObjDemoItem(*renderables[i], uniqueImGuiId);
-
-								//Separate individual OBJ model's UI for easier viewing by displaying an empty
-								// line in-between each one in the same node
-								if (
-									i < nodeIterator + objectsPerNode - 1 &&
-									i != size - 1 //Prevent NewLine after final UI item that is part-way through a node's list
-								) {
-									ImGui::NewLine();
-								}
-							}
-
-							ImGui::TreePop();
-						}
-						objIndex += objectsPerNode;
-					}
-
-					ImGui::TreePop();
-				} else {
-					ImGui::TextWrapped("No OBJ renderables exist, use the demo's editor to create some.");
-				}
-			}
-
-			ImGui::End();
-		}
+		mGridDemo->renderImGuiExtras();
+		mBouncingQuadDemo->renderImGuiExtras();
+		mCustomDemo->renderImGuiExtras();
+		mObjModelsDemo->renderImGuiExtras();
+		mTextDemo->renderImGuiExtras();
+		mLineDemo->renderImGuiExtras();
 	}
 
 	void DemoLiciousAppLogic::close() {
@@ -654,22 +408,22 @@ namespace DOH::EDITOR {
 		}
 	
 		//Spwan objects on incrementing x/y values of a grid with random z value
-		const float padding = 0.5f;
+		constexpr float padding = 0.5f;
 		for (uint32_t x = 0; x < 10; x++) {
 			for (uint32_t y = 0; y < 10; y++) {
 				//Add an object with a position based off of x & y value from loop, creates a grid like result
 				const uint32_t modelIndex = rand() % LoadedModels.size();
 				std::shared_ptr<TransformationData> transform = std::make_shared<TransformationData>(
 					glm::vec3(
-					(static_cast<float>(x) + padding) * 3.0f,
-					(static_cast<float>(y) + padding) * 3.0f,
-					static_cast<float>(rand() % 10)
-				),
+						(static_cast<float>(x) + padding) * 3.0f,
+						(static_cast<float>(y) + padding) * 3.0f,
+						static_cast<float>(rand() % 10)
+					),
 					glm::vec3(
-					static_cast<float>(rand() % 360),
-					static_cast<float>(rand() % 360),
-					static_cast<float>(rand() % 360)
-				),
+						static_cast<float>(rand() % 360),
+						static_cast<float>(rand() % 360),
+						static_cast<float>(rand() % 360)
+					),
 					1.0f
 				);
 				transform->updateTranslationMatrix();
@@ -747,6 +501,112 @@ namespace DOH::EDITOR {
 		context.closePipeline(SceneWireframePipelineInfo->getRenderPass(), SceneWireframePipelineName);
 
 		GpuResourcesLoaded = false;
+	}
+
+	void DemoLiciousAppLogic::ObjModelsDemo::renderImGuiMainTab() {
+		if (ImGui::BeginTabItem("Obj Models")) {
+			static const std::string addLabel = std::string(ImGuiWrapper::EMPTY_LABEL) + "Add";
+			static const std::string popLabel = std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop";
+
+			//TODO:: Pipeline uniform objects are NOT re-created during runtime causing a crash when trying to access them (e.g. camera UBO's)
+			//if (ImGui::Button("Load") && !mObjModelsDemo->GpuResourcesLoaded) {
+			//	mObjModelsDemo->init();
+			//}
+			//ImGui::SameLine();
+			if (ImGui::Button("Unload") && GpuResourcesLoaded) {
+				close();
+			}
+			EditorGui::displayHelpTooltip("TEMP:: Currently only unloading certain GPU resources during runtime is supported, this is ONLY a demonstration and once unloaded this demo can only be loaded again by restarting.");
+			ImGui::TextColored(GpuResourcesLoaded ? ImVec4(0, 1, 0, 1) : ImVec4(1, 0, 0, 1), GpuResourcesLoaded ? "LOADED" : "NOT LOADED");
+
+			ImGui::Checkbox("Render", &Render);
+			ImGui::Checkbox("Update", &Update);
+			ImGui::Text("Object Count: %i", RenderableObjects.size());
+			if (ImGui::InputInt(addLabel.c_str(), &AddNewObjectsCount, 5, 5)) {
+				if (AddNewObjectsCount < 0) {
+					AddNewObjectsCount = 0;
+				} else if (AddNewObjectsCount > 1000) {
+					AddNewObjectsCount = 1000;
+				}
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Add Object")) {
+				for (int i = 0; i < AddNewObjectsCount; i++) {
+					addRandomisedObject();
+				}
+			}
+			if (ImGui::InputInt(popLabel.c_str(), &PopObjectsCount, 5, 5)) {
+				if (PopObjectsCount < 0) {
+					PopObjectsCount = 0;
+				}
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Pop Object")) {
+				//Max out pop count to renderables list size
+				const int size = static_cast<int>(RenderableObjects.size());
+				const int popCount = PopObjectsCount > size ? size : PopObjectsCount;
+
+				for (int i = 0; i < popCount; i++) {
+					RenderableObjects.pop_back();
+				}
+			}
+			ImGui::Checkbox("Display Renderable Models List", &RenderObjModelsList);
+			if (ImGui::Button("Clear Objects")) {
+				RenderableObjects.clear();
+			}
+
+			ImGui::Checkbox("Render Textured Model", &RenderableTexturedModel->Render);
+			//TODO:: TexturedModel Wireframe rendering not currently supported
+			//ImGui::Checkbox("Render Wireframe Textured Model", &mObjModelsDemo->RenderableTexturedModel->RenderWireframe);
+
+			ImGui::EndTabItem();
+		}
+	}
+
+	void DemoLiciousAppLogic::ObjModelsDemo::renderImGuiExtras() {
+		if (RenderObjModelsList) {
+			if (ImGui::Begin("Renderable Models List", &RenderObjModelsList)) {
+				ImGui::Checkbox("Render All", &RenderAllStandard);
+				ImGui::SameLine();
+				ImGui::Checkbox("Render All Wireframe", &RenderAllWireframe);
+
+				//Render list of renderable OBJ models as a tree separating all into groups of 10 based on index
+				const int size = static_cast<int>(RenderableObjects.size());
+				if (size > 0) {
+					ImGui::TreePush();
+					ImGui::Unindent();
+
+					int objIndex = 0;
+					constexpr int objectsPerNode = 10;
+					for (int nodeIterator = objIndex; nodeIterator < size; nodeIterator += objectsPerNode) {
+						if (ImGui::TreeNode(std::to_string(objIndex).c_str())) {
+							for (int i = objIndex; i < nodeIterator + objectsPerNode && i < size; i++) {
+								std::string uniqueImGuiId = "##" + std::to_string(i);
+								imGuiDrawObjDemoItem(*RenderableObjects[i], uniqueImGuiId);
+
+								//Separate individual OBJ model's UI for easier viewing by displaying an empty
+								// line in-between each one in the same node
+								if (
+									i < nodeIterator + objectsPerNode - 1 &&
+									i != size - 1 //Prevent NewLine after final UI item that is part-way through a node's list
+								) {
+									ImGui::NewLine();
+								}
+							}
+
+							ImGui::TreePop();
+						}
+						objIndex += objectsPerNode;
+					}
+
+					ImGui::TreePop();
+				} else {
+					ImGui::TextWrapped("No OBJ renderables exist, use the demo's editor to create some.");
+				}
+			}
+
+			ImGui::End();
+		}
 	}
 
 	void DemoLiciousAppLogic::ObjModelsDemo::addObject(
@@ -937,12 +797,99 @@ namespace DOH::EDITOR {
 		GpuResourcesLoaded = false;
 	}
 
+	void DemoLiciousAppLogic::CustomDemo::renderImGuiMainTab() {
+		if (ImGui::BeginTabItem("Custom")) {
+			ImGui::Checkbox("Render Scene", &RenderScene);
+			ImGui::Checkbox("Render UI", &RenderUi);
+			ImGui::Checkbox("Update", &Update);
+
+			ImGui::EndTabItem();
+		}
+	}
+
+	void DemoLiciousAppLogic::CustomDemo::renderImGuiExtras() {
+		//No extra windows required for this demo
+	}
+
 	void DemoLiciousAppLogic::GridDemo::init() {
 		TestGridMaxQuadCount = Renderer2dStorageVulkan::MAX_BATCH_COUNT_QUAD * Renderer2dStorageVulkan::BATCH_MAX_GEO_COUNT_QUAD;
 	}
 
 	void DemoLiciousAppLogic::GridDemo::close() {
 		TexturedTestGrid.clear();
+	}
+
+	void DemoLiciousAppLogic::GridDemo::renderImGuiMainTab() {
+		if (ImGui::BeginTabItem("Grid")) {
+			ImGui::Checkbox("Render", &Render);
+			ImGui::Checkbox("Update", &Update);
+			ImGui::Checkbox("Draw Colour", &QuadDrawColour);
+			ImGui::Text("Grid Quad Count: %i of Max %i", TestGridSize[0] * TestGridSize[1], TestGridMaxQuadCount);
+			int tempTestGridSize[2] = { TestGridSize[0], TestGridSize[1] };
+			if (ImGui::InputInt2("Grid Size", tempTestGridSize)) {
+				if (tempTestGridSize[0] > 0 && tempTestGridSize[1] > 0) {
+					const int tempGridQuadCount = tempTestGridSize[0] * tempTestGridSize[1];
+					if (tempGridQuadCount <= TestGridMaxQuadCount) {
+						TestGridSize[0] = tempTestGridSize[0];
+						TestGridSize[1] = tempTestGridSize[1];
+						IsUpToDate = false;
+					} else {
+						LOG_WARN(
+							"New grid size of " << tempTestGridSize[0] << "x" << tempTestGridSize[1] <<
+							" (" << tempTestGridSize[0] * tempTestGridSize[1] <<
+							") is too large, max quad count is " << TestGridMaxQuadCount
+						);
+					}
+				}
+			}
+			if (ImGui::DragFloat2("Quad Size", TestGridQuadSize, 0.001f, 0.01f, 0.5f)) {
+				IsUpToDate = false;
+			}
+			if (ImGui::DragFloat2("Quad Gap Size", TestGridQuadGapSize, 0.001f, 0.01f, 0.5f)) {
+				IsUpToDate = false;
+			}
+			//ImGui::DragFloat2("Test Grid Origin Pos", );
+			//ImGui::Text("UI Quad Count: %i", renderer.getContext().getRenderer2d().getStorage().getUiQuadCount());
+
+			//TOOD:: maybe have radio buttons for RenderStaticGrid or RenderDynamicGrid,
+			//	static being the default values and dynamic being from the variables determined by ths menu
+			// Maybe have the dynamic settings hidden unless dynamic is selected
+
+			MonoSpaceTextureAtlas& atlas = *GET_RENDERER.getContext().getRenderer2d().getStorage().getTestTextureAtlas();
+
+			int tempTestTextureRowOffset = TestTexturesRowOffset;
+			if (ImGui::InputInt("Test Texture Row Offset", &tempTestTextureRowOffset)) {
+				TestTexturesRowOffset = tempTestTextureRowOffset < 0 ?
+					0 : tempTestTextureRowOffset % atlas.getRowCount();
+				IsUpToDate = false;
+			}
+			int tempTestTextureColOffset = TestTexturesColumnOffset;
+			if (ImGui::InputInt("Test Texture Col Offset", &tempTestTextureColOffset)) {
+				TestTexturesColumnOffset = tempTestTextureColOffset < 0 ?
+					0 : tempTestTextureColOffset % atlas.getColCount();
+				IsUpToDate = false;
+			}
+
+			if (ImGui::ColorEdit4("Grid Colour", &QuadColour.x)) {
+				IsUpToDate = false;
+			}
+
+			if (ImGui::Button("Reset Grid")) {
+				TestGridSize[0] = 10;
+				TestGridSize[1] = 10;
+				TestGridQuadSize[0] = 0.1f;
+				TestGridQuadSize[1] = 0.1f;
+				TestGridQuadGapSize[0] = TestGridQuadSize[0] * 1.5f;
+				TestGridQuadGapSize[1] = TestGridQuadSize[1] * 1.5f;
+				IsUpToDate = false;
+			}
+
+			ImGui::EndTabItem();
+		}
+	}
+
+	void DemoLiciousAppLogic::GridDemo::renderImGuiExtras() {
+		//No extra windows required for this demo
 	}
 
 	void DemoLiciousAppLogic::BouncingQuadDemo::init() {
@@ -952,6 +899,46 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::BouncingQuadDemo::close() {
 		BouncingQuads.clear();
 		BouncingQuadVelocities.clear();
+	}
+
+
+	void DemoLiciousAppLogic::BouncingQuadDemo::renderImGuiMainTab() {
+		if (ImGui::BeginTabItem("Bouncing Quads")) {
+			ImGui::Checkbox("Render", &Render);
+			ImGui::Checkbox("Update", &Update);
+			ImGui::Checkbox("Draw Colour", &QuadDrawColour);
+			ImGui::Text("Bouncing Quads Count: %i", BouncingQuads.size());
+
+			if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Add").c_str(), &AddNewQuadCount, 5, 5)) {
+				if (AddNewQuadCount < 0) {
+					AddNewQuadCount = 0;
+				} else if (AddNewQuadCount > 1000) {
+					AddNewQuadCount = 1000;
+				}
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Add Quads")) {
+				addRandomQuads(AddNewQuadCount);
+			}
+			if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop").c_str(), &PopQuadCount, 5, 5)) {
+				if (PopQuadCount < 0) {
+					PopQuadCount = 0;
+				}
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Pop Quads")) {
+				popQuads(PopQuadCount);
+			}
+			if (ImGui::Button("Clear Quads")) {
+				BouncingQuads.clear();
+			}
+
+			ImGui::EndTabItem();
+		}
+	}
+
+	void DemoLiciousAppLogic::BouncingQuadDemo::renderImGuiExtras() {
+		//No extra windows required for this demo
 	}
 
 	void DemoLiciousAppLogic::BouncingQuadDemo::addRandomQuads(size_t count) {
@@ -1038,6 +1025,37 @@ namespace DOH::EDITOR {
 		Text.release();
 	}
 
+	void DemoLiciousAppLogic::TextDemo::renderImGuiMainTab() {
+		if (ImGui::BeginTabItem("Text")) {
+			ImGui::Checkbox("Render", &Render);
+
+			ImGui::Text("String length limit: %i", TextDemo::StringLengthLimit);
+			EditorGui::displayHelpTooltip(
+				R"(Larger strings can be displayed as the text renderer uses a Quad batch of size 10,000 (by default). )"
+				R"(The limitation is because ImGui InputText field requires extra implementation for dynamic data on the heap.)"
+			);
+
+			if (ImGui::InputTextMultiline("Display Text", StringBuffer, sizeof(StringBuffer))) {
+				Text->setString(StringBuffer);
+			}
+
+			float tempScale = Text->getScale();
+			if (ImGui::DragFloat("Text Scale", &tempScale, 0.05f, 0.05f, 5.0f)) {
+				Text->setScale(tempScale);
+			}
+
+			if (ImGui::ColorEdit4("String Colour", &Colour.x)) {
+				Text->setColour(Colour);
+			}
+
+			ImGui::EndTabItem();
+		}
+	}
+
+	void DemoLiciousAppLogic::TextDemo::renderImGuiExtras() {
+		//No extra windows required for this demo
+	}
+
 	void DemoLiciousAppLogic::LineDemo::init() {
 		LineData2d = {};
 		LineData3d = {};
@@ -1056,6 +1074,73 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::LineDemo::close() {
 		LineData2d.clear();
 		LineData3d.clear();
+	}
+
+	void DemoLiciousAppLogic::LineDemo::renderImGuiMainTab() {
+		if (ImGui::BeginTabItem("Line")) {
+			ImGui::Checkbox("Render", &Render);
+			ImGui::Checkbox("Render Text Demo Outlines", &RenderTextDemoOutlines);
+			ImGui::Checkbox("Render Ui Quad", &RenderUiQuad);
+
+			auto& lineRenderer = GET_RENDERER.getContext().getLineRenderer();
+
+			ImGui::Text("Scene Line Count: %i", lineRenderer.getSceneLineCount());
+			EditorGui::displayHelpTooltip("This includes lines created from \"Add Line Scene\" and from any draw{ Primitive }3d() function calls.");
+			ImGui::Text("UI Line Count: %i", lineRenderer.getUiLineCount());
+			EditorGui::displayHelpTooltip("This includes lines created from \"Add Line UI\" and from any draw{ Primitive }2d() function calls.");
+
+			float lineData[LineDemo::LINE_3D_INPUT_COMPONENT_COUNT] = {};
+			for (int i = 0; i < LineDemo::LINE_3D_INPUT_COMPONENT_COUNT; i++) {
+				lineData[i] = LineDataInput[i];
+			}
+			ImGui::InputFloat3("Start", lineData);
+			ImGui::InputFloat3("End", &lineData[3]);
+			ImGui::ColorEdit4("Colour", &lineData[6]);
+			if (ImGui::Button("Add Line Scene")) {
+				if (lineData[0] != lineData[3] || lineData[1] != lineData[4] || lineData[2] != lineData[5]) {
+					addLine3d(
+						{ lineData[0], lineData[1], lineData[2] },
+						{ lineData[3], lineData[4], lineData[5] },
+						{ lineData[6], lineData[7], lineData[8], lineData[9] }
+					);
+				} else {
+					LOG_WARN("Line Start and End are at the same point, line has not been added.")
+				}
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Add Line UI")) {
+				if (lineData[0] != lineData[3] || lineData[1] != lineData[4]) {
+					addLine2d(
+						{ lineData[0], lineData[1] },
+						{ lineData[3], lineData[4] },
+						{ lineData[6], lineData[7], lineData[8], lineData[9] }
+					);
+				} else {
+					LOG_WARN("Line Start and End are at the same point, line has not been added.")
+				}
+			}
+			for (int i = 0; i < LineDemo::LINE_3D_INPUT_COMPONENT_COUNT; i++) {
+				LineDataInput[i] = lineData[i];
+			}
+			ImGui::InputInt("Pop count", &LinePopCount);
+			if (ImGui::Button("Pop Line(s) Scene")) {
+				popLines3d(LinePopCount);
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Pop Line(s) UI")) {
+				popLines2d(LinePopCount);
+			}
+			EditorGui::displayHelpTooltip("Only pops lines created from \"Add Line Scene/UI\", any created by draw{Primitive} calls are not affected.");
+
+			ImGui::Text("UI Quad");
+			EditorGui::controlsQuad(UiQuadTest);
+
+			ImGui::EndTabItem();
+		}
+	}
+
+	void DemoLiciousAppLogic::LineDemo::renderImGuiExtras() {
+		//No extra windows required for this demo
 	}
 
 	void DemoLiciousAppLogic::LineDemo::addLine2d(glm::vec2 start, glm::vec2 end, glm::vec4 colour) {
