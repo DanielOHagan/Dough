@@ -42,7 +42,10 @@ namespace DOH::EDITOR {
 		//EditorInputLayer isn't manually handling events so all functions are empty, return false, or return 
 		virtual bool handleKeyPressed(int keyCode, bool pressed) override { return EditorGui::isGuiHandlingKeyboardInput(); }
 		virtual bool handleMouseButtonPressed(int button, bool pressed) override { return EditorGui::isGuiHandlingMouseInput(); }
-		virtual bool handleMouseMoved(float x, float y) override { return EditorGui::isGuiHandlingMouseInput(); }
+		virtual bool handleMouseMoved(float x, float y) override {
+			//return EditorGui::isGuiHandlingMouseInput();
+			return false;
+		}
 		virtual bool handleMouseScroll(float offsetX, float offsetY) override { return EditorGui::isGuiHandlingMouseInput(); }
 		virtual void resetCycleData() override {}
 		virtual void reset() override {}

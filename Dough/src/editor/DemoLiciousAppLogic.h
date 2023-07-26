@@ -8,6 +8,7 @@
 #include "dough/rendering/renderables/RenderableModel.h"
 #include "dough/input/Input.h"
 #include "dough/input/DefaultInputLayer.h"
+#include "dough/physics/BoundingBox2d.h"
 
 #define BOUNCING_QUAD_COUNT
 #if defined (_DEBUG)
@@ -311,6 +312,22 @@ namespace DOH::EDITOR {
 			}
 		};
 
+		class BoundingBoxDemo : public IDemo {
+		public:
+			std::vector<Quad> Quads;
+			std::unique_ptr<BoundingBox2d> BoundingBox;
+
+			Quad TempQuadToAdd = {};
+
+			bool Update = false;
+			bool Render = false;
+
+			virtual void init() override;
+			virtual void close() override;
+			virtual void renderImGuiMainTab() override;
+			virtual void renderImGuiExtras() override;
+		};
+
 		//Resources used by more than one demo
 		struct SharedDemoResources {
 			static const EVertexType TexturedVertexType = EVertexType::VERTEX_3D_TEXTURED;
@@ -345,6 +362,7 @@ namespace DOH::EDITOR {
 		std::unique_ptr<BouncingQuadDemo> mBouncingQuadDemo;
 		std::unique_ptr<TextDemo> mTextDemo;
 		std::unique_ptr<LineDemo> mLineDemo;
+		std::unique_ptr<BoundingBoxDemo> mBoundingBoxDemo;
 
 		std::unique_ptr<ImGuiSettings> mImGuiSettings;
 		std::shared_ptr<DefaultInputLayer> mInputLayer;

@@ -11,7 +11,7 @@ namespace DOH {
 		mScale(scale),
 		mColour({ 1.0f, 1.0f, 1.0f, 1.0f })
 	{
-		if (strlen(string) == 0) {
+		if (getLength() == 0) {
 			LOG_WARN("TextString given empty string");
 		}
 
@@ -44,7 +44,6 @@ namespace DOH {
 		const size_t stringLength = strlen(mString);
 		size_t quadIndex = 0;
 		for (size_t stringIndex = 0; stringIndex < stringLength; stringIndex++) {
-
 			//Special characters not represented by quads
 			const char currentChar = mString[stringIndex];
 			if (currentChar == 32 || currentChar == '\n' || currentChar == '\t') {

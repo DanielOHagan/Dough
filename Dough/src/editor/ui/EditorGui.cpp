@@ -226,25 +226,51 @@ namespace DOH::EDITOR {
 		return ImGui::GetIO().WantTextInput;
 	}
 
-	void EditorGui::imGuiControlsAGeometryImpl(AGeometry& geo) {
-		//TODO:: Add a UUID for ImGui inputs (e.g. ColorEdit4("Colour##" << quad.UUID))
+	void EditorGui::imGuiControlsAGeometryImpl(AGeometry& geo, const char* name) {
 		//TODO:: Arbitrary limits copied from an ObjDemo DragFloat3 call, change these so they aren't so limiting.
 
-		ImGui::DragFloat3("Pos##", glm::value_ptr(geo.Position), 0.05f, -10.0f, 10.0f);
-		ImGui::DragFloat2("Size##", glm::value_ptr(geo.Size), 0.05f, -10.0f, 10.0f);
-		ImGui::DragFloat("Rotation##", &geo.Rotation);
+		std::string posLabel = "Pos##";
+		std::string sizeLabel = "Size##";
+		std::string rotationLabel = "Rotation##";
+		posLabel.append(name);
+		sizeLabel.append(name);
+		rotationLabel.append(name);
+
+		ImGui::DragFloat3(posLabel.c_str(), glm::value_ptr(geo.Position), 0.05f, -10.0f, 10.0f);
+		ImGui::DragFloat2(sizeLabel.c_str(), glm::value_ptr(geo.Size), 0.05f, -10.0f, 10.0f);
+		ImGui::DragFloat(rotationLabel.c_str(), &geo.Rotation);
 		displayHelpTooltip("INFO:: Rotation not currently supported by quad renderer.");
 	}
 
-	void EditorGui::imGuiControlsQuadImpl(Quad& quad) {
-		//TODO:: Add a UUID for ImGui inputs (e.g. ColorEdit4("Colour##" << quad.UUID))
+	void EditorGui::imGuiControlsQuadImpl(Quad& quad, const char* name) {
+		imGuiControlsAGeometryImpl(quad, name);
 
-		imGuiControlsAGeometryImpl(quad);
-		ImGui::ColorEdit4("Colour##", glm::value_ptr(quad.Colour));
-		//ImGui::ColorEdit4("Colour", glm::value_ptr(quad.Colour));
+		std::string colourLabel = "Colour##";
+		colourLabel.append(name);
+		ImGui::ColorEdit4(colourLabel.c_str(), glm::value_ptr(quad.Colour));
 		const char* text = (quad.hasTexture() ? quad.getTexture().getName().c_str() : "No Texture");
 		ImGui::Text("Texture: %s", text);
 		//TODO:: Texture Coord edit?
+	}
+
+	void EditorGui::imGuiInfoAGeometryImpl(AGeometry& geo, const char* name) {
+		ImGui::Text("Pos: X: %f, Y: %f, Z: %f", geo.Position.x, geo.Position.y, geo.Position.z);
+		ImGui::Text("Size: W: %f, H: %f", geo.Size.x, geo.Size.y);
+		ImGui::Text("Rotation: %f", geo.Rotation);
+		displayHelpTooltip("INFO:: Rotation not currently supported by quad renderer.");
+	}
+
+	void EditorGui::imGuiInfoQuadImpl(Quad& quad, const char* name) {
+		imGuiInfoAGeometryImpl(quad, name);
+
+		float tempColour[4] = { quad.Colour.r, quad.Colour.g, quad.Colour.b, quad.Colour.a };
+		std::string colourLabel = "Colour##";
+		colourLabel.append(name);
+		ImGui::ColorEdit4(colourLabel.c_str(), tempColour);
+		EditorGui::displayHelpTooltip("ImGui doesn't have a non-edit colour picker, this doesn't change the actual colour value/");
+
+		const char* text = (quad.hasTexture() ? quad.getTexture().getName().c_str() : "No Texture");
+		ImGui::Text("Texture: %s", text);
 	}
 
 	void EditorGui::imGuiPrintMat4x4Impl(const glm::mat4x4& mat, const char* name) {
@@ -389,11 +415,19 @@ namespace DOH::EDITOR {
 		return INSTANCE->isGuiHandlingTextInputImpl();
 	}
 
-	void EditorGui::controlsAGeometry(AGeometry& geo) {
-		INSTANCE->imGuiControlsAGeometryImpl(geo);
+	void EditorGui::controlsAGeometry(AGeometry& geo, const char* name) {
+		INSTANCE->imGuiControlsAGeometryImpl(geo, name);
 	}
 
-	void EditorGui::controlsQuad(Quad& quad) {
-		INSTANCE->imGuiControlsQuadImpl(quad);
+	void EditorGui::controlsQuad(Quad& quad, const char* name) {
+		INSTANCE->imGuiControlsQuadImpl(quad, name);
+	}
+
+	void EditorGui::infoAGeometry(AGeometry& geo, const char* name) {
+		INSTANCE->imGuiInfoAGeometryImpl(geo, name);
+	}
+
+	void EditorGui::infoQuad(Quad& quad, const char* name) {
+		INSTANCE->imGuiInfoQuadImpl(quad, name);
 	}
 }

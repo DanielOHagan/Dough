@@ -32,6 +32,7 @@ namespace DOH {
 		inline const FontBitmap& getCurrentFontBitmap() const { return mFontBitmap; }
 		inline float getScale() const { return mScale; }
 		inline const glm::vec4& getColour() const { return mColour; }
+		inline size_t getLength() const { return strlen(mString); }
 
 		static inline std::vector<Quad> getStringAsQuads(
 			const char* string,

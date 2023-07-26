@@ -156,6 +156,13 @@ namespace DOH::EDITOR {
 			}
 		}
 
+		if (mBoundingBoxDemo->Render) {
+			if (mBoundingBoxDemo->Quads.size() > 0) {
+				renderer2d.drawQuadArrayScene(mBoundingBoxDemo->Quads);
+				context.getLineRenderer().drawQuadScene(mBoundingBoxDemo->BoundingBox->getQuad(), {0.0f, 1.0f, 0.0f, 1.0f});
+			}
+		}
+
 		renderer.endScene();
 
 		renderer.beginUi(mCustomDemo->UiProjMat);
@@ -170,7 +177,6 @@ namespace DOH::EDITOR {
 				lineRenderer.drawQuadUi(mLineDemo->UiQuadTest, mLineDemo->UiQuadTest.Colour);
 			}
 
-			
 			const uint32_t spaceRemaining = lineRenderer.getUiMaxLineCount() - lineRenderer.getUiLineCount();
 
 			for (uint32_t i = 0; i < mLineDemo->LineCount2d && i < spaceRemaining; i++) {
@@ -210,6 +216,7 @@ namespace DOH::EDITOR {
 			mObjModelsDemo->renderImGuiMainTab();
 			mTextDemo->renderImGuiMainTab();
 			mLineDemo->renderImGuiMainTab();
+			mBoundingBoxDemo->renderImGuiMainTab();
 
 			ImGui::EndTabBar();
 
@@ -234,6 +241,9 @@ namespace DOH::EDITOR {
 
 				mLineDemo->Render = false;
 				mLineDemo->Update = false;
+
+				mBoundingBoxDemo->Render = false;
+				mBoundingBoxDemo->Update = false;
 			}
 			if (ImGui::Button("View atlas texture")) {
 				EditorGui::openMonoSpaceTextureAtlasViewerWindow(*renderer2d.getStorage().getTestTextureAtlas());
@@ -252,6 +262,7 @@ namespace DOH::EDITOR {
 		mObjModelsDemo->renderImGuiExtras();
 		mTextDemo->renderImGuiExtras();
 		mLineDemo->renderImGuiExtras();
+		mBoundingBoxDemo->renderImGuiExtras();
 	}
 
 	void DemoLiciousAppLogic::close() {
@@ -290,6 +301,9 @@ namespace DOH::EDITOR {
 		mLineDemo = std::make_unique<LineDemo>();
 		mLineDemo->init();
 
+		mBoundingBoxDemo = std::make_unique<BoundingBoxDemo>();
+		mBoundingBoxDemo->init();
+
 		context.createPipelineUniformObjects();
 	}
 
@@ -312,6 +326,9 @@ namespace DOH::EDITOR {
 
 		mLineDemo->close();
 		mLineDemo.release();
+
+		mBoundingBoxDemo->close();
+		mBoundingBoxDemo.release();
 
 		closeSharedResources();
 	}
@@ -1133,7 +1150,7 @@ namespace DOH::EDITOR {
 			EditorGui::displayHelpTooltip("Only pops lines created from \"Add Line Scene/UI\", any created by draw{Primitive} calls are not affected.");
 
 			ImGui::Text("UI Quad");
-			EditorGui::controlsQuad(UiQuadTest);
+			EditorGui::controlsQuad(UiQuadTest, "Ui Quad");
 
 			ImGui::EndTabItem();
 		}
@@ -1177,5 +1194,71 @@ namespace DOH::EDITOR {
 			LineCount3d++;
 			LineDataIndex3d += LINE_3D_INPUT_COMPONENT_COUNT;
 		}
+	}
+
+	void DemoLiciousAppLogic::BoundingBoxDemo::init() {
+		BoundingBox = std::make_unique<BoundingBox2d>();
+	}
+
+	void DemoLiciousAppLogic::BoundingBoxDemo::close() {
+		BoundingBox->reset();
+		Quads.clear();
+	}
+
+	void DemoLiciousAppLogic::BoundingBoxDemo::renderImGuiMainTab() {
+		if (ImGui::BeginTabItem("Bounding Box")) {
+			ImGui::Checkbox("Render", &Render);
+			ImGui::Text("Quad Count: %i", Quads.size());
+
+			ImGui::Text("Bounding Box");
+			EditorGui::infoQuad(BoundingBox->getQuad(), "BoundingBox");
+
+			ImGui::NewLine();
+			ImGui::Text("New Quad:");
+			EditorGui::controlsQuad(TempQuadToAdd, "QuadToAdd");
+			if (ImGui::Button("Add Quad")) {
+				if (TempQuadToAdd.Size.x != 0.0f && TempQuadToAdd.Size.y != 0.0f) {
+
+					Quads.emplace_back(TempQuadToAdd);
+					BoundingBox->resizeToFit(TempQuadToAdd);
+				} else {
+					LOG_WARN("New Quad must have a size.x & size.y greater than 0 to add to bounding box.");
+				}
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Pop Quad")) {
+				if (!Quads.empty()) {
+					Quads.pop_back();
+
+					if (Quads.empty()) {
+						BoundingBox->reset();
+					} else {
+						//TODO:: very inefficient to re-calculate for all geo,
+						//	maybe include in box a vector of all geo
+						
+						//Since individual geo can't be removed from bounding box without potentially falsifying the bounding box pos & size
+						//a full reset is required to guarantee it is correct.
+						BoundingBox->reset();
+						for (Quad& quad : Quads) {
+							BoundingBox->resizeToFit(quad);
+						}
+					}
+				}
+			}
+			if (ImGui::Button("Reset")) {
+				BoundingBox->reset();
+				Quads.clear();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Reset New Quad")) {
+				TempQuadToAdd = {};
+			}
+
+			ImGui::EndTabItem();
+		}
+	}
+
+	void DemoLiciousAppLogic::BoundingBoxDemo::renderImGuiExtras()  {
+
 	}
 }

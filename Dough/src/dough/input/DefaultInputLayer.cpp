@@ -8,36 +8,20 @@ namespace DOH {
 	{}
 
 	bool DefaultInputLayer::handleKeyPressed(int keyCode, bool pressed) {
-		if (mKeyboardMouseInput != nullptr) {
-			return mKeyboardMouseInput->setKeyPressed(keyCode, pressed);
-		} else {
-			return false;
-		}
+		return mKeyboardMouseInput->setKeyPressed(keyCode, pressed);
 	}
 
 	bool DefaultInputLayer::handleMouseButtonPressed(int button, bool pressed) {
-		if (mKeyboardMouseInput != nullptr) {
-			return mKeyboardMouseInput->setMouseButtonPressed(button, pressed);
-		} else {
-			return false;
-		}
+		return mKeyboardMouseInput->setMouseButtonPressed(button, pressed);
 	}
 
 	bool DefaultInputLayer::handleMouseMoved(float x, float y) {
-		if (mKeyboardMouseInput != nullptr) {
-			mKeyboardMouseInput->setMouseScreenPos(x, y);
-			return true;
-		} else {
-			return false;
-		}
+		mKeyboardMouseInput->setMouseScreenPos(x, y);
+		return true;
 	}
 
 	bool DefaultInputLayer::handleMouseScroll(float offsetX, float offsetY) {
-		if (mKeyboardMouseInput != nullptr) {
-			mKeyboardMouseInput->setMouseScrollOffset(offsetX, offsetY);
-			return true;
-		} else {
-			return false;
-		}
+		mKeyboardMouseInput->setMouseScrollOffset(offsetX, offsetY);
+		return true;
 	}
 }

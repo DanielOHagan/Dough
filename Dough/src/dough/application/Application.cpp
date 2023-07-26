@@ -222,6 +222,13 @@ namespace DOH {
 
 	void Application::onMouseEvent(MouseEvent& mouseEvent) {
 		switch (mouseEvent.getType()) {
+			case EEventType::MOUSE_MOVE:
+			{
+				MouseMoveEvent& move = (MouseMoveEvent&) mouseEvent;
+				Input::get().onMouseMoveEvent(move.getPosX(), move.getPosY());
+				return;
+			}
+
 			case EEventType::MOUSE_BUTTON_DOWN:
 				Input::get().onMouseButtonPressedEvent(((MouseButtonEvent&) mouseEvent).getButton(), true);
 				return;
@@ -229,12 +236,6 @@ namespace DOH {
 			case EEventType::MOUSE_BUTTON_UP:
 				Input::get().onMouseButtonPressedEvent(((MouseButtonEvent&) mouseEvent).getButton(), false);
 				return;
-			
-			case EEventType::MOUSE_MOVE: {
-				MouseMoveEvent& move = (MouseMoveEvent&) mouseEvent;
-				Input::get().onMouseMoveEvent(move.getPosX(), move.getPosY());
-				return;
-			}
 			
 			case EEventType::MOUSE_SCROLL: {
 				MouseScrollEvent& scroll = (MouseScrollEvent&) mouseEvent;

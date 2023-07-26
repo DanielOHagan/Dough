@@ -216,7 +216,7 @@ UPS displayed is the count of frames in the last full second interval)"
 				}
 
 				{
-					const glm::vec2& cursorPos = mEditorInputLayer->getCursorPos();
+					const glm::vec2& cursorPos = mInnerAppInputLayer.value()->getCursorPos();
 					ImGui::Text(
 						"Cursor Position: X: %i, Y: %i",
 						static_cast<int>(cursorPos.x),

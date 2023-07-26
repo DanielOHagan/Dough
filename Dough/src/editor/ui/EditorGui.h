@@ -44,8 +44,11 @@ namespace DOH::EDITOR {
 		bool isGuiHandlingMouseInputImpl();
 		bool isGuiHandlingTextInputImpl();
 
-		void imGuiControlsAGeometryImpl(AGeometry& geo);
-		void imGuiControlsQuadImpl(Quad& quad);
+		void imGuiControlsAGeometryImpl(AGeometry& geo, const char* name);
+		void imGuiControlsQuadImpl(Quad& quad, const char* name);
+
+		void imGuiInfoAGeometryImpl(AGeometry& geo, const char* name);
+		void imGuiInfoQuadImpl(Quad& quad, const char* name);
 
 		//-----GUI Implementation Agnostic Functions-----
 		void openTextureViewerWindowImpl(const TextureVulkan& texture);
@@ -236,11 +239,23 @@ namespace DOH::EDITOR {
 		/**
 		* Display controls for the Primitive Base Class: AGeometry
 		*/
-		static void controlsAGeometry(AGeometry& geo);
+		static void controlsAGeometry(AGeometry& geo, const char* name);
 		/**
 		* Display controls for the primitive: Quad
 		*/
-		static void controlsQuad(Quad& quad);
+		static void controlsQuad(Quad& quad, const char* name);
+
+		//-----Primitive Information-----
+		/**
+		* Display information for the Primitive Base Class: AGeometry
+		*/
+		static void infoAGeometry(AGeometry& geo, const char* name);
+		/**
+		* Display information for the primitive: Quad
+		*/
+		static void infoQuad(Quad& quad, const char* name);
+		static inline void infoQuad(const Quad& quad, const char* name) { infoQuad((Quad&) quad, name); }
+
 		
 		
 		//IMPORTANT:: Calling this function outside of the table start/end is undefined behaviour.
