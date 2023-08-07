@@ -30,7 +30,7 @@ namespace DOH {
 			const std::string& lineBuffer,
 			const char* elementName,
 			const uint32_t intCount,
-			const size_t startIndex
+			const size_t startIndex = 0
 		);
 		//returns <read string value, offset of final char in value>
 		static std::pair<std::string, size_t> readFntFileElementString(

@@ -217,6 +217,7 @@ namespace DOH::EDITOR {
 			mTextDemo->renderImGuiMainTab();
 			mLineDemo->renderImGuiMainTab();
 			mBoundingBoxDemo->renderImGuiMainTab();
+			mTileMapDemo->renderImGuiMainTab();
 
 			ImGui::EndTabBar();
 
@@ -246,7 +247,7 @@ namespace DOH::EDITOR {
 				mBoundingBoxDemo->Update = false;
 			}
 			if (ImGui::Button("View atlas texture")) {
-				EditorGui::openMonoSpaceTextureAtlasViewerWindow(*renderer2d.getStorage().getTestTextureAtlas());
+				EditorGui::openMonoSpaceTextureAtlasViewerWindow(*renderer2d.getStorage().getTestMonoSpaceTextureAtlas());
 			}
 			EditorGui::displayHelpTooltip("Display Texture Altas texture inside a separate window.");
 			if (ImGui::Button("View test texture")) {
@@ -263,6 +264,7 @@ namespace DOH::EDITOR {
 		mTextDemo->renderImGuiExtras();
 		mLineDemo->renderImGuiExtras();
 		mBoundingBoxDemo->renderImGuiExtras();
+		mTileMapDemo->renderImGuiExtras();
 	}
 
 	void DemoLiciousAppLogic::close() {
@@ -304,6 +306,9 @@ namespace DOH::EDITOR {
 		mBoundingBoxDemo = std::make_unique<BoundingBoxDemo>();
 		mBoundingBoxDemo->init();
 
+		mTileMapDemo = std::make_unique<TileMapDemo>();
+		mTileMapDemo->init();
+
 		context.createPipelineUniformObjects();
 	}
 
@@ -330,12 +335,15 @@ namespace DOH::EDITOR {
 		mBoundingBoxDemo->close();
 		mBoundingBoxDemo.release();
 
+		mTileMapDemo->close();
+		mTileMapDemo.release();
+
 		closeSharedResources();
 	}
 	
 	void DemoLiciousAppLogic::populateTestGrid(uint32_t width, uint32_t height) {
 		const auto& storage = GET_RENDERER.getContext().getRenderer2d().getStorage();
-		const auto& atlas = storage.getTestTextureAtlas();
+		const auto& atlas = storage.getTestMonoSpaceTextureAtlas();
 	
 		mGridDemo->TexturedTestGrid.clear();
 		mGridDemo->TexturedTestGrid.resize(storage.getQuadBatchTextureArray().getTextureSlots().size());
@@ -872,7 +880,7 @@ namespace DOH::EDITOR {
 			//	static being the default values and dynamic being from the variables determined by ths menu
 			// Maybe have the dynamic settings hidden unless dynamic is selected
 
-			MonoSpaceTextureAtlas& atlas = *GET_RENDERER.getContext().getRenderer2d().getStorage().getTestTextureAtlas();
+			MonoSpaceTextureAtlas& atlas = *GET_RENDERER.getContext().getRenderer2d().getStorage().getTestMonoSpaceTextureAtlas();
 
 			int tempTestTextureRowOffset = TestTexturesRowOffset;
 			if (ImGui::InputInt("Test Texture Row Offset", &tempTestTextureRowOffset)) {
@@ -959,7 +967,7 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::BouncingQuadDemo::addRandomQuads(size_t count) {
-		const auto& atlas = GET_RENDERER.getContext().getRenderer2d().getStorage().getTestTextureAtlas();
+		const auto& atlas = GET_RENDERER.getContext().getRenderer2d().getStorage().getTestMonoSpaceTextureAtlas();
 	
 		//Stop quad count going over MaxCount
 		if (count + BouncingQuads.size() > MaxBouncingQuadCount) {
@@ -1259,6 +1267,34 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::BoundingBoxDemo::renderImGuiExtras()  {
+
+	}
+
+	void DemoLiciousAppLogic::TileMapDemo::init() {
+		//NOTE:: Texture atlas is created in QuadBatch init because rebiding descriptors not currently available.
+
+		const std::shared_ptr<IndexedTextureAtlas> texAtlas = GET_RENDERER.getContext().getRenderer2d().getStorage().getTestIndexedTextureAtlas();
+
+		SceneTileMap = std::make_unique<TileMap>(*texAtlas, 50, 50);
+	}
+
+	void DemoLiciousAppLogic::TileMapDemo::close() {
+		
+	}
+
+	void DemoLiciousAppLogic::TileMapDemo::renderImGuiMainTab() {
+		if (ImGui::BeginTabItem("Tile Map")) {
+			ImGui::Checkbox("Render", &Render);
+
+			if (ImGui::Button("View Texture Atlas")) {
+				EditorGui::openIndexedTextureAtlasViewerWindow(*GET_RENDERER.getContext().getRenderer2d().getStorage().getTestIndexedTextureAtlas());
+			}
+
+			ImGui::EndTabItem();
+		}
+	}
+
+	void DemoLiciousAppLogic::TileMapDemo::renderImGuiExtras() {
 
 	}
 }

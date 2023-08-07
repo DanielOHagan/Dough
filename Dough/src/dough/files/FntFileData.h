@@ -29,7 +29,6 @@ namespace DOH {
 	};
 
 	struct FntFileData : public AFileData {
-
 		FntFileData()
 		:	AFileData(),
 			CharSize(0),

@@ -3,6 +3,7 @@
 #include "dough/Utils.h"
 #include "dough/Logging.h"
 #include "dough/files/readers/FntFileReader.h"
+#include "dough/files/readers/IndexedAtlasInfoFileReader.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -71,16 +72,20 @@ namespace DOH {
 
 	ResourceHandler ResourceHandler::INSTANCE = ResourceHandler();
 
-	TextureCreationData ResourceHandler::loadTexture(const char* filepath) {
-		return ResourceHandler::INSTANCE.loadTextureImpl(filepath);
+	TextureCreationData ResourceHandler::loadTexture(const char* filePath) {
+		return ResourceHandler::INSTANCE.loadTextureImpl(filePath);
 	}
 
-	std::shared_ptr<Model3dCreationData> ResourceHandler::loadObjModel(const std::string& filepath, const AVertexInputLayout& vertexInputLayout) {
-		return ResourceHandler::INSTANCE.loadObjModelImpl(filepath, vertexInputLayout);
+	std::shared_ptr<IndexedAtlasInfoFileData> ResourceHandler::loadIndexedTextureAtlas(const char* atlasInfoFilePath) {
+		return INSTANCE.loadIndexedTextureAtlasImpl(atlasInfoFilePath);
 	}
 
-	std::shared_ptr<FntFileData> ResourceHandler::loadFntFile(const char* filepath) {
-		return ResourceHandler::INSTANCE.loadFntFileImpl(filepath);
+	std::shared_ptr<Model3dCreationData> ResourceHandler::loadObjModel(const std::string& filePath, const AVertexInputLayout& vertexInputLayout) {
+		return ResourceHandler::INSTANCE.loadObjModelImpl(filePath, vertexInputLayout);
+	}
+
+	std::shared_ptr<FntFileData> ResourceHandler::loadFntFile(const char* filePath) {
+		return ResourceHandler::INSTANCE.loadFntFileImpl(filePath);
 	}
 
 	void ResourceHandler::freeImage(void* imageData) {
@@ -91,8 +96,8 @@ namespace DOH {
 		return ResourceHandler::INSTANCE.mNextAvailableTextureId++;
 	}
 
-	std::vector<char> ResourceHandler::readFile(const std::string& filepath) {
-		std::ifstream file(filepath, std::ios::ate | std::ios::binary);
+	std::vector<char> ResourceHandler::readFile(const std::string& filePath) {
+		std::ifstream file(filePath, std::ios::ate | std::ios::binary);
 
 		TRY(!file.is_open(), "Failed to open file.");
 
@@ -107,24 +112,42 @@ namespace DOH {
 		return buffer;
 	}
 
-	TextureCreationData ResourceHandler::loadTextureImpl(const char* filepath) {
+	TextureCreationData ResourceHandler::loadTextureImpl(const char* filePath) {
 		int width = -1;
 		int height = -1;
 		int channels = -1;
-		stbi_uc* pixels = stbi_load(filepath, &width, &height, &channels, STBI_rgb_alpha);
+		stbi_uc* pixels = stbi_load(filePath, &width, &height, &channels, STBI_rgb_alpha);
 
-		TRY(pixels == nullptr || width < 0 || height < 0 || channels < 0, "Failed to load image data");
+		bool failed = pixels == nullptr || width < 0 || height < 0 || channels < 0;
 
-		TextureCreationData textureData{};
+		TextureCreationData textureData = {};
 		textureData.Width = static_cast<uint32_t>(width);
 		textureData.Height = static_cast<uint32_t>(height);
 		textureData.Channels = static_cast<uint32_t>(channels);
 		textureData.Data = static_cast<void*>(pixels);
+		textureData.Failed = failed;
+
+		if (failed) {
+			LOG_ERR("Failed to load image data: " << filePath);
+		}
+
 		return textureData;
 	}
 
 	void ResourceHandler::freeImageImpl(void* imageData) {
 		stbi_image_free(imageData);
+	}
+
+	std::shared_ptr<IndexedAtlasInfoFileData> ResourceHandler::loadIndexedTextureAtlasImpl(const char* atlasInfoFilePath) {
+		//Load info file
+		std::shared_ptr<IndexedAtlasInfoFileData> fileData = std::make_shared<IndexedAtlasInfoFileData>();
+
+		IndexedAtlasInfoFileReader reader(atlasInfoFilePath);
+		if (!reader.isOpen()) {
+			LOG_ERR("Failed to open reader of IndexedAtlasInfoFile: " << atlasInfoFilePath);
+			return nullptr;
+		}
+		return reader.read();
 	}
 
 	std::shared_ptr<Model3dCreationData> ResourceHandler::loadObjModelImpl(const std::string& filePath, const AVertexInputLayout& vertexInputLayout) {
@@ -179,10 +202,10 @@ namespace DOH {
 		return fileData;
 	}
 
-	std::shared_ptr<FntFileData> ResourceHandler::loadFntFileImpl(const char* filepath) {
-		FntFileReader fntReader(filepath);
+	std::shared_ptr<FntFileData> ResourceHandler::loadFntFileImpl(const char* filePath) {
+		FntFileReader fntReader(filePath);
 		if (!fntReader.isOpen()) {
-			LOG_ERR("Failed to open file: " << filepath);
+			LOG_ERR("Failed to open file: " << filePath);
 			return nullptr;
 		}
 		return fntReader.read();
@@ -216,20 +239,20 @@ namespace DOH {
 		return ResourceHandler::getLengthTillNextTargetChar(chars, '\n', currentLineStartIndex) + 1; //+1 to include '\n'
 	}
 
-	const bool ResourceHandler::isFileOfType(const char* filepath, const char* type) {
+	const bool ResourceHandler::isFileOfType(const char* filePath, const char* type) {
 		size_t typeLength = strlen(type);
-		size_t filepathLength = strlen(filepath);
+		size_t filePathLength = strlen(filePath);
 
 		if (typeLength == 0) {
 			LOG_ERR("isFileOfType typeLength is 0");
 			return false;
-		} else if (typeLength == filepathLength) {
-			LOG_ERR("isFileOfType typeLength same as filepathLength");
+		} else if (typeLength == filePathLength) {
+			LOG_ERR("isFileOfType typeLength same as filePathLength");
 			return false;
 		}
 
 		for (size_t i = 0; i < typeLength; i++) {
-			if (type[i] != filepath[(filepathLength - typeLength) + i]) {
+			if (type[i] != filePath[(filePathLength - typeLength) + i]) {
 				return false;
 			}
 		}

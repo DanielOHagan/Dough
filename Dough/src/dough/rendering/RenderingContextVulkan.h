@@ -278,6 +278,7 @@ namespace DOH {
 			const uint32_t rowCount,
 			const uint32_t columnCount
 		) const { return std::make_shared<MonoSpaceTextureAtlas>(mLogicDevice, mPhysicalDevice, filePath, rowCount, columnCount); }
+		inline std::shared_ptr<IndexedTextureAtlas> createIndexedTextureAtlas(const char* atlasInfoFilePath, const char* atlasTextureDir) { return std::make_shared<IndexedTextureAtlas>(mLogicDevice, mPhysicalDevice, atlasInfoFilePath, atlasTextureDir); }
 
 		//-----Font-----
 		inline std::shared_ptr<FontBitmap> createFontBitmap(const char* filepath, const char* imageDir) const { return std::make_shared<FontBitmap>(filepath, imageDir); }

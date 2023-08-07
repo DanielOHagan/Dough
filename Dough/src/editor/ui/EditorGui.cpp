@@ -10,8 +10,8 @@ namespace DOH::EDITOR {
 		if (INSTANCE == nullptr) {
 			INSTANCE = std::make_unique<EditorGui>();
 
-			INSTANCE->mTextureViewerWindows = {};
-			INSTANCE->mMonoSpaceTextureAtlasViewerWindows = {};
+			INSTANCE->mResourceViewerMap = {};
+			INSTANCE->mTextureArrayViewerWindows = {};
 		} else {
 			LOG_WARN("EditorGui already initialised");
 		}
@@ -19,8 +19,7 @@ namespace DOH::EDITOR {
 
 	void EditorGui::close() {
 		if (INSTANCE != nullptr) {
-			INSTANCE->mTextureViewerWindows.clear();
-			INSTANCE->mMonoSpaceTextureAtlasViewerWindows.clear();
+			INSTANCE->mResourceViewerMap.clear();
 			INSTANCE->mTextureArrayViewerWindows.clear();
 			INSTANCE.reset();
 		} else {
@@ -33,13 +32,13 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorGui::openTextureViewerWindowImpl(const TextureVulkan& texture) {
-		const auto& itr = mTextureViewerWindows.find(texture.getId());
-		if (itr != mTextureViewerWindows.end()) {
-			itr->second.Display = true;
+		const auto& itr = mResourceViewerMap.find(texture.getId());
+		if (itr != mResourceViewerMap.end()) {
+			itr->second->Display = true;
 		} else {
-			mTextureViewerWindows.emplace(
+			mResourceViewerMap.emplace(
 				texture.getId(),
-				ResourceViewerUiTexture(
+				std::make_shared<ResourceViewerUiTexture>(
 					texture,
 					true,
 					false,
@@ -50,13 +49,30 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorGui::openMonoSpaceTextureAtlasViewerWindowImpl(const MonoSpaceTextureAtlas& textureAtlas) {
-		const auto& itr = mMonoSpaceTextureAtlasViewerWindows.find(textureAtlas.getId());
-		if (itr != mMonoSpaceTextureAtlasViewerWindows.end()) {
-			itr->second.Display = true;
+		const auto& itr = mResourceViewerMap.find(textureAtlas.getId());
+		if (itr != mResourceViewerMap.end()) {
+			itr->second->Display = true;
 		} else {
-			mMonoSpaceTextureAtlasViewerWindows.emplace(
+			mResourceViewerMap.emplace(
 				textureAtlas.getId(),
-				ResourceViewerUiMonoSpaceTextureAtlas(
+				std::make_shared<ResourceViewerUiMonoSpaceTextureAtlas>(
+					textureAtlas,
+					true,
+					false,
+					1.0f
+				)
+			);
+		}
+	}
+
+	void EditorGui::openIndexedTextureAtlasViewerWindowImpl(const IndexedTextureAtlas& textureAtlas) {
+		const auto& itr = mResourceViewerMap.find(textureAtlas.getId());
+		if (itr != mResourceViewerMap.end()) {
+			itr->second->Display = true;
+		} else {
+			mResourceViewerMap.emplace(
+				textureAtlas.getId(),
+				std::make_shared<ResourceViewerUiIndexedTextureAtlas>(
 					textureAtlas,
 					true,
 					false,
@@ -83,17 +99,17 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorGui::closeTextureViewerWindowImpl(const uint32_t textureId) {
-		const auto& texItr = mTextureViewerWindows.find(textureId);
-		if (texItr != mTextureViewerWindows.end()) {
-			mTextureViewerWindows.erase(texItr);
+		const auto& texItr = mResourceViewerMap.find(textureId);
+		if (texItr != mResourceViewerMap.end()) {
+			mResourceViewerMap.erase(texItr);
 			return;
 		}
 	}
 
 	void EditorGui::closeMonoSpaceTextureAtlasViewerWindowImpl(const uint32_t textureId) {
-		const auto& monoSpaceTexAtlasItr = mMonoSpaceTextureAtlasViewerWindows.find(textureId);
-		if (monoSpaceTexAtlasItr != mMonoSpaceTextureAtlasViewerWindows.end()) {
-			mMonoSpaceTextureAtlasViewerWindows.erase(monoSpaceTexAtlasItr);
+		const auto& monoSpaceTexAtlasItr = mResourceViewerMap.find(textureId);
+		if (monoSpaceTexAtlasItr != mResourceViewerMap.end()) {
+			mResourceViewerMap.erase(monoSpaceTexAtlasItr);
 			return;
 		}
 	}
@@ -106,19 +122,18 @@ namespace DOH::EDITOR {
 			closed = true;
 			return;
 		}
-		
+
 		if (!closed) {
 			LOG_WARN("Failed to find texture array viewer: " << title);
 		}
 	}
 
 	bool EditorGui::hasTextureViewerWindowImpl(const uint32_t textureId) {
-		return mTextureViewerWindows.find(textureId) != mTextureViewerWindows.end() ||
-			mMonoSpaceTextureAtlasViewerWindows.find(textureId) != mMonoSpaceTextureAtlasViewerWindows.end();
+		return mResourceViewerMap.find(textureId) != mResourceViewerMap.end();
 	}
 
 	bool EditorGui::hasMonoSpaceTextureAtlasViewerWindowImpl(const uint32_t textureId) {
-		return mMonoSpaceTextureAtlasViewerWindows.find(textureId) != mMonoSpaceTextureAtlasViewerWindows.end();
+		return mResourceViewerMap.find(textureId) != mResourceViewerMap.end();
 	}
 
 	bool EditorGui::hasTextureArrayViewerWindowImpl(const char* title) {
@@ -126,29 +141,23 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorGui::imGuiDrawTextureViewerWindowsImpl() {
-		for (auto& textureViewer : mTextureViewerWindows) {
-			if (textureViewer.second.Display) {
-				textureViewer.second.drawUi();
-			}
-		}
-
-		for (auto& monoSpaceTexAtlasViewer : mMonoSpaceTextureAtlasViewerWindows) {
-			if (monoSpaceTexAtlasViewer.second.Display) {
-				monoSpaceTexAtlasViewer.second.drawUi();
+		for (auto& resource : mResourceViewerMap) {
+			if (resource.second->Display) {
+				resource.second->draw(true);
 			}
 		}
 
 		for (auto& texArrayViewer : mTextureArrayViewerWindows) {
 			if (texArrayViewer.second.Display) {
-				texArrayViewer.second.drawUi();
+				texArrayViewer.second.draw(true);
 			}
 		}
 	}
 
 	void EditorGui::imGuiRemoveHiddenTextureViewerWindowsImpl() {
-		for (auto& textureViewer : mTextureViewerWindows) {
-			if (!textureViewer.second.Display) {
-				mTextureViewerWindows.erase(textureViewer.first);
+		for (auto& resViewer : mResourceViewerMap) {
+			if (!resViewer.second->Display) {
+				mResourceViewerMap.erase(resViewer.first);
 			}
 		}
 	}
@@ -217,7 +226,7 @@ namespace DOH::EDITOR {
 	bool EditorGui::isGuiHandlingKeyboardInputImpl() {
 		return ImGui::GetIO().WantCaptureKeyboard;
 	}
-	
+
 	bool EditorGui::isGuiHandlingMouseInputImpl() {
 		return ImGui::GetIO().WantCaptureMouse;
 	}
@@ -327,6 +336,29 @@ namespace DOH::EDITOR {
 		ImGui::EndTable();
 	}
 
+	void EditorGui::resourceViewer(AResourceViewerUi& uiViewer, bool openAsWindow) {
+		switch (uiViewer.getResourceUiType()) {
+			case EResourceViewerUiType::TEXTURE:
+				((ResourceViewerUiTexture&) uiViewer).draw(openAsWindow);
+				break;
+			case EResourceViewerUiType::MONO_SPACE_TEXTURE_ATLAS:
+				((ResourceViewerUiMonoSpaceTextureAtlas&) uiViewer).draw(openAsWindow);
+				break;
+			case EResourceViewerUiType::INDEXED_TEXTURE_ATLAS:
+				((ResourceViewerUiIndexedTextureAtlas&) uiViewer).draw(openAsWindow);
+				break;
+
+			case EResourceViewerUiType::TEXTURE_ARRAY:
+				((ResourceViewerUiTextureArray&) uiViewer).draw(openAsWindow);
+				break;
+
+			case EResourceViewerUiType::NONE:
+			default:
+				LOG_ERR("uiViewer of type:" << EResourceViewerUiTypeStrings[static_cast<uint32_t>(uiViewer.getResourceUiType())] << "can nott be drawn.");
+				break;
+		}
+	}
+
 	void EditorGui::drawTextureViewerWindows() {
 		INSTANCE->imGuiDrawTextureViewerWindowsImpl();
 	}
@@ -337,6 +369,10 @@ namespace DOH::EDITOR {
 
 	void EditorGui::openMonoSpaceTextureAtlasViewerWindow(const MonoSpaceTextureAtlas& textureAtlas) {
 		INSTANCE->openMonoSpaceTextureAtlasViewerWindowImpl(textureAtlas);
+	}
+
+	void EditorGui::openIndexedTextureAtlasViewerWindow(const IndexedTextureAtlas& textureAtlas) {
+		INSTANCE->openIndexedTextureAtlasViewerWindowImpl(textureAtlas);
 	}
 
 	void EditorGui::openTextureArrayViewerWindow(const char* title, const TextureArray& texArray) {
@@ -406,11 +442,11 @@ namespace DOH::EDITOR {
 	bool EditorGui::isGuiHandlingKeyboardInput() {
 		return INSTANCE->isGuiHandlingKeyboardInputImpl();
 	}
-	
+
 	bool EditorGui::isGuiHandlingMouseInput() {
 		return INSTANCE->isGuiHandlingMouseInputImpl();
 	}
-	
+
 	bool EditorGui::isGuiHandlingTextInput() {
 		return INSTANCE->isGuiHandlingTextInputImpl();
 	}

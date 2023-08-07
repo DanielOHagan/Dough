@@ -57,10 +57,11 @@ namespace DOH {
 
 		std::unordered_map<std::string, std::shared_ptr<FontBitmap>> mFontBitmaps;
 
-		//TEMP::
+		//TEMP:: Rebinding descriptors not available, all textures must be bound first. Needs fixing!
 		const char* testTexturesPath = "Dough/res/images/test textures/";
 		std::vector<std::shared_ptr<TextureVulkan>> mTestTextures;
-		std::shared_ptr<MonoSpaceTextureAtlas> mTestTexturesAtlas;
+		std::shared_ptr<MonoSpaceTextureAtlas> mTestMonoSpaceTextureAtlas;
+		std::shared_ptr<IndexedTextureAtlas> mTestIndexedTextureAtlas;
 
 		void initForQuads();
 		void initForText();
@@ -120,7 +121,8 @@ namespace DOH {
 		inline std::shared_ptr<SimpleRenderable> getRenderableTextBatch() const { return mRenderableTextBatch; }
 
 		inline const std::vector<std::shared_ptr<TextureVulkan>>& getTestTextures() const { return mTestTextures; }
-		inline const std::shared_ptr<MonoSpaceTextureAtlas> getTestTextureAtlas() const { return mTestTexturesAtlas; }
+		inline const std::shared_ptr<MonoSpaceTextureAtlas> getTestMonoSpaceTextureAtlas() const { return mTestMonoSpaceTextureAtlas; }
+		inline const std::shared_ptr<IndexedTextureAtlas> getTestIndexedTextureAtlas() const { return mTestIndexedTextureAtlas; }
 		FontBitmap& getFontBitmap(const char* font) const;
 	};
 }

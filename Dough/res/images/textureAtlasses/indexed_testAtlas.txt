@@ -1,0 +1,11 @@
+name="testAtlas" textureFilePath="testAtlas.png" w=1024 h=1024
+innerTextureCount=8 innerTextures {
+    iName="dirt" tl=0,0 tr=64,0 br=64,64 bl=0,64
+    iName="grass" tl=64,0 tr=128,0 br=128,64 bl=64,64
+    iName="sand" tl=128,0 tr=192,0 br=192,64 bl=128,64
+    iName="cobble" tl=128,64 tr=192,64 br=192,128 bl=128,128
+    iName="large tree top" tl=192,0 tr=256,0 br=256,64 bl=192,64
+    iName="large tree bot" tl=192,64 tr=256,64 br=256,128 bl=192,128
+    iName="tree small" tl=256,0 tr=320,0 br=320,64 bl=256,64
+    iName="house" tl=320,0 tr=384,0 br=384,64 bl=320,64
+}

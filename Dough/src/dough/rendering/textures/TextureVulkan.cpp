@@ -5,12 +5,33 @@
 
 namespace DOH {
 
+	TextureVulkan::TextureVulkan()
+	:	mName("Non-loaded Texture"),
+		mSampler(VK_NULL_HANDLE),
+		mId(ResourceHandler::INVALID_TEXTURE_ID),
+		mWidth(0),
+		mHeight(0),
+		mChannels(0)
+	{}
+
 	TextureVulkan::TextureVulkan(
 		VkDevice logicDevice,
 		VkPhysicalDevice physicalDevice,
 		const std::string& filePath
-	) : mName(filePath) {
+	) : mName(filePath),
+		mSampler(VK_NULL_HANDLE),
+		mId(0),
+		mWidth(0),
+		mHeight(0),
+		mChannels(0)
+	{
 		TextureCreationData textureData = ResourceHandler::loadTexture(filePath.c_str());
+
+		if (textureData.Failed) {
+			//TODO:: Handle this
+			LOG_ERR("Failed to load texture: " << filePath);
+			return;
+		}
 		
 		mWidth = textureData.Width;
 		mHeight = textureData.Height;
@@ -19,54 +40,9 @@ namespace DOH {
 		//IMPORTANT:: Textures used in the engine are assumed to have 4 channels when used.
 		VkDeviceSize imageSize = textureData.Width * textureData.Height * 4;
 
-		std::shared_ptr<BufferVulkan> imageStagingBuffer = ObjInit::stagedBuffer(
-			textureData.Data,
-			imageSize,
-			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-		);
-
-		ResourceHandler::freeImage(textureData.Data);
-
-		auto& context = Application::get().getRenderer().getContext();
-		VkImage image = context.createImage(
-			static_cast<uint32_t>(mWidth),
-			static_cast<uint32_t>(mHeight),
-			VK_FORMAT_R8G8B8A8_SRGB,
-			VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
-		);
-		VkDeviceMemory imageMem = context.createImageMemory(
-			image,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-		);
-		context.transitionStagedImageLayout(
-			image,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_IMAGE_ASPECT_COLOR_BIT
-		);
-		context.copyBufferToImage(
-			imageStagingBuffer->getBuffer(),
-			image,
-			static_cast<uint32_t>(mWidth),
-			static_cast<uint32_t>(mHeight)
-		);
-		context.transitionStagedImageLayout(
-			image,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			VK_IMAGE_ASPECT_COLOR_BIT
-		);
-		VkImageView imageView = context.createImageView(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
-		mSampler = context.createSampler();
-
-		mTextureImage = std::make_unique<ImageVulkan>(image, imageMem, imageView);
-
-		imageStagingBuffer->close(logicDevice);
+		load(textureData.Data, imageSize);
 
 		mId = ResourceHandler::getNextUniqueTextureId();
-		mUsingGpuResource = true;
 	}
 
 	TextureVulkan::TextureVulkan(
@@ -78,10 +54,12 @@ namespace DOH {
 		float a,
 		bool rgbaNormalised,
 		const char* name
-	) : mWidth(1),
+	) : mName(name),
+		mSampler(VK_NULL_HANDLE),
+		mId(0),
+		mWidth(1),
 		mHeight(1),
-		mChannels(4),
-		mName(name)
+		mChannels(4)
 	{
 		if (!rgbaNormalised) {
 			r = (r / TextureVulkan::COLOUR_MAX_VALUE);
@@ -114,48 +92,9 @@ namespace DOH {
 			colourData[i] = colour;
 		}
 
-		std::shared_ptr<BufferVulkan> imageStagingBuffer = ObjInit::stagedBuffer(
-			colourData.data(),
-			static_cast<VkDeviceSize>(textureSize),
-			VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-		);
-
-		auto& context = Application::get().getRenderer().getContext();
-		VkImage image = context.createImage(
-			static_cast<uint32_t>(mWidth),
-			static_cast<uint32_t>(mHeight),
-			VK_FORMAT_R8G8B8A8_SRGB,
-			VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
-		);
-		VkDeviceMemory imageMem = context.createImageMemory(image, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		context.transitionStagedImageLayout(
-			image,
-			VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_IMAGE_ASPECT_COLOR_BIT
-		);
-		context.copyBufferToImage(
-			imageStagingBuffer->getBuffer(),
-			image,
-			static_cast<uint32_t>(mWidth),
-			static_cast<uint32_t>(mHeight)
-		);
-		context.transitionStagedImageLayout(
-			image,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			VK_IMAGE_ASPECT_COLOR_BIT
-		);
-		VkImageView imageView = context.createImageView(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
-		mSampler = context.createSampler();
-		mTextureImage = std::make_unique<ImageVulkan>(image, imageMem, imageView);
-
-		imageStagingBuffer->close(logicDevice);
+		load(colourData.data(), static_cast<VkDeviceSize>(textureSize));
 
 		mId = ResourceHandler::getNextUniqueTextureId();
-		mUsingGpuResource = true;
 	}
 
 	TextureVulkan::~TextureVulkan() {
@@ -168,5 +107,51 @@ namespace DOH {
 		vkDestroySampler(logicDevice, mSampler, nullptr);
 		mTextureImage->close(logicDevice);
 		mUsingGpuResource = false;
+	}
+
+	void TextureVulkan::load(void* data, VkDeviceSize size) {
+		if (!isUsingGpuResource()) {
+			std::shared_ptr<BufferVulkan> imageStagingBuffer = ObjInit::stagedBuffer(
+				data,
+				size,
+				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			);
+
+			auto& context = Application::get().getRenderer().getContext();
+			VkImage image = context.createImage(
+				static_cast<uint32_t>(mWidth),
+				static_cast<uint32_t>(mHeight),
+				VK_FORMAT_R8G8B8A8_SRGB,
+				VK_IMAGE_TILING_OPTIMAL,
+				VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT
+			);
+			VkDeviceMemory imageMem = context.createImageMemory(image, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			context.transitionStagedImageLayout(
+				image,
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				VK_IMAGE_ASPECT_COLOR_BIT
+			);
+			context.copyBufferToImage(
+				imageStagingBuffer->getBuffer(),
+				image,
+				static_cast<uint32_t>(mWidth),
+				static_cast<uint32_t>(mHeight)
+			);
+			context.transitionStagedImageLayout(
+				image,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				VK_IMAGE_ASPECT_COLOR_BIT
+			);
+			VkImageView imageView = context.createImageView(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+			mSampler = context.createSampler();
+			mTextureImage = std::make_unique<ImageVulkan>(image, imageMem, imageView);
+
+			imageStagingBuffer->close(context.getLogicDevice());
+
+			mUsingGpuResource = true;
+		}
 	}
 }

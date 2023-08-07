@@ -44,7 +44,8 @@ namespace DOH {
 		mTextShaderProgram->close(logicDevice);
 		mTextGraphicsPipeline->close(logicDevice);
 		mRenderableTextBatch->getVao().close(logicDevice);
-		mTestTexturesAtlas->close(logicDevice);
+		mTestMonoSpaceTextureAtlas->close(logicDevice);
+		mTestIndexedTextureAtlas->close(logicDevice);
 
 		mWhiteTexture->close(logicDevice);
 
@@ -169,12 +170,18 @@ namespace DOH {
 		//	mQuadBatchTextureArray->addNewTexture(*testTexture);
 		//}
 		
-		mTestTexturesAtlas = ObjInit::monoSpaceTextureAtlas(
+		mTestMonoSpaceTextureAtlas = ObjInit::monoSpaceTextureAtlas(
 			"Dough/res/images/test textures/texturesAtlas.png",
 			5,
 			5
 		);
-		mQuadBatchTextureArray->addNewTexture(*mTestTexturesAtlas);
+		mTestIndexedTextureAtlas = ObjInit::indexedTextureAtlas(
+			"Dough/res/images/textureAtlasses/indexed_testAtlas.txt",
+			"Dough/res/images/textureAtlasses/"
+		);
+
+		mQuadBatchTextureArray->addNewTexture(*mTestMonoSpaceTextureAtlas);
+		mQuadBatchTextureArray->addNewTexture(*mTestIndexedTextureAtlas);
 
 		ShaderUniformLayout& layout = mQuadShaderProgram->getUniformLayout();
 		layout.setValue(0, sizeof(glm::mat4x4));
@@ -187,7 +194,7 @@ namespace DOH {
 		);
 		mQuadGraphicsPipelineInstanceInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS);
 		mQuadGraphicsPipelineInstanceInfo->getOptionalFields().setBlending(
-			false,
+			true,
 			VK_BLEND_OP_ADD,
 			VK_BLEND_FACTOR_SRC_ALPHA,
 			VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,

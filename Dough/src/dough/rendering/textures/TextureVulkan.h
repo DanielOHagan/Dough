@@ -9,7 +9,7 @@ namespace DOH {
 	class TextureVulkan : public IGPUResourceVulkan {
 
 	protected:
-		const std::string mName;
+		std::string mName;
 		std::unique_ptr<ImageVulkan> mTextureImage;
 		VkSampler mSampler;
 
@@ -22,13 +22,19 @@ namespace DOH {
 		//TODO:: Keep this here or place somewhere else in another class?
 		static constexpr float COLOUR_MAX_VALUE = 255.0f;
 
-		TextureVulkan() = delete;
 		TextureVulkan(const TextureVulkan& copy) = delete;
 		TextureVulkan operator=(const TextureVulkan& assignment) = delete;
 
 		virtual ~TextureVulkan() override;
 		virtual void close(VkDevice logicDevice) override;
 
+		/**
+		* Read a texture from filePath and upload onto GPU.
+		* 
+		* @param logicDevice The logic device needed to create the resource on GPU.
+		* @param physicalDevice The physical device needed to create the resource on GPU.
+		* @param filePath The file path of the texture. This is used as the texture's name.
+		*/
 		TextureVulkan(
 			VkDevice logicDevice,
 			VkPhysicalDevice physicalDevice,
@@ -37,6 +43,18 @@ namespace DOH {
 
 		//TODO:: Custom width & height with limits.
 		//	bool for use of a staging buffer?
+		/**
+		* Create a single colour texture from the given RGBA values and upload onto GPU.
+		* 
+		* @param logicDevice The logic device needed to create the resource on GPU.
+		* @param physicalDevice The physical device needed to create the resource on GPU.
+		* @param r The value for the Red channel.
+		* @param g The value for the Green channel.
+		* @param b The value for the Blue channel.
+		* @param a The value for the Alpha channel.
+		* @param rgbaNormalised Whether or the given rgba values have been normalised.
+		* @param name A name for the texture.
+		*/
 		TextureVulkan(
 			VkDevice logicDevice,
 			VkPhysicalDevice physicalDevice,
@@ -58,5 +76,11 @@ namespace DOH {
 		inline VkDeviceMemory getMemory() const { return mTextureImage->getMemory(); }
 		inline VkImageView getImageView() const { return mTextureImage->getImageView(); }
 		inline VkSampler getSampler() const { return mSampler; }
+
+	protected:
+		//Allow for loading outside of contructor
+		TextureVulkan();
+
+		void load(void* data, VkDeviceSize size);
 	};
 }

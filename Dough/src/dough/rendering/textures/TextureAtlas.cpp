@@ -1,16 +1,18 @@
 #include "dough/rendering/textures/TextureAtlas.h"
 
 #include "dough/Logging.h"
+#include "dough/files/ResourceHandler.h"
+#include "dough/files/IndexedAtlasInfoFileData.h"
 
 namespace DOH {
 
 	MonoSpaceTextureAtlas::MonoSpaceTextureAtlas(
 		VkDevice logicDevice,
 		VkPhysicalDevice physicalDevice,
-		const std::string& filePath,
+		const std::string& textureFilePath,
 		const uint32_t rowCount,
 		const uint32_t colCount
-	) : TextureVulkan(logicDevice, physicalDevice, filePath),
+	) : TextureVulkan(logicDevice, physicalDevice, textureFilePath),
 		mRowCount(rowCount != 0 ? rowCount : 1),
 		mColCount(colCount != 0 ? colCount : 1),
 		mNormalisedInnerTextureWidth(1.0f / mRowCount),
@@ -21,15 +23,19 @@ namespace DOH {
 		const glm::vec2 origin = getInnerTextureCoordsOrigin(row, col);
 
 		std::array<float, 8> arr = {
+			//Top Left
 			origin.x,
 			origin.y + mNormalisedInnerTextureHeight,
 
+			//Top Right
 			origin.x + mNormalisedInnerTextureWidth,
 			origin.y + mNormalisedInnerTextureHeight,
 
+			//Bottom Right
 			origin.x + mNormalisedInnerTextureWidth,
 			origin.y,
 
+			//Bottom Left
 			origin.x,
 			origin.y
 		};
@@ -46,19 +52,62 @@ namespace DOH {
 		const glm::vec2 origin = getInnerTextureCoordsOrigin(rowTop, colLeft);
 
 		std::array<float, 8> arr = {
+			//Top Left
 			origin.x,
 			origin.y + (rowBot * mNormalisedInnerTextureHeight),
 
+			//Top Right
 			origin.x + (colRight * mNormalisedInnerTextureWidth),
 			origin.y + (rowBot * mNormalisedInnerTextureHeight),
 
+			//Bottom Right
 			origin.x + (colRight * mNormalisedInnerTextureWidth),
 			origin.y,
 
+			//Bottom Left
 			origin.x,
 			origin.y
 		};
 
 		return arr;
+	}
+
+	IndexedTextureAtlas::IndexedTextureAtlas(
+		VkDevice logicDevice,
+		VkPhysicalDevice physicalDevice,
+		const char* atlasInfoFilePath,
+		const char* atlasTextureDir
+	) : TextureVulkan() {
+		std::shared_ptr<IndexedAtlasInfoFileData> atlasFileData = ResourceHandler::loadIndexedTextureAtlas(atlasInfoFilePath);
+
+		if (atlasFileData == nullptr) {
+			//TODO:: Handle this
+			LOG_ERR("Failed to loadIndexedTextureAtlas: " << atlasInfoFilePath);
+			return;
+		}
+
+		std::string imageFilePath = atlasTextureDir;
+		imageFilePath.append(atlasFileData->TextureFileName);
+
+		TextureCreationData textureCreationData = ResourceHandler::loadTexture(imageFilePath.c_str());
+
+		if (textureCreationData.Failed) {
+			//TODO:: Handle this
+			LOG_ERR("IndexedAtlas " << atlasFileData->Name << "failed to loadTexture: " << imageFilePath);
+			return;
+		}
+
+		mName = atlasFileData->Name;
+		mInnerTextureMap = atlasFileData->InnerTextures;
+		mWidth = textureCreationData.Width;
+		mHeight = textureCreationData.Height;
+		mChannels = textureCreationData.Channels;
+
+		//IMPORTANT:: Textures used in the engine are assumed to have 4 channels when used.
+		VkDeviceSize imageSize = textureCreationData.Width * textureCreationData.Height * 4;
+
+		load(textureCreationData.Data, imageSize);
+
+		mId = ResourceHandler::getNextUniqueTextureId();
 	}
 }

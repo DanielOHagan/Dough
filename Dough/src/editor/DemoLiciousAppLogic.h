@@ -9,6 +9,7 @@
 #include "dough/input/Input.h"
 #include "dough/input/DefaultInputLayer.h"
 #include "dough/physics/BoundingBox2d.h"
+#include "dough/scene/geometry/collections/TileMap.h"
 
 #define BOUNCING_QUAD_COUNT
 #if defined (_DEBUG)
@@ -328,6 +329,19 @@ namespace DOH::EDITOR {
 			virtual void renderImGuiExtras() override;
 		};
 
+		class TileMapDemo : public IDemo {
+		public:
+			std::unique_ptr<TileMap> SceneTileMap;
+
+			bool Update = false;
+			bool Render = false;
+
+			virtual void init() override;
+			virtual void close() override;
+			virtual void renderImGuiMainTab() override;
+			virtual void renderImGuiExtras() override;
+		};
+
 		//Resources used by more than one demo
 		struct SharedDemoResources {
 			static const EVertexType TexturedVertexType = EVertexType::VERTEX_3D_TEXTURED;
@@ -363,6 +377,7 @@ namespace DOH::EDITOR {
 		std::unique_ptr<TextDemo> mTextDemo;
 		std::unique_ptr<LineDemo> mLineDemo;
 		std::unique_ptr<BoundingBoxDemo> mBoundingBoxDemo;
+		std::unique_ptr<TileMapDemo> mTileMapDemo;
 
 		std::unique_ptr<ImGuiSettings> mImGuiSettings;
 		std::shared_ptr<DefaultInputLayer> mInputLayer;

@@ -111,6 +111,10 @@ namespace DOH {
 		return CONTEXT.createMonoSpaceTextureAtlas(filePath, rowCount, colCount);
 	}
 
+	std::shared_ptr<IndexedTextureAtlas> ObjInit::indexedTextureAtlas(const char* atlasInfoFilePath, const char* atlasTextureDir) {
+		return CONTEXT.createIndexedTextureAtlas(atlasInfoFilePath, atlasTextureDir);
+	}
+
 	std::shared_ptr<FontBitmap> ObjInit::fontBitmap(const char* filepath, const char* imageDir) {
 		return CONTEXT.createFontBitmap(filepath, imageDir);
 	}

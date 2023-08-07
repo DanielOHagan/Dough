@@ -85,6 +85,7 @@ namespace DOH {
 			const uint32_t rowCount,
 			const uint32_t columnCount
 		);
+		static std::shared_ptr<IndexedTextureAtlas> indexedTextureAtlas(const char* atlasInfoFilePath, const char* atlasTextureDir);
 
 		//-----Font-----
 		static std::shared_ptr<FontBitmap> fontBitmap(const char* filepath, const char* imageDir);
