@@ -332,9 +332,14 @@ namespace DOH::EDITOR {
 		class TileMapDemo : public IDemo {
 		public:
 			std::unique_ptr<TileMap> SceneTileMap;
+			std::unique_ptr<TextureAtlasAnimationController> PreviewAnimationController;
+			Quad PreviewQuad;
+			Quad AnimatedQuad;
+			const char* PreviewedInnerTexture = "NONE";
 
 			bool Update = false;
 			bool Render = false;
+			bool RenderPreviewQuad = false;
 
 			virtual void init() override;
 			virtual void close() override;

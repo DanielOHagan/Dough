@@ -2,6 +2,7 @@
 
 #include "dough/files/ResourceHandler.h"
 #include "dough/Logging.h"
+#include "dough/files/TextFileUtils.h"
 
 #define DOH_FNT_MAX_STRING_CHAR_LENGTH 128
 #define DOH_FNT_MAX_INT_CHAR_LENGTH 8
@@ -50,28 +51,13 @@ namespace DOH {
 		if (mChars[currentIndex] == 'i') {
 			const std::string lineBuffer = ResourceHandler::getCurrentLineAsBuffer(mChars, currentIndex);
 
-			const std::pair<std::string, size_t>& faceValue = FntFileReader::readFntFileElementString(lineBuffer, "face", 0); //Offset to ignore "info"
-			const std::pair<int, size_t>& sizeValue = FntFileReader::readFntFileElementInt(lineBuffer, "size", faceValue.second);
+			const std::pair<std::string, size_t>& faceValue = TextFileUtils::readElementString(lineBuffer, "face", 0); //Offset to ignore "info"
+			const std::pair<int, size_t>& sizeValue = TextFileUtils::readElementInt(lineBuffer, "size", faceValue.second);
 
 			fntFileData->Face = faceValue.first;
 			fntFileData->CharSize = static_cast<uint32_t>(sizeValue.first);
 
 			//TODO:: bold? italic? charset? unicode? stretchH? smooth? aa? padding? spacing? outline?
-
-			//Demonstration & testing examples
-			//const auto& paddingValuesTest = readFntFileElementMultipleInt(
-			//	lineBuffer,
-			//	"padding",
-			//	4,
-			//	sizeValue.second
-			//);
-			//const auto& spacingValuesTest = readFntFileElementMultipleInt(
-			//	lineBuffer,
-			//	"spacing",
-			//	2,
-			//	paddingValuesTest.second
-			//);
-			//const auto& outlineTest = readFntFileElementInt(lineBuffer, "outline", spacingValuesTest.second);
 
 			currentIndex += lineBuffer.size();
 		} else {
@@ -83,11 +69,11 @@ namespace DOH {
 		if (mChars[currentIndex + 1] == 'o') {
 			const std::string lineBuffer = ResourceHandler::getCurrentLineAsBuffer(mChars, currentIndex);
 
-			const std::pair<int, size_t>& lineHeightValue = FntFileReader::readFntFileElementInt(lineBuffer, "lineHeight", 0);
-			const std::pair<int, size_t>& baseValue = FntFileReader::readFntFileElementInt(lineBuffer, "base", lineHeightValue.second);
-			const std::pair<int, size_t>& widthValue = FntFileReader::readFntFileElementInt(lineBuffer, "scaleW", baseValue.second);
-			const std::pair<int, size_t>& heightValue = FntFileReader::readFntFileElementInt(lineBuffer, "scaleH", widthValue.second);
-			const std::pair<int, size_t>& pagesValue = FntFileReader::readFntFileElementInt(lineBuffer, "pages", heightValue.second);
+			const std::pair<int, size_t>& lineHeightValue = TextFileUtils::readElementInt(lineBuffer, "lineHeight", 0);
+			const std::pair<int, size_t>& baseValue = TextFileUtils::readElementInt(lineBuffer, "base", lineHeightValue.second);
+			const std::pair<int, size_t>& widthValue = TextFileUtils::readElementInt(lineBuffer, "scaleW", baseValue.second);
+			const std::pair<int, size_t>& heightValue = TextFileUtils::readElementInt(lineBuffer, "scaleH", widthValue.second);
+			const std::pair<int, size_t>& pagesValue = TextFileUtils::readElementInt(lineBuffer, "pages", heightValue.second);
 
 			fntFileData->LineHeight = static_cast<uint32_t>(lineHeightValue.first);
 			fntFileData->Base = static_cast<uint32_t>(baseValue.first);
@@ -109,8 +95,8 @@ namespace DOH {
 			if (mChars[currentIndex] == 'p') {
 				const std::string lineBuffer = ResourceHandler::getCurrentLineAsBuffer(mChars, currentIndex);
 
-				const std::pair<int, size_t>& idValue = readFntFileElementInt(lineBuffer, "id", 0);
-				const std::pair<std::string, size_t>& fileValue = readFntFileElementString(lineBuffer, "file", idValue.second);
+				const std::pair<int, size_t>& idValue = TextFileUtils::readElementInt(lineBuffer, "id", 0);
+				const std::pair<std::string, size_t>& fileValue = TextFileUtils::readElementString(lineBuffer, "file", idValue.second);
 
 				FntFilePageData pageData = { fileValue.first, static_cast<uint32_t>(idValue.first) };
 				fntFileData->Pages.emplace_back(pageData);
@@ -124,7 +110,7 @@ namespace DOH {
 		//Check for if on "chars" line
 		if (mChars[currentIndex + 4] == 's') {
 			const std::string lineBuffer = ResourceHandler::getCurrentLineAsBuffer(mChars, currentIndex);
-			const std::pair<int, size_t>& countValue = readFntFileElementInt(lineBuffer, "count", 0);
+			const std::pair<int, size_t>& countValue = TextFileUtils::readElementInt(lineBuffer, "count", 0);
 
 			if (countValue.first < 1) {
 				LOG_ERR("fnt file char count < 1");
@@ -143,15 +129,15 @@ namespace DOH {
 		for (uint32_t i = 0; i < fntFileData->CharCount; i++) {
 			const std::string lineBuffer = ResourceHandler::getCurrentLineAsBuffer(mChars, currentIndex);
 
-			const std::pair<int, size_t>& idValue = FntFileReader::readFntFileElementInt(lineBuffer, "id", 0);
-			const std::pair<int, size_t>& xValue = FntFileReader::readFntFileElementInt(lineBuffer, "x", idValue.second);
-			const std::pair<int, size_t>& yValue = FntFileReader::readFntFileElementInt(lineBuffer, "y", xValue.second);
-			const std::pair<int, size_t>& widthValue = FntFileReader::readFntFileElementInt(lineBuffer, "width", yValue.second);
-			const std::pair<int, size_t>& heightValue = FntFileReader::readFntFileElementInt(lineBuffer, "height", widthValue.second);
-			const std::pair<int, size_t>& xOffsetValue = FntFileReader::readFntFileElementInt(lineBuffer, "xoffset", heightValue.second);
-			const std::pair<int, size_t>& yOffsetValue = FntFileReader::readFntFileElementInt(lineBuffer, "yoffset", xOffsetValue.second);
-			const std::pair<int, size_t>& xAdvanceValue = FntFileReader::readFntFileElementInt(lineBuffer, "xadvance", yOffsetValue.second);
-			const std::pair<int, size_t>& pageValue = FntFileReader::readFntFileElementInt(lineBuffer, "page", xAdvanceValue.second);
+			const std::pair<int, size_t>& idValue = TextFileUtils::readElementInt(lineBuffer, "id", 0);
+			const std::pair<int, size_t>& xValue = TextFileUtils::readElementInt(lineBuffer, "x", idValue.second);
+			const std::pair<int, size_t>& yValue = TextFileUtils::readElementInt(lineBuffer, "y", xValue.second);
+			const std::pair<int, size_t>& widthValue = TextFileUtils::readElementInt(lineBuffer, "width", yValue.second);
+			const std::pair<int, size_t>& heightValue = TextFileUtils::readElementInt(lineBuffer, "height", widthValue.second);
+			const std::pair<int, size_t>& xOffsetValue = TextFileUtils::readElementInt(lineBuffer, "xoffset", heightValue.second);
+			const std::pair<int, size_t>& yOffsetValue = TextFileUtils::readElementInt(lineBuffer, "yoffset", xOffsetValue.second);
+			const std::pair<int, size_t>& xAdvanceValue = TextFileUtils::readElementInt(lineBuffer, "xadvance", yOffsetValue.second);
+			const std::pair<int, size_t>& pageValue = TextFileUtils::readElementInt(lineBuffer, "page", xAdvanceValue.second);
 
 			FntFileGlyphData charData = {
 				static_cast<uint32_t>(idValue.first),
@@ -174,7 +160,7 @@ namespace DOH {
 			if (mChars[currentIndex + 7] == 's') {
 				const std::string lineBuffer = ResourceHandler::getCurrentLineAsBuffer(mChars, currentIndex);
 
-				const std::pair<int, size_t>& countValue = FntFileReader::readFntFileElementInt(lineBuffer, "count", 0);
+				const std::pair<int, size_t>& countValue = TextFileUtils::readElementInt(lineBuffer, "count", 0);
 				fntFileData->KerningCount = static_cast<uint32_t>(countValue.first);
 
 				currentIndex += lineBuffer.size();
@@ -186,9 +172,9 @@ namespace DOH {
 			for (uint32_t i = 0; i < fntFileData->KerningCount; i++) {
 				const std::string lineBuffer = ResourceHandler::getCurrentLineAsBuffer(mChars, currentIndex);
 
-				const std::pair<int, size_t>& firstValue = FntFileReader::readFntFileElementInt(lineBuffer, "first", 0);
-				const std::pair<int, size_t>& secondValue = FntFileReader::readFntFileElementInt(lineBuffer, "second", firstValue.second);
-				const std::pair<int, size_t>& amountValue = FntFileReader::readFntFileElementInt(lineBuffer, "amount", secondValue.second);
+				const std::pair<int, size_t>& firstValue = TextFileUtils::readElementInt(lineBuffer, "first", 0);
+				const std::pair<int, size_t>& secondValue = TextFileUtils::readElementInt(lineBuffer, "second", firstValue.second);
+				const std::pair<int, size_t>& amountValue = TextFileUtils::readElementInt(lineBuffer, "amount", secondValue.second);
 
 				FntFileKerningData kerningData = {
 					static_cast<uint32_t>(firstValue.first),
@@ -206,146 +192,5 @@ namespace DOH {
 		}
 
 		return fntFileData;
-	}
-
-	std::pair<int, size_t> FntFileReader::readFntFileElementInt(
-		const std::string& lineBuffer,
-		const char* elementName,
-		const size_t startIndex
-	) {
-		if (elementName == "") {
-			LOG_ERR("Invalid search argument for readFntFileElementInt. elementName: " << elementName);
-			return { INT16_MIN, startIndex };
-		}
-
-		//In .fnt files, integer values start after the element's = sign and end at the next empty space
-
-		//Values will be truncated at DOH_FNT_MAX_INT_CHAR_LENGTH - 1 digits, leaving room for zero-termination char
-		char valueChars[DOH_FNT_MAX_INT_CHAR_LENGTH] = {};
-
-		size_t targetElementStartIndex = lineBuffer.find(elementName, startIndex);
-		if (targetElementStartIndex == std::string::npos) {
-			LOG_ERR("readFntFileElementInt failed to find element: " << elementName);
-			return { INT16_MIN, startIndex };
-		}
-		targetElementStartIndex += strlen(elementName) + 1; //Include offset of element name and =
-
-		//TODO:: is there a faster way of getting the first non numerical value? instead of an equals to check for each char,
-		//	shouldn't a < (char) 0 OR > (char) 9 with an OR for - symbal be much faster?
-		const size_t targetElementEndIndex = lineBuffer.find_first_not_of("-0123456789", targetElementStartIndex);
-		size_t valueCharCount = targetElementEndIndex - targetElementStartIndex;
-
-		memcpy(
-			&valueChars,
-			lineBuffer.data() + targetElementStartIndex,
-			sizeof(char) * valueCharCount
-		);
-
-		if (valueCharCount >= DOH_FNT_MAX_INT_CHAR_LENGTH) {
-			LOG_WARN("int valueCharCount of: " << valueCharCount << " must be smaller than: " << DOH_FNT_MAX_INT_CHAR_LENGTH);
-			//Truncate to ensure space for zero-termination character
-			valueCharCount = DOH_FNT_MAX_INT_CHAR_LENGTH - 1;
-		}
-		valueChars[valueCharCount] = '\0';
-
-		return { std::stoi(valueChars), targetElementEndIndex };
-	}
-
-	std::pair<std::array<int, 4>, size_t> FntFileReader::readFntFileElementMultipleInt(
-		const std::string& lineBuffer,
-		const char* elementName,
-		const uint32_t intCount,
-		const size_t startIndex
-	) {
-		if (intCount > 4 || intCount == 0 || elementName == "") {
-			LOG_ERR(
-				"Invalid search arguments for readFntFileElementMultipleInt. elementName: " <<
-				elementName << " intCount: " << intCount
-			);
-			return { { INT16_MIN, INT16_MIN, INT16_MIN, INT16_MIN }, startIndex };
-		}
-
-		//In .fnt files, integer values start after the element's = sign, and end at the next empty space.
-		//	Elements containing multiple integer values use a , to separate values
-		size_t targetElementStartIndex = lineBuffer.find(elementName, startIndex);
-		if (targetElementStartIndex == std::string::npos) {
-			LOG_ERR("readFntFileElementMultipleInt failed to find element: " << elementName);
-			return { { INT16_MIN, INT16_MIN, INT16_MIN, INT16_MIN }, startIndex };
-		}
-		targetElementStartIndex += strlen(elementName) + 1;
-
-		size_t targetElementEndIndex = 0;
-		int values[4] = {};
-		bool finalValue = false;
-		for (uint32_t i = 0; i < intCount; i++) {
-			if (finalValue) {
-				break;
-			}
-
-			char valueChars[DOH_FNT_MAX_INT_CHAR_LENGTH];
-
-			targetElementEndIndex = lineBuffer.find_first_of(" ,", targetElementStartIndex) + 1;
-			size_t valueCharCount = targetElementEndIndex - targetElementStartIndex;
-
-			memcpy(
-				&valueChars,
-				lineBuffer.data() + targetElementStartIndex,
-				sizeof(char) * valueCharCount
-			);
-			finalValue = valueChars[valueCharCount - 1] == ' ';
-
-			if (valueCharCount >= DOH_FNT_MAX_INT_CHAR_LENGTH) {
-				LOG_WARN("int valueCharCount of: " << valueCharCount << " must be smaller than: " << DOH_FNT_MAX_INT_CHAR_LENGTH);
-				//Truncate to ensure space for zero-termination character
-				valueCharCount = DOH_FNT_MAX_INT_CHAR_LENGTH - 1;
-			}
-			valueChars[valueCharCount] = '\0';
-
-			values[i] = std::stoi(valueChars);
-			targetElementStartIndex = targetElementEndIndex;
-		}
-
-		return { {values[0], values[1], values[2], values[3]}, targetElementEndIndex };
-	}
-
-	std::pair<std::string, size_t> FntFileReader::readFntFileElementString(
-		const std::string& lineBuffer,
-		const char* elementName,
-		const size_t startIndex
-	) {
-		if (elementName == "") {
-			LOG_ERR("Invalid search arguments for readFntFileElementString elementName: " << elementName);
-			return { "", startIndex };
-		}
-
-		//In .fnt files strings are decorated with " marks at the start and end
-
-		//Values will be truncated at DOH_FNT_MAX_STRING_CHAR_LENGTH - 1, leaving room for zero-termination char
-		char valueChars[DOH_FNT_MAX_STRING_CHAR_LENGTH];
-
-		size_t targetElementStartIndex = lineBuffer.find(elementName, startIndex);
-		if (targetElementStartIndex == std::string::npos) {
-			LOG_ERR("readFntFileElementString failed to find element: " << elementName);
-			return { "", startIndex };
-		}
-
-		targetElementStartIndex += strlen(elementName) + 2; //Include offset of element name , = and first "
-		const size_t targetElementEndIndex = lineBuffer.find("\"", targetElementStartIndex);
-		size_t valueCharCount = targetElementEndIndex - targetElementStartIndex;
-
-		memcpy(
-			&valueChars,
-			lineBuffer.data() + targetElementStartIndex,
-			sizeof(char) * valueCharCount
-		);
-
-		if (valueCharCount >= DOH_FNT_MAX_STRING_CHAR_LENGTH) {
-			LOG_WARN("int valueCharCount of: " << valueCharCount << " must be smaller than: " << DOH_FNT_MAX_STRING_CHAR_LENGTH);
-			//Truncate to ensure space for zero-termination character
-			valueCharCount = DOH_FNT_MAX_STRING_CHAR_LENGTH - 1;
-		}
-		valueChars[valueCharCount] = '\0';
-
-		return { valueChars, targetElementEndIndex };
 	}
 }

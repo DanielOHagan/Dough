@@ -9,3 +9,7 @@ innerTextureCount=8 innerTextures {
     iName="tree small" tl=256,0 tr=320,0 br=320,64 bl=256,64
     iName="house" tl=320,0 tr=384,0 br=384,64 bl=320,64
 }
+animationCount=2 animations {
+    animName="testAnim" textureSequence="dirt,grass,sand,cobble,large tree top,large tree bot,tree small,house" duration=8.0 looping=y
+    animName="anotherTestAnim" textureSequence="grass,grass,cobble,cobble" duration=1.0 looping=n
+}

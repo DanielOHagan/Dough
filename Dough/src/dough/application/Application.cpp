@@ -21,6 +21,17 @@ namespace DOH {
 	}
 
 	void Application::init(std::shared_ptr<IApplicationLogic> appLogic, const ApplicationInitSettings& initSettings) {
+
+		{
+			bool debugConfig = false;
+
+			#if defined (_DEBUG)
+				debugConfig = true;
+			#endif
+
+			LOGLN_CYAN("Config: " << (debugConfig ? "DEBUG" : "RELEASE"));
+		}
+
 		mAppDebugInfo = std::make_unique<AppDebugInfo>();
 		mAppInfoTimer = std::make_unique<IntervalTimer>(true);
 		mAppInfoTimer->recordInterval("Application.init() start");

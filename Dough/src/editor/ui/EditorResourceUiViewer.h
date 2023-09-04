@@ -15,6 +15,8 @@ namespace DOH::EDITOR {
 		MONO_SPACE_TEXTURE_ATLAS,
 		INDEXED_TEXTURE_ATLAS,
 
+		INNER_TEXTURE,
+
 		TEXTURE_ARRAY
 	};
 
@@ -24,6 +26,8 @@ namespace DOH::EDITOR {
 		"TEXTURE",
 		"MONO_SPACE_TEXTURE_ATLAS",
 		"INDEXED_TEXTURE_ATLAS",
+
+		"INNER_TEXTURE",
 
 		"TEXTURE_ARRAY"
 	};
@@ -118,10 +122,7 @@ namespace DOH::EDITOR {
 			mMatchWindowSize(matchWindowSize),
 			mScale(scale),
 			mPreviewScale(1.0f),
-			mPreviewedInnerTexture(
-				textureAtlas.getInnerTextures().begin() != textureAtlas.getInnerTextures().end() ? 
-					textureAtlas.getInnerTextures().begin()->first.c_str() : "No Preview"
-			),
+			mPreviewedInnerTexture("No Preview"),
 			mPreviewTexelCoords(),
 			mPreviewTextureCoords()
 		{}
@@ -129,6 +130,25 @@ namespace DOH::EDITOR {
 		virtual void draw(bool openAsWindow = false) override;
 
 		inline const IndexedTextureAtlas& getTextureAtlas() const { return mTextureAtlas; }
+	};
+
+	class ResourceViewerUiInnerTexture : public AResourceViewerUi {
+	private:
+		const TextureVulkan& mWholeTexture;
+		const InnerTexture& mInnerTexture;
+
+	public:
+		ResourceViewerUiInnerTexture(
+			const TextureVulkan& wholeTexture,
+			const InnerTexture& innerTexture,
+			const bool display = true,
+			const bool matchWindowSize = false,
+			const float scale = 1.0f
+		) : AResourceViewerUi(EResourceViewerUiType::INNER_TEXTURE, display),
+			mWholeTexture(wholeTexture),
+			mInnerTexture(innerTexture)
+			//mScale(scale),
+		{}
 	};
 
 	class ResourceViewerUiTextureArray : public AResourceViewerUi {

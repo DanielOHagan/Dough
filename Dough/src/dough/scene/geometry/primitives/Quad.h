@@ -18,10 +18,12 @@ namespace DOH {
 
 	public:
 
+		constexpr static std::array<float, 8> DEFAULT_TEXTURE_COORDS = { 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f };
+
 		Quad()
 		:	AGeometry({ 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, 0.0f),
 			Colour(1.0f, 1.0f, 1.0f, 1.0f),
-			TextureCoords({ 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f })
+			TextureCoords(Quad::DEFAULT_TEXTURE_COORDS)
 		{}
 		Quad(
 			glm::vec3 pos,
@@ -29,7 +31,7 @@ namespace DOH {
 			glm::vec4 colour,
 			float rotationRads = 0.0f,
 			std::shared_ptr<TextureVulkan> texture = nullptr,
-			std::array<float, 8> texCoords = { 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f }
+			std::array<float, 8> texCoords = Quad::DEFAULT_TEXTURE_COORDS
 		) : AGeometry(pos, size, rotationRads),
 			Texture(std::nullopt),
 			Colour(colour),

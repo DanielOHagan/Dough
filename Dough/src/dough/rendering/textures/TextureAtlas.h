@@ -3,11 +3,12 @@
 #include "dough/Core.h"
 #include "dough/rendering/textures/TextureVulkan.h"
 #include "dough/Maths.h"
+#include "dough/rendering/animations/TextureAtlasAnimation.h"
 
 #include <unordered_map>
 
 namespace DOH {
-
+	
 	/**
 	* Description of texture within a texture atlas.
 	*/
@@ -26,7 +27,23 @@ namespace DOH {
 		inline std::array<float, 2> getTopRightTexCoords() const { return { TextureCoords[2], TextureCoords[3] }; }
 		inline std::array<float, 2> getBottomRightTexCoords() const { return { TextureCoords[4], TextureCoords[5] }; }
 		inline std::array<float, 2> getBottomLeftTexCoords() const { return { TextureCoords[6], TextureCoords[7] }; }
+
+		inline uint32_t getWidthTexels() const { return TexelCoords[2] - TexelCoords[0]; } //Any ___Right.x value - and ___Left.x value
+		inline uint32_t getHeightTexels() const { return TexelCoords[5] - TexelCoords[1]; } //Any ___Bottom.y value - and ___Top.y value
+		inline float getWidthTexCoord() const { return TextureCoords[2] - TextureCoords[0]; } //Any ___Right.x value - and ___Left.x value
+		inline float getHeightTexCoord() const { return TextureCoords[5] - TextureCoords[1] ; } //Any ___Bottom.y value - and ___Top.y value
 	};
+
+	//TODO:: Maybe an InnerTextureGroup which inherits from InnerTexture.
+	/*
+	e.g. 
+	struct InnerTextureGroup : public InnerTexture {
+		uint32 TileWidth; //The number of tiles along the X-axis this inner texture uses.
+		uint32 TileHeight; //The number of tiles along the Y-aixs this inner texture uses.
+
+		//The TexelCoords & TextureCoords being the bounding box of the inner textures
+	}
+	*/
 
 	class MonoSpaceTextureAtlas : public TextureVulkan {
 	private:
@@ -63,12 +80,15 @@ namespace DOH {
 	private:
 		//Key: Name Value: TexCoords
 		std::unordered_map<std::string, InnerTexture> mInnerTextureMap;
+		std::unordered_map<std::string, TextureAtlasAnimation> mAnimations;
 
 	public:
 		IndexedTextureAtlas(VkDevice logicDevice, VkPhysicalDevice physicalDevice, const char* atlasInfoFilePath, const char* atlasTextureDir);
 
 		inline const std::unordered_map<std::string, InnerTexture>& getInnerTextures() const { return mInnerTextureMap; }
-		//std::optional<InnerTexture> getInnerTexture(const char* innerTextureName) const;
+		inline const std::unordered_map<std::string, TextureAtlasAnimation>& getAnimations() const { return mAnimations; }
+		
 		const InnerTexture& getInnerTexture(const char* innerTextureName) const { return mInnerTextureMap.find(innerTextureName)->second; }
+		const TextureAtlasAnimation& getAnimation(const char* animationName) const { return mAnimations.find(animationName)->second; }
 	};
 }

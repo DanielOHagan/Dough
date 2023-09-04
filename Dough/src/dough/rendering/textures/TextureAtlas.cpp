@@ -99,6 +99,7 @@ namespace DOH {
 
 		mName = atlasFileData->Name;
 		mInnerTextureMap = atlasFileData->InnerTextures;
+		mAnimations = atlasFileData->Animations;
 		mWidth = textureCreationData.Width;
 		mHeight = textureCreationData.Height;
 		mChannels = textureCreationData.Channels;

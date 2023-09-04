@@ -168,11 +168,16 @@ namespace DOH::EDITOR {
 
 			ImGui::Text("Inner Texture Count: %i", static_cast<int>(mTextureAtlas.getInnerTextures().size()));
 			ImGui::Text("Inner Textures:");
+			std::array<uint32_t, 8> previewTexelCoords = {};
+			size_t i = 0;
 			for (const auto& innerTexture : mTextureAtlas.getInnerTextures()) {
 				const char* texName = innerTexture.first.c_str();
 				bool previewButton = texName == mPreviewedInnerTexture;
 				if (previewButton) {
 					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.5f, 0.0f, 1.0f));
+				}
+				if (i > 0 && i < mTextureAtlas.getInnerTextures().size()) {
+					ImGui::SameLine();
 				}
 				if (ImGui::Button(innerTexture.first.c_str())) {
 					//NOTE:: Preview function made before InnerTextures stored TextureCoords
@@ -196,16 +201,20 @@ namespace DOH::EDITOR {
 
 				if (previewButton) {
 					ImGui::PopStyleColor(1);
-					ImGui::Text("TL(%itx, %itx)", innerTexture.second.TexelCoords[0], innerTexture.second.TexelCoords[1]);
-					ImGui::Text("TR(%itx, %itx)", innerTexture.second.TexelCoords[2], innerTexture.second.TexelCoords[3]);
-					ImGui::Text("BR(%itx, %itx)", innerTexture.second.TexelCoords[4], innerTexture.second.TexelCoords[5]);
-					ImGui::Text("BL(%itx, %itx)", innerTexture.second.TexelCoords[6], innerTexture.second.TexelCoords[7]);
+
+					previewTexelCoords = innerTexture.second.TexelCoords;
 				}
+
+				i++;
 			}
 			ImGui::Text("Preview: ");
-			if (mPreviewedInnerTexture != "") {
-				ImGui::SameLine();
-				ImGui::Text(mPreviewedInnerTexture);
+			ImGui::SameLine();
+			ImGui::Text(mPreviewedInnerTexture);
+			if (mPreviewedInnerTexture != "No Preview") {
+				ImGui::Text("Texel Coords TL(%itx, %itx)", previewTexelCoords[0], previewTexelCoords[1]);
+				ImGui::Text("Texel Coords TR(%itx, %itx)", previewTexelCoords[2], previewTexelCoords[3]);
+				ImGui::Text("Texel Coords BR(%itx, %itx)", previewTexelCoords[4], previewTexelCoords[5]);
+				ImGui::Text("Texel Coords BL(%itx, %itx)", previewTexelCoords[6], previewTexelCoords[7]);
 
 				ImGui::DragFloat(("Preview Scale" + uniqueImGuiId).c_str(), &mPreviewScale, 0.005f, 0.01f, 5.0f);
 
@@ -218,6 +227,50 @@ namespace DOH::EDITOR {
 					{ mPreviewTexelCoords[0], mPreviewTexelCoords[3] },
 					{ mPreviewTexelCoords[2], mPreviewTexelCoords[1] }
 				);
+			} else {
+				EditorGui::displayHelpTooltip("Click a button to show a preview of an inner texture.");
+			}
+
+			if (mTextureAtlas.getAnimations().size() > 0) {
+				ImGui::NewLine();
+				ImGui::Text("Animations");
+				for (const auto& animation : mTextureAtlas.getAnimations()) {
+					ImGui::Text(animation.first.c_str());
+					ImGui::SameLine();
+					const size_t frameCount = animation.second.getInnerTextures().size();
+					ImGui::Text("Fame Count: %i", frameCount);
+
+					uint32_t i = 0;
+					for (const auto& innerTexture : animation.second.getInnerTextures()) {
+						std::array<uint32_t, 2> botLeft = innerTexture.getBottomLeftTexels();
+						std::array<uint32_t, 2> topRight = innerTexture.getTopRightTexels();
+
+						std::array<float, 4> texCoords = {
+							static_cast<float>(botLeft[0]),
+							static_cast<float>(botLeft[1]),
+							static_cast<float>(topRight[0]),
+							static_cast<float>(topRight[1])
+						};
+
+						if (texCoords[0] > 0.0f) texCoords[0] /= mTextureAtlas.getWidth();
+						if (texCoords[1] > 0.0f) texCoords[1] /= mTextureAtlas.getHeight();
+						if (texCoords[2] > 0.0f) texCoords[2] /= mTextureAtlas.getWidth();
+						if (texCoords[3] > 0.0f) texCoords[3] /= mTextureAtlas.getHeight();
+
+						if (i > 0 && i < frameCount) {
+							ImGui::SameLine();
+						}
+
+						EditorGui::getGuiWrapper().drawTexture(
+							mTextureAtlas,
+							{ static_cast<float>(innerTexture.getWidthTexels()), static_cast<float>(innerTexture.getHeightTexels()) },
+							{ texCoords[0], texCoords[3] },
+							{ texCoords[2], texCoords[1] }
+						);
+
+						i++;
+					}
+				}
 			}
 		}
 

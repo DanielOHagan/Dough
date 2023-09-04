@@ -18,25 +18,5 @@ namespace DOH {
 
 		inline const bool isOpen() const { return mOpen; }
 		inline void close() { mChars.clear(); mOpen = false; }
-
-	private:
-		//returns pair<parsed int value, offset of final char in value>
-		static std::pair<int, size_t> readFntFileElementInt(
-			const std::string& lineBuffer,
-			const char* elementName,
-			const size_t startIndex = 0
-		);
-		static std::pair<std::array<int, 4>, size_t> readFntFileElementMultipleInt(
-			const std::string& lineBuffer,
-			const char* elementName,
-			const uint32_t intCount,
-			const size_t startIndex = 0
-		);
-		//returns <read string value, offset of final char in value>
-		static std::pair<std::string, size_t> readFntFileElementString(
-			const std::string& lineBuffer,
-			const char* elementName,
-			const size_t startIndex = 0
-		);
 	};
 }

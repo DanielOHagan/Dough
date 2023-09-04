@@ -164,7 +164,7 @@ namespace DOH {
 				}
 
 				mGpuResourcesFrameCloseCount[releaseFrameIndex] = 0;
-				LOG_INFO("Closed " << count << " GPU objects in frame: " << releaseFrameIndex << ". Delayed by " << GPU_RESOURCE_CLOSE_DELAY_FRAMES << " frame(s)");
+				LOG_INFO("Closed " << count << " GPU objects in Swap-Chain frame: " << releaseFrameIndex << ". Delayed by " << GPU_RESOURCE_CLOSE_DELAY_FRAMES << " frame(s)");
 			}
 		} else {
 			LOG_ERR("Invalid releaseFrameIndex: " << releaseFrameIndex);

@@ -296,6 +296,8 @@ namespace DOH {
 			VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
 		);
 
+		//TODO:: UI Text, since UI camera is orthographic kerning should work as z-fighting won't happen
+
 		mTextGraphicsPipeline = mContext.createGraphicsPipeline(
 			*mTextGraphicsPipelineInstanceInfo,
 			mContext.getSwapChain().getExtent()

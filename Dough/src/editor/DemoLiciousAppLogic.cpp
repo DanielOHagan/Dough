@@ -57,6 +57,12 @@ namespace DOH::EDITOR {
 		//		obj->Transformation->updateTranslationMatrix();
 		//	}
 		//}
+
+		if (mTileMapDemo->Update) {
+			if (mTileMapDemo->PreviewAnimationController->update(delta)) {
+				mTileMapDemo->AnimatedQuad.TextureCoords = mTileMapDemo->PreviewAnimationController->getCurrentInnerTexture().TextureCoords;
+			}
+		}
 	}
 
 	void DemoLiciousAppLogic::render() {
@@ -160,6 +166,13 @@ namespace DOH::EDITOR {
 			if (mBoundingBoxDemo->Quads.size() > 0) {
 				renderer2d.drawQuadArrayScene(mBoundingBoxDemo->Quads);
 				context.getLineRenderer().drawQuadScene(mBoundingBoxDemo->BoundingBox->getQuad(), {0.0f, 1.0f, 0.0f, 1.0f});
+			}
+		}
+
+		if (mTileMapDemo->Render) {
+			if (mTileMapDemo->RenderPreviewQuad) {
+				renderer2d.drawQuadTexturedScene(mTileMapDemo->PreviewQuad);
+				renderer2d.drawQuadTexturedScene(mTileMapDemo->AnimatedQuad);
 			}
 		}
 
@@ -937,8 +950,8 @@ namespace DOH::EDITOR {
 			if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Add").c_str(), &AddNewQuadCount, 5, 5)) {
 				if (AddNewQuadCount < 0) {
 					AddNewQuadCount = 0;
-				} else if (AddNewQuadCount > 1000) {
-					AddNewQuadCount = 1000;
+				} else if (AddNewQuadCount > 5000) {
+					AddNewQuadCount = 5000;
 				}
 			}
 			ImGui::SameLine();
@@ -1276,6 +1289,14 @@ namespace DOH::EDITOR {
 		const std::shared_ptr<IndexedTextureAtlas> texAtlas = GET_RENDERER.getContext().getRenderer2d().getStorage().getTestIndexedTextureAtlas();
 
 		SceneTileMap = std::make_unique<TileMap>(*texAtlas, 50, 50);
+
+		PreviewAnimationController = std::make_unique<TextureAtlasAnimationController>(texAtlas->getAnimation("testAnim"));
+
+		PreviewQuad = { { 0.0f, -1.0f, 1.0f }, { 2.0f, 2.0f }, { 1.f, 1.0f, 1.0f, 1.0f }, 0.0f, texAtlas };
+		PreviewQuad.setTexture(*texAtlas);
+
+		AnimatedQuad = { { -2.0f, -1.0f, 1.0f }, { 2.0f, 2.0f }, { 1.f, 1.0f, 1.0f, 1.0f }, 0.0f, texAtlas, PreviewAnimationController->getCurrentInnerTexture().TextureCoords };
+		AnimatedQuad.setTexture(*texAtlas);
 	}
 
 	void DemoLiciousAppLogic::TileMapDemo::close() {
@@ -1285,9 +1306,46 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::TileMapDemo::renderImGuiMainTab() {
 		if (ImGui::BeginTabItem("Tile Map")) {
 			ImGui::Checkbox("Render", &Render);
+			ImGui::Checkbox("Update", &Update);
+			ImGui::Checkbox("Render Preview Quad", &RenderPreviewQuad);
 
 			if (ImGui::Button("View Texture Atlas")) {
 				EditorGui::openIndexedTextureAtlasViewerWindow(*GET_RENDERER.getContext().getRenderer2d().getStorage().getTestIndexedTextureAtlas());
+			}
+
+			EditorGui::controlsQuad(PreviewQuad, "PreviewQuad");
+
+			ImGui::Text("Inner Textures");
+
+			for (const auto& innerTexture : SceneTileMap->getTextureAtlas().getInnerTextures()) {
+				const char* texName = innerTexture.first.c_str();
+				bool previewButton = texName == PreviewedInnerTexture;
+				if (previewButton) {
+					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.5f, 0.0f, 1.0f));
+				}
+				if (ImGui::Button(innerTexture.first.c_str())) {
+					PreviewedInnerTexture = innerTexture.first.c_str();
+					PreviewQuad.TextureCoords = innerTexture.second.TextureCoords;
+				}
+
+				if (previewButton) {
+					ImGui::PopStyleColor(1);
+				}
+			}
+
+			if (ImGui::Button("Reset Preview")) {
+				PreviewQuad.TextureCoords = Quad::DEFAULT_TEXTURE_COORDS;
+				PreviewedInnerTexture = "NONE";
+			}
+
+			ImGui::Text("Animation");
+			const bool isPlaying = PreviewAnimationController->isPlaying();
+			if (ImGui::Button(isPlaying ? "Pause" : "Play")) {
+				PreviewAnimationController->setPlaying(!isPlaying);
+			}
+			if (ImGui::Button("Reset Animation")) {
+				PreviewAnimationController->reset();
+				AnimatedQuad.TextureCoords = PreviewAnimationController->getCurrentInnerTexture().TextureCoords;
 			}
 
 			ImGui::EndTabItem();

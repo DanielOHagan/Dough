@@ -26,6 +26,7 @@ namespace DOH {
 
 		void setTileTextureIndex(uint32_t tileIndex, uint32_t textureIndex);
 
+		inline const IndexedTextureAtlas& getTextureAtlas() const { return mTextureAtlas; }
 		inline uint32_t getTileTextureIndex(uint32_t tileIndex) const { return tileIndex < static_cast<uint32_t>(mTileTextureIndexes.size()) ? mTileTextureIndexes[tileIndex] : UINT32_MAX; }
 		//inline uint32_t getTileTextureIndex(uint32_t x, uint32_t y) const { return getTileTextureIndex(); }
 		inline uint32_t getTileCountX() const { return mTileCountX; }
