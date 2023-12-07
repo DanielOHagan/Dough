@@ -5,7 +5,7 @@
 
 namespace DOH {
 
-	class IndexedAtlasInfoFileReader : public AFileReader<IndexedAtlasInfoFileData> {	
+	class IndexedAtlasInfoFileReader : public AFileReader<IndexedAtlasInfoFileData> {
 	public:
 		IndexedAtlasInfoFileReader(const char* atlasInfoFilePath, const bool openNow = true);
 		IndexedAtlasInfoFileReader(const IndexedAtlasInfoFileReader& copy) = delete;

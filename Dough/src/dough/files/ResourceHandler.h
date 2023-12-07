@@ -12,6 +12,7 @@ namespace tinyobj {
 namespace DOH {
 
 	struct FntFileData;
+	struct JsonFileData;
 	struct ObjFileData;
 	struct IndexedAtlasInfoFileData;
 
@@ -50,6 +51,7 @@ namespace DOH {
 		void freeImageImpl(void* imageData);
 		std::shared_ptr<IndexedAtlasInfoFileData> loadIndexedTextureAtlasImpl(const char* atlasInfoFilePath);
 		std::shared_ptr<FntFileData> loadFntFileImpl(const char* filePath);
+		std::shared_ptr<JsonFileData> loadJsonFileImpl(const char* filePath);
 		std::shared_ptr<Model3dCreationData> loadObjModelImpl(const std::string& filePath, const AVertexInputLayout& vertexInputLayout);
 
 		static std::pair<std::vector<float>, std::vector<uint32_t>> extractObjFileDataAsVertex3d(
@@ -85,6 +87,7 @@ namespace DOH {
 		//TODO:: allow for VertexType to be specified when loading
 		static std::shared_ptr<Model3dCreationData> loadObjModel(const std::string& filePath);
 		static std::shared_ptr<FntFileData> loadFntFile(const char* filePath);
+		static std::shared_ptr<JsonFileData> loadJsonFile(const char* filePath);
 
 
 		//------String parsing helpers-----

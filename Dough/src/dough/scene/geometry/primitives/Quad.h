@@ -43,7 +43,7 @@ namespace DOH {
 		}
 
 		glm::vec4 Colour;
-		std::array<float, 8> TextureCoords; //Interlaced ordering
+		std::array<float, 8> TextureCoords; //Interlaced ordering of two floats per quad corners. Ordered: BottomLeft->BottomRight->TopRight->TopLeft.
 
 		inline void setColour(glm::vec4 colour) { Colour = colour; }
 		inline void setColourRGB(float r, float g, float b) { Colour = { r, g, b, Colour.z }; }

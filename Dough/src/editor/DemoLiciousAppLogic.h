@@ -232,7 +232,9 @@ namespace DOH::EDITOR {
 			static constexpr size_t StringLengthLimit = 1000; //Arbitrary limit
 		
 			std::unique_ptr<TextString> Text;
+			std::unique_ptr<TextString> MsdfText;
 			char StringBuffer[StringLengthLimit] = "This is the default text string. Use the Text Field to change me!";
+			char MsdfStringBuffer[StringLengthLimit] = "Default MSDF text string, use the text field to change me!";
 			glm::vec4 Colour = { 1.0f, 1.0f, 1.0f, 1.0f };
 		
 			bool Update = false;

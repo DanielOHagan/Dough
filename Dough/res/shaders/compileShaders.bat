@@ -12,4 +12,7 @@ C:\dev\__SDKs\Vulkan\Bin\glslc.exe LineRenderer3d.vert -o spv/LineRenderer3d.ver
 C:\dev\__SDKs\Vulkan\Bin\glslc.exe LineRenderer3d.frag -o spv/LineRenderer3d.frag.spv
 C:\dev\__SDKs\Vulkan\Bin\glslc.exe LineRenderer2d.vert -o spv/LineRenderer2d.vert.spv
 C:\dev\__SDKs\Vulkan\Bin\glslc.exe LineRenderer2d.frag -o spv/LineRenderer2d.frag.spv
+
+C:\dev\__SDKs\Vulkan\Bin\glslc.exe TextMsdf3d.vert -o spv/TextMsdf3d.vert.spv
+C:\dev\__SDKs\Vulkan\Bin\glslc.exe TextMsdf3d.frag -o spv/TextMsdf3d.frag.spv
 pause

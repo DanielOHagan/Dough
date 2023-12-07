@@ -12,7 +12,7 @@ namespace DOH {
 	{
 		bool isValid = true;
 		if (!ResourceHandler::isFileOfType(atlastInfoFilePath, "txt")) {
-			LOG_ERR("Invalid file type for reader (.txt): " << atlastInfoFilePath)
+			LOG_ERR("Invalid file type for reader (.txt): " << atlastInfoFilePath);
 			isValid = false;
 		}
 
@@ -28,7 +28,7 @@ namespace DOH {
 			mChars = ResourceHandler::readFile(mFilepath);
 			mOpen = true;
 		} else {
-			LOG_WARN("Attempting open already open reader");
+			LOG_WARN("Attempting to open an already open reader");
 		}
 
 		return mOpen;

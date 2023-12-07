@@ -31,6 +31,8 @@ namespace DOH {
 		static const std::string QUAD_SHADER_PATH_FRAG;
 		static const std::string TEXT_2D_SHADER_PATH_VERT;
 		static const std::string TEXT_2D_SHADER_PATH_FRAG;
+		static const std::string TEXT_MSDF_3D_SHADER_PATH_VERT;
+		static const std::string TEXT_MSDF_3D_SHADER_PATH_FRAG;
 
 		VkDescriptorPool mDescriptorPool;
 
@@ -48,14 +50,21 @@ namespace DOH {
 		std::shared_ptr<TextureVulkan> mWhiteTexture;
 
 		//Text
+		std::unordered_map<std::string, std::shared_ptr<FontBitmap>> mFontBitmaps;
+		std::unique_ptr<TextureArray> mTextBatchTextureArray;
+
+		//Soft Mask
 		std::shared_ptr<ShaderProgramVulkan> mTextShaderProgram;
 		std::unique_ptr<GraphicsPipelineInstanceInfo> mTextGraphicsPipelineInstanceInfo;
 		std::shared_ptr<GraphicsPipelineVulkan> mTextGraphicsPipeline;
 		std::unique_ptr<RenderBatchQuad> mTextRenderBatch;
 		std::shared_ptr<SimpleRenderable> mRenderableTextBatch;
-		std::unique_ptr<TextureArray> mTextBatchTextureArray;
-
-		std::unordered_map<std::string, std::shared_ptr<FontBitmap>> mFontBitmaps;
+		//MSDF
+		std::shared_ptr<ShaderProgramVulkan> mTextMsdfShaderProgram;
+		std::unique_ptr<GraphicsPipelineInstanceInfo> mTextMsdfGraphicsPipelineInstanceInfo;
+		std::shared_ptr<GraphicsPipelineVulkan> mTextMsdfGraphicsPipeline;
+		std::unique_ptr<RenderBatchQuad> mTextMsdfRenderBatch;
+		std::shared_ptr<SimpleRenderable> mRenderableTextMsdfBatch;
 
 		//TEMP:: Rebinding descriptors not available, all textures must be bound first. Needs fixing!
 		const char* testTexturesPath = "Dough/res/images/test textures/";
@@ -106,6 +115,8 @@ namespace DOH {
 		void onSwapChainResize(SwapChainVulkan& swapChain);
 		size_t createNewBatchQuad();
 
+		void setTextUniformData(VkDevice logicDevice, uint32_t currentImage, uint32_t uboBinding, glm::mat4x4& sceneProjView, glm::mat4x4& uiProjView);
+
 		inline VkDescriptorPool getDescriptorPool() const { return mDescriptorPool; }
 		inline const TextureVulkan& getWhiteTexture() const { return *mWhiteTexture; }
 		
@@ -119,6 +130,9 @@ namespace DOH {
 		inline RenderBatchQuad& getTextRenderBatch() { return *mTextRenderBatch; }
 		inline TextureArray& getTextTextureArray() { return *mTextBatchTextureArray; }
 		inline std::shared_ptr<SimpleRenderable> getRenderableTextBatch() const { return mRenderableTextBatch; }
+		inline GraphicsPipelineVulkan& getTextMsdfGraphicsPipeline() const { return *mTextMsdfGraphicsPipeline; }
+		inline RenderBatchQuad& getTextMsdfRenderBatch() const { return *mTextMsdfRenderBatch; }
+		inline std::shared_ptr<SimpleRenderable> getRenderableTextMsdfBatch() const { return mRenderableTextMsdfBatch; }
 
 		inline const std::vector<std::shared_ptr<TextureVulkan>>& getTestTextures() const { return mTestTextures; }
 		inline const std::shared_ptr<MonoSpaceTextureAtlas> getTestMonoSpaceTextureAtlas() const { return mTestMonoSpaceTextureAtlas; }

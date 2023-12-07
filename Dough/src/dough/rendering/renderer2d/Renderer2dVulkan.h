@@ -31,7 +31,7 @@ namespace DOH {
 		void close();
 		void onSwapChainResize(SwapChainVulkan& swapChain);
 
-		void updateRenderer2dUniformData(uint32_t currentImage, glm::mat4x4& sceneProjView);
+		void updateRenderer2dUniformData(uint32_t currentImage, glm::mat4x4& sceneProjView, glm::mat4x4& uiProjView);
 		void flushScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 		//TODO:: separate flush functions for rendering in different render passes
 		//void flushUi();
@@ -48,8 +48,8 @@ namespace DOH {
 		void drawQuadArraySameTextureScene(const std::vector<Quad>& quadArr);
 		//void drawQuadUi(Quad& quad);
 
-		void drawTextFromQuads(const std::vector<Quad>& quadArr);
-		void drawTextSameTextureFromQuads(const std::vector<Quad>& quadArr);
+		void drawTextFromQuads(const std::vector<Quad>& quadArr, const FontBitmap& bitmap);
+		void drawTextSameTextureFromQuads(const std::vector<Quad>& quadArr, const FontBitmap& bitmap);
 
 
 		//-----Collection Objects-----

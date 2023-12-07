@@ -32,6 +32,14 @@ namespace DOH {
 		mStringQuads = TextString::getStringAsQuads(mString, mFontBitmap, Position, mScale, mColour);
 	}
 
+	void TextString::setRoot(glm::vec3 root) {
+		glm::vec3 delta = (Position - root) * mScale;
+		for (Quad& quad : mStringQuads) {
+			quad.Position -= delta;
+		}
+		Position = root;
+	}
+
 	void TextString::setScale(const float scale) {
 		if (mScale == scale) {
 			return;
@@ -93,9 +101,7 @@ namespace DOH {
 		quads.reserve(stringLength);
 
 		glm::vec3 currentPos = rootPos;
-
 		uint32_t lastCharId = 0;
-
 		for (size_t i = 0; i < stringLength; i++) {
 			//TODO:: currently doesn't support a UTF-8 conversion so a cast to uint produces ASCII decimal values
 			const uint32_t charId = static_cast<uint32_t>(string[i]);
@@ -118,7 +124,6 @@ namespace DOH {
 
 			const auto& g = bitmap.getGlyphMap().find(charId);
 			if (g != bitmap.getGlyphMap().end()) {
-
 				const float glyphHeightScaled = g->second.Size.y * scale;
 
 				Quad quad = {};
@@ -131,7 +136,6 @@ namespace DOH {
 					g->second.Size.x * scale,
 					glyphHeightScaled
 				};
-
 				quad.TextureCoords = {
 					g->second.TexCoordTopLeft.x,
 					g->second.TexCoordBotRight.y,
@@ -145,7 +149,6 @@ namespace DOH {
 					g->second.TexCoordTopLeft.x,
 					g->second.TexCoordTopLeft.y
 				};
-
 				quad.Colour = colour;
 
 				lastCharId = charId;

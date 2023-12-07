@@ -123,6 +123,7 @@ namespace DOH::EDITOR {
 
 		if (mTextDemo->Render) {
 			renderer2d.drawTextString(*mTextDemo->Text);
+			renderer2d.drawTextString(*mTextDemo->MsdfText);
 		}
 
 		if (mLineDemo->Render) {
@@ -132,6 +133,10 @@ namespace DOH::EDITOR {
 			if (mLineDemo->RenderTextDemoOutlines) {
 				for (const Quad& quad : mTextDemo->Text->getQuads()) {
 					lineRenderer.drawQuadScene(quad, { 1.0f, 0.0f, 1.0f, 1.0f });
+				}
+
+				for (const Quad& quad : mTextDemo->MsdfText->getQuads()) {
+					lineRenderer.drawQuadScene(quad, {0.0f, 1.0f, 0.0f, 1.0f });
 				}
 			}
 
@@ -1051,16 +1056,22 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::TextDemo::init() {
-		const auto& renderer2d = GET_RENDERER.getContext().getRenderer2d();
+		const auto& storage = GET_RENDERER.getContext().getRenderer2d().getStorage();
 		//Generate quads for default message
 		Text = std::make_unique<TextString>(
 			StringBuffer,
-			renderer2d.getStorage().getFontBitmap("Arial")
+			storage.getFontBitmap("Arial")
+		);
+
+		MsdfText = std::make_unique<TextString>(
+			MsdfStringBuffer,
+			storage.getFontBitmap("Arial-MSDF")
 		);
 	}
 
 	void DemoLiciousAppLogic::TextDemo::close() {
 		Text.release();
+		MsdfText.release();
 	}
 
 	void DemoLiciousAppLogic::TextDemo::renderImGuiMainTab() {
@@ -1078,13 +1089,36 @@ namespace DOH::EDITOR {
 			}
 
 			float tempScale = Text->getScale();
-			if (ImGui::DragFloat("Text Scale", &tempScale, 0.05f, 0.05f, 5.0f)) {
-				Text->setScale(tempScale);
+			if (ImGui::DragFloat("Text Scale", &tempScale, 0.05f, 0.0005f, 5.0f)) {
+				if (tempScale > 0.0f) {
+					Text->setScale(tempScale);
+				}
+			}
+			float tempRootPos[3] = { Text->Position.x, Text->Position.y, Text->Position.z };
+			if (ImGui::DragFloat3("Root Pos", tempRootPos, 0.05f, -10.0f, 10.0f)) {
+				Text->setRoot({ tempRootPos[0], tempRootPos[1], tempRootPos[2] });
 			}
 
 			if (ImGui::ColorEdit4("String Colour", &Colour.x)) {
 				Text->setColour(Colour);
+				MsdfText->setColour(Colour);
 			}
+
+			if (ImGui::InputTextMultiline("MSDF Text", MsdfStringBuffer, sizeof(MsdfStringBuffer))) {
+				MsdfText->setString(MsdfStringBuffer);
+			}
+			float tempMsdfScale = MsdfText->getScale();
+			if (ImGui::DragFloat("Text MSDF Scale", &tempMsdfScale, 0.05f, 0.0005f, 10.0f)) {
+				if (tempMsdfScale > 0.0f) {
+					MsdfText->setScale(tempMsdfScale);
+				}
+			}
+			float tempMsdfRootPos[3] = { MsdfText->Position.x, MsdfText->Position.y, MsdfText->Position.z };
+			if (ImGui::DragFloat3("MSDF Root Pos", tempMsdfRootPos, 0.05f, -10.0f, 10.0f)) {
+				MsdfText->setRoot({ tempMsdfRootPos[0], tempMsdfRootPos[1], tempMsdfRootPos[2] });
+			}
+
+			EditorGui::infoAGeometry(*MsdfText, "MSDF String");
 
 			ImGui::EndTabItem();
 		}

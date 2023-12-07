@@ -115,7 +115,7 @@ namespace DOH {
 		return CONTEXT.createIndexedTextureAtlas(atlasInfoFilePath, atlasTextureDir);
 	}
 
-	std::shared_ptr<FontBitmap> ObjInit::fontBitmap(const char* filepath, const char* imageDir) {
-		return CONTEXT.createFontBitmap(filepath, imageDir);
+	std::shared_ptr<FontBitmap> ObjInit::fontBitmap(const char* filepath, const char* imageDir, ETextRenderMethod textRenderMethod) {
+		return CONTEXT.createFontBitmap(filepath, imageDir, textRenderMethod);
 	}
 }

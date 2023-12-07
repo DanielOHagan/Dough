@@ -257,8 +257,9 @@ namespace DOH {
 		}
 	}
 
-	void Renderer2dVulkan::drawTextFromQuads(const std::vector<Quad>& quadArr) {
-		RenderBatchQuad& textBatch = mStorage->getTextRenderBatch();
+	void Renderer2dVulkan::drawTextFromQuads(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) {
+		RenderBatchQuad& textBatch = bitmap.getTextRenderMethod() == ETextRenderMethod::MSDF ?
+			mStorage->getTextMsdfRenderBatch() : mStorage->getTextRenderBatch();
 		TextureArray& textTextureArr = mStorage->getTextTextureArray();
 
 		for (const Quad& quad : quadArr) {
@@ -271,7 +272,7 @@ namespace DOH {
 		mDrawnQuadCount += static_cast<uint32_t>(quadArr.size());
 	}
 
-	void Renderer2dVulkan::drawTextSameTextureFromQuads(const std::vector<Quad>& quadArr) {
+	void Renderer2dVulkan::drawTextSameTextureFromQuads(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) {
 		if (quadArr.size() == 0) {
 			//TODO:: Is this worth a warning?
 			//LOG_WARN("drawTextSameTextureFromQuads() quadArr size = 0");
@@ -281,23 +282,30 @@ namespace DOH {
 			return;
 		}
 
-		mStorage->getTextRenderBatch().addAll(
-			quadArr,
-			mStorage->getTextTextureArray().getTextureSlotIndex(quadArr[0].getTexture().getId())
-		);
+		if (bitmap.getTextRenderMethod() == ETextRenderMethod::MSDF) {
+			mStorage->getTextMsdfRenderBatch().addAll(
+				quadArr,
+				mStorage->getTextTextureArray().getTextureSlotIndex(quadArr[0].getTexture().getId())
+			);
+		} else {
+			mStorage->getTextRenderBatch().addAll(
+				quadArr,
+				mStorage->getTextTextureArray().getTextureSlotIndex(quadArr[0].getTexture().getId())
+			);
+		}
 
 		mDrawnQuadCount += static_cast<uint32_t>(quadArr.size());
 	}
 
 	void Renderer2dVulkan::drawTextString(TextString& string) {
 		if (string.getCurrentFontBitmap().getPageCount() > 1) {
-			drawTextFromQuads(string.getQuads());
+			drawTextFromQuads(string.getQuads(), string.getCurrentFontBitmap());
 		} else {
-			drawTextSameTextureFromQuads(string.getQuads());
+			drawTextSameTextureFromQuads(string.getQuads(), string.getCurrentFontBitmap());
 		}
 	}
 
-	void Renderer2dVulkan::updateRenderer2dUniformData(uint32_t currentImage, glm::mat4x4& sceneProjView) {
+	void Renderer2dVulkan::updateRenderer2dUniformData(uint32_t currentImage, glm::mat4x4& sceneProjView, glm::mat4x4& uiProjView) {
 		VkDevice logicDevice = mContext.getLogicDevice();
 		const uint32_t uboBinding = 0;
 
@@ -308,13 +316,7 @@ namespace DOH {
 			&sceneProjView,
 			sizeof(glm::mat4x4)
 		);
-		mStorage->getTextGraphicsPipeline().setFrameUniformData(
-			logicDevice,
-			currentImage,
-			uboBinding,
-			&sceneProjView,
-			sizeof(glm::mat4x4)
-		);
+		mStorage->setTextUniformData(logicDevice, currentImage, uboBinding, sceneProjView, uiProjView);
 
 		//TODO:: UI
 	}
@@ -407,6 +409,45 @@ namespace DOH {
 
 				textPipeline.recordDrawCommands(imageIndex, cmd, currentBindings);
 			}
+
+			//MSDF
+			GraphicsPipelineVulkan& textMsdfPipeline = mStorage->getTextMsdfGraphicsPipeline();
+			RenderBatchQuad& textMsdfBatch = mStorage->getTextMsdfRenderBatch();
+			const size_t textMsdfQuadCount = textMsdfBatch.getGeometryCount();
+			
+			if (textMsdfQuadCount > 0) {
+				if (currentBindings.Pipeline != textMsdfPipeline.get()) {
+					textMsdfPipeline.bind(cmd);
+					debugInfo.PipelineBinds++;
+					currentBindings.Pipeline = textMsdfPipeline.get();
+				}
+			
+				if (mStorage->getQuadBatchIndexBuffer().getBuffer() != currentBindings.IndexBuffer) {
+					//NOTE:: Text is currently rendered as a Quad so it can share the Quad batch index buffer
+					mStorage->getQuadBatchIndexBuffer().bind(cmd);
+					currentBindings.IndexBuffer = mStorage->getQuadBatchIndexBuffer().getBuffer();
+					debugInfo.IndexBufferBinds++;
+				}
+			
+				const auto& renderableBatch = mStorage->getRenderableTextMsdfBatch();
+				VertexArrayVulkan& vao = renderableBatch->getVao();
+			
+				vao.getVertexBuffers()[0]->setDataMapped(
+					logicDevice,
+					textMsdfBatch.getData().data(),
+					textMsdfQuadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_BYTE_SIZE
+				);
+				vao.setDrawCount(static_cast<uint32_t>(textMsdfQuadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT));
+			
+				textMsdfPipeline.addRenderableToDraw(renderableBatch);
+				mDebugInfoDrawCount++;
+			
+				textMsdfBatch.reset();
+			
+				textMsdfPipeline.recordDrawCommands(imageIndex, cmd, currentBindings);
+			}
+
+			//TODO:: some kind of function to reduce duplicate code?
 		}
 
 		mDrawnQuadCount = 0;

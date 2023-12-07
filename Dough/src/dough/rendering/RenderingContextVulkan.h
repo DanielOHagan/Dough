@@ -281,7 +281,7 @@ namespace DOH {
 		inline std::shared_ptr<IndexedTextureAtlas> createIndexedTextureAtlas(const char* atlasInfoFilePath, const char* atlasTextureDir) { return std::make_shared<IndexedTextureAtlas>(mLogicDevice, mPhysicalDevice, atlasInfoFilePath, atlasTextureDir); }
 
 		//-----Font-----
-		inline std::shared_ptr<FontBitmap> createFontBitmap(const char* filepath, const char* imageDir) const { return std::make_shared<FontBitmap>(filepath, imageDir); }
+		inline std::shared_ptr<FontBitmap> createFontBitmap(const char* filepath, const char* imageDir, ETextRenderMethod textRenderMethod) const { return std::make_shared<FontBitmap>(filepath, imageDir, textRenderMethod); }
 
 	private:
 		void createQueues(QueueFamilyIndices& queueFamilyIndices);

@@ -3,7 +3,7 @@
 namespace DOH {
 
 	ImageVulkan::ImageVulkan(VkImage image, VkDeviceMemory imageMemory, VkImageView imageView)
-	:	IGPUResourceVulkan(true),
+	:	IGPUResourceVulkan((image != VK_NULL_HANDLE) || (imageMemory != VK_NULL_HANDLE) || (imageView != VK_NULL_HANDLE)),
 		mImage(image),
 		mImageMemory(imageMemory),
 		mImageView(imageView)

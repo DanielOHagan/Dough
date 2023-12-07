@@ -23,6 +23,7 @@ namespace DOH {
 		TextString& operator=(const TextString& assignment) = delete;
 
 		void setString(const char* string);
+		void setRoot(glm::vec3 root);
 		void setScale(const float scale);
 		void setColour(const glm::vec4& colourRgba);
 		//void setFontBitmap(const FontBitmap& fontBitmap);

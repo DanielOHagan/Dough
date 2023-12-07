@@ -272,7 +272,7 @@ namespace DOH {
 
 		mRenderer2d->resetDrawCount();
 
-		mRenderer2d->updateRenderer2dUniformData(imageIndex, mAppSceneUbo.ProjectionViewMat);
+		mRenderer2d->updateRenderer2dUniformData(imageIndex, mAppSceneUbo.ProjectionViewMat, mAppUiProjection);
 
 		VkCommandBuffer cmd = mCommandBuffers[imageIndex];
 		beginCommandBuffer(cmd);
@@ -547,7 +547,10 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::createAppSceneDepthResources() {
-		for (uint32_t i = 1; i < mSwapChain->getImageCount(); i++) {
+		const size_t imageCount = mSwapChain->getImageCount();
+
+		mAppSceneDepthImages.reserve(imageCount);
+		for (uint32_t i = 1; i < imageCount; i++) {
 			VkImage depthImage = createImage(
 				mSwapChain->getExtent().width,
 				mSwapChain->getExtent().height,

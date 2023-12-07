@@ -3,6 +3,7 @@
 #include "dough/Utils.h"
 #include "dough/Logging.h"
 #include "dough/files/readers/FntFileReader.h"
+#include "dough/files/readers/JsonFileReader.h"
 #include "dough/files/readers/IndexedAtlasInfoFileReader.h"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -86,6 +87,10 @@ namespace DOH {
 
 	std::shared_ptr<FntFileData> ResourceHandler::loadFntFile(const char* filePath) {
 		return ResourceHandler::INSTANCE.loadFntFileImpl(filePath);
+	}
+
+	std::shared_ptr<JsonFileData> ResourceHandler::loadJsonFile(const char* filePath) {
+		return ResourceHandler::INSTANCE.loadJsonFileImpl(filePath);
 	}
 
 	void ResourceHandler::freeImage(void* imageData) {
@@ -209,6 +214,15 @@ namespace DOH {
 			return nullptr;
 		}
 		return fntReader.read();
+	}
+
+	std::shared_ptr<JsonFileData> ResourceHandler::loadJsonFileImpl(const char* filePath) {
+		JsonFileReader jsonReader(filePath);
+		if (!jsonReader.isOpen()) {
+			LOG_ERR("Failed to open file: " << filePath);
+			return nullptr;
+		}
+		return jsonReader.read();
 	}
 
 	const std::string ResourceHandler::getCurrentLineAsBuffer(const std::vector<char>& chars, const size_t startIndex) {

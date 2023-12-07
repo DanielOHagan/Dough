@@ -88,6 +88,6 @@ namespace DOH {
 		static std::shared_ptr<IndexedTextureAtlas> indexedTextureAtlas(const char* atlasInfoFilePath, const char* atlasTextureDir);
 
 		//-----Font-----
-		static std::shared_ptr<FontBitmap> fontBitmap(const char* filepath, const char* imageDir);
+		static std::shared_ptr<FontBitmap> fontBitmap(const char* filepath, const char* imageDir, ETextRenderMethod textRenderMethod);
 	};
 }

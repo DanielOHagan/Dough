@@ -280,6 +280,80 @@ namespace DOH::EDITOR {
 
 		const char* text = (quad.hasTexture() ? quad.getTexture().getName().c_str() : "No Texture");
 		ImGui::Text("Texture: %s", text);
+		ImGui::TextWrapped(
+			"Texture Coords: %f, %f, %f, %f, %f, %f, %f, %f",
+			quad.TextureCoords[0], quad.TextureCoords[1],
+			quad.TextureCoords[2], quad.TextureCoords[3],
+			quad.TextureCoords[4], quad.TextureCoords[5],
+			quad.TextureCoords[6], quad.TextureCoords[7]
+		);
+	}
+
+	void EditorGui::imGuiJsonElementImpl(JsonElement& element, const char* name) {
+		switch (element.Type) {
+			case EJsonElementType::NONE:
+				ImGui::Text((std::string(name) + ": ").c_str());
+				ImGui::SameLine();
+				ImGui::Text("null");
+				break;
+			case EJsonElementType::DATA_LONG:
+				ImGui::Text((std::string(name) + ": ").c_str());
+				ImGui::SameLine();
+				ImGui::Text("%li", element.getLong());
+				break;
+			case EJsonElementType::DATA_DOUBLE:
+				ImGui::Text((std::string(name) + ": ").c_str());
+				ImGui::SameLine();
+				ImGui::Text("%lf", element.getDouble());
+				break;
+			case EJsonElementType::DATA_BOOL:
+			{
+				std::string label = std::string(name) + ": ";
+				ImGui::Text(label.c_str());
+				ImGui::SameLine();
+				ImGui::Text(element.getBool() ? "true" : "false");
+				
+				//ImGui checkboxes display text after (to the right of) the checkbox, commented out as it doesn't fit with the name: value format
+				//ImGui::SameLine();
+				//bool elementBoolVal = element.getBool();
+				//ImGui::Checkbox(label.c_str(), &elementBoolVal);
+				break;
+			}
+			case EJsonElementType::DATA_STRING:
+				ImGui::Text((std::string(name) + ": ").c_str());
+				ImGui::SameLine();
+				ImGui::TextWrapped(("\"" + element.getString() + "\"").c_str());
+				break;
+			case EJsonElementType::OBJECT:
+				imGuiJsonObjectImpl(element, name);
+				break;
+			case EJsonElementType::ARRAY:
+				imGuiJsonArrayImpl(element, name);
+				break;
+		}
+	}
+
+	void EditorGui::imGuiJsonObjectImpl(JsonElement& object, const char* name) {
+		if (ImGui::TreeNode(name)) {
+			for (auto& element : object.getObject()) {
+				imGuiJsonElementImpl(element.second, element.first.c_str());
+			}
+
+			ImGui::TreePop();
+		}
+	}
+
+	void EditorGui::imGuiJsonArrayImpl(JsonElement& array, const char* name) {
+		if (ImGui::TreeNode(name)) {
+			uint32_t i = 0;
+			for (auto& element : array.getArray()) {
+				std::string label = std::to_string(i);
+				imGuiJsonElementImpl(element, label.c_str());
+				i++;
+			}
+
+			ImGui::TreePop();
+		}
 	}
 
 	void EditorGui::imGuiPrintMat4x4Impl(const glm::mat4x4& mat, const char* name) {
@@ -465,5 +539,17 @@ namespace DOH::EDITOR {
 
 	void EditorGui::infoQuad(Quad& quad, const char* name) {
 		INSTANCE->imGuiInfoQuadImpl(quad, name);
+	}
+
+	void EditorGui::jsonElement(JsonElement& element, const char* name) {
+		INSTANCE->imGuiJsonElementImpl(element, name);
+	}
+
+	void EditorGui::jsonObject(JsonElement& object, const char* name) {
+		INSTANCE->imGuiJsonObjectImpl(object, name);
+	}
+
+	void EditorGui::jsonArray(JsonElement& array, const char* name) {
+		INSTANCE->imGuiJsonArrayImpl(array, name);
 	}
 }

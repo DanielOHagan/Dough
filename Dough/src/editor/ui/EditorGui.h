@@ -5,6 +5,7 @@
 #include "dough/rendering/textures/TextureVulkan.h"
 #include "dough/ImGuiWrapper.h"
 #include "dough/scene/geometry/primitives/Quad.h"
+#include "dough/files/JsonFileData.h"
 
 #include "editor/ui/EditorResourceUiViewer.h"
 
@@ -50,6 +51,10 @@ namespace DOH::EDITOR {
 
 		void imGuiInfoAGeometryImpl(AGeometry& geo, const char* name);
 		void imGuiInfoQuadImpl(Quad& quad, const char* name);
+
+		void imGuiJsonElementImpl(JsonElement& element, const char* name);
+		void imGuiJsonObjectImpl(JsonElement& object, const char* name);
+		void imGuiJsonArrayImpl(JsonElement& array, const char* name);
 
 		//-----GUI Implementation Agnostic Functions-----
 		void openTextureViewerWindowImpl(const TextureVulkan& texture);
@@ -259,10 +264,16 @@ namespace DOH::EDITOR {
 		//-----Primitive Controls-----
 		/**
 		* Display controls for the Primitive Base Class: AGeometry
+		* 
+		* @param geo The geometry instance to control.
+		* @param name Unique name for geometry to display.
 		*/
 		static void controlsAGeometry(AGeometry& geo, const char* name);
 		/**
 		* Display controls for the primitive: Quad
+		* 
+		* @param Quad The quad to display a set of controls (a.k.a editable properties) for.
+		* @param name Unique name for Quad to display.
 		*/
 		static void controlsQuad(Quad& quad, const char* name);
 
@@ -282,6 +293,29 @@ namespace DOH::EDITOR {
 		*/
 		static void infoQuad(Quad& quad, const char* name);
 		static inline void infoQuad(const Quad& quad, const char* name) { infoQuad((Quad&) quad, name); }
+
+		//-----File Data Viewers-----
+		/**
+		* Display a JSON element. The type of the element is used to determine how it is displayed.
+		* 
+		* @param element The JSON element that is to be displayed.
+		* @param name Unique name for JsonElement to display.
+		*/
+		static void jsonElement(JsonElement& element, const char* name);
+		/** 
+		* Display a JSON object, including its children recursively.
+		* 
+		* @param object JSON object to be displayed, whether it has children elements or not.
+		* @param name Unique name for JsonObject to display.
+		*/
+		static void jsonObject(JsonElement& object, const char* name);
+		/**
+		* Display an array of JSON elements.
+		* 
+		* @param array JSON array to be displayed, whether it has elements or not.
+		* @param name Unique name for JsonArray to display.
+		*/
+		static void jsonArray(JsonElement& array, const char* name);
 
 		//IMPORTANT:: Calling this function outside of the table start/end is undefined behaviour.
 		//TODO:: Some kind of way of creating custom tables easily in the GUI
