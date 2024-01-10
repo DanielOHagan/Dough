@@ -270,9 +270,12 @@ namespace DOH {
 			mImageAvailableSemaphores[mCurrentFrame]
 		);
 
-		mRenderer2d->resetDrawCount();
+		mRenderer2d->resetLocalDebugInfo();
+		TextRenderer::resetLocalDebugInfo();
 
 		mRenderer2d->updateRenderer2dUniformData(imageIndex, mAppSceneUbo.ProjectionViewMat, mAppUiProjection);
+		const uint32_t uboBinding = 0;
+		TextRenderer::setUniformData(imageIndex, uboBinding, mAppSceneUbo.ProjectionViewMat, mAppUiProjection);
 
 		VkCommandBuffer cmd = mCommandBuffers[imageIndex];
 		beginCommandBuffer(cmd);
@@ -287,6 +290,8 @@ namespace DOH {
 
 		//Draw Application UI
 		drawUi(imageIndex, cmd, currentBindings);
+
+		debugInfo.QuadBatchRendererDrawCalls += TextRenderer::getDrawnQuadCount();
 
 		//Draw ImGui
 		mImGuiWrapper->beginRenderPass(imageIndex, mSwapChain->getExtent(), cmd);
@@ -343,7 +348,7 @@ namespace DOH {
 
 		//Batch VAOs should have only one VAO and if the batch has at least one quad then there is a draw call
 		mRenderer2d->flushScene(imageIndex, cmd, currentBindings);
-		debugInfo.BatchRendererDrawCalls = mRenderer2d->getDrawCount();
+		TextRenderer::drawScene(imageIndex, cmd, currentBindings, debugInfo);
 
 		mLineRenderer->drawScene(
 			mLogicDevice,
@@ -393,6 +398,9 @@ namespace DOH {
 				}
 			}
 		}
+
+		mRenderer2d->flushUi(imageIndex, cmd, currentBindings);
+		TextRenderer::drawUi(imageIndex, cmd, currentBindings, debugInfo);
 
 		mLineRenderer->drawUi(
 			mLogicDevice,
@@ -716,7 +724,6 @@ namespace DOH {
 			const auto pipeline = createGraphicsPipeline(instanceInfo, mSwapChain->getExtent());
 			if (pipeline != nullptr) {
 				mCurrentRenderState->addPipelineToRenderPass(instanceInfo.getRenderPass(), name, pipeline);
-
 				return { *pipeline };
 			} else {
 				LOG_ERR("Failed to create pipeline: " << name.c_str());
@@ -766,6 +773,9 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::createPipelineUniformObjects() {
+		//TODO:: re-create this function as outlined above it's definition .h file
+
+
 		std::vector<DescriptorTypeInfo> descTypes;
 		uint32_t pipelineCount = 0;
 
@@ -780,9 +790,8 @@ namespace DOH {
 
 		for (const auto& descType : mLineRenderer->getDescriptorTypeInfo()) {
 			descTypes.emplace_back(descType);
+			pipelineCount++;
 		}
-		pipelineCount += 2;
-
 
 		if (pipelineCount > 0) {
 			mDescriptorPool = createDescriptorPool(descTypes);

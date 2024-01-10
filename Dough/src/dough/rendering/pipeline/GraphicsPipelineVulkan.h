@@ -111,6 +111,7 @@ namespace DOH {
 		virtual ~GraphicsPipelineVulkan() override;
 		virtual void close(VkDevice logicDevice) override;
 
+		//Create Layout objects
 		void createUniformObjects(VkDevice logicDevice);
 		void createShaderUniforms(
 			VkDevice logicDevice,

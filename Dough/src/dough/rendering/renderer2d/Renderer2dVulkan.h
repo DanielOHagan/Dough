@@ -18,7 +18,6 @@ namespace DOH {
 		std::unique_ptr<Renderer2dStorageVulkan> mStorage;
 
 		//-----Debug information-----
-		uint32_t mDebugInfoDrawCount;
 		uint32_t mDrawnQuadCount;
 		uint32_t mTruncatedQuadCount;
 
@@ -33,6 +32,7 @@ namespace DOH {
 
 		void updateRenderer2dUniformData(uint32_t currentImage, glm::mat4x4& sceneProjView, glm::mat4x4& uiProjView);
 		void flushScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
+		void flushUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 		//TODO:: separate flush functions for rendering in different render passes
 		//void flushUi();
 
@@ -47,22 +47,13 @@ namespace DOH {
 		void drawQuadArrayTexturedScene(const std::vector<Quad>& quadArr);
 		void drawQuadArraySameTextureScene(const std::vector<Quad>& quadArr);
 		//void drawQuadUi(Quad& quad);
-
-		void drawTextFromQuads(const std::vector<Quad>& quadArr, const FontBitmap& bitmap);
-		void drawTextSameTextureFromQuads(const std::vector<Quad>& quadArr, const FontBitmap& bitmap);
-
-
-		//-----Collection Objects-----
-		void drawTextString(TextString& string);
-
 		
 
 		//-----DEBUG----- Used to show info to ImGui in app
 		inline Renderer2dStorageVulkan& getStorage() const { return *mStorage; }
 		inline size_t getQuadBatchCount() const { return mStorage->getQuadRenderBatches().size(); }
-		inline uint32_t getDrawCount() const { return mDebugInfoDrawCount; }
 		inline uint32_t getDrawnQuadCount() const { return mDrawnQuadCount; }
 		inline uint32_t getTruncatedQuadCount() const { return mTruncatedQuadCount; }
-		inline void resetDrawCount() { mDebugInfoDrawCount = 0; }
+		inline void resetLocalDebugInfo() { mDrawnQuadCount = 0; mTruncatedQuadCount = 0; }
 	};
 }

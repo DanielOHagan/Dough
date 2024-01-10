@@ -6,7 +6,7 @@
 #include "dough/rendering/textures/TextureArray.h"
 #include "dough/rendering/textures/TextureAtlas.h"
 #include "dough/rendering/SwapChainVulkan.h"
-#include "dough/rendering/text/FontBitmap.h"
+#include "dough/rendering/text/TextRenderer.h"
 
 //Currently batching has significantly different performance on different configurations
 #define MAX_BATCH_QUAD_COUNT
@@ -29,10 +29,6 @@ namespace DOH {
 
 		static const std::string QUAD_SHADER_PATH_VERT;
 		static const std::string QUAD_SHADER_PATH_FRAG;
-		static const std::string TEXT_2D_SHADER_PATH_VERT;
-		static const std::string TEXT_2D_SHADER_PATH_FRAG;
-		static const std::string TEXT_MSDF_3D_SHADER_PATH_VERT;
-		static const std::string TEXT_MSDF_3D_SHADER_PATH_FRAG;
 
 		VkDescriptorPool mDescriptorPool;
 
@@ -49,23 +45,6 @@ namespace DOH {
 		//Textures
 		std::shared_ptr<TextureVulkan> mWhiteTexture;
 
-		//Text
-		std::unordered_map<std::string, std::shared_ptr<FontBitmap>> mFontBitmaps;
-		std::unique_ptr<TextureArray> mTextBatchTextureArray;
-
-		//Soft Mask
-		std::shared_ptr<ShaderProgramVulkan> mTextShaderProgram;
-		std::unique_ptr<GraphicsPipelineInstanceInfo> mTextGraphicsPipelineInstanceInfo;
-		std::shared_ptr<GraphicsPipelineVulkan> mTextGraphicsPipeline;
-		std::unique_ptr<RenderBatchQuad> mTextRenderBatch;
-		std::shared_ptr<SimpleRenderable> mRenderableTextBatch;
-		//MSDF
-		std::shared_ptr<ShaderProgramVulkan> mTextMsdfShaderProgram;
-		std::unique_ptr<GraphicsPipelineInstanceInfo> mTextMsdfGraphicsPipelineInstanceInfo;
-		std::shared_ptr<GraphicsPipelineVulkan> mTextMsdfGraphicsPipeline;
-		std::unique_ptr<RenderBatchQuad> mTextMsdfRenderBatch;
-		std::shared_ptr<SimpleRenderable> mRenderableTextMsdfBatch;
-
 		//TEMP:: Rebinding descriptors not available, all textures must be bound first. Needs fixing!
 		const char* testTexturesPath = "Dough/res/images/test textures/";
 		std::vector<std::shared_ptr<TextureVulkan>> mTestTextures;
@@ -73,18 +52,10 @@ namespace DOH {
 		std::shared_ptr<IndexedTextureAtlas> mTestIndexedTextureAtlas;
 
 		void initForQuads();
-		void initForText();
-
-		void addFontBitmapToTextTextureArray(const FontBitmap& fontBitmap);
 
 		void createDescriptorPool();
 
-	public:
-
-		static constexpr const char* DEFAULT_FONT_BITMAP_NAME = "Arial";
-
-		//Max count of objects allowed per batch
-		
+	public:		
 		//BATCH_QUAD_COUNT is given an arbitrary number, it can be higher or lower depending on need.
 		//Different batches may even use different sizes and not stick to this pre-determined limit,
 		//which isn't even enforced by the engine.
@@ -115,8 +86,6 @@ namespace DOH {
 		void onSwapChainResize(SwapChainVulkan& swapChain);
 		size_t createNewBatchQuad();
 
-		void setTextUniformData(VkDevice logicDevice, uint32_t currentImage, uint32_t uboBinding, glm::mat4x4& sceneProjView, glm::mat4x4& uiProjView);
-
 		inline VkDescriptorPool getDescriptorPool() const { return mDescriptorPool; }
 		inline const TextureVulkan& getWhiteTexture() const { return *mWhiteTexture; }
 		
@@ -125,18 +94,9 @@ namespace DOH {
 		inline std::vector<std::shared_ptr<SimpleRenderable>>& getRenderableQuadBatches() { return mRenderableQuadBatches; }
 		inline TextureArray& getQuadBatchTextureArray() const { return *mQuadBatchTextureArray; }
 		inline IndexBufferVulkan& getQuadBatchIndexBuffer() const { return *mQuadSharedIndexBuffer; }
-		
-		inline GraphicsPipelineVulkan& getTextGraphicsPipeline() const { return *mTextGraphicsPipeline; }
-		inline RenderBatchQuad& getTextRenderBatch() { return *mTextRenderBatch; }
-		inline TextureArray& getTextTextureArray() { return *mTextBatchTextureArray; }
-		inline std::shared_ptr<SimpleRenderable> getRenderableTextBatch() const { return mRenderableTextBatch; }
-		inline GraphicsPipelineVulkan& getTextMsdfGraphicsPipeline() const { return *mTextMsdfGraphicsPipeline; }
-		inline RenderBatchQuad& getTextMsdfRenderBatch() const { return *mTextMsdfRenderBatch; }
-		inline std::shared_ptr<SimpleRenderable> getRenderableTextMsdfBatch() const { return mRenderableTextMsdfBatch; }
 
 		inline const std::vector<std::shared_ptr<TextureVulkan>>& getTestTextures() const { return mTestTextures; }
 		inline const std::shared_ptr<MonoSpaceTextureAtlas> getTestMonoSpaceTextureAtlas() const { return mTestMonoSpaceTextureAtlas; }
 		inline const std::shared_ptr<IndexedTextureAtlas> getTestIndexedTextureAtlas() const { return mTestIndexedTextureAtlas; }
-		FontBitmap& getFontBitmap(const char* font) const;
 	};
 }

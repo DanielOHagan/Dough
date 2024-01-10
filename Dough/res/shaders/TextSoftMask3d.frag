@@ -11,4 +11,8 @@ layout (location = 0) out vec4 outColour;
 
 void main() {
 	outColour = texture(samplers[int(vTexIndex)], vTexCoord) * vFragColour;
+
+	//Discard fragment if too far from the glyph, reduces space taken up by rendered glyhp (no outlining quad) but can cause glyph to look a little "bumpy".
+	// To completely remove the "bumpiness" then remove this discard statement.
+	if (outColour.a < 0.1) discard;
 }

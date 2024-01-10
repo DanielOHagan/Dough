@@ -32,7 +32,7 @@ namespace DOH {
 
 		uint32_t SceneDrawCalls = 0;
 		uint32_t UiDrawCalls = 0;
-		uint32_t BatchRendererDrawCalls = 0;
+		uint32_t QuadBatchRendererDrawCalls = 0;
 
 		uint32_t TotalDrawCalls = 0;
 
@@ -43,13 +43,13 @@ namespace DOH {
 		uint32_t DescriptorSetBinds = 0;
 
 		inline void updateTotalDrawCallCount() {
-			TotalDrawCalls = SceneDrawCalls + UiDrawCalls + BatchRendererDrawCalls;
+			TotalDrawCalls = SceneDrawCalls + UiDrawCalls + QuadBatchRendererDrawCalls;
 		}
 
 		inline void resetDrawCallsCount() {
 			SceneDrawCalls = 0;
 			UiDrawCalls = 0;
-			BatchRendererDrawCalls = 0;
+			QuadBatchRendererDrawCalls = 0;
 		}
 
 		inline void resetBindingCount() {

@@ -122,8 +122,8 @@ namespace DOH::EDITOR {
 		}
 
 		if (mTextDemo->Render) {
-			renderer2d.drawTextString(*mTextDemo->Text);
-			renderer2d.drawTextString(*mTextDemo->MsdfText);
+			TextRenderer::drawTextString(*mTextDemo->Text);
+			TextRenderer::drawTextString(*mTextDemo->MsdfText);
 		}
 
 		if (mLineDemo->Render) {
@@ -1060,12 +1060,12 @@ namespace DOH::EDITOR {
 		//Generate quads for default message
 		Text = std::make_unique<TextString>(
 			StringBuffer,
-			storage.getFontBitmap("Arial")
+			TextRenderer::getFontBitmap(TextRenderer::ARIAL_SOFT_MASK_NAME)
 		);
 
 		MsdfText = std::make_unique<TextString>(
 			MsdfStringBuffer,
-			storage.getFontBitmap("Arial-MSDF")
+			TextRenderer::getFontBitmap(TextRenderer::ARIAL_MSDF_NAME)
 		);
 	}
 

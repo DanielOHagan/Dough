@@ -47,6 +47,7 @@ namespace DOH {
 
 		inline const std::vector<std::reference_wrapper<TextureVulkan>> getTextureSlots() const { return mTextureSlots; }
 		inline bool hasTextureSlotAvailable() const { return mNextTextureSlotIndex < MAX_TEXTURE_COUNT; }
+		inline bool hasTextureSlotsAvailable(uint32_t slotCount) const { return (mNextTextureSlotIndex + slotCount) < MAX_TEXTURE_COUNT - 1; }
 		inline const uint32_t getMaxTextureCount() const { return MAX_TEXTURE_COUNT; }
 		inline const uint32_t getCurrentTextureCount() const { return static_cast<uint32_t>(mTextureSlots.size()); }
 		inline const uint32_t getNextTextureSlotIndex() const { return mNextTextureSlotIndex; }

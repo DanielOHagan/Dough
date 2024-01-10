@@ -9,7 +9,6 @@ namespace DOH {
 
 	Renderer2dVulkan::Renderer2dVulkan(RenderingContextVulkan& context)
 	:	mContext(context),
-		mDebugInfoDrawCount(0),
 		mDrawnQuadCount(0),
 		mTruncatedQuadCount(0)
 	{}
@@ -257,54 +256,6 @@ namespace DOH {
 		}
 	}
 
-	void Renderer2dVulkan::drawTextFromQuads(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) {
-		RenderBatchQuad& textBatch = bitmap.getTextRenderMethod() == ETextRenderMethod::MSDF ?
-			mStorage->getTextMsdfRenderBatch() : mStorage->getTextRenderBatch();
-		TextureArray& textTextureArr = mStorage->getTextTextureArray();
-
-		for (const Quad& quad : quadArr) {
-			textBatch.add(
-				quad,
-				textTextureArr.getTextureSlotIndex(quad.getTexture().getId())
-			);
-		}
-
-		mDrawnQuadCount += static_cast<uint32_t>(quadArr.size());
-	}
-
-	void Renderer2dVulkan::drawTextSameTextureFromQuads(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) {
-		if (quadArr.size() == 0) {
-			//TODO:: Is this worth a warning?
-			//LOG_WARN("drawTextSameTextureFromQuads() quadArr size = 0");
-			return;
-		} else if (!quadArr[0].hasTexture()) {
-			LOG_ERR("Quad array does not have texture");
-			return;
-		}
-
-		if (bitmap.getTextRenderMethod() == ETextRenderMethod::MSDF) {
-			mStorage->getTextMsdfRenderBatch().addAll(
-				quadArr,
-				mStorage->getTextTextureArray().getTextureSlotIndex(quadArr[0].getTexture().getId())
-			);
-		} else {
-			mStorage->getTextRenderBatch().addAll(
-				quadArr,
-				mStorage->getTextTextureArray().getTextureSlotIndex(quadArr[0].getTexture().getId())
-			);
-		}
-
-		mDrawnQuadCount += static_cast<uint32_t>(quadArr.size());
-	}
-
-	void Renderer2dVulkan::drawTextString(TextString& string) {
-		if (string.getCurrentFontBitmap().getPageCount() > 1) {
-			drawTextFromQuads(string.getQuads(), string.getCurrentFontBitmap());
-		} else {
-			drawTextSameTextureFromQuads(string.getQuads(), string.getCurrentFontBitmap());
-		}
-	}
-
 	void Renderer2dVulkan::updateRenderer2dUniformData(uint32_t currentImage, glm::mat4x4& sceneProjView, glm::mat4x4& uiProjView) {
 		VkDevice logicDevice = mContext.getLogicDevice();
 		const uint32_t uboBinding = 0;
@@ -316,7 +267,6 @@ namespace DOH {
 			&sceneProjView,
 			sizeof(glm::mat4x4)
 		);
-		mStorage->setTextUniformData(logicDevice, currentImage, uboBinding, sceneProjView, uiProjView);
 
 		//TODO:: UI
 	}
@@ -358,7 +308,7 @@ namespace DOH {
 					vao.setDrawCount(quadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT);
 
 					quadPipeline.addRenderableToDraw(renderableBatch);
-					mDebugInfoDrawCount++;
+					debugInfo.SceneDrawCalls++;
 
 					batch.reset();
 
@@ -372,86 +322,20 @@ namespace DOH {
 				quadPipeline.recordDrawCommands(imageIndex, cmd, currentBindings);
 			}
 		}
+	}
 
-		{ //Draw Text
-			GraphicsPipelineVulkan& textPipeline = mStorage->getTextGraphicsPipeline();
-			RenderBatchQuad& textBatch = mStorage->getTextRenderBatch();
-			const size_t textQuadCount = textBatch.getGeometryCount();
+	void Renderer2dVulkan::flushUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
 
-			if (textQuadCount > 0) {
-				if (currentBindings.Pipeline != textPipeline.get()) {
-					textPipeline.bind(cmd);
-					debugInfo.PipelineBinds++;
-					currentBindings.Pipeline = textPipeline.get();
-				}
+		//TODO:: Draw UI
 
-				if (mStorage->getQuadBatchIndexBuffer().getBuffer() != currentBindings.IndexBuffer) {
-					//NOTE:: Text is currently rendered as a Quad so it can share the Quad batch index buffer
-					mStorage->getQuadBatchIndexBuffer().bind(cmd);
-					currentBindings.IndexBuffer = mStorage->getQuadBatchIndexBuffer().getBuffer();
-					debugInfo.IndexBufferBinds++;
-				}
+		VkDevice logicDevice = mContext.getLogicDevice();
+		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 
-				const auto& renderableBatch = mStorage->getRenderableTextBatch();
-				VertexArrayVulkan& vao = renderableBatch->getVao();
+		{ //Draw Quads
 
-				vao.getVertexBuffers()[0]->setDataMapped(
-					logicDevice,
-					textBatch.getData().data(),
-					textQuadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_BYTE_SIZE
-				);
-				vao.setDrawCount(static_cast<uint32_t>(textQuadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT));
-
-				textPipeline.addRenderableToDraw(renderableBatch);
-				mDebugInfoDrawCount++;
-
-				textBatch.reset();
-
-				textPipeline.recordDrawCommands(imageIndex, cmd, currentBindings);
-			}
-
-			//MSDF
-			GraphicsPipelineVulkan& textMsdfPipeline = mStorage->getTextMsdfGraphicsPipeline();
-			RenderBatchQuad& textMsdfBatch = mStorage->getTextMsdfRenderBatch();
-			const size_t textMsdfQuadCount = textMsdfBatch.getGeometryCount();
-			
-			if (textMsdfQuadCount > 0) {
-				if (currentBindings.Pipeline != textMsdfPipeline.get()) {
-					textMsdfPipeline.bind(cmd);
-					debugInfo.PipelineBinds++;
-					currentBindings.Pipeline = textMsdfPipeline.get();
-				}
-			
-				if (mStorage->getQuadBatchIndexBuffer().getBuffer() != currentBindings.IndexBuffer) {
-					//NOTE:: Text is currently rendered as a Quad so it can share the Quad batch index buffer
-					mStorage->getQuadBatchIndexBuffer().bind(cmd);
-					currentBindings.IndexBuffer = mStorage->getQuadBatchIndexBuffer().getBuffer();
-					debugInfo.IndexBufferBinds++;
-				}
-			
-				const auto& renderableBatch = mStorage->getRenderableTextMsdfBatch();
-				VertexArrayVulkan& vao = renderableBatch->getVao();
-			
-				vao.getVertexBuffers()[0]->setDataMapped(
-					logicDevice,
-					textMsdfBatch.getData().data(),
-					textMsdfQuadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_BYTE_SIZE
-				);
-				vao.setDrawCount(static_cast<uint32_t>(textMsdfQuadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT));
-			
-				textMsdfPipeline.addRenderableToDraw(renderableBatch);
-				mDebugInfoDrawCount++;
-			
-				textMsdfBatch.reset();
-			
-				textMsdfPipeline.recordDrawCommands(imageIndex, cmd, currentBindings);
-			}
-
-			//TODO:: some kind of function to reduce duplicate code?
 		}
 
-		mDrawnQuadCount = 0;
-		mTruncatedQuadCount = 0;
+		TextRenderer::drawUi(imageIndex, cmd, currentBindings, debugInfo);
 	}
 
 	void Renderer2dVulkan::closeEmptyQuadBatches() {
@@ -475,10 +359,6 @@ namespace DOH {
 			} else {
 				break;
 			}
-		}
-
-		if (mStorage->getTextRenderBatch().getGeometryCount() > 0) {
-			mStorage->getTextRenderBatch().reset();
 		}
 	}
 }

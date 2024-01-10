@@ -6,8 +6,8 @@ C:\dev\__SDKs\Vulkan\Bin\glslc.exe SimpleUi.vert -o spv/SimpleUi.vert.spv
 C:\dev\__SDKs\Vulkan\Bin\glslc.exe SimpleUi.frag -o spv/SimpleUi.frag.spv
 C:\dev\__SDKs\Vulkan\Bin\glslc.exe QuadBatch.vert -o spv/QuadBatch.vert.spv
 C:\dev\__SDKs\Vulkan\Bin\glslc.exe QuadBatch.frag -o spv/QuadBatch.frag.spv
-C:\dev\__SDKs\Vulkan\Bin\glslc.exe Text2d.vert -o spv/Text2d.vert.spv
-C:\dev\__SDKs\Vulkan\Bin\glslc.exe Text2d.frag -o spv/Text2d.frag.spv
+C:\dev\__SDKs\Vulkan\Bin\glslc.exe TextSoftMask3d.vert -o spv/TextSoftMask3d.vert.spv
+C:\dev\__SDKs\Vulkan\Bin\glslc.exe TextSoftMask3d.frag -o spv/TextSoftMask3d.frag.spv
 C:\dev\__SDKs\Vulkan\Bin\glslc.exe LineRenderer3d.vert -o spv/LineRenderer3d.vert.spv
 C:\dev\__SDKs\Vulkan\Bin\glslc.exe LineRenderer3d.frag -o spv/LineRenderer3d.frag.spv
 C:\dev\__SDKs\Vulkan\Bin\glslc.exe LineRenderer2d.vert -o spv/LineRenderer2d.vert.spv

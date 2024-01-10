@@ -10,7 +10,7 @@ namespace DOH {
 	private:
 		VkDescriptorSetLayout mDescriptorSetLayout;
 		ShaderUniformLayout& mUniformLayout;
-		
+
 		std::vector<VkDescriptorSet> mDescriptorSets;
 		std::vector<VkDescriptorSetLayoutBinding> mDescriptorSetLayoutBindings;
 

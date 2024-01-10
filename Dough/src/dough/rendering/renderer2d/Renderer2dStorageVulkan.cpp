@@ -8,10 +8,6 @@ namespace DOH {
 
 	const std::string Renderer2dStorageVulkan::QUAD_SHADER_PATH_VERT = "Dough/res/shaders/spv/QuadBatch.vert.spv";
 	const std::string Renderer2dStorageVulkan::QUAD_SHADER_PATH_FRAG = "Dough/res/shaders/spv/QuadBatch.frag.spv";
-	const std::string Renderer2dStorageVulkan::TEXT_2D_SHADER_PATH_VERT = "Dough/res/shaders/spv/Text2d.vert.spv";
-	const std::string Renderer2dStorageVulkan::TEXT_2D_SHADER_PATH_FRAG = "Dough/res/shaders/spv/Text2d.frag.spv";
-	const std::string Renderer2dStorageVulkan::TEXT_MSDF_3D_SHADER_PATH_VERT = "Dough/res/shaders/spv/TextMsdf3d.vert.spv";
-	const std::string Renderer2dStorageVulkan::TEXT_MSDF_3D_SHADER_PATH_FRAG = "Dough/res/shaders/spv/TextMsdf3d.frag.spv";
 
 	Renderer2dStorageVulkan::Renderer2dStorageVulkan(RenderingContextVulkan& context)
 	:	mContext(context),
@@ -29,13 +25,13 @@ namespace DOH {
 		);
 
 		initForQuads();
-		initForText();
+
+		TextRenderer::init(mContext, *mWhiteTexture, mQuadSharedIndexBuffer);
 
 		createDescriptorPool();
 
 		mContext.createPipelineUniformObjects(*mQuadGraphicsPipeline, mDescriptorPool);
-		mContext.createPipelineUniformObjects(*mTextGraphicsPipeline, mDescriptorPool);
-		mContext.createPipelineUniformObjects(*mTextMsdfGraphicsPipeline, mDescriptorPool);
+		TextRenderer::createPipelineUniformObjects(mDescriptorPool);
 	}
 
 	void Renderer2dStorageVulkan::close() {
@@ -44,12 +40,8 @@ namespace DOH {
 		mQuadShaderProgram->close(logicDevice);
 		mQuadGraphicsPipeline->close(logicDevice);
 
-		mTextShaderProgram->close(logicDevice);
-		mTextGraphicsPipeline->close(logicDevice);
-		mTextMsdfShaderProgram->close(logicDevice);
-		mTextMsdfGraphicsPipeline->close(logicDevice);
-		mRenderableTextBatch->getVao().close(logicDevice);
-		mRenderableTextMsdfBatch->getVao().close(logicDevice);
+		TextRenderer::close();
+		
 		mTestMonoSpaceTextureAtlas->close(logicDevice);
 		mTestIndexedTextureAtlas->close(logicDevice);
 
@@ -61,12 +53,6 @@ namespace DOH {
 
 		for (const auto& renderableQuadBatch : mRenderableQuadBatches) {
 			renderableQuadBatch->getVao().close(logicDevice);
-		}
-
-		for (auto& fontBitmap : mFontBitmaps) {
-			for (auto& page : fontBitmap.second->getPageTextures()) {
-				page->close(logicDevice);
-			}
 		}
 
 		mQuadSharedIndexBuffer->close(logicDevice);
@@ -84,18 +70,10 @@ namespace DOH {
 				totalDescTypes.emplace_back(descType);
 			}
 		}
-		{
-			std::vector<DescriptorTypeInfo> descTypes = mTextGraphicsPipeline->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes();
-			totalDescTypes.reserve(totalDescTypes.size() + descTypes.size());
 
-			for (const DescriptorTypeInfo& descType : descTypes) {
-				totalDescTypes.emplace_back(descType);
-			}
-		}
 		{
-			std::vector<DescriptorTypeInfo> descTypes = mTextMsdfGraphicsPipeline->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes();
+			std::vector<DescriptorTypeInfo> descTypes = TextRenderer::getDescriptorTypeInfos();
 			totalDescTypes.reserve(totalDescTypes.size() + descTypes.size());
-
 			for (const DescriptorTypeInfo& descType : descTypes) {
 				totalDescTypes.emplace_back(descType);
 			}
@@ -122,19 +100,8 @@ namespace DOH {
 		);
 		mContext.createPipelineUniformObjects(*mQuadGraphicsPipeline, mDescriptorPool);
 
-		mTextGraphicsPipeline->recreate(
-			logicDevice,
-			swapChain.getExtent(),
-			mContext.getRenderPass(ERenderPass::APP_SCENE).get()
-		);
-		mContext.createPipelineUniformObjects(*mTextGraphicsPipeline, mDescriptorPool);
-
-		mTextMsdfGraphicsPipeline->recreate(
-			logicDevice,
-			swapChain.getExtent(),
-			mContext.getRenderPass(ERenderPass::APP_SCENE).get()
-		);
-		mContext.createPipelineUniformObjects(*mTextMsdfGraphicsPipeline, mDescriptorPool);
+		TextRenderer::onSwapChainResize(swapChain);
+		TextRenderer::createPipelineUniformObjects(mDescriptorPool);
 	}
 
 	size_t Renderer2dStorageVulkan::createNewBatchQuad() {
@@ -248,204 +215,5 @@ namespace DOH {
 			quadIndices.data(),
 			sizeof(uint32_t) * BatchSizeLimits::BATCH_QUAD_INDEX_COUNT
 		);
-	}
-
-	void Renderer2dStorageVulkan::initForText() {
-		mTextBatchTextureArray = std::make_unique<TextureArray>(
-			BatchSizeLimits::BATCH_MAX_COUNT_TEXTURE,
-			*mWhiteTexture
-		);
-
-		mFontBitmaps = {};
-
-		{ //Soft Mask
-			const auto& arialFont = mFontBitmaps.emplace(
-				Renderer2dStorageVulkan::DEFAULT_FONT_BITMAP_NAME, //Store Arial font as default
-				ObjInit::fontBitmap("Dough/res/fonts/arial_latin_32px.fnt", "Dough/res/fonts/", ETextRenderMethod::SOFT_MASK)
-			);
-			if (arialFont.second) {
-				addFontBitmapToTextTextureArray(*arialFont.first->second);
-			} else {
-				LOG_ERR("Failed to store default font: " << Renderer2dStorageVulkan::DEFAULT_FONT_BITMAP_NAME);
-				THROW("Required font not available. Forcing stop.");
-			}
-
-			mTextShaderProgram = ObjInit::shaderProgram(
-				ObjInit::shader(EShaderType::VERTEX, Renderer2dStorageVulkan::TEXT_2D_SHADER_PATH_VERT),
-				ObjInit::shader(EShaderType::FRAGMENT, Renderer2dStorageVulkan::TEXT_2D_SHADER_PATH_FRAG)
-			);
-
-			ShaderUniformLayout& layout = mTextShaderProgram->getUniformLayout();
-			layout.setValue(0, sizeof(glm::mat4x4));
-			layout.setTextureArray(1, *mTextBatchTextureArray);
-
-			mTextRenderBatch = std::make_unique<RenderBatchQuad>(
-				BatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD,
-				BatchSizeLimits::BATCH_MAX_COUNT_TEXTURE
-			);
-
-			constexpr size_t batchSizeBytes = BatchSizeLimits::BATCH_QUAD_BYTE_SIZE;
-
-			std::shared_ptr<VertexArrayVulkan> vao = ObjInit::vertexArray();
-			std::shared_ptr<VertexBufferVulkan> vbo = ObjInit::vertexBuffer(
-				StaticVertexInputLayout::get(RenderBatchQuad::VERTEX_INPUT_TYPE),
-				batchSizeBytes,
-				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-			);
-			vao->addVertexBuffer(vbo);
-			vao->setIndexBuffer(mQuadSharedIndexBuffer, true);
-			vao->getVertexBuffers()[0]->map(mContext.getLogicDevice(), batchSizeBytes);
-
-			mRenderableTextBatch = std::make_shared<SimpleRenderable>(vao);
-
-			mTextGraphicsPipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-				StaticVertexInputLayout::get(RenderBatchQuad::VERTEX_INPUT_TYPE),
-				*mTextShaderProgram,
-				ERenderPass::APP_SCENE
-			);
-
-			//Text isn't culled by default for viewing from behind.
-			//Text depth testing in scene so it doesn't overlap, however, this causes z-fighting during kerning as each glyph is a rendered quad.
-			mTextGraphicsPipelineInstanceInfo->getOptionalFields().CullMode = VK_CULL_MODE_NONE;
-			mTextGraphicsPipelineInstanceInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS);
-			mTextGraphicsPipelineInstanceInfo->getOptionalFields().setBlending(
-				true,
-				VK_BLEND_OP_ADD,
-				VK_BLEND_FACTOR_SRC_ALPHA,
-				VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-				VK_BLEND_OP_ADD,
-				VK_BLEND_FACTOR_SRC_ALPHA,
-				VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
-			);
-
-			//TODO:: UI Text, since UI camera is orthographic kerning should work as z-fighting won't happen
-
-			mTextGraphicsPipeline = mContext.createGraphicsPipeline(
-				*mTextGraphicsPipelineInstanceInfo,
-				mContext.getSwapChain().getExtent()
-			);
-		}
-
-		{
-			//MSDF
-			const auto& arialMsdf = mFontBitmaps.emplace(
-				"Arial-MSDF",
-				ObjInit::fontBitmap("Dough/res/fonts/arial_msdf_32px_meta.json", "Dough/res/fonts/", ETextRenderMethod::MSDF)
-			);
-
-			if (arialMsdf.second) {
-				addFontBitmapToTextTextureArray(*arialMsdf.first->second);
-			} else {
-				LOG_ERR("Failed to store Arial-MSDF bitmap font");
-			}
-			mTextMsdfShaderProgram = ObjInit::shaderProgram(
-				ObjInit::shader(EShaderType::VERTEX, Renderer2dStorageVulkan::TEXT_MSDF_3D_SHADER_PATH_VERT),
-				ObjInit::shader(EShaderType::FRAGMENT, Renderer2dStorageVulkan::TEXT_MSDF_3D_SHADER_PATH_FRAG)
-			);
-
-			ShaderUniformLayout& layout = mTextMsdfShaderProgram->getUniformLayout();
-			layout.setValue(0, sizeof(glm::mat4x4));
-			layout.setTextureArray(1, *mTextBatchTextureArray);
-
-			mTextMsdfRenderBatch = std::make_unique<RenderBatchQuad>(
-				BatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD,
-				BatchSizeLimits::BATCH_MAX_COUNT_TEXTURE
-			);
-
-			mTextMsdfGraphicsPipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-				StaticVertexInputLayout::get(RenderBatchQuad::VERTEX_INPUT_TYPE),
-				*mTextMsdfShaderProgram,
-				ERenderPass::APP_SCENE
-			);
-
-			//Text isn't culled by default for viewing from behind.
-			//Text depth testing in scene so it doesn't overlap, however, this causes z-fighting during kerning as each glyph is a rendered quad.
-			mTextMsdfGraphicsPipelineInstanceInfo->getOptionalFields().CullMode = VK_CULL_MODE_NONE;
-			mTextMsdfGraphicsPipelineInstanceInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS);
-			mTextMsdfGraphicsPipelineInstanceInfo->getOptionalFields().setBlending(
-				true,
-				VK_BLEND_OP_ADD,
-				VK_BLEND_FACTOR_SRC_ALPHA,
-				VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-				VK_BLEND_OP_ADD,
-				VK_BLEND_FACTOR_SRC_ALPHA,
-				VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
-			);
-
-			constexpr size_t batchSizeBytes = BatchSizeLimits::BATCH_QUAD_BYTE_SIZE;
-
-			std::shared_ptr<VertexArrayVulkan> vao = ObjInit::vertexArray();
-			std::shared_ptr<VertexBufferVulkan> vbo = ObjInit::vertexBuffer(
-				StaticVertexInputLayout::get(RenderBatchQuad::VERTEX_INPUT_TYPE),
-				batchSizeBytes,
-				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-			);
-			vao->addVertexBuffer(vbo);
-			vao->setIndexBuffer(mQuadSharedIndexBuffer, true);
-			vao->getVertexBuffers()[0]->map(mContext.getLogicDevice(), batchSizeBytes);
-
-			mRenderableTextMsdfBatch = std::make_shared<SimpleRenderable>(vao);
-
-			//TODO:: UI Text, since UI camera is orthographic kerning should work as z-fighting won't happen
-
-			mTextMsdfGraphicsPipeline = mContext.createGraphicsPipeline(
-				*mTextMsdfGraphicsPipelineInstanceInfo,
-				mContext.getSwapChain().getExtent()
-			);
-		}
-	}
-
-	void Renderer2dStorageVulkan::addFontBitmapToTextTextureArray(const FontBitmap& fontBitmap) {
-		uint32_t bitmapTexturesAdded = 0;
-		for (const auto& texture : fontBitmap.getPageTextures()) {
-			mTextBatchTextureArray->addNewTexture(*texture);
-			bitmapTexturesAdded++;
-		}
-		if (bitmapTexturesAdded < fontBitmap.getPageCount()) {
-			LOG_ERR(
-				"Failed to add all bitmap textures to text quad batch texture array. Missing page count: " <<
-				fontBitmap.getPageCount() - bitmapTexturesAdded
-			);
-		}
-	}
-
-	FontBitmap& Renderer2dStorageVulkan::getFontBitmap(const char* font) const {
-		const auto& fontItr = mFontBitmaps.find(font);
-		if (fontItr != mFontBitmaps.end()) {
-			return *fontItr->second;
-		} else {
-			const auto& defaultFontItr = mFontBitmaps.find(Renderer2dStorageVulkan::DEFAULT_FONT_BITMAP_NAME);
-			return *defaultFontItr->second;
-		}
-	}
-
-	void Renderer2dStorageVulkan::setTextUniformData(
-		VkDevice logicDevice,
-		uint32_t currentImage,
-		uint32_t uboBinding,
-		glm::mat4x4& sceneProjView,
-		glm::mat4x4& uiPojView
-	) {
-		//TODO:: Since each pipeline has its own instance of uniforms then each one must be updated
-
-		mTextGraphicsPipeline->setFrameUniformData(
-			logicDevice,
-			currentImage,
-			uboBinding,
-			&sceneProjView,
-			sizeof(glm::mat4x4)
-		);
-
-		mTextMsdfGraphicsPipeline->setFrameUniformData(
-			logicDevice,
-			currentImage,
-			uboBinding,
-			&sceneProjView,
-			sizeof(glm::mat4x4)
-		);
-
-		//TODO:: UI
 	}
 }

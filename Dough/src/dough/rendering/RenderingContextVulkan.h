@@ -8,6 +8,7 @@
 #include "dough/rendering/SwapChainVulkan.h"
 #include "dough/rendering/CustomRenderState.h"
 #include "dough/rendering/LineRenderer.h"
+#include "dough/rendering/text/ETextRenderMethod.h"
 
 #include <queue>
 
@@ -131,6 +132,9 @@ namespace DOH {
 		void close();
 		//Finalise the creation of custom pipelines
 		void createPipelineUniformObjects(GraphicsPipelineVulkan& pipeline, VkDescriptorPool descPool);
+		
+		//TODO:: Change this to createCustomPipelineUniformObjects. The custom (AppLogic) defined pipelines and built-in engine ones share a descriptor pool.
+		//	Separating these will simplify initialisation of both.
 		void createPipelineUniformObjects();
 		VkDescriptorPool createDescriptorPool(const std::vector<DescriptorTypeInfo>& descTypes);
 		bool isReady() const;

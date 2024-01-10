@@ -356,11 +356,6 @@ UPS displayed is the count of frames in the last full second interval)"
 						);
 					}
 				}
-				EditorGui::printDrawCallTableColumn(
-					"Quad Batch",
-					debugInfo.BatchRendererDrawCalls,
-					ERenderPassStrings[static_cast<uint32_t>(ERenderPass::APP_SCENE)]
-				);
 				//Total scene pipeline draw calls
 				EditorGui::printDrawCallTableColumn("Total Scene",
 					debugInfo.SceneDrawCalls,
@@ -405,10 +400,7 @@ UPS displayed is the count of frames in the last full second interval)"
 					ImGui::Text("Batch: %i Geo Count: %i", quadBatchIndex, batch.getGeometryCount());
 					quadBatchIndex++;
 				}
-				const size_t textQuadCount = renderer.getContext().getRenderer2d().getStorage().getTextRenderBatch().getGeometryCount();
-				if (textQuadCount > 0) {
-					ImGui::Text("Text Batch Geo Count: %i", textQuadCount);
-				}
+				ImGui::Text("Text Batches Geo Count: %i", TextRenderer::getDrawnQuadCount());
 				//TODO:: debug info when multiple texture arrays are supported
 				//uint32_t texArrIndex = 0;
 				//for (TextureArray& texArr : renderer.getContext().getRenderer2d().getStorage().getTextureArrays()) {
