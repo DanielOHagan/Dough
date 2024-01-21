@@ -5,7 +5,7 @@
 #include "dough/rendering/textures/TextureArray.h"
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 #include "dough/rendering/SwapChainVulkan.h"
-#include "dough/rendering/renderer2d/RenderBatchQuad.h"
+#include "dough/rendering/batches/RenderBatchQuad.h"
 #include "dough/rendering/renderables/SimpleRenderable.h"
 #include "dough/rendering/text/FontBitmap.h"
 #include "dough/scene/geometry/collections/TextString.h"
@@ -13,7 +13,6 @@
 namespace DOH {
 
 	class RenderingContextVulkan;
-	struct AppDebugInfo;
 
 	class TextRenderer {
 
@@ -58,8 +57,8 @@ namespace DOH {
 		void addFontBitmapToTextTextureArrayImpl(const FontBitmap& fontBitmap);
 
 		void setUniformDataImpl(uint32_t currentImage, uint32_t uboBinding, glm::mat4x4& sceneProjView, glm::mat4x4& uiProjView);
-		void drawSceneImpl(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings, AppDebugInfo& debugInfo);
-		void drawUiImpl(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings, AppDebugInfo& debugInfo);
+		void drawSceneImpl(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
+		void drawUiImpl(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 
 		void drawTextFromQuadsImpl(const std::vector<Quad>& quadArr, const FontBitmap& bitmap);
 		void drawTextSameTextureFromQuadsImpl(const std::vector<Quad>& quadArr, const FontBitmap& bitmap);
@@ -84,8 +83,8 @@ namespace DOH {
 		static void addFontBitmapToTextTextureArray(const FontBitmap& fontBitmap);
 
 		static void setUniformData(uint32_t currentImage, uint32_t uboBinding, glm::mat4x4& sceneProjView, glm::mat4x4& uiProjView);
-		static void drawScene(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings, AppDebugInfo& debugInfo);
-		static void drawUi(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings, AppDebugInfo& debugInfo);
+		static void drawScene(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
+		static void drawUi(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 
 		static uint32_t getDrawnQuadCount();
 		static void resetLocalDebugInfo();

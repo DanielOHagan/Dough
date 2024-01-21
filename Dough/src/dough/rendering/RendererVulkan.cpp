@@ -3,7 +3,6 @@
 #include "dough/application/Application.h"
 #include "dough/Utils.h"
 #include "dough/rendering/pipeline/shader/ShaderVulkan.h"
-#include "dough/rendering/renderer2d/Renderer2dVulkan.h"
 
 #include <set>
 #include <string>
@@ -329,9 +328,7 @@ namespace DOH {
 
 	void RendererVulkan::endScene() {
 		//TODO:: For the batch renderer
-		// Maybe have a list of references to geometry and a list of references to a lists of geometry which are to be
-		// added to batches in renderer2dStorage, possibly by a separate thread
-		//Also, when one batch is full, it can be considered ready and a uploaded as soon as possible
+		// When one batch is full, it can be considered ready and a uploaded as soon as possible
 	}
 
 	void RendererVulkan::beginUi(glm::mat4x4& proj) {
@@ -339,9 +336,7 @@ namespace DOH {
 	}
 
 	void RendererVulkan::endUi() {
-		//TODO:: For the batch renderer
-		// Maybe have a list of references to geometry and a list of references to a lists of geometry which are to be
-		// added to batches in renderer2dStorage, possibly by a separate thread
+
 	}
 
 	uint32_t RendererVulkan::findPhysicalDeviceMemoryType(

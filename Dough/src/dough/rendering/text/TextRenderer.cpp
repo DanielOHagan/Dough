@@ -1,6 +1,5 @@
 #include "dough/rendering/text/TextRenderer.h"
 
-#include "dough/rendering/renderer2d/Renderer2dStorageVulkan.h"
 #include "dough/rendering/RenderingContextVulkan.h"
 #include "dough/Logging.h"
 #include "dough/application/Application.h"
@@ -21,7 +20,7 @@ namespace DOH {
 
 	void TextRenderer::initImpl(TextureVulkan& fallbackTexture, std::shared_ptr<IndexBufferVulkan> quadSharedIndexBuffer) {
 		mFontBitmapPagesTextureArary = std::make_unique<TextureArray>(
-			Renderer2dStorageVulkan::BatchSizeLimits::BATCH_MAX_COUNT_TEXTURE,
+			EBatchSizeLimits::BATCH_MAX_COUNT_TEXTURE,
 			fallbackTexture
 		);
 
@@ -56,15 +55,15 @@ namespace DOH {
 			layout.setTextureArray(1, *mFontBitmapPagesTextureArary);
 
 			mSoftMaskSceneBatch = std::make_unique<RenderBatchQuad>(
-				Renderer2dStorageVulkan::BatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD,
-				Renderer2dStorageVulkan::BatchSizeLimits::BATCH_MAX_COUNT_TEXTURE
+				EBatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD,
+				EBatchSizeLimits::BATCH_MAX_COUNT_TEXTURE
 			);
 
-			constexpr size_t batchSizeBytes = Renderer2dStorageVulkan::BatchSizeLimits::BATCH_QUAD_BYTE_SIZE;
+			constexpr size_t batchSizeBytes = EBatchSizeLimits::BATCH_QUAD_BYTE_SIZE;
 
 			std::shared_ptr<VertexArrayVulkan> vao = mContext.createVertexArray();
 			std::shared_ptr<VertexBufferVulkan> vbo = mContext.createVertexBuffer(
-				StaticVertexInputLayout::get(RenderBatchQuad::VERTEX_INPUT_TYPE),
+				StaticVertexInputLayout::get(QUAD_VERTEX_INPUT_TYPE),
 				batchSizeBytes,
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
@@ -76,7 +75,7 @@ namespace DOH {
 			mSoftMaskSceneRenderableBatch = std::make_shared<SimpleRenderable>(vao);
 
 			mSoftMaskScenePipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-				StaticVertexInputLayout::get(RenderBatchQuad::VERTEX_INPUT_TYPE),
+				StaticVertexInputLayout::get(QUAD_VERTEX_INPUT_TYPE),
 				*mSoftMaskSceneShaderProgram,
 				ERenderPass::APP_SCENE
 			);
@@ -121,12 +120,12 @@ namespace DOH {
 			layout.setTextureArray(1, *mFontBitmapPagesTextureArary);
 
 			mMsdfSceneBatch = std::make_unique<RenderBatchQuad>(
-				Renderer2dStorageVulkan::BatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD,
-				Renderer2dStorageVulkan::BatchSizeLimits::BATCH_MAX_COUNT_TEXTURE
+				EBatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD,
+				EBatchSizeLimits::BATCH_MAX_COUNT_TEXTURE
 			);
 
 			mMsdfScenePipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
-				StaticVertexInputLayout::get(RenderBatchQuad::VERTEX_INPUT_TYPE),
+				StaticVertexInputLayout::get(QUAD_VERTEX_INPUT_TYPE),
 				*mMsdfSceneShaderProgram,
 				ERenderPass::APP_SCENE
 			);
@@ -145,11 +144,11 @@ namespace DOH {
 				VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
 			);
 
-			constexpr size_t batchSizeBytes = Renderer2dStorageVulkan::BatchSizeLimits::BATCH_QUAD_BYTE_SIZE;
+			constexpr size_t batchSizeBytes = EBatchSizeLimits::BATCH_QUAD_BYTE_SIZE;
 
 			std::shared_ptr<VertexArrayVulkan> vao = mContext.createVertexArray();
 			std::shared_ptr<VertexBufferVulkan> vbo = mContext.createVertexBuffer(
-				StaticVertexInputLayout::get(RenderBatchQuad::VERTEX_INPUT_TYPE),
+				StaticVertexInputLayout::get(QUAD_VERTEX_INPUT_TYPE),
 				batchSizeBytes,
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
@@ -258,9 +257,10 @@ namespace DOH {
 		//TODO:: UI
 	}
 
-	void TextRenderer::drawSceneImpl(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings, AppDebugInfo& debugInfo) {
+	void TextRenderer::drawSceneImpl(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
 		VkDevice logicDevice = mContext.getLogicDevice();
 		const size_t softMaskQuadCount = mSoftMaskSceneBatch->getGeometryCount();
+		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 
 		if (softMaskQuadCount > 0) {
 			if (currentBindings.Pipeline != mSoftMaskScenePipeline->get()) {
@@ -280,9 +280,9 @@ namespace DOH {
 			vao.getVertexBuffers()[0]->setDataMapped(
 				logicDevice,
 				mSoftMaskSceneBatch->getData().data(),
-				softMaskQuadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_BYTE_SIZE
+				softMaskQuadCount * EBatchSizeLimits::SINGLE_QUAD_BYTE_SIZE
 			);
-			vao.setDrawCount(static_cast<uint32_t>(softMaskQuadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT));
+			vao.setDrawCount(static_cast<uint32_t>(softMaskQuadCount * EBatchSizeLimits::SINGLE_QUAD_INDEX_COUNT));
 
 			mSoftMaskScenePipeline->addRenderableToDraw(mSoftMaskSceneRenderableBatch);
 
@@ -314,9 +314,9 @@ namespace DOH {
 			vao.getVertexBuffers()[0]->setDataMapped(
 				logicDevice,
 				mMsdfSceneBatch->getData().data(),
-				textMsdfQuadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_BYTE_SIZE
+				textMsdfQuadCount * EBatchSizeLimits::SINGLE_QUAD_BYTE_SIZE
 			);
-			vao.setDrawCount(static_cast<uint32_t>(textMsdfQuadCount * Renderer2dStorageVulkan::BatchSizeLimits::SINGLE_QUAD_INDEX_COUNT));
+			vao.setDrawCount(static_cast<uint32_t>(textMsdfQuadCount * EBatchSizeLimits::SINGLE_QUAD_INDEX_COUNT));
 
 			mMsdfScenePipeline->addRenderableToDraw(mMsdfSceneRenderableBatch);
 
@@ -330,7 +330,7 @@ namespace DOH {
 		//TODO:: some kind of function to reduce duplicate code?
 	}
 
-	void TextRenderer::drawUiImpl(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings, AppDebugInfo& debugInfo) {
+	void TextRenderer::drawUiImpl(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
 		//TODO:: UI text
 	}
 
@@ -452,14 +452,14 @@ namespace DOH {
 		INSTANCE->setUniformDataImpl(currentImage, uboBinding, sceneProjView, uiProjView);
 	}
 
-	void TextRenderer::drawScene(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings, AppDebugInfo& debugInfo) {
+	void TextRenderer::drawScene(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
 		//NOTE:: No nullptr check as this function is expected to be called each frame.
-		INSTANCE->drawSceneImpl(imageIndex, cmd, currentBindings, debugInfo);
+		INSTANCE->drawSceneImpl(imageIndex, cmd, currentBindings);
 	}
 
-	void TextRenderer::drawUi(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings, AppDebugInfo& debugInfo) {
+	void TextRenderer::drawUi(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
 		//NOTE:: No nullptr check as this function is expected to be called each frame.
-		INSTANCE->drawUiImpl(imageIndex, cmd, currentBindings, debugInfo);
+		INSTANCE->drawUiImpl(imageIndex, cmd, currentBindings);
 	}
 
 	uint32_t TextRenderer::getDrawnQuadCount() {

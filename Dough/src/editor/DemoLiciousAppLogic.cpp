@@ -4,6 +4,8 @@
 
 #include "dough/application/Application.h"
 #include "dough/rendering/ObjInit.h"
+#include "dough/rendering/ShapeRenderer.h"
+#include "dough/rendering/text/TextRenderer.h"
 
 #define GET_RENDERER Application::get().getRenderer()
 
@@ -68,7 +70,6 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::render() {
 		RendererVulkan& renderer = GET_RENDERER;
 		RenderingContextVulkan& context = renderer.getContext();
-		Renderer2dVulkan& renderer2d = context.getRenderer2d();
 
 
 		//Use a custom camera to this application to render the scene differently to the editor
@@ -104,20 +105,20 @@ namespace DOH::EDITOR {
 		if (mGridDemo->Render) {
 			if (mGridDemo->QuadDrawColour) {
 				for (const std::vector<Quad>& sameTexturedQuads : mGridDemo->TexturedTestGrid) {
-					renderer2d.drawQuadArrayScene(sameTexturedQuads);
+					ShapeRenderer::drawQuadArrayScene(sameTexturedQuads);
 				}
 			} else {
 				for (const std::vector<Quad>& sameTexturedQuads : mGridDemo->TexturedTestGrid) {
-					renderer2d.drawQuadArraySameTextureScene(sameTexturedQuads);
+					ShapeRenderer::drawQuadArraySameTextureScene(sameTexturedQuads);
 				}
 			}
 		}
 
 		if (mBouncingQuadDemo->Render) {
 			if (mBouncingQuadDemo->QuadDrawColour) {
-				renderer2d.drawQuadArrayScene(mBouncingQuadDemo->BouncingQuads);
+				ShapeRenderer::drawQuadArrayScene(mBouncingQuadDemo->BouncingQuads);
 			} else {
-				renderer2d.drawQuadArrayTexturedScene(mBouncingQuadDemo->BouncingQuads);
+				ShapeRenderer::drawQuadArrayTexturedScene(mBouncingQuadDemo->BouncingQuads);
 			}
 		}
 
@@ -169,15 +170,15 @@ namespace DOH::EDITOR {
 
 		if (mBoundingBoxDemo->Render) {
 			if (mBoundingBoxDemo->Quads.size() > 0) {
-				renderer2d.drawQuadArrayScene(mBoundingBoxDemo->Quads);
+				ShapeRenderer::drawQuadArrayScene(mBoundingBoxDemo->Quads);
 				context.getLineRenderer().drawQuadScene(mBoundingBoxDemo->BoundingBox->getQuad(), {0.0f, 1.0f, 0.0f, 1.0f});
 			}
 		}
 
 		if (mTileMapDemo->Render) {
 			if (mTileMapDemo->RenderPreviewQuad) {
-				renderer2d.drawQuadTexturedScene(mTileMapDemo->PreviewQuad);
-				renderer2d.drawQuadTexturedScene(mTileMapDemo->AnimatedQuad);
+				ShapeRenderer::drawQuadTexturedScene(mTileMapDemo->PreviewQuad);
+				ShapeRenderer::drawQuadTexturedScene(mTileMapDemo->AnimatedQuad);
 			}
 		}
 
@@ -221,7 +222,6 @@ namespace DOH::EDITOR {
 
 	void DemoLiciousAppLogic::imGuiRender(float delta) {
 		RendererVulkan& renderer = GET_RENDERER;
-		Renderer2dVulkan& renderer2d = renderer.getContext().getRenderer2d();
 
 		if (ImGui::Begin("DemoLicious Demos")) {
 			ImGui::Text("Demo Settings & Info:");
@@ -265,7 +265,7 @@ namespace DOH::EDITOR {
 				mBoundingBoxDemo->Update = false;
 			}
 			if (ImGui::Button("View atlas texture")) {
-				EditorGui::openMonoSpaceTextureAtlasViewerWindow(*renderer2d.getStorage().getTestMonoSpaceTextureAtlas());
+				EditorGui::openMonoSpaceTextureAtlasViewerWindow(*ShapeRenderer::getTestMonoSpaceTextureAtlas());
 			}
 			EditorGui::displayHelpTooltip("Display Texture Altas texture inside a separate window.");
 			if (ImGui::Button("View test texture")) {
@@ -327,7 +327,8 @@ namespace DOH::EDITOR {
 		mTileMapDemo = std::make_unique<TileMapDemo>();
 		mTileMapDemo->init();
 
-		context.createPipelineUniformObjects();
+		//context.createPipelineUniformObjects();
+		context.createCustomUniformObjects();
 	}
 
 	void DemoLiciousAppLogic::closeDemos() {
@@ -360,12 +361,11 @@ namespace DOH::EDITOR {
 	}
 	
 	void DemoLiciousAppLogic::populateTestGrid(uint32_t width, uint32_t height) {
-		const auto& storage = GET_RENDERER.getContext().getRenderer2d().getStorage();
-		const auto& atlas = storage.getTestMonoSpaceTextureAtlas();
+		const auto& atlas = ShapeRenderer::getTestMonoSpaceTextureAtlas();
 	
 		mGridDemo->TexturedTestGrid.clear();
-		mGridDemo->TexturedTestGrid.resize(storage.getQuadBatchTextureArray().getTextureSlots().size());
-		const uint32_t textureSlot = storage.getQuadBatchTextureArray().getTextureSlotIndex(atlas->getId());
+		mGridDemo->TexturedTestGrid.resize(ShapeRenderer::getQuadBatchTextureArray().getTextureSlots().size());
+		const uint32_t textureSlot = ShapeRenderer::getQuadBatchTextureArray().getTextureSlotIndex(atlas->getId());
 	
 		uint32_t index = 0;
 		for (uint32_t y = 0; y < height; y++) {
@@ -855,7 +855,7 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::GridDemo::init() {
-		TestGridMaxQuadCount = Renderer2dStorageVulkan::MAX_BATCH_COUNT_QUAD * Renderer2dStorageVulkan::BATCH_MAX_GEO_COUNT_QUAD;
+		TestGridMaxQuadCount = EBatchSizeLimits::MAX_BATCH_COUNT_QUAD * EBatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD;
 	}
 
 	void DemoLiciousAppLogic::GridDemo::close() {
@@ -898,7 +898,7 @@ namespace DOH::EDITOR {
 			//	static being the default values and dynamic being from the variables determined by ths menu
 			// Maybe have the dynamic settings hidden unless dynamic is selected
 
-			MonoSpaceTextureAtlas& atlas = *GET_RENDERER.getContext().getRenderer2d().getStorage().getTestMonoSpaceTextureAtlas();
+			MonoSpaceTextureAtlas& atlas = *ShapeRenderer::getTestMonoSpaceTextureAtlas();
 
 			int tempTestTextureRowOffset = TestTexturesRowOffset;
 			if (ImGui::InputInt("Test Texture Row Offset", &tempTestTextureRowOffset)) {
@@ -985,7 +985,7 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::BouncingQuadDemo::addRandomQuads(size_t count) {
-		const auto& atlas = GET_RENDERER.getContext().getRenderer2d().getStorage().getTestMonoSpaceTextureAtlas();
+		const auto& atlas = ShapeRenderer::getTestMonoSpaceTextureAtlas();
 	
 		//Stop quad count going over MaxCount
 		if (count + BouncingQuads.size() > MaxBouncingQuadCount) {
@@ -1056,7 +1056,6 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::TextDemo::init() {
-		const auto& storage = GET_RENDERER.getContext().getRenderer2d().getStorage();
 		//Generate quads for default message
 		Text = std::make_unique<TextString>(
 			StringBuffer,
@@ -1320,7 +1319,7 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::TileMapDemo::init() {
 		//NOTE:: Texture atlas is created in QuadBatch init because rebiding descriptors not currently available.
 
-		const std::shared_ptr<IndexedTextureAtlas> texAtlas = GET_RENDERER.getContext().getRenderer2d().getStorage().getTestIndexedTextureAtlas();
+		const std::shared_ptr<IndexedTextureAtlas> texAtlas = ShapeRenderer::getTestIndexedTextureAtlas();
 
 		SceneTileMap = std::make_unique<TileMap>(*texAtlas, 50, 50);
 
@@ -1344,7 +1343,7 @@ namespace DOH::EDITOR {
 			ImGui::Checkbox("Render Preview Quad", &RenderPreviewQuad);
 
 			if (ImGui::Button("View Texture Atlas")) {
-				EditorGui::openIndexedTextureAtlasViewerWindow(*GET_RENDERER.getContext().getRenderer2d().getStorage().getTestIndexedTextureAtlas());
+				EditorGui::openIndexedTextureAtlasViewerWindow(*ShapeRenderer::getTestIndexedTextureAtlas());
 			}
 
 			EditorGui::controlsQuad(PreviewQuad, "PreviewQuad");
@@ -1361,7 +1360,6 @@ namespace DOH::EDITOR {
 					PreviewedInnerTexture = innerTexture.first.c_str();
 					PreviewQuad.TextureCoords = innerTexture.second.TextureCoords;
 				}
-
 				if (previewButton) {
 					ImGui::PopStyleColor(1);
 				}

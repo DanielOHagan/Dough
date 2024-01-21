@@ -4,6 +4,8 @@
 #include "dough/application/Application.h"
 #include "dough/input/InputCodes.h"
 #include "dough/Logging.h"
+#include "dough/rendering/ShapeRenderer.h"
+#include "dough/rendering/text/TextRenderer.h"
 
 #include <imgui/imgui.h>
 
@@ -121,7 +123,6 @@ namespace DOH::EDITOR {
 
 	void EditorAppLogic::imGuiRenderDebugWindow(float delta) {
 		RendererVulkan& renderer = GET_RENDERER;
-		Renderer2dVulkan& renderer2d = renderer.getContext().getRenderer2d();
 		ImGuiWrapper& imGuiWrapper = renderer.getContext().getImGuiWrapper();
 
 		ImGui::Begin("Dough Editor Window", &mEditorSettings->RenderDebugWindow);
@@ -387,16 +388,16 @@ UPS displayed is the count of frames in the last full second interval)"
 				//Batch renderer info
 				ImGui::NewLine();
 				ImGui::Text("Batch Renderer Info:");
-				ImGui::Text("Quads Drawn: %i", renderer2d.getDrawnQuadCount());
-				ImGui::Text("Quads Truncated: %i", renderer2d.getTruncatedQuadCount());
-				ImGui::Text("Quad Batch Max Size: %i", Renderer2dStorageVulkan::BatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD);
+				ImGui::Text("Quads Drawn: %i", ShapeRenderer::getDrawnQuadCount());
+				ImGui::Text("Quads Truncated: %i", ShapeRenderer::getTruncatedQuadCount());
+				ImGui::Text("Quad Batch Max Size: %i", EBatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD);
 				ImGui::Text(
 					"Quad Batch Count: %i of Max %i",
-					renderer.getContext().getRenderer2d().getQuadBatchCount(),
-					Renderer2dStorageVulkan::BatchSizeLimits::MAX_BATCH_COUNT_QUAD
+					ShapeRenderer::getQuadBatchCount(),
+					EBatchSizeLimits::MAX_BATCH_COUNT_QUAD
 				);
 				uint32_t quadBatchIndex = 0;
-				for (RenderBatchQuad& batch : renderer.getContext().getRenderer2d().getStorage().getQuadRenderBatches()) {
+				for (RenderBatchQuad& batch : ShapeRenderer::getQuadRenderBatches()) {
 					ImGui::Text("Batch: %i Geo Count: %i", quadBatchIndex, batch.getGeometryCount());
 					quadBatchIndex++;
 				}
@@ -410,14 +411,14 @@ UPS displayed is the count of frames in the last full second interval)"
 				ImGui::Text(
 					"Texture Array: %i Texture Count: %i",
 					0,
-					renderer2d.getStorage().getQuadBatchTextureArray().getTextureSlots().size()
+					ShapeRenderer::getQuadBatchTextureArray().getTextureSlots().size()
 				);
 				if (ImGui::Button("View Quad Batch Texture Array")) {
-					EditorGui::openTextureArrayViewerWindow("Quad Batch Texture Array", renderer2d.getStorage().getQuadBatchTextureArray());
+					EditorGui::openTextureArrayViewerWindow("Quad Batch Texture Array", ShapeRenderer::getQuadBatchTextureArray());
 				}
 
 				if (ImGui::Button("Close All Empty Quad Batches")) {
-					renderer2d.closeEmptyQuadBatches();
+					ShapeRenderer::closeEmptyQuadBatches();
 				}
 				EditorGui::displayHelpTooltip("Close Empty Quad Batches. This can help clean-up when 1 or more batches have geo counts of 0. Does not include the TextQuad batch.");
 			}

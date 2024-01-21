@@ -77,7 +77,6 @@ namespace DOH {
 			for (EDataType dataType : vertexLayout) {
 				count += DataType::getComponentCount(dataType);
 			}
-
 			return count;
 		}
 		constexpr static uint32_t getByteSize(const std::initializer_list<EDataType>& vertexLayout) {
@@ -85,7 +84,6 @@ namespace DOH {
 			for (EDataType dataType : vertexLayout) {
 				size += DataType::getDataTypeSize(dataType);
 			}
-
 			return size;
 		}
 	};

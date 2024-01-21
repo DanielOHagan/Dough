@@ -1,7 +1,7 @@
 #pragma once
 
 #include "dough/Core.h"
-#include "dough/rendering/RenderBatchLine.h"
+#include "dough/rendering/batches/RenderBatchLine.h"
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 #include "dough/rendering/renderables/SimpleRenderable.h"
 #include "dough/rendering/RenderPassVulkan.h"

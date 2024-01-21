@@ -253,7 +253,7 @@ namespace DOH::EDITOR {
 			std::vector<float> LineData2d;
 			std::vector<float> LineData3d;
 			Quad UiQuadTest = { {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, { 0.0f, 1.0f, 0.0f, 1.0f } };
-			float LineDataInput[LINE_3D_INPUT_COMPONENT_COUNT];
+			float LineDataInput[LINE_3D_INPUT_COMPONENT_COUNT] = {};
 			uint32_t LineCount2d = 0;
 			uint32_t LineCount3d = 0;
 			uint32_t LineDataIndex2d = 0;

@@ -1,4 +1,5 @@
-#include "dough/rendering/renderer2d/RenderBatchQuad.h"
+#include "dough/rendering/batches/RenderBatchQuad.h"
+
 #include "dough/rendering/Config.h"
 
 namespace DOH {
@@ -6,7 +7,7 @@ namespace DOH {
 	RenderBatchQuad::RenderBatchQuad(const uint32_t maxGeometryCount, const uint32_t maxTextureCount)
 	:	ARenderBatch(
 			maxGeometryCount,
-			getVertexTypeSize(RenderBatchQuad::VERTEX_INPUT_TYPE) * 4 /* Renderer2dVulkan::BatchSizeLimits::SINGLE_QUAD_VERTEX_COUNT*/,
+			EBatchSizeLimits::SINGLE_QUAD_BYTE_SIZE,
 			maxTextureCount
 		)
 	{}

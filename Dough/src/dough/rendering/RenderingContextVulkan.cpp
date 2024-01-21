@@ -5,6 +5,8 @@
 #include "dough/Logging.h"
 #include "dough/time/Time.h"
 #include "dough/application/Application.h"
+#include "dough/rendering/ShapeRenderer.h"
+#include "dough/rendering/text/TextRenderer.h"
 
 #include <chrono>
 #include <glm/gtc/matrix_transform.hpp>
@@ -21,7 +23,8 @@ namespace DOH {
 		mPhysicalDevice(physicalDevice),
 		mGraphicsQueue(VK_NULL_HANDLE),
 		mPresentQueue(VK_NULL_HANDLE),
-		mDescriptorPool(VK_NULL_HANDLE),
+		mEngineDescriptorPool(VK_NULL_HANDLE),
+		mCustomDescriptorPool(VK_NULL_HANDLE),
 		mCommandPool(VK_NULL_HANDLE),
 		mAppSceneUbo({ glm::mat4x4(1.0f) }),
 		mAppUiProjection(1.0f),
@@ -85,9 +88,8 @@ namespace DOH {
 		createCommandBuffers();
 		createSyncObjects();
 
-		mRenderer2d = std::make_unique<Renderer2dVulkan>(*this);
-		mRenderer2d->init();
-
+		ShapeRenderer::init(*this);
+		TextRenderer::init(*this, ShapeRenderer::getWhiteTexture(), ShapeRenderer::getQuadSharedIndexBufferPtr());
 		mLineRenderer = std::make_unique<LineRenderer>();
 		mLineRenderer->init(mLogicDevice, mSwapChain->getExtent(), sizeof(UniformBufferObject));
 
@@ -108,6 +110,8 @@ namespace DOH {
 
 		//TEMP:: In future multiple custom render states will be possible at once along with "built-in" render states (e.g. 2D batch renderer and Text)
 		mCurrentRenderState = std::make_unique<CustomRenderState>("Application Render State");
+
+		createEngineUniformObjects();
 	}
 
 	void RenderingContextVulkan::close() {
@@ -124,9 +128,8 @@ namespace DOH {
 			mCommandBuffers.data()
 		);
 
-		if (mRenderer2d != nullptr) {
-			mRenderer2d->close();
-		}
+		TextRenderer::close();
+		ShapeRenderer::close();
 		if (mImGuiWrapper != nullptr) {
 			mImGuiWrapper->close(mLogicDevice);
 		}
@@ -146,8 +149,11 @@ namespace DOH {
 			mCurrentRenderState->close(mLogicDevice);
 		}
 
-		if (mDescriptorPool != VK_NULL_HANDLE) {
-			vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
+		if (mEngineDescriptorPool != VK_NULL_HANDLE) {
+			vkDestroyDescriptorPool(mLogicDevice, mEngineDescriptorPool, nullptr);
+		}
+		if (mCustomDescriptorPool != VK_NULL_HANDLE) {
+			vkDestroyDescriptorPool(mLogicDevice, mCustomDescriptorPool, nullptr);
 		}
 
 		vkDestroyCommandPool(mLogicDevice, mCommandPool, nullptr);
@@ -183,30 +189,55 @@ namespace DOH {
 		) {
 			Application::get().getRenderer().deviceWaitIdle("Device waiting idle for swap chain recreation");
 
-			std::vector<DescriptorTypeInfo> totalDescTypes;
+			//Engine descriptors
+			std::vector<DescriptorTypeInfo> engineDescTypes = {};
 
-			for (const auto& pipelineGroup : mCurrentRenderState->getRenderPassGraphicsPipelineMap()) {
-				for (const auto& [name, pipeline] : pipelineGroup.second) {
-					std::vector<DescriptorTypeInfo> descTypes = pipeline->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes();
-					totalDescTypes.reserve(totalDescTypes.size() + descTypes.size());
-
-					for (const DescriptorTypeInfo& descType : descTypes) {
-						totalDescTypes.emplace_back(descType);
-					}
+			{ //Shape Rendering
+				std::vector<DescriptorTypeInfo> shapesDescTypes = ShapeRenderer::getDescriptorTypeInfos();
+				engineDescTypes.reserve(engineDescTypes.size() + shapesDescTypes.size());
+				for (const auto& descType : shapesDescTypes) {
+					engineDescTypes.emplace_back(descType);
+				}
+			}
+			{ //Text Rendering
+				std::vector<DescriptorTypeInfo> textDescTypes = TextRenderer::getDescriptorTypeInfos();
+				engineDescTypes.reserve(engineDescTypes.size() + textDescTypes.size());
+				for (const auto& descType : textDescTypes) {
+					engineDescTypes.emplace_back(descType);
+				}
+			}
+			{ //Line Rendering
+				std::vector<DescriptorTypeInfo> lineDescTypes = mLineRenderer->getDescriptorTypeInfo();
+				engineDescTypes.reserve(engineDescTypes.size() + lineDescTypes.size());
+				for (const auto& descType : lineDescTypes) {
+					engineDescTypes.emplace_back(descType);
 				}
 			}
 
-			std::vector<DescriptorTypeInfo> lineDescTypes = mLineRenderer->getDescriptorTypeInfo();
-			totalDescTypes.reserve(totalDescTypes.size() + lineDescTypes.size());
-			for (const auto& descType : lineDescTypes) {
-				totalDescTypes.emplace_back(descType);
-			}
-
-			if (totalDescTypes.size() > 0) {
-				vkDestroyDescriptorPool(mLogicDevice, mDescriptorPool, nullptr);
+			if (engineDescTypes.size() > 0) {
+				vkDestroyDescriptorPool(mLogicDevice, mEngineDescriptorPool, nullptr);
 
 				//TODO:: reset pool instead?
-				//vkResetDescriptorPool(mLogicDevice, mDescriptorPool, 0);
+				//vkResetDescriptorPool(mLogicDevice, mEngineDescriptorPool, 0);
+			}
+
+			//Custom descriptors
+			std::vector<DescriptorTypeInfo> customDescTypes;
+			for (const auto& pipelineGroup : mCurrentRenderState->getRenderPassGraphicsPipelineMap()) {
+				for (const auto& [name, pipeline] : pipelineGroup.second) {
+					std::vector<DescriptorTypeInfo> descTypes = pipeline->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes();
+					customDescTypes.reserve(customDescTypes.size() + descTypes.size());
+
+					for (const DescriptorTypeInfo& descType : descTypes) {
+						customDescTypes.emplace_back(descType);
+					}
+				}
+			}
+			if (customDescTypes.size() > 0) {
+				vkDestroyDescriptorPool(mLogicDevice, mCustomDescriptorPool, nullptr);
+
+				//TODO:: reset pool instead?
+				//vkResetDescriptorPool(mLogicDevice, mCustomDescriptorPool, 0);
 			}
 
 			closeRenderPasses();
@@ -230,11 +261,27 @@ namespace DOH {
 			createFrameBuffers();
 			mImGuiWrapper->createFrameBuffers(mLogicDevice, mSwapChain->getImageViews(), mSwapChain->getExtent());
 
-			if (totalDescTypes.size() > 0) {
-				mDescriptorPool = createDescriptorPool(totalDescTypes);
-			}
-
 			const VkExtent2D extent = mSwapChain->getExtent();
+			//Engine descriptors
+			if (engineDescTypes.size() > 0) {
+				mEngineDescriptorPool = createDescriptorPool(engineDescTypes);
+			}
+			ShapeRenderer::onSwapChainResize(*mSwapChain);
+			ShapeRenderer::createPipelineUniformObjects(mEngineDescriptorPool);
+			TextRenderer::onSwapChainResize(*mSwapChain);
+			TextRenderer::createPipelineUniformObjects(mEngineDescriptorPool);
+			mLineRenderer->recreateGraphicsPipelines(
+				mLogicDevice,
+				extent,
+				*mAppSceneRenderPass,
+				*mAppUiRenderPass,
+				mEngineDescriptorPool
+			);
+
+			//CustomDescriptors
+			if (customDescTypes.size() > 0) {
+				mCustomDescriptorPool = createDescriptorPool(customDescTypes);
+			}
 			for (auto& pipelineGroup : mCurrentRenderState->getRenderPassGraphicsPipelineMap()) {
 				const VkRenderPass rp = getRenderPass(pipelineGroup.first).get();
 				for (auto& pipeline : pipelineGroup.second) {
@@ -243,19 +290,9 @@ namespace DOH {
 						extent,
 						rp
 					);
-					createPipelineUniformObjects(*pipeline.second, mDescriptorPool);
+					createPipelineUniformObjects(*pipeline.second, mCustomDescriptorPool);
 				}
 			}
-
-			mLineRenderer->recreateGraphicsPipelines(
-				mLogicDevice,
-				extent,
-				*mAppSceneRenderPass,
-				*mAppUiRenderPass,
-				mDescriptorPool
-			);
-
-			mRenderer2d->onSwapChainResize(*mSwapChain);
 		}
 	}
 
@@ -270,11 +307,13 @@ namespace DOH {
 			mImageAvailableSemaphores[mCurrentFrame]
 		);
 
-		mRenderer2d->resetLocalDebugInfo();
+		ShapeRenderer::resetLocalDebugInfo();
 		TextRenderer::resetLocalDebugInfo();
 
-		mRenderer2d->updateRenderer2dUniformData(imageIndex, mAppSceneUbo.ProjectionViewMat, mAppUiProjection);
 		const uint32_t uboBinding = 0;
+
+		//TODO:: These calls may be redundant if a frame doesn't render any of the respective geo
+		ShapeRenderer::setUniformData(imageIndex, uboBinding, mAppSceneUbo.ProjectionViewMat, mAppUiProjection);
 		TextRenderer::setUniformData(imageIndex, uboBinding, mAppSceneUbo.ProjectionViewMat, mAppUiProjection);
 
 		VkCommandBuffer cmd = mCommandBuffers[imageIndex];
@@ -347,8 +386,8 @@ namespace DOH {
 		}
 
 		//Batch VAOs should have only one VAO and if the batch has at least one quad then there is a draw call
-		mRenderer2d->flushScene(imageIndex, cmd, currentBindings);
-		TextRenderer::drawScene(imageIndex, cmd, currentBindings, debugInfo);
+		ShapeRenderer::drawScene(imageIndex, cmd, currentBindings);
+		TextRenderer::drawScene(imageIndex, cmd, currentBindings);
 
 		mLineRenderer->drawScene(
 			mLogicDevice,
@@ -398,9 +437,8 @@ namespace DOH {
 				}
 			}
 		}
-
-		mRenderer2d->flushUi(imageIndex, cmd, currentBindings);
-		TextRenderer::drawUi(imageIndex, cmd, currentBindings, debugInfo);
+		
+		TextRenderer::drawUi(imageIndex, cmd, currentBindings);
 
 		mLineRenderer->drawUi(
 			mLogicDevice,
@@ -772,48 +810,68 @@ namespace DOH {
 		mCurrentRenderState->closePipeline(mLogicDevice, renderPass, name);
 	}
 
-	void RenderingContextVulkan::createPipelineUniformObjects() {
-		//TODO:: re-create this function as outlined above it's definition .h file
+	void RenderingContextVulkan::createEngineUniformObjects() {
+		std::vector<DescriptorTypeInfo> engineDescTypes = {};
+		{ //Shapes
+			std::vector<DescriptorTypeInfo> shapeDescTypes = ShapeRenderer::getDescriptorTypeInfos();
+			engineDescTypes.reserve(engineDescTypes.size() + shapeDescTypes.size());
+			for (const auto& descType : shapeDescTypes) {
+				engineDescTypes.emplace_back(descType);
+			}
+		}
+		{ //Text
+			std::vector<DescriptorTypeInfo> textDescTypes = TextRenderer::getDescriptorTypeInfos();
+			engineDescTypes.reserve(engineDescTypes.size() + textDescTypes.size());
+			for (const auto& descType : textDescTypes) {
+				engineDescTypes.emplace_back(descType);
+			}
+		}
+		{ //Line
+			std::vector<DescriptorTypeInfo> lineDescTypes = mLineRenderer->getDescriptorTypeInfo();
+			for (const auto& descType : lineDescTypes) {
+				engineDescTypes.emplace_back(descType);
+			}
+		}
+		if (engineDescTypes.size() > 0) {
+			mEngineDescriptorPool = createDescriptorPool(engineDescTypes);
+		}
 
+		const uint32_t imageCount = mSwapChain->getImageCount();
 
-		std::vector<DescriptorTypeInfo> descTypes;
+		ShapeRenderer::createPipelineUniformObjects(mEngineDescriptorPool);
+		TextRenderer::createPipelineUniformObjects(mEngineDescriptorPool);
+		mLineRenderer->createShaderUniforms(mLogicDevice, mPhysicalDevice, imageCount, mEngineDescriptorPool);
+		mLineRenderer->updateShaderUniforms(mLogicDevice, imageCount);
+
+	}
+
+	void RenderingContextVulkan::createCustomUniformObjects() {
+		std::vector<DescriptorTypeInfo> customDescTypes = {};
 		uint32_t pipelineCount = 0;
-
 		for (const auto& pipelineGroup : mCurrentRenderState->getRenderPassGraphicsPipelineMap()) {
 			for (const auto& pipeline : pipelineGroup.second) {
 				for (const auto& descType : pipeline.second->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes()) {
-					descTypes.emplace_back(descType);
+					customDescTypes.emplace_back(descType);
 				}
 				pipelineCount++;
 			}
 		}
 
-		for (const auto& descType : mLineRenderer->getDescriptorTypeInfo()) {
-			descTypes.emplace_back(descType);
-			pipelineCount++;
-		}
-
 		if (pipelineCount > 0) {
-			mDescriptorPool = createDescriptorPool(descTypes);
+			mCustomDescriptorPool = createDescriptorPool(customDescTypes);
 
 			const uint32_t imageCount = mSwapChain->getImageCount();
-
 			for (auto& pipelineGroup : mCurrentRenderState->getRenderPassGraphicsPipelineMap()) {
 				for (auto& pipeline : pipelineGroup.second) {
 					pipeline.second->createShaderUniforms(
 						mLogicDevice,
 						mPhysicalDevice,
 						imageCount,
-						mDescriptorPool
+						mCustomDescriptorPool
 					);
 					pipeline.second->updateShaderUniforms(mLogicDevice, imageCount);
 				}
 			}
-
-			mLineRenderer->createShaderUniforms(mLogicDevice, mPhysicalDevice, imageCount, mDescriptorPool);
-			mLineRenderer->updateShaderUniforms(mLogicDevice, imageCount);
-		} else {
-			LOG_WARN("Attempted to create uniform objects when not using any custom pipelines");
 		}
 	}
 

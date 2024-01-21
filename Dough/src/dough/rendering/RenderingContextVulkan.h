@@ -4,11 +4,12 @@
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 #include "dough/scene/camera/ICamera.h"
 #include "dough/ImGuiWrapper.h"
-#include "dough/rendering/renderer2d/Renderer2dVulkan.h"
 #include "dough/rendering/SwapChainVulkan.h"
 #include "dough/rendering/CustomRenderState.h"
 #include "dough/rendering/LineRenderer.h"
 #include "dough/rendering/text/ETextRenderMethod.h"
+#include "dough/rendering/textures/TextureAtlas.h"
+#include "dough/rendering/text/FontBitmap.h"
 
 #include <queue>
 
@@ -82,7 +83,6 @@ namespace DOH {
 
 		std::unique_ptr<CustomRenderState> mCurrentRenderState;
 
-		std::unique_ptr<Renderer2dVulkan> mRenderer2d;
 		std::unique_ptr<ImGuiWrapper> mImGuiWrapper;
 		std::unique_ptr<LineRenderer> mLineRenderer;
 
@@ -94,11 +94,10 @@ namespace DOH {
 
 		std::vector<ImageVulkan> mAppSceneDepthImages;
 
-		//Used by Scene and UI pipelines
-		//TODO::
-		// Separate the custom Scene and UI resources (descriptors, pipelines, buffers, etc...)
-		//	so they have their own.
-		VkDescriptorPool mDescriptorPool;
+		//Descriptor pool owning descriptors of all built-in engine systems (e.g. shape & text rendering)
+		VkDescriptorPool mEngineDescriptorPool;
+		//Descriptor pool owning descriptors required by IAppLogic instance.
+		VkDescriptorPool mCustomDescriptorPool;
 
 		VkCommandPool mCommandPool;
 
@@ -132,10 +131,10 @@ namespace DOH {
 		void close();
 		//Finalise the creation of custom pipelines
 		void createPipelineUniformObjects(GraphicsPipelineVulkan& pipeline, VkDescriptorPool descPool);
-		
-		//TODO:: Change this to createCustomPipelineUniformObjects. The custom (AppLogic) defined pipelines and built-in engine ones share a descriptor pool.
-		//	Separating these will simplify initialisation of both.
-		void createPipelineUniformObjects();
+
+		void createEngineUniformObjects();
+		void createCustomUniformObjects();
+
 		VkDescriptorPool createDescriptorPool(const std::vector<DescriptorTypeInfo>& descTypes);
 		bool isReady() const;
 		inline VkDevice getLogicDevice() const { return mLogicDevice; }
@@ -228,7 +227,6 @@ namespace DOH {
 		inline uint32_t getAppFrameBufferCount() const { return static_cast<uint32_t>(mAppSceneFrameBuffers.size() + mAppUiFrameBuffers.size()); }
 		inline ImGuiWrapper& getImGuiWrapper() const { return *mImGuiWrapper; }
 		inline SwapChainVulkan& getSwapChain() const { return *mSwapChain; }
-		inline Renderer2dVulkan& getRenderer2d() const { return *mRenderer2d; }
 		inline LineRenderer& getLineRenderer() const { return *mLineRenderer; }
 		inline void setLogicDevice(VkDevice logicDevice) { mLogicDevice = logicDevice; }
 		void setPhysicalDevice(VkPhysicalDevice physicalDevice);
