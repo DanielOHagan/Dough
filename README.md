@@ -11,3 +11,10 @@ A small number of features from C\+\+17 are used so that version will be require
 - [STB](https://github.com/nothings/stb)
 - [ImGui](https://github.com/ocornut/imgui)
 - [Tiny OBJ Loader](https://github.com/tinyobjloader)
+- [MSDF Font Rendering](https://github.com/Chlumsky/msdfgen) - GLSL code used for shader and texture atlas generation.
+
+## Preview Images
+Here are a few images showing some of the features currently available:
+![Text preview](Dough/previewImages/text_preview.png "Soft Mask and MSDF text rendering.")
+![3D obj preview](Dough/previewImages/obj_preview.png "3D model (OBJ) rendering.")
+![Batch renderig preview](Dough/previewImages/batch_preview.png "Batch renderer with Orthographic camera.")
