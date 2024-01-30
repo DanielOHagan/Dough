@@ -7,6 +7,8 @@
 #include <set>
 #include <string>
 
+#include "tracy/public/tracy/Tracy.hpp"
+
 namespace DOH {
 
 	VkResult createDebugUtilsMessengerEXT(
@@ -57,6 +59,8 @@ namespace DOH {
 	}
 
 	void RendererVulkan::init(Window& window) {
+		ZoneScoped;
+
 		createVulkanInstance();
 
 		setupDebugMessenger();
@@ -74,10 +78,14 @@ namespace DOH {
 	}
 
 	void RendererVulkan::drawFrame() {
+		ZoneScoped;
+
 		mRenderingContext->drawFrame();
 	}
 
 	void RendererVulkan::close() {
+		ZoneScoped;
+
 		deviceWaitIdle("Waiting idle for app closing");
 
 		mRenderingContext->close();
@@ -93,11 +101,15 @@ namespace DOH {
 	}
 
 	void RendererVulkan::onResize(int width, int height) {
+		ZoneScoped;
+
 		SwapChainSupportDetails scSupport = SwapChainVulkan::querySwapChainSupport(mPhysicalDevice, mSurface);
 		mRenderingContext->onResize(scSupport, mSurface, width, height);
 	}
 
 	void RendererVulkan::createVulkanInstance() {
+		ZoneScoped;
+
 		TRY(
 			mValidationLayersEnabled && !checkValidationLayerSupport(),
 			"Not all required validation layers are available."
@@ -138,6 +150,8 @@ namespace DOH {
 	}
 
 	bool RendererVulkan::checkValidationLayerSupport() {
+		ZoneScoped;
+
 		uint32_t layerCount;
 		vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
@@ -163,6 +177,8 @@ namespace DOH {
 	}
 
 	void RendererVulkan::setupDebugMessenger() {
+		ZoneScoped;
+
 		if (!mValidationLayersEnabled) {
 			return;
 		}
@@ -177,6 +193,8 @@ namespace DOH {
 	}
 
 	void RendererVulkan::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
+		ZoneScoped;
+
 		createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 		createInfo.messageSeverity =
@@ -193,6 +211,8 @@ namespace DOH {
 	}
 
 	void RendererVulkan::pickPhysicalDevice() {
+		ZoneScoped;
+
 		uint32_t deviceCount = 0;
 		vkEnumeratePhysicalDevices(mInstance, &deviceCount, nullptr);
 
@@ -212,6 +232,8 @@ namespace DOH {
 	}
 
 	bool RendererVulkan::isDeviceSuitable(VkPhysicalDevice device) {
+		ZoneScoped;
+
 		QueueFamilyIndices indices = queryQueueFamilies(device);
 
 		bool requiredExtensionsSupported = checkDeviceExtensionSupport(device);
@@ -233,6 +255,8 @@ namespace DOH {
 	}
 
 	QueueFamilyIndices RendererVulkan::queryQueueFamilies(VkPhysicalDevice device) {
+		ZoneScoped;
+
 		QueueFamilyIndices indices;
 
 		uint32_t queueFamilyCount = 0;
@@ -265,6 +289,8 @@ namespace DOH {
 	}
 
 	bool RendererVulkan::checkDeviceExtensionSupport(VkPhysicalDevice device) {
+		ZoneScoped;
+
 		uint32_t extensionCount;
 		vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
 
@@ -281,6 +307,8 @@ namespace DOH {
 	}
 
 	void RendererVulkan::createLogicalDevice() {
+		ZoneScoped;
+
 		QueueFamilyIndices indices = queryQueueFamilies(mPhysicalDevice);
 
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -323,19 +351,26 @@ namespace DOH {
 	}
 
 	void RendererVulkan::beginScene(ICamera& camera) {
+		ZoneScoped;
+
 		mRenderingContext->setAppSceneUniformBufferObject(camera);
 	}
 
 	void RendererVulkan::endScene() {
+		//ZoneScoped;
+
 		//TODO:: For the batch renderer
 		// When one batch is full, it can be considered ready and a uploaded as soon as possible
 	}
 
 	void RendererVulkan::beginUi(glm::mat4x4& proj) {
+		ZoneScoped;
+
 		mRenderingContext->setAppUiProjection(proj);
 	}
 
 	void RendererVulkan::endUi() {
+		//ZoneScoped;
 
 	}
 
@@ -344,6 +379,8 @@ namespace DOH {
 		uint32_t typeFilter,
 		VkMemoryPropertyFlags properties
 	) {
+		ZoneScoped;
+
 		VkPhysicalDeviceMemoryProperties memProps = {};
 		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProps);
 
@@ -371,6 +408,8 @@ namespace DOH {
 		VkImageTiling tiling,
 		VkFormatFeatureFlags features
 	) {
+		ZoneScoped;
+
 		for (VkFormat format : candidates) {
 			VkFormatProperties props;
 			vkGetPhysicalDeviceFormatProperties(mPhysicalDevice, format, &props);

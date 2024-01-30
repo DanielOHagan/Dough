@@ -14,6 +14,8 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
 
+#include "tracy/public/tracy/Tracy.hpp"
+
 //Hash function based off of example from https://vulkan-tutorial.com/Loading_models
 namespace std {
 	template<>
@@ -102,6 +104,8 @@ namespace DOH {
 	}
 
 	std::vector<char> ResourceHandler::readFile(const std::string& filePath) {
+		ZoneScoped;
+
 		std::ifstream file(filePath, std::ios::ate | std::ios::binary);
 
 		TRY(!file.is_open(), "Failed to open file.");
@@ -118,6 +122,8 @@ namespace DOH {
 	}
 
 	TextureCreationData ResourceHandler::loadTextureImpl(const char* filePath) {
+		ZoneScoped;
+
 		int width = -1;
 		int height = -1;
 		int channels = -1;
@@ -140,10 +146,14 @@ namespace DOH {
 	}
 
 	void ResourceHandler::freeImageImpl(void* imageData) {
+		ZoneScoped;
+
 		stbi_image_free(imageData);
 	}
 
 	std::shared_ptr<IndexedAtlasInfoFileData> ResourceHandler::loadIndexedTextureAtlasImpl(const char* atlasInfoFilePath) {
+		ZoneScoped;
+
 		//Load info file
 		std::shared_ptr<IndexedAtlasInfoFileData> fileData = std::make_shared<IndexedAtlasInfoFileData>();
 
@@ -156,6 +166,8 @@ namespace DOH {
 	}
 
 	std::shared_ptr<Model3dCreationData> ResourceHandler::loadObjModelImpl(const std::string& filePath, const AVertexInputLayout& vertexInputLayout) {
+		ZoneScoped;
+
 		tinyobj::attrib_t attrib;
 		std::vector<tinyobj::shape_t> shapes;
 		std::vector<tinyobj::material_t> materials;
@@ -208,6 +220,8 @@ namespace DOH {
 	}
 
 	std::shared_ptr<FntFileData> ResourceHandler::loadFntFileImpl(const char* filePath) {
+		ZoneScoped;
+
 		FntFileReader fntReader(filePath);
 		if (!fntReader.isOpen()) {
 			LOG_ERR("Failed to open file: " << filePath);
@@ -217,6 +231,8 @@ namespace DOH {
 	}
 
 	std::shared_ptr<JsonFileData> ResourceHandler::loadJsonFileImpl(const char* filePath) {
+		ZoneScoped;
+
 		JsonFileReader jsonReader(filePath);
 		if (!jsonReader.isOpen()) {
 			LOG_ERR("Failed to open file: " << filePath);
@@ -226,11 +242,15 @@ namespace DOH {
 	}
 
 	const std::string ResourceHandler::getCurrentLineAsBuffer(const std::vector<char>& chars, const size_t startIndex) {
+		//ZoneScoped;
+
 		const size_t lineLength = ResourceHandler::getLengthOfCurrentLine(chars, startIndex);
 		return std::string(chars.begin() + startIndex, chars.begin() + startIndex + lineLength) + "\0";
 	}
 
 	const size_t ResourceHandler::getLengthTillNextTargetChar(
+		//ZoneScoped;
+
 		const std::vector<char>& chars,
 		const char targetChar,
 		const size_t startIndex
@@ -250,10 +270,14 @@ namespace DOH {
 	}
 
 	const size_t ResourceHandler::getLengthOfCurrentLine(const std::vector<char>& chars, const size_t currentLineStartIndex) {
+		//ZoneScoped;
+
 		return ResourceHandler::getLengthTillNextTargetChar(chars, '\n', currentLineStartIndex) + 1; //+1 to include '\n'
 	}
 
 	const bool ResourceHandler::isFileOfType(const char* filePath, const char* type) {
+		ZoneScoped;
+
 		size_t typeLength = strlen(type);
 		size_t filePathLength = strlen(filePath);
 
@@ -279,6 +303,8 @@ namespace DOH {
 		const std::vector<tinyobj::shape_t>& shapes,
 		const std::vector<tinyobj::material_t>& materials
 	) {
+		ZoneScoped;
+
 		std::unordered_map<Vertex3d, uint32_t> uniqueVertices = {};
 		std::vector<Vertex3d> vertices;
 		std::vector<uint32_t> indices;
@@ -340,6 +366,8 @@ namespace DOH {
 		const std::vector<tinyobj::shape_t>& shapes,
 		const std::vector<tinyobj::material_t>& materials
 	) {
+		ZoneScoped;
+
 		std::unordered_map<Vertex3dTextured, uint32_t> uniqueVertices = {};
 		std::vector<Vertex3dTextured> vertices;
 		std::vector<uint32_t> indices;
@@ -397,6 +425,8 @@ namespace DOH {
 		const std::vector<tinyobj::shape_t>& shapes,
 		const std::vector<tinyobj::material_t>& materials
 	) {
+		ZoneScoped;
+
 		std::unordered_map<Vertex3dLitTextured, uint32_t> uniqueVertices = {};
 		std::vector<Vertex3dLitTextured> vertices;
 		std::vector<uint32_t> indices;

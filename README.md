@@ -12,6 +12,7 @@ A small number of features from C\+\+17 are used so that version will be require
 - [ImGui](https://github.com/ocornut/imgui)
 - [Tiny OBJ Loader](https://github.com/tinyobjloader)
 - [MSDF Font Rendering](https://github.com/Chlumsky/msdfgen) - GLSL code used for shader and texture atlas generation.
+- [Tracy Profiler](https://github.com/wolfpld/tracy)
 
 ## Preview Images
 Here are a few images showing some of the features currently available:

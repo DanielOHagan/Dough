@@ -7,6 +7,8 @@
 #include "dough/rendering/ShapeRenderer.h"
 #include "dough/rendering/text/TextRenderer.h"
 
+#include "tracy/public/tracy/Tracy.hpp"
+
 #define GET_RENDERER Application::get().getRenderer()
 
 namespace DOH::EDITOR {
@@ -15,6 +17,8 @@ namespace DOH::EDITOR {
 	const std::string DemoLiciousAppLogic::SharedDemoResources::TexturedShaderFragPath = "Dough/res/shaders/spv/Textured.frag.spv";
 
 	void DemoLiciousAppLogic::init(float aspectRatio) {
+		ZoneScoped;
+
 		mImGuiSettings = std::make_unique<ImGuiSettings>();
 
 		mInputLayer = std::make_shared<DefaultInputLayer>("DemoLicious");
@@ -26,6 +30,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::update(float delta) {
+		ZoneScoped;
+
 		if (mBouncingQuadDemo->Update) {
 			const float translationDelta = 0.2f * delta;
 			for (size_t i = 0; i < mBouncingQuadDemo->BouncingQuads.size(); i++) {
@@ -68,6 +74,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::render() {
+		ZoneScoped;
+
 		RendererVulkan& renderer = GET_RENDERER;
 		RenderingContextVulkan& context = renderer.getContext();
 
@@ -221,6 +229,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::imGuiRender(float delta) {
+		ZoneScoped;
+
 		RendererVulkan& renderer = GET_RENDERER;
 
 		if (ImGui::Begin("DemoLicious Demos")) {
@@ -286,14 +296,20 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::close() {
+		ZoneScoped;
+
 		closeDemos();
 	}
 
 	void DemoLiciousAppLogic::onResize(float aspectRatio) {
+		ZoneScoped;
+
 		setUiProjection(aspectRatio);
 	}
 
 	void DemoLiciousAppLogic::initDemos() {
+		ZoneScoped;
+
 		RenderingContextVulkan& context = GET_RENDERER.getContext();
 	
 		//Test grid is repopulated per update to apply changes from editor. To only populate once remove re-population from update and populate here.
@@ -332,6 +348,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::closeDemos() {
+		ZoneScoped;
+
 		if (mObjModelsDemo->GpuResourcesLoaded) {
 			mObjModelsDemo->close();
 		}
@@ -361,6 +379,8 @@ namespace DOH::EDITOR {
 	}
 	
 	void DemoLiciousAppLogic::populateTestGrid(uint32_t width, uint32_t height) {
+		ZoneScoped;
+
 		const auto& atlas = ShapeRenderer::getTestMonoSpaceTextureAtlas();
 	
 		mGridDemo->TexturedTestGrid.clear();
@@ -398,6 +418,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::initSharedResources() {
+		ZoneScoped;
+
 		mSharedDemoResources = std::make_unique<SharedDemoResources>();
 
 		mSharedDemoResources->TestTexture1 = ObjInit::texture(mSharedDemoResources->TestTexturePath);
@@ -429,6 +451,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::closeSharedResources() {
+		ZoneScoped;
+
 		if (mCustomDemo != nullptr || mObjModelsDemo != nullptr) {
 			LOG_WARN("All demos using shared resources must be closed before closing shared resources");
 		} else if (mSharedDemoResources->GpuResourcesLoaded) {
@@ -446,6 +470,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::ObjModelsDemo::init() {
+		ZoneScoped;
+
 		for (const auto& filePath : ObjModelFilePaths) {
 			LoadedModels.emplace_back(ModelVulkan::createModel(filePath, ColouredVertexInputLayout));
 		}
@@ -529,6 +555,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::ObjModelsDemo::close() {
+		ZoneScoped;
+
 		RendererVulkan& renderer = GET_RENDERER;
 		for (const auto& model : LoadedModels) {
 			renderer.closeGpuResource(model);
@@ -547,6 +575,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::ObjModelsDemo::renderImGuiMainTab() {
+		ZoneScoped;
+
 		if (ImGui::BeginTabItem("Obj Models")) {
 			static const std::string addLabel = std::string(ImGuiWrapper::EMPTY_LABEL) + "Add";
 			static const std::string popLabel = std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop";
@@ -607,6 +637,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::ObjModelsDemo::renderImGuiExtras() {
+		ZoneScoped;
+
 		if (RenderObjModelsList) {
 			if (ImGui::Begin("Renderable Models List", &RenderObjModelsList)) {
 				ImGui::Checkbox("Render All", &RenderAllStandard);
@@ -663,6 +695,8 @@ namespace DOH::EDITOR {
 		const float roll,
 		const float scale
 	) {
+		ZoneScoped;
+
 		std::shared_ptr<TransformationData> transform = std::make_shared<TransformationData>(
 			glm::vec3((x + posPadding) * 3.0f, (y + posPadding) * 3.0f, (z + posPadding) * 3.0f),
 			glm::vec3(yaw, pitch, roll),
@@ -678,6 +712,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::ObjModelsDemo::imGuiDrawObjDemoItem(DOH::RenderableModelVulkan& model, const std::string& uniqueImGuiId) {
+		ZoneScoped;
+
 		if (ImGui::BeginCombo(("Obj Model" + uniqueImGuiId).c_str(), model.getName().c_str())) {
 			int modelFilePathIndex = -1;
 
@@ -767,6 +803,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::CustomDemo::init() {
+		ZoneScoped;
+
 		//for (int i = 0; i < 8; i++) {
 		//	std::string path = testTexturesPath + "texture" + std::to_string(i) + ".png";
 		//	std::shared_ptr<TextureVulkan> testTexture = ObjInit::texture(path);
@@ -826,6 +864,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::CustomDemo::close() {
+		ZoneScoped;
+
 		RenderScene = false;
 		RenderUi = false;
 		Update = false;
@@ -841,6 +881,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::CustomDemo::renderImGuiMainTab() {
+		ZoneScoped;
+
 		if (ImGui::BeginTabItem("Custom")) {
 			ImGui::Checkbox("Render Scene", &RenderScene);
 			ImGui::Checkbox("Render UI", &RenderUi);
@@ -855,14 +897,20 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::GridDemo::init() {
+		ZoneScoped;
+
 		TestGridMaxQuadCount = EBatchSizeLimits::MAX_BATCH_COUNT_QUAD * EBatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD;
 	}
 
 	void DemoLiciousAppLogic::GridDemo::close() {
+		ZoneScoped;
+
 		TexturedTestGrid.clear();
 	}
 
 	void DemoLiciousAppLogic::GridDemo::renderImGuiMainTab() {
+		ZoneScoped;
+
 		if (ImGui::BeginTabItem("Grid")) {
 			ImGui::Checkbox("Render", &Render);
 			ImGui::Checkbox("Update", &Update);
@@ -936,16 +984,22 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::BouncingQuadDemo::init() {
+		ZoneScoped;
+
 		addRandomQuads(5000);
 	}
 
 	void DemoLiciousAppLogic::BouncingQuadDemo::close() {
+		ZoneScoped;
+
 		BouncingQuads.clear();
 		BouncingQuadVelocities.clear();
 	}
 
 
 	void DemoLiciousAppLogic::BouncingQuadDemo::renderImGuiMainTab() {
+		ZoneScoped;
+
 		if (ImGui::BeginTabItem("Bouncing Quads")) {
 			ImGui::Checkbox("Render", &Render);
 			ImGui::Checkbox("Update", &Update);
@@ -985,6 +1039,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::BouncingQuadDemo::addRandomQuads(size_t count) {
+		ZoneScoped;
+
 		const auto& atlas = ShapeRenderer::getTestMonoSpaceTextureAtlas();
 	
 		//Stop quad count going over MaxCount
@@ -1044,6 +1100,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::BouncingQuadDemo::popQuads(size_t count) {
+		ZoneScoped;
+
 		const size_t size = BouncingQuads.size();
 		if (count > size) {
 			count = size;
@@ -1056,6 +1114,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::TextDemo::init() {
+		ZoneScoped;
+
 		//Generate quads for default message
 		Text = std::make_unique<TextString>(
 			StringBuffer,
@@ -1069,11 +1129,15 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::TextDemo::close() {
+		ZoneScoped;
+
 		Text.release();
 		MsdfText.release();
 	}
 
 	void DemoLiciousAppLogic::TextDemo::renderImGuiMainTab() {
+		ZoneScoped;
+
 		if (ImGui::BeginTabItem("Text")) {
 			ImGui::Checkbox("Render", &Render);
 
@@ -1128,6 +1192,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::LineDemo::init() {
+		ZoneScoped;
+
 		LineData2d = {};
 		LineData3d = {};
 		LineDataInput[0] = 0.0f;
@@ -1143,11 +1209,15 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::LineDemo::close() {
+		ZoneScoped;
+
 		LineData2d.clear();
 		LineData3d.clear();
 	}
 
 	void DemoLiciousAppLogic::LineDemo::renderImGuiMainTab() {
+		ZoneScoped;
+
 		if (ImGui::BeginTabItem("Line")) {
 			ImGui::Checkbox("Render", &Render);
 			ImGui::Checkbox("Render Text Demo Outlines", &RenderTextDemoOutlines);
@@ -1215,6 +1285,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::LineDemo::addLine2d(glm::vec2 start, glm::vec2 end, glm::vec4 colour) {
+		ZoneScoped;
+
 		if (LineCount2d < LINE_BATCH_MAX_LINE_COUNT) {
 			LineData2d.reserve(LineData2d.size() + static_cast<size_t>(LINE_2D_INPUT_COMPONENT_COUNT));
 			LineData2d.emplace_back(start.x);
@@ -1232,6 +1304,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::LineDemo::addLine3d(glm::vec3 start, glm::vec3 end, glm::vec4 colour) {
+		ZoneScoped;
+
 		if (LineCount3d < LINE_BATCH_MAX_LINE_COUNT) {
 			LineData3d.reserve(LineData3d.size() + static_cast<size_t>(LINE_3D_INPUT_COMPONENT_COUNT));
 			LineData3d.emplace_back(start.x);
@@ -1251,15 +1325,21 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::BoundingBoxDemo::init() {
+		ZoneScoped;
+
 		BoundingBox = std::make_unique<BoundingBox2d>();
 	}
 
 	void DemoLiciousAppLogic::BoundingBoxDemo::close() {
+		ZoneScoped;
+
 		BoundingBox->reset();
 		Quads.clear();
 	}
 
 	void DemoLiciousAppLogic::BoundingBoxDemo::renderImGuiMainTab() {
+		ZoneScoped;
+
 		if (ImGui::BeginTabItem("Bounding Box")) {
 			ImGui::Checkbox("Render", &Render);
 			ImGui::Text("Quad Count: %i", Quads.size());
@@ -1317,6 +1397,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::TileMapDemo::init() {
+		ZoneScoped;
+
 		//NOTE:: Texture atlas is created in QuadBatch init because rebiding descriptors not currently available.
 
 		const std::shared_ptr<IndexedTextureAtlas> texAtlas = ShapeRenderer::getTestIndexedTextureAtlas();
@@ -1337,6 +1419,8 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::TileMapDemo::renderImGuiMainTab() {
+		ZoneScoped;
+
 		if (ImGui::BeginTabItem("Tile Map")) {
 			ImGui::Checkbox("Render", &Render);
 			ImGui::Checkbox("Update", &Update);

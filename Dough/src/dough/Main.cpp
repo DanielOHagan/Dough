@@ -3,6 +3,7 @@
 #include "editor/DemoLiciousAppLogic.h"
 
 #include "dough/EmptyDefines.h"
+#include "tracy/public/tracy/Tracy.hpp"
 
 #ifdef _DEBUG
 	#undef DOH_DEBUG_DEFINES_EMPTY
@@ -16,6 +17,8 @@
 #endif
 
 int main() {
+
+	TracySetProgramName("Dough Editor");
 
 	DOH_DEBUG_MEM_TRACK_START;
 

@@ -11,6 +11,8 @@
 #include <chrono>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "tracy/public/tracy/Tracy.hpp"
+
 #define NOT_NULL_CHECK(objPtr) if (objPtr == nullptr) {\
 	LOG_ERR(VAR_NAME(objPtr) << " null on ready check");\
 	return false;\
@@ -47,6 +49,8 @@ namespace DOH {
 		Window& window,
 		VkInstance vulkanInstance
 	) {
+		ZoneScoped;
+
 		mPhysicalDeviceProperties = std::make_unique<VkPhysicalDeviceProperties>();
 		vkGetPhysicalDeviceProperties(mPhysicalDevice, mPhysicalDeviceProperties.get());
 
@@ -115,6 +119,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::close() {
+		ZoneScoped;
+
 		const size_t gpuResourceCount = mGpuResourcesToClose.size();
 		for (size_t i = 0; i < gpuResourceCount; i++) {
 			mGpuResourcesToClose.front()->close(mLogicDevice);
@@ -160,6 +166,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::releaseFrameGpuResources(size_t releaseFrameIndex) {
+		ZoneScoped;
+
 		if (releaseFrameIndex < GPU_RESOURCE_CLOSE_FRAME_INDEX_COUNT) {
 			size_t count = mGpuResourcesFrameCloseCount.at(releaseFrameIndex);
 
@@ -183,6 +191,8 @@ namespace DOH {
 		uint32_t width,
 		uint32_t height
 	) {
+		ZoneScoped;
+
 		if (
 			mSwapChain->isResizable() &&
 			(mSwapChain->getExtent().width != width || mSwapChain->getExtent().height != height)
@@ -298,6 +308,8 @@ namespace DOH {
 
 	//Draw then Present rendered frame
 	void RenderingContextVulkan::drawFrame() {
+		ZoneScoped;
+
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 		debugInfo.resetPerFrameData();
 
@@ -351,6 +363,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::drawScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
+		ZoneScoped;
+
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 
 		mAppSceneRenderPass->begin(mAppSceneFrameBuffers[imageIndex], mSwapChain->getExtent(), cmd);
@@ -403,6 +417,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::drawUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
+		ZoneScoped;
+
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 
 		mAppUiRenderPass->begin(mAppUiFrameBuffers[imageIndex], mSwapChain->getExtent(), cmd);
@@ -454,6 +470,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::present(uint32_t imageIndex, VkCommandBuffer cmd) {
+		ZoneScoped;
+
 		VkSubmitInfo submitInfo = {};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
@@ -498,11 +516,15 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::createQueues(QueueFamilyIndices& queueFamilyIndices) {
+		ZoneScoped;
+
 		vkGetDeviceQueue(mLogicDevice, queueFamilyIndices.GraphicsFamily.value(), 0, &mGraphicsQueue);
 		vkGetDeviceQueue(mLogicDevice, queueFamilyIndices.PresentFamily.value(), 0, &mPresentQueue);
 	}
 
 	void RenderingContextVulkan::createCommandPool(QueueFamilyIndices& queueFamilyIndices) {
+		ZoneScoped;
+
 		VkCommandPoolCreateInfo cmdPoolCreateInfo = {};
 		cmdPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		cmdPoolCreateInfo.queueFamilyIndex = queueFamilyIndices.GraphicsFamily.value();
@@ -515,6 +537,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::createCommandBuffers() {
+		ZoneScoped;
+
 		const uint32_t frameBufferCount = getAppFrameBufferCount();
 		mCommandBuffers.resize(frameBufferCount);
 
@@ -531,6 +555,8 @@ namespace DOH {
 	}
 
 	VkDescriptorPool RenderingContextVulkan::createDescriptorPool(const std::vector<DescriptorTypeInfo>& descTypes) {
+		ZoneScoped;
+
 		VkDescriptorPool descPool;
 
 		const uint32_t imageCount = mSwapChain->getImageCount();
@@ -557,6 +583,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::createSyncObjects() {
+		ZoneScoped;
+
 		mImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
 		mRenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
 		mFramesInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
@@ -585,6 +613,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::closeSyncObjects() {
+		ZoneScoped;
+
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			vkDestroySemaphore(mLogicDevice, mImageAvailableSemaphores[i], nullptr);
 			vkDestroySemaphore(mLogicDevice, mRenderFinishedSemaphores[i], nullptr);
@@ -593,6 +623,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::createAppSceneDepthResources() {
+		ZoneScoped;
+
 		const size_t imageCount = mSwapChain->getImageCount();
 
 		mAppSceneDepthImages.reserve(imageCount);
@@ -614,6 +646,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::closeAppSceneDepthResources() {
+		ZoneScoped;
+
 		for (ImageVulkan& depthImage : mAppSceneDepthImages) {
 			depthImage.close(mLogicDevice);
 		}
@@ -622,6 +656,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::createRenderPasses() {
+		ZoneScoped;
+
 		const VkFormat imageFormat = mSwapChain->getImageFormat();
 
 		{
@@ -675,11 +711,15 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::closeRenderPasses() {
+		ZoneScoped;
+
 		mAppSceneRenderPass->close(mLogicDevice);
 		mAppUiRenderPass->close(mLogicDevice);
 	}
 
 	void RenderingContextVulkan::createFrameBuffers() {
+		ZoneScoped;
+
 		const uint32_t imageCount = mSwapChain->getImageCount();
 		const VkExtent2D extent = mSwapChain->getExtent();
 		const std::vector<VkImageView>& imageViews = mSwapChain->getImageViews();
@@ -721,6 +761,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::closeFrameBuffers() {
+		ZoneScoped;
+
 		for (VkFramebuffer frameBuffer : mAppSceneFrameBuffers) {
 			vkDestroyFramebuffer(mLogicDevice, frameBuffer, nullptr);
 		}
@@ -731,6 +773,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::createPipelineUniformObjects(GraphicsPipelineVulkan& pipeline, VkDescriptorPool descPool) {
+		ZoneScoped;
+
 		if (pipeline.getShaderProgram().getUniformLayout().hasUniforms()) {
 			pipeline.createShaderUniforms(
 				mLogicDevice,
@@ -749,6 +793,8 @@ namespace DOH {
 		GraphicsPipelineInstanceInfo& instanceInfo,
 		const bool enabled
 	) {
+		ZoneScoped;
+
 		std::optional<std::reference_wrapper<GraphicsPipelineMap>> map = mCurrentRenderState->getRenderPassGraphicsPipelineGroup(instanceInfo.getRenderPass());
 
 		if (map.has_value()) {
@@ -777,6 +823,8 @@ namespace DOH {
 		const ERenderPass renderPass,
 		const std::string& name
 	) {
+		ZoneScoped;
+
 		std::optional<std::reference_wrapper<GraphicsPipelineMap>> map = mCurrentRenderState->getRenderPassGraphicsPipelineGroup(renderPass);
 
 		if (map.has_value()) {
@@ -794,6 +842,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::enablePipeline(const ERenderPass renderPass, const std::string& name, bool enable) {
+		ZoneScoped;
+
 		std::optional<std::reference_wrapper<GraphicsPipelineMap>> map = mCurrentRenderState->getRenderPassGraphicsPipelineGroup(renderPass);
 
 		if (map.has_value()) {
@@ -807,10 +857,14 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::closePipeline(const ERenderPass renderPass, const char* name) {
+		ZoneScoped;
+
 		mCurrentRenderState->closePipeline(mLogicDevice, renderPass, name);
 	}
 
 	void RenderingContextVulkan::createEngineUniformObjects() {
+		ZoneScoped;
+
 		std::vector<DescriptorTypeInfo> engineDescTypes = {};
 		{ //Shapes
 			std::vector<DescriptorTypeInfo> shapeDescTypes = ShapeRenderer::getDescriptorTypeInfos();
@@ -846,6 +900,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::createCustomUniformObjects() {
+		ZoneScoped;
+
 		std::vector<DescriptorTypeInfo> customDescTypes = {};
 		uint32_t pipelineCount = 0;
 		for (const auto& pipelineGroup : mCurrentRenderState->getRenderPassGraphicsPipelineMap()) {
@@ -876,6 +932,8 @@ namespace DOH {
 	}
 
 	VkCommandBuffer RenderingContextVulkan::beginSingleTimeCommands() {
+		ZoneScoped;
+
 		VkCommandBufferAllocateInfo allocation{};
 		allocation.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		allocation.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -892,6 +950,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::endSingleTimeCommands(VkCommandBuffer cmd) {
+		ZoneScoped;
+
 		endCommandBuffer(cmd);
 
 		VkSubmitInfo submit{};
@@ -913,6 +973,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::beginCommandBuffer(VkCommandBuffer cmd, VkCommandBufferUsageFlags usage) {
+		ZoneScoped;
+
 		VkCommandBufferBeginInfo beginInfo = {};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		beginInfo.flags = usage;
@@ -924,6 +986,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::endCommandBuffer(VkCommandBuffer cmd) {
+		ZoneScoped;
+
 		VK_TRY(
 			vkEndCommandBuffer(cmd),
 			"Failed to end command buffer"
@@ -931,6 +995,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
+		ZoneScoped;
+
 		VkCommandBuffer cmdBuffer = beginSingleTimeCommands();
 
 		VkBufferImageCopy region{};
@@ -966,6 +1032,8 @@ namespace DOH {
 		VkImageLayout newLayout,
 		VkImageAspectFlags aspectFlags
 	) {
+		ZoneScoped;
+
 		VkPipelineStageFlags srcStage;
 		VkPipelineStageFlags dstStage;
 		VkAccessFlags srcAccessMask;
@@ -1009,6 +1077,8 @@ namespace DOH {
 		VkAccessFlags srcAccessMask,
 		VkAccessFlags dstAccessMask
 	) {
+		ZoneScoped;
+
 		VkCommandBuffer cmdBuffer = beginSingleTimeCommands();
 
 		VkImageMemoryBarrier barrier{};
@@ -1043,6 +1113,8 @@ namespace DOH {
 	}
 
 	VkImageView RenderingContextVulkan::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) const {
+		ZoneScoped;
+
 		VkImageViewCreateInfo view{};
 		view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		view.image = image;
@@ -1063,6 +1135,8 @@ namespace DOH {
 	}
 
 	VkSampler RenderingContextVulkan::createSampler() {
+		ZoneScoped;
+
 		VkSamplerCreateInfo samplerCreate{};
 		samplerCreate.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 		samplerCreate.magFilter = VK_FILTER_LINEAR;
@@ -1090,6 +1164,8 @@ namespace DOH {
 	}
 
 	void RenderingContextVulkan::setPhysicalDevice(VkPhysicalDevice physicalDevice) {
+		ZoneScoped;
+
 		mPhysicalDevice = physicalDevice;
 		vkGetPhysicalDeviceProperties(mPhysicalDevice, mPhysicalDeviceProperties.get());
 	}
@@ -1103,6 +1179,8 @@ namespace DOH {
 		VkImageTiling tiling,
 		VkImageUsageFlags usage
 	) {
+		ZoneScoped;
+
 		VkImageCreateInfo imageCreateInfo = {};
 		imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -1133,6 +1211,8 @@ namespace DOH {
 		VkImage image,
 		VkMemoryPropertyFlags props
 	) {
+		ZoneScoped;
+
 		VkDeviceMemory imageMemory;
 		VkMemoryRequirements memRequirements;
 		vkGetImageMemoryRequirements(logicDevice, image, &memRequirements);

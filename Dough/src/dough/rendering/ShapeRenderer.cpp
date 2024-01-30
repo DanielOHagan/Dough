@@ -5,6 +5,8 @@
 #include "dough/rendering/ObjInit.h"
 #include "dough/application/Application.h"
 
+#include "tracy/public/tracy/Tracy.hpp"
+
 namespace DOH {
 
 	std::unique_ptr<ShapeRenderer> ShapeRenderer::INSTANCE = nullptr;
@@ -18,6 +20,8 @@ namespace DOH {
 	{}
 
 	void ShapeRenderer::initImpl() {
+		ZoneScoped;
+
 		mWhiteTexture = ObjInit::texture(
 			255.0f,
 			255.0f,
@@ -31,6 +35,8 @@ namespace DOH {
 	}
 
 	void ShapeRenderer::initQuadImpl() {
+		ZoneScoped;
+
 		mQuadShaderProgram = ObjInit::shaderProgram(
 			ObjInit::shader(EShaderType::VERTEX, ShapeRenderer::QUAD_SHADER_PATH_VERT),
 			ObjInit::shader(EShaderType::FRAGMENT, ShapeRenderer::QUAD_SHADER_PATH_FRAG)
@@ -115,6 +121,8 @@ namespace DOH {
 	}
 
 	void ShapeRenderer::closeImpl() {
+		ZoneScoped;
+
 		VkDevice logicDevice = mContext.getLogicDevice();
 
 		mQuadShaderProgram->close(logicDevice);
@@ -137,6 +145,8 @@ namespace DOH {
 	}
 
 	void ShapeRenderer::onSwapChainResizeImpl(SwapChainVulkan& swapChain) {
+		ZoneScoped;
+
 		VkDevice logicDevice = mContext.getLogicDevice();
 
 		//vkDestroyDescriptorPool(logicDevice, mDescriptorPool, nullptr);
@@ -152,10 +162,14 @@ namespace DOH {
 	}
 
 	void ShapeRenderer::createPipelineUniformObjectsImpl(VkDescriptorPool descPool) {
+		ZoneScoped;
+
 		mContext.createPipelineUniformObjects(*mQuadGraphicsPipeline, descPool);
 	}
 
 	void ShapeRenderer::drawQuadSceneImpl(const Quad& quad) {
+		ZoneScoped;
+
 		bool added = false;
 		for (RenderBatchQuad& batch : mQuadRenderBatches) {
 			if (batch.hasSpace(1)) {
@@ -181,6 +195,8 @@ namespace DOH {
 	}
 
 	void ShapeRenderer::drawQuadTexturedSceneImpl(const Quad& quad) {
+		ZoneScoped;
+
 		bool added = false;
 		TextureArray& texArr = *mQuadBatchTextureArray;
 
@@ -227,6 +243,8 @@ namespace DOH {
 	}
 
 	void ShapeRenderer::drawQuadArraySceneImpl(const std::vector<Quad>& quadArr) {
+		ZoneScoped;
+
 		const size_t arrSize = quadArr.size();
 
 		uint32_t quadBatchStartIndex = 0;
@@ -263,6 +281,8 @@ namespace DOH {
 	}
 
 	void ShapeRenderer::drawQuadArrayTexturedSceneImpl(const std::vector<Quad>& quadArr) {
+		ZoneScoped;
+
 		const size_t arrSize = quadArr.size();
 		TextureArray& texArr = *mQuadBatchTextureArray;
 
@@ -307,6 +327,8 @@ namespace DOH {
 	}
 
 	void ShapeRenderer::drawQuadArraySameTextureSceneImpl(const std::vector<Quad>& quadArr) {
+		ZoneScoped;
+
 		size_t addedCount = 0;
 		const size_t arrSize = quadArr.size();
 		if (arrSize == 0) {
@@ -385,6 +407,8 @@ namespace DOH {
 	}
 
 	void ShapeRenderer::setUniformDataImpl(uint32_t currentImage, uint32_t uboBinding, glm::mat4x4& sceneProjView, glm::mat4x4& uiProjView) {
+		ZoneScoped;
+
 		VkDevice logicDevice = mContext.getLogicDevice();
 
 		mQuadGraphicsPipeline->setFrameUniformData(
@@ -399,6 +423,8 @@ namespace DOH {
 	}
 
 	void ShapeRenderer::drawSceneImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
+		ZoneScoped;
+
 		VkDevice logicDevice = mContext.getLogicDevice();
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 
@@ -450,10 +476,14 @@ namespace DOH {
 	}
 
 	void ShapeRenderer::drawUiImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
+		//ZoneScoped;
+
 		//TODO:: Draw UI
 	}
 
 	size_t ShapeRenderer::createNewBatchQuadImpl() {
+		ZoneScoped;
+
 		if (mQuadRenderBatches.size() < EBatchSizeLimits::MAX_BATCH_COUNT_QUAD) {
 
 			constexpr size_t batchSizeBytes = EBatchSizeLimits::BATCH_QUAD_BYTE_SIZE;
@@ -483,6 +513,8 @@ namespace DOH {
 	}
 
 	void ShapeRenderer::closeEmptyQuadBatchesImpl() {
+		ZoneScoped;
+
 		//Since RenderBatches and renderables are linked through being the at the same index in their respective vector
 		// and batches are filled begining to end, loop through from end to begining closing batch and renderable's vao as it goes,
 		// stopping when there is a batch with a geo count of at least one
@@ -527,6 +559,8 @@ namespace DOH {
 	void ShapeRenderer::close() {
 		if (INSTANCE != nullptr) {
 			INSTANCE->closeImpl();
+			INSTANCE.release();
+			INSTANCE = nullptr;
 		} else {
 			LOG_WARN("Attempted close when ShapeRenderer is un-initialised/closed.");
 		}
@@ -602,6 +636,8 @@ namespace DOH {
 	}
 
 	std::vector<DescriptorTypeInfo> ShapeRenderer::getDescriptorTypeInfos() {
+		ZoneScoped;
+
 		if (INSTANCE != nullptr) {
 			std::vector<DescriptorTypeInfo> totalDescTypes = {};
 			{

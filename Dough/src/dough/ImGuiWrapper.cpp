@@ -9,6 +9,8 @@
 #include <imgui/imgui_impl_vulkan.h>
 #include <vulkan/vulkan.hpp>
 
+#include "tracy/public/tracy/Tracy.hpp"
+
 #define DOH_IMGUI_UI_MAX_TEXTURE_COUNT 1000
 
 namespace DOH {
@@ -23,6 +25,8 @@ namespace DOH {
 	{}
 
 	void ImGuiWrapper::init(Window& window, ImGuiInitInfo& imGuiInit) {
+		ZoneScoped;
+
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGui::StyleColorsDark();
@@ -82,6 +86,8 @@ namespace DOH {
 	}
 
 	void ImGuiWrapper::close(VkDevice logicDevice) {
+		ZoneScoped;
+
 		if (mUsingGpuResources) {
 			ImGui_ImplVulkan_Shutdown();
 			ImGui_ImplGlfw_Shutdown();
@@ -97,6 +103,8 @@ namespace DOH {
 	}
 
 	void ImGuiWrapper::uploadFonts(RenderingContextVulkan& context) {
+		ZoneScoped;
+
 		VkCommandBuffer cmd = context.beginSingleTimeCommands();
 		ImGui_ImplVulkan_CreateFontsTexture(cmd);
 		context.endSingleTimeCommands(cmd);
@@ -105,12 +113,16 @@ namespace DOH {
 	}
 
 	void ImGuiWrapper::newFrame() {
+		ZoneScoped;
+
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 	}
 
 	void ImGuiWrapper::endFrame() {
+		ZoneScoped;
+
 		ImGui::EndFrame();
 		ImGui::UpdatePlatformWindows();
 		ImGui::RenderPlatformWindowsDefault();
@@ -121,6 +133,8 @@ namespace DOH {
 	}
 
 	void ImGuiWrapper::render(VkCommandBuffer cmd) {
+		ZoneScoped;
+
 		ImGui::Render();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
 	}
@@ -136,6 +150,8 @@ namespace DOH {
 	}
 
 	void ImGuiWrapper::drawTexture(const TextureVulkan& texture, glm::vec2 size, glm::vec2 uv0, glm::vec2 uv1) {
+		ZoneScoped;
+
 		const auto& begin = mLoadedTextures.find(texture.getId());
 		VkDescriptorSet descSet = VK_NULL_HANDLE;
 
@@ -173,6 +189,8 @@ namespace DOH {
 	}
 
 	VkDescriptorSet ImGuiWrapper::addTextureVulkan(VkSampler sampler, VkImageView imageView, VkImageLayout imageLayout) {
+		ZoneScoped;
+
 		VkDescriptorSet descSet = VK_NULL_HANDLE;
 		
 		if (mTextureCount < DOH_IMGUI_UI_MAX_TEXTURE_COUNT) {
@@ -186,6 +204,8 @@ namespace DOH {
 	}
 
 	void ImGuiWrapper::createRenderPass(VkDevice logicDevice, VkFormat imageFormat) {
+		ZoneScoped;
+
 		SubPassVulkan imGuiSubPass = {
 			VK_PIPELINE_BIND_POINT_GRAPHICS,
 			{
@@ -204,6 +224,8 @@ namespace DOH {
 	}
 
 	void ImGuiWrapper::createFrameBuffers(VkDevice logicDevice, const std::vector<VkImageView>& imageViews, VkExtent2D extent) {
+		ZoneScoped;
+
 		mFrameBuffers.resize(imageViews.size());
 
 		uint32_t i = 0;
@@ -228,6 +250,8 @@ namespace DOH {
 	}
 
 	void ImGuiWrapper::closeFrameBuffers(VkDevice logicDevice) {
+		ZoneScoped;
+
 		for (const VkFramebuffer& frameBuffer : mFrameBuffers) {
 			vkDestroyFramebuffer(logicDevice, frameBuffer, nullptr);
 		}

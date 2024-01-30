@@ -2,6 +2,8 @@
 
 #include "dough/Logging.h"
 
+#include "tracy/public/tracy/Tracy.hpp"
+
 namespace DOH {
 
 	Application* Application::INSTANCE = nullptr;
@@ -13,6 +15,8 @@ namespace DOH {
 	{}
 
 	void Application::run() {
+		ZoneScoped;
+
 		mRunning = true;
 
 		mAppInfoTimer->recordInterval("AppLoop.run() start");
@@ -21,15 +25,29 @@ namespace DOH {
 	}
 
 	void Application::init(std::shared_ptr<IApplicationLogic> appLogic, const ApplicationInitSettings& initSettings) {
+		ZoneScoped;
 
 		{
-			bool debugConfig = false;
+			uint32_t config = 0;
 
 			#if defined (_DEBUG)
-				debugConfig = true;
+				config = 1;
+			#elif defined(_PRODUCTION)
+				config = 2;
+			#elif defined (_RELEASE)
+				config = 3;
 			#endif
 
-			LOGLN_CYAN("Config: " << (debugConfig ? "DEBUG" : "RELEASE"));
+			if (config == 1) {
+				LOGLN_CYAN("Config: DEBUG");
+			} else if (config == 2) {
+				LOGLN_CYAN("Config: PRODUCTION");
+			} else if (config == 3) {
+				LOGLN_CYAN("Config: RELEASE");
+			} else {
+				//This shouldn't happen. Check build config properties.
+				LOG_ERR("Failed to determine build config");
+			}
 		}
 
 		mAppDebugInfo = std::make_unique<AppDebugInfo>();
@@ -74,6 +92,8 @@ namespace DOH {
 	}
 
 	void Application::update(float delta) {
+		ZoneScoped;
+
 		const double preUpdate = Time::getCurrentTimeMillis();
 
 		mAppLogic->update(delta);
@@ -84,6 +104,8 @@ namespace DOH {
 	}
 
 	void Application::render(float delta) {
+		ZoneScoped;
+
 		const double preRender = Time::getCurrentTimeMillis();
 
 		mAppLogic->render();
@@ -97,9 +119,13 @@ namespace DOH {
 		mRenderer->drawFrame();
 
 		mAppDebugInfo->LastRenderTimeMillis = Time::getCurrentTimeMillis() - preRender;
+
+		FrameMark;
 	}
 
 	void Application::close() {
+		ZoneScoped;
+
 		mAppInfoTimer->recordInterval("Closing start");
 		mAppLogic->close();
 		mWindow->close();
@@ -113,6 +139,8 @@ namespace DOH {
 	}
 
 	int Application::start(std::shared_ptr<IApplicationLogic> appLogic, ApplicationInitSettings initSettings) {
+		ZoneScoped;
+
 		int returnCode = 0;
 
 		if (!Application::isInstantiated()) {
@@ -145,6 +173,8 @@ namespace DOH {
 	}
 
 	void Application::onWindowEvent(WindowEvent& windowEvent) {
+		ZoneScoped;
+
 		switch (windowEvent.getType()) {
 			case EEventType::WINDOW_CLOSE:
 				stop();
@@ -216,6 +246,8 @@ namespace DOH {
 	}
 
 	void Application::onKeyEvent(KeyEvent& keyEvent) {
+		ZoneScoped;
+
 		switch (keyEvent.getType()) {
 			case EEventType::KEY_DOWN:
 				Input::get().onKeyPressedEvent(keyEvent.getKeyCode(), true);
@@ -232,6 +264,8 @@ namespace DOH {
 	}
 
 	void Application::onMouseEvent(MouseEvent& mouseEvent) {
+		ZoneScoped;
+
 		switch (mouseEvent.getType()) {
 			case EEventType::MOUSE_MOVE:
 			{

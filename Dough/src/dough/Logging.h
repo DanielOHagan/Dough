@@ -6,6 +6,8 @@
 #endif
 
 //TODO:: 
+// Should PRODUCTION use colours or not?
+// 
 //	Make DOH_LOG_XXX for short term, for namespace clashing risks
 //	
 //	Make logging. Include error/warn/info integration, timestamp, line of code,

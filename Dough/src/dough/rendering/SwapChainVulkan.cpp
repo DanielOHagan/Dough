@@ -1,6 +1,8 @@
 #include "dough/application/Application.h"
 #include "dough/Logging.h"
 
+#include "tracy/public/tracy/Tracy.hpp"
+
 namespace DOH {
 
 	SwapChainVulkan::SwapChainVulkan(
@@ -15,6 +17,8 @@ namespace DOH {
 	}
 
 	SwapChainVulkan::~SwapChainVulkan() {
+		ZoneScoped;
+
 		if (isUsingGpuResource()) {
 			LOG_ERR(
 				"SwapChain GPU resource NOT released before destructor was called." <<
@@ -24,10 +28,14 @@ namespace DOH {
 	}
 
 	void SwapChainVulkan::init(VkDevice logicDevice, const SwapChainCreationInfo& scCreate) {
+		ZoneScoped;
+
 		createSwapChainKHR(logicDevice, scCreate);
 	}
 
 	void SwapChainVulkan::close(VkDevice logicDevice) {
+		ZoneScoped;
+
 		for (auto imageView : mImageViews) {
 			vkDestroyImageView(logicDevice, imageView, nullptr);
 		}
@@ -42,6 +50,8 @@ namespace DOH {
 	}
 
 	void SwapChainVulkan::resize(VkDevice logicDevice, const SwapChainCreationInfo& scCreate) {
+		ZoneScoped;
+
 		for (auto imageView : mImageViews) {
 			vkDestroyImageView(logicDevice, imageView, nullptr);
 		}
@@ -54,6 +64,8 @@ namespace DOH {
 		VkFence frameInFlightFence,
 		VkSemaphore imageAvailableSemaphore
 	) {
+		ZoneScoped;
+
 		vkWaitForFences(logicDevice, 1, &frameInFlightFence, VK_TRUE, 1000000000); //1 Second timout
 
 		uint32_t imageIndex;
@@ -70,6 +82,8 @@ namespace DOH {
 	}
 
 	SwapChainSupportDetails SwapChainVulkan::querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface) {
+		ZoneScoped;
+
 		SwapChainSupportDetails details = {};
 
 		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
@@ -94,6 +108,8 @@ namespace DOH {
 	}
 
 	VkSurfaceFormatKHR SwapChainVulkan::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+		ZoneScoped;
+
 		for (const auto& availableFormat : availableFormats) {
 			if (
 				availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
@@ -113,6 +129,8 @@ namespace DOH {
 		VkPresentModeKHR desiredPresentMode,
 		bool fallbackToImmediatePresentMode
 	) {
+		ZoneScoped;
+
 		for (const auto& availablePresentMode : availablePresentModes) {
 			if (availablePresentMode == desiredPresentMode) {
 				LOG_INFO("Desired present mode found.");
@@ -130,6 +148,8 @@ namespace DOH {
 	}
 
 	VkExtent2D SwapChainVulkan::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height) {
+		ZoneScoped;
+
 		if (capabilities.currentExtent.width != UINT32_MAX) {
 			return capabilities.currentExtent;
 		} else {
@@ -143,6 +163,8 @@ namespace DOH {
 	}
 
 	void SwapChainVulkan::createSwapChainKHR(VkDevice logicDevice, const SwapChainCreationInfo& scCreate) {
+		ZoneScoped;
+
 		const uint32_t width = scCreate.getWidth();
 		const uint32_t height = scCreate.getHeight();
 

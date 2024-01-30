@@ -4,6 +4,8 @@
 #include "dough/Logging.h"
 #include "dough/application/Application.h"
 
+#include "tracy/public/tracy/Tracy.hpp"
+
 namespace DOH {
 
 	std::unique_ptr<TextRenderer> TextRenderer::INSTANCE = nullptr;
@@ -19,6 +21,8 @@ namespace DOH {
 	{}
 
 	void TextRenderer::initImpl(TextureVulkan& fallbackTexture, std::shared_ptr<IndexBufferVulkan> quadSharedIndexBuffer) {
+		ZoneScoped;
+
 		mFontBitmapPagesTextureArary = std::make_unique<TextureArray>(
 			EBatchSizeLimits::BATCH_MAX_COUNT_TEXTURE,
 			fallbackTexture
@@ -169,6 +173,8 @@ namespace DOH {
 	}
 
 	void TextRenderer::closeImpl() {
+		ZoneScoped;
+
 		VkDevice logicDevice = mContext.getLogicDevice();
 
 		mSoftMaskSceneShaderProgram->close(logicDevice);
@@ -186,6 +192,8 @@ namespace DOH {
 	}
 
 	void TextRenderer::onSwapChainResizeImpl(SwapChainVulkan& swapChain) {
+		ZoneScoped;
+
 		VkDevice logicDevice = mContext.getLogicDevice();
 		mSoftMaskScenePipeline->recreate(
 			logicDevice,
@@ -200,11 +208,15 @@ namespace DOH {
 	}
 
 	void TextRenderer::createPipelineUniformObjectsImpl(VkDescriptorPool descPool) {
+		ZoneScoped;
+
 		mContext.createPipelineUniformObjects(*mSoftMaskScenePipeline, descPool);
 		mContext.createPipelineUniformObjects(*mMsdfScenePipeline, descPool);
 	}
 
 	bool TextRenderer::createFontBitmapImpl(const char* fontName, const char* filePath, const char* imageDir, ETextRenderMethod textRenderMethod) {
+		ZoneScoped;
+
 		const auto& font = mFontBitmaps.emplace(
 			fontName,
 			mContext.createFontBitmap(filePath, imageDir, textRenderMethod)
@@ -219,6 +231,8 @@ namespace DOH {
 	}
 
 	void TextRenderer::addFontBitmapToTextTextureArrayImpl(const FontBitmap& fontBitmap) {
+		ZoneScoped;
+
 		if (mFontBitmapPagesTextureArary->hasTextureSlotsAvailable(fontBitmap.getPageCount())) {
 			for (const auto& texture : fontBitmap.getPageTextures()) {
 				mFontBitmapPagesTextureArary->addNewTexture(*texture);
@@ -236,6 +250,8 @@ namespace DOH {
 		glm::mat4x4& sceneProjView,
 		glm::mat4x4& uiProjView
 	) {
+		ZoneScoped;
+
 		VkDevice logicDevice = mContext.getLogicDevice();
 
 		mSoftMaskScenePipeline->setFrameUniformData(
@@ -258,6 +274,8 @@ namespace DOH {
 	}
 
 	void TextRenderer::drawSceneImpl(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
+		ZoneScoped;
+
 		VkDevice logicDevice = mContext.getLogicDevice();
 		const size_t softMaskQuadCount = mSoftMaskSceneBatch->getGeometryCount();
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
@@ -331,10 +349,14 @@ namespace DOH {
 	}
 
 	void TextRenderer::drawUiImpl(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
+		//ZoneScoped;
+
 		//TODO:: UI text
 	}
 
 	void TextRenderer::drawTextFromQuadsImpl(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) {
+		ZoneScoped;
+
 		size_t quadCount = quadArr.size();
 
 		if (quadCount > 0) {
@@ -368,6 +390,8 @@ namespace DOH {
 	}
 
 	void TextRenderer::drawTextSameTextureFromQuadsImpl(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) {
+		ZoneScoped;
+
 		size_t quadCount = quadArr.size();
 		if (quadCount == 0) {
 			//TODO:: Is this worth a warning?
@@ -392,6 +416,8 @@ namespace DOH {
 	}
 
 	void TextRenderer::drawTextStringImpl(TextString& string) {
+		ZoneScoped;
+
 		if (string.getCurrentFontBitmap().getPageCount() > 1) {
 			drawTextFromQuadsImpl(string.getQuads(), string.getCurrentFontBitmap());
 		} else {
@@ -483,6 +509,8 @@ namespace DOH {
 	}
 
 	FontBitmap& TextRenderer::getFontBitmap(const char* fontName) {
+		ZoneScoped;
+
 		const auto& font = INSTANCE->mFontBitmaps.find(fontName);
 		if (font != INSTANCE->mFontBitmaps.end()) {
 			return *font->second;
@@ -493,6 +521,8 @@ namespace DOH {
 	}
 
 	std::vector<DescriptorTypeInfo> TextRenderer::getDescriptorTypeInfos() {
+		ZoneScoped;
+
 		if (INSTANCE != nullptr) {
 			std::vector<DescriptorTypeInfo> totalDescTypes = {};
 			{

@@ -3,9 +3,13 @@
 #include "dough/application/Application.h"
 #include "dough/scene/geometry/primitives/Quad.h"
 
+#include "tracy/public/tracy/Tracy.hpp"
+
 namespace DOH {
 
 	void LineRenderer::init(VkDevice logicDevice, VkExtent2D swapChainExtent, ValueUniformInfo uboSize) {
+		ZoneScoped;
+
 		const auto& context = Application::get().getRenderer().getContext();
 		{
 			//Scene
@@ -97,6 +101,8 @@ namespace DOH {
 	}
 
 	void LineRenderer::close(VkDevice logicDevice) {
+		ZoneScoped;
+
 		mSceneLineRenderable->getVao().getVertexBuffers()[0]->unmap(logicDevice);
 		mSceneLineRenderable->getVao().close(logicDevice);
 		mSceneLineShaderProgram->close(logicDevice);
@@ -117,6 +123,8 @@ namespace DOH {
 		CurrentBindingsState& currentBindings,
 		AppDebugInfo& debugInfo
 	) {
+		ZoneScoped;
+
 		if (mSceneLineGraphicsPipeline->isEnabled() && mSceneLineBatch->getLineCount() > 0) {
 			const uint32_t binding = 0;
 			mSceneLineGraphicsPipeline->setFrameUniformData(
@@ -157,6 +165,8 @@ namespace DOH {
 		CurrentBindingsState& currentBindings,
 		AppDebugInfo& debugInfo
 	) {
+		ZoneScoped;
+
 		if (mUiLineGraphicsPipeline->isEnabled() && mUiLineBatch->getLineCount() > 0) {
 			const uint32_t binding = 0;
 			mUiLineGraphicsPipeline->setFrameUniformData(
@@ -195,6 +205,8 @@ namespace DOH {
 		const RenderPassVulkan& uiRenderPass,
 		VkDescriptorPool descPool
 	) {
+		ZoneScoped;
+
 		auto& context = Application::get().getRenderer().getContext();
 		mSceneLineGraphicsPipeline->recreate(logicDevice, extent, sceneRenderPass.get());
 		context.createPipelineUniformObjects(*mSceneLineGraphicsPipeline, descPool);
@@ -204,16 +216,22 @@ namespace DOH {
 	}
 
 	void LineRenderer::createShaderUniforms(VkDevice logicDevice, VkPhysicalDevice physicalDevice, const uint32_t imageCount, VkDescriptorPool descPool) {
+		ZoneScoped;
+
 		mSceneLineGraphicsPipeline->createShaderUniforms(logicDevice, physicalDevice, imageCount, descPool);
 		mUiLineGraphicsPipeline->createShaderUniforms(logicDevice, physicalDevice, imageCount, descPool);
 	}
 	
 	void LineRenderer::updateShaderUniforms(VkDevice logicDevice, const uint32_t imageCount) {
+		ZoneScoped;
+
 		mSceneLineGraphicsPipeline->updateShaderUniforms(logicDevice, imageCount);
 		mUiLineGraphicsPipeline->updateShaderUniforms(logicDevice, imageCount);
 	}
 
 	const std::vector<DescriptorTypeInfo> LineRenderer::getDescriptorTypeInfo() const {
+		ZoneScoped;
+
 		std::vector<DescriptorTypeInfo> sceneDescTypes = mSceneLineGraphicsPipeline->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes();
 		std::vector<DescriptorTypeInfo> uiDescTypes = mUiLineGraphicsPipeline->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes();
 
@@ -230,6 +248,8 @@ namespace DOH {
 	}
 
 	void LineRenderer::drawLineScene(const glm::vec3& start, const glm::vec3& end, const glm::vec4& colour) {
+		ZoneScoped;
+
 		if (mSceneLineBatch->hasSpace()) {
 			mSceneLineBatch->add3d(start, end, colour);
 		} else {
@@ -238,6 +258,8 @@ namespace DOH {
 	}
 
 	void LineRenderer::drawLineUi(const glm::vec2& start, const glm::vec2& end, const glm::vec4& colour) {
+		ZoneScoped;
+
 		if (mUiLineBatch->hasSpace()) {
 			mUiLineBatch->add2d(start, end, colour);
 		} else {
@@ -246,6 +268,8 @@ namespace DOH {
 	}
 
 	void LineRenderer::drawQuadScene(const Quad& quad, const glm::vec4& colour) {
+		ZoneScoped;
+
 		if (mSceneLineBatch->hasSpace(4)) {
 			glm::vec3 botLeft = { quad.Position.x, quad.Position.y, quad.Position.z };
 			glm::vec3 botRight = { quad.Position.x + quad.Size.x, quad.Position.y, quad.Position.z };
@@ -262,6 +286,8 @@ namespace DOH {
 	}
 
 	void LineRenderer::drawQuadUi(const Quad& quad, const glm::vec4& colour) {
+		ZoneScoped;
+
 		if (mUiLineBatch->hasSpace(4)) {
 			glm::vec3 botLeft = { quad.Position.x, quad.Position.y, quad.Position.z };
 			glm::vec3 botRight = { quad.Position.x + quad.Size.x, quad.Position.y, quad.Position.z };

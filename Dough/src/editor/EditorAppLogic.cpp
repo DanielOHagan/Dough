@@ -7,6 +7,8 @@
 #include "dough/rendering/ShapeRenderer.h"
 #include "dough/rendering/text/TextRenderer.h"
 
+#include "tracy/public/tracy/Tracy.hpp"
+
 #include <imgui/imgui.h>
 
 #define GET_RENDERER Application::get().getRenderer()
@@ -25,6 +27,8 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorAppLogic::init(float aspectRatio) {
+		ZoneScoped;
+
 		mInnerAppTimer = std::make_unique<PausableTimer>();
 		mEditorSettings = std::make_unique<EditorSettings>();
 
@@ -52,6 +56,8 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorAppLogic::update(float delta) {
+		ZoneScoped;
+
 		const bool innerAppInputLayerExists = mInnerAppInputLayer.has_value();
 
 		if (innerAppInputLayerExists) {
@@ -91,6 +97,8 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorAppLogic::render() {
+		ZoneScoped;
+
 		RendererVulkan& renderer = GET_RENDERER;
 
 		//Begin scene sets the primary camera that is to be used to render the scene.
@@ -107,6 +115,8 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorAppLogic::imGuiRender(float delta) {
+		ZoneScoped;
+
 		//NOTE:: ImGui Debug info windows
 		//ImGui::ShowMetricsWindow();
 		//ImGui::ShowStackToolWindow();
@@ -122,6 +132,8 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorAppLogic::imGuiRenderDebugWindow(float delta) {
+		ZoneScoped;
+
 		RendererVulkan& renderer = GET_RENDERER;
 		ImGuiWrapper& imGuiWrapper = renderer.getContext().getImGuiWrapper();
 
@@ -177,6 +189,19 @@ namespace DOH::EDITOR {
 				ImGui::Text("Is Focused: ");
 				ImGui::SameLine();
 				ImGui::TextColored(focused ? ImVec4(0, 1, 0, 1) : ImVec4(1, 0, 0, 1), focused ? "FOCUSED" : "NOT FOCUSED");
+				{
+					ImGui::Text("Is Tracy Profiling Enaled: ");
+					ImGui::SameLine();
+					#if defined TRACY_ENABLE
+						bool tracyProfilingEnabled = true;
+					#else 
+						bool tracyProfilingEnabled = false;
+					#endif
+					ImGui::TextColored(tracyProfilingEnabled ? ImVec4(0, 1, 0, 1) : ImVec4(1, 0, 0, 1), tracyProfilingEnabled ? "ENABLED" : "NOT ENABLED");
+					if (!tracyProfilingEnabled) {
+						EditorGui::displayHelpTooltip("Tracy Profiling is only enabled in \"Production\" build config.");
+					}
+				}
 				ImGui::Text("Current and Target FPS/UPS");
 				ImGui::Text(
 					"FPS: %i \t(Fore: %i, Back: %i)",
@@ -438,13 +463,11 @@ UPS displayed is the count of frames in the last full second interval)"
 
 						if (ImGui::Button("Continue")) {
 							mInnerAppState = EInnerAppState::PLAYING;
-
 							mInnerAppTimer->unPause();
 						}
 						ImGui::SameLine();
 						if (ImGui::Button("STOP")) {
 							mInnerAppState = EInnerAppState::STOPPED;
-
 							mInnerAppTimer->end();
 							//TODO:: resetInnerApp();
 						}
@@ -455,13 +478,11 @@ UPS displayed is the count of frames in the last full second interval)"
 
 						if (ImGui::Button("Pause")) {
 							mInnerAppState = EInnerAppState::PAUSED;
-
 							mInnerAppTimer->pause();
 						}
 						ImGui::SameLine();
 						if (ImGui::Button("STOP")) {
 							mInnerAppState = EInnerAppState::STOPPED;
-
 							mInnerAppTimer->end();
 							//TODO:: resetInnerApp();
 						}
@@ -473,7 +494,6 @@ UPS displayed is the count of frames in the last full second interval)"
 						if (ImGui::Button("Play")) {
 							//TODO:: re-initialise/reset inner app 
 							mInnerAppState = EInnerAppState::PLAYING;
-
 							mInnerAppTimer->start();
 						}
 						break;
@@ -641,11 +661,15 @@ UPS displayed is the count of frames in the last full second interval)"
 	}
 
 	void EditorAppLogic::close() {
+		ZoneScoped;
+
 		mInnerAppLogic->close();
 		EditorGui::close();
 	}
 
 	void EditorAppLogic::onResize(float aspectRatio) {
+		ZoneScoped;
+
 		mOrthoCameraController->onViewportResize(aspectRatio);
 		mInnerAppLogic->onResize(aspectRatio);
 	}
