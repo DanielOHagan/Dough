@@ -7,12 +7,14 @@
 #include "dough/application/Application.h"
 #include "dough/rendering/ShapeRenderer.h"
 #include "dough/rendering/text/TextRenderer.h"
+#include "dough/rendering/pipeline_2/DescriptorApiVulkan.h"
 
 #include <chrono>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "tracy/public/tracy/Tracy.hpp"
 
+//TODO:: Is this really necessary?
 #define NOT_NULL_CHECK(objPtr) if (objPtr == nullptr) {\
 	LOG_ERR(VAR_NAME(objPtr) << " null on ready check");\
 	return false;\
@@ -32,6 +34,9 @@ namespace DOH {
 		mAppUiProjection(1.0f),
 		mDepthFormat(VK_FORMAT_UNDEFINED),
 		mGpuResourcesFrameCloseCount({})
+
+		,mTestTextureDescriptorSet(VK_NULL_HANDLE),
+		mTestWhiteTextureDescriptorSet(VK_NULL_HANDLE)
 	{}
 
 	bool RenderingContextVulkan::isReady() const {
@@ -116,6 +121,8 @@ namespace DOH {
 		mCurrentRenderState = std::make_unique<CustomRenderState>("Application Render State");
 
 		createEngineUniformObjects();
+
+		createTestPipeline();
 	}
 
 	void RenderingContextVulkan::close() {
@@ -143,6 +150,12 @@ namespace DOH {
 			mLineRenderer->close(mLogicDevice);
 		}
 
+
+
+		closeTestPipeline();
+
+
+
 		closeSyncObjects();
 		closeRenderPasses();
 		closeAppSceneDepthResources();
@@ -153,6 +166,10 @@ namespace DOH {
 		}
 		if (mCurrentRenderState != nullptr) {
 			mCurrentRenderState->close(mLogicDevice);
+		}
+
+		for (auto& uniformSetLayout : mAllUniformSetLayouts) {
+			uniformSetLayout.second->close(mLogicDevice);
 		}
 
 		if (mEngineDescriptorPool != VK_NULL_HANDLE) {
@@ -303,6 +320,11 @@ namespace DOH {
 					createPipelineUniformObjects(*pipeline.second, mCustomDescriptorPool);
 				}
 			}
+
+
+
+			//TEMP
+			mTestGraphicsPipeline->recreate(mLogicDevice, extent, mAppSceneRenderPass->get());
 		}
 	}
 
@@ -335,9 +357,6 @@ namespace DOH {
 
 		//Draw scene
 		drawScene(imageIndex, cmd, currentBindings);
-
-		//NOTE:: If using subpasses to separate rendering scene/UI, increment subpass index
-		//vkCmdNextSubpass(cmd, VK_SUBPASS_CONTENTS_INLINE);
 
 		//Draw Application UI
 		drawUi(imageIndex, cmd, currentBindings);
@@ -413,6 +432,85 @@ namespace DOH {
 			debugInfo
 		);
 
+
+
+		//TEMP::
+		//mAppSceneUbo.ProjectionViewMat[1][1] *= -1;
+		mTestCameraValueBuffers[imageIndex]->setDataMapped(mLogicDevice, &mAppSceneUbo, sizeof(UniformBufferObject));
+		mTestCameraOrthoValueBuffers[imageIndex]->setDataMapped(mLogicDevice, &mAppUiProjection, sizeof(UniformBufferObject));
+
+		const uint32_t cameraDescSetSlot = 0;
+		const uint32_t textureDescSetSlot = 1;
+
+		//TEMP:: Demo for using different descriptor sets with new pipeline & descriptor system
+		static bool firstUsingPerspective = true;
+		static bool firstUsingWhiteTexture = true;
+		static bool secondUsingPerspective = true;
+		static bool secondUsingWhiteTexture = true;
+		if (ImGui::Begin("Test window")) {
+
+			ImGui::Text("First Quad");
+			if (ImGui::RadioButton("Perspective##First", firstUsingPerspective)) {
+				firstUsingPerspective = true;
+			}
+			if (ImGui::RadioButton("Ortho##First", !firstUsingPerspective)) {
+				firstUsingPerspective = false;
+			}
+
+			ImGui::NewLine();
+
+			if (ImGui::RadioButton("White Texture##First", firstUsingWhiteTexture)) {
+				firstUsingWhiteTexture = true;
+			}
+			if (ImGui::RadioButton("Test Texture##First", !firstUsingWhiteTexture)) {
+				firstUsingWhiteTexture = false;
+			}
+
+			static float transformFloats[3] = { 0.0f, 0.0f, 0.0f };
+			if (ImGui::DragFloat3("Transform##First", transformFloats)) {
+				mTestTransform = glm::translate(glm::mat4x4(1.0f), { transformFloats[0], transformFloats[1], transformFloats[2] });
+			}
+
+
+			ImGui::Text("Second Quad");
+			if (ImGui::RadioButton("Perspective##Second", secondUsingPerspective)) {
+				secondUsingPerspective = true;
+			}
+			if (ImGui::RadioButton("Ortho##Second", !secondUsingPerspective)) {
+				secondUsingPerspective = false;
+			}
+
+			ImGui::NewLine();
+
+			if (ImGui::RadioButton("White Texture##Second", secondUsingWhiteTexture)) {
+				secondUsingWhiteTexture = true;
+			}
+			if (ImGui::RadioButton("Test Texture##Second", !secondUsingWhiteTexture)) {
+				secondUsingWhiteTexture = false;
+			}
+
+			static float secondTransformFloats[3] = { 0.0f, 0.0f, 0.0f };
+			if (ImGui::DragFloat3("Transform##Second", secondTransformFloats)) {
+				mTestTransformSecond = glm::translate(glm::mat4x4(1.0f), { secondTransformFloats[0], secondTransformFloats[1], secondTransformFloats[2] });
+			}
+		}
+		ImGui::End();
+
+		mFirstTestShaderResourceInstance->getDescriptorSets()[cameraDescSetSlot] = firstUsingPerspective ? mTestUboDescriptorSets[imageIndex] : mTestUboOrthoDescriptorSets[imageIndex];
+		mFirstTestShaderResourceInstance->getDescriptorSets()[textureDescSetSlot] = firstUsingWhiteTexture ? mTestWhiteTextureDescriptorSet : mTestTextureDescriptorSet;
+
+		mSecondTestShaderResourceInstance->getDescriptorSets()[cameraDescSetSlot] = secondUsingPerspective ? mTestUboDescriptorSets[imageIndex] : mTestUboOrthoDescriptorSets[imageIndex];
+		mSecondTestShaderResourceInstance->getDescriptorSets()[textureDescSetSlot] = secondUsingWhiteTexture ? mTestWhiteTextureDescriptorSet : mTestTextureDescriptorSet;
+
+
+		mTestGraphicsPipeline->bind(cmd);
+		debugInfo.PipelineBinds++;
+		currentBindings.Pipeline = mTestGraphicsPipeline->get();
+		mTestGraphicsPipeline->recordDrawCommands(imageIndex, cmd, currentBindings);
+		debugInfo.SceneDrawCalls += mTestGraphicsPipeline->getVaoDrawCount();
+
+
+
 		RenderPassVulkan::endRenderPass(cmd);
 	}
 
@@ -453,7 +551,7 @@ namespace DOH {
 				}
 			}
 		}
-		
+
 		TextRenderer::drawUi(imageIndex, cmd, currentBindings);
 
 		mLineRenderer->drawUi(
@@ -1170,6 +1268,30 @@ namespace DOH {
 		vkGetPhysicalDeviceProperties(mPhysicalDevice, mPhysicalDeviceProperties.get());
 	}
 
+	void RenderingContextVulkan::addSetLayout(const char* name, std::shared_ptr<ShaderUniformSetLayoutVulkan> setLayout) {
+		auto result = mAllUniformSetLayouts.emplace(name, setLayout);
+		if (!result.second) {
+			LOG_ERR("Failed to add set layout to mAllDescriptorSets. Name: " << name);
+		}
+	}
+
+	std::shared_ptr<ShaderUniformSetLayoutVulkan> RenderingContextVulkan::getSetLayout(const char* name) {
+		auto result = mAllUniformSetLayouts.find(name);
+		if (result != mAllUniformSetLayouts.end()) {
+			return result->second;
+		}
+
+		return nullptr;
+	}
+
+	void RenderingContextVulkan::removeSetLayout(const char* name, bool closeLayout) {
+		auto set = mAllUniformSetLayouts.extract(name);
+
+		if (closeLayout && !set.empty()) {
+			addGpuResourceToClose(set.mapped());
+		}
+	}
+
 	VkImage RenderingContextVulkan::createImage(
 		VkDevice logicDevice,
 		VkPhysicalDevice physicalDevice,
@@ -1248,5 +1370,186 @@ namespace DOH {
 		}
 
 		THROW("Unknown render pass");
+	}
+
+
+
+
+
+	void RenderingContextVulkan::createTestPipeline() {
+		const uint32_t imageCount = mSwapChain->getImageCount();
+
+		VkDescriptorPoolSize poolSizes[] =
+		{
+			{ VK_DESCRIPTOR_TYPE_SAMPLER, 100 },
+			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100 },
+			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 100 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 100 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 100 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 100 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 100 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 100 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 100 },
+			{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 100 }
+		};
+		VkDescriptorPoolCreateInfo poolInfo = {};
+		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+		poolInfo.maxSets = 100 * IM_ARRAYSIZE(poolSizes);
+		poolInfo.poolSizeCount = (uint32_t)IM_ARRAYSIZE(poolSizes);
+		poolInfo.pPoolSizes = poolSizes;
+		VK_TRY(
+			vkCreateDescriptorPool(mLogicDevice, &poolInfo, nullptr, &mTestDescriptorPool),
+			"Failed to create test descriptor pool"
+		);
+
+		std::shared_ptr<ShaderVulkan_2> vertShader = std::make_shared<ShaderVulkan_2>(
+			EShaderStage_2::VERTEX,
+			"Dough/res/shaders/spv/_TestShader.vert.spv"
+		);
+		std::shared_ptr<ShaderVulkan_2> fragShader = std::make_shared<ShaderVulkan_2>(
+			EShaderStage_2::FRAGMENT,
+			"Dough/res/shaders/spv/_TestShader.frag.spv"
+		);
+		std::vector<ShaderUniform> uboUniforms = {
+			ValueShaderUniform(0, sizeof(UniformBufferObject))
+		};
+		std::vector<ShaderUniform> textureUniforms = {
+			TextureShaderUniform(0, ShapeRenderer::getWhiteTexture())
+		};
+
+		std::shared_ptr<ShaderUniformSetLayoutVulkan> uboSet = std::make_shared<ShaderUniformSetLayoutVulkan>(uboUniforms);
+		uboSet->init(mLogicDevice);
+		addSetLayout("ubo", uboSet);
+
+		std::shared_ptr<ShaderUniformSetLayoutVulkan> textureSet = std::make_shared<ShaderUniformSetLayoutVulkan>(textureUniforms);
+		textureSet->init(mLogicDevice);
+		addSetLayout("texture", textureSet);
+
+		std::vector<std::reference_wrapper<ShaderUniformSetLayoutVulkan>> testPipelineSets = { *uboSet, *textureSet };
+		VkPushConstantRange pushConstant = {};
+		pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		pushConstant.size = sizeof(glm::mat4x4);
+		pushConstant.offset = 0;
+		std::vector<VkPushConstantRange> pushConstants = { pushConstant };
+
+		mTestShaderUniformLayout = std::make_shared<ShaderUniformLayoutVulkan_2>(pushConstants, testPipelineSets);
+
+		mTestShaderProgram = std::make_shared<ShaderProgram_2>(vertShader, fragShader, mTestShaderUniformLayout);
+
+		mTestGraphicsPipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo_2>(
+			mTestGraphicsVertexInputLayout,
+			*mTestShaderProgram,
+			ERenderPass::APP_SCENE
+		);
+
+		//create camera descriptors
+		mTestCameraValueBuffers.resize(imageCount);
+		mTestCameraOrthoValueBuffers.resize(imageCount);
+		for (uint32_t i = 0; i < imageCount; i++) {
+			mTestCameraValueBuffers[i] = createBuffer(
+				sizeof(UniformBufferObject),
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			);
+			mTestCameraValueBuffers[i]->map(mLogicDevice, sizeof(UniformBufferObject));
+
+			mTestCameraOrthoValueBuffers[i] = createBuffer(
+				sizeof(UniformBufferObject),
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			);
+			mTestCameraOrthoValueBuffers[i]->map(mLogicDevice, sizeof(UniformBufferObject));
+		}
+
+		mTestUboDescriptorSets = DescriptorApiVulkan::allocateDescriptorSetsFromLayout(mLogicDevice, mTestDescriptorPool, *uboSet, imageCount);
+		mTestUboOrthoDescriptorSets = DescriptorApiVulkan::allocateDescriptorSetsFromLayout(mLogicDevice, mTestDescriptorPool, *uboSet, imageCount);
+		mTestWhiteTextureDescriptorSet = DescriptorApiVulkan::allocateDescriptorSetFromLayout(mLogicDevice, mTestDescriptorPool, *textureSet);
+		mTestTextureDescriptorSet = DescriptorApiVulkan::allocateDescriptorSetFromLayout(mLogicDevice, mTestDescriptorPool, *textureSet);
+
+		const uint32_t projViewBinding = 0;
+		for (uint32_t i = 0; i < imageCount; i++) {
+			//Ortho camera
+			DescriptorSetUpdate testUboOrthoInitialUpdate = {};
+			testUboOrthoInitialUpdate.DescSet = mTestUboOrthoDescriptorSets[i];
+			DescriptorUpdate orthoUpdate = { uboSet->getUniforms()[projViewBinding], *mTestCameraOrthoValueBuffers[i] };
+			testUboOrthoInitialUpdate.Updates.emplace_back(orthoUpdate);
+			DescriptorApiVulkan::updateDescriptorSet(mLogicDevice, testUboOrthoInitialUpdate);
+			
+			//Perspective camera
+			DescriptorSetUpdate testUboInitialUpdate = {};
+			testUboInitialUpdate.DescSet = mTestUboDescriptorSets[i];
+			DescriptorUpdate update = { uboSet->getUniforms()[projViewBinding], *mTestCameraValueBuffers[i] };
+			testUboInitialUpdate.Updates.emplace_back(update);
+			DescriptorApiVulkan::updateDescriptorSet(mLogicDevice, testUboInitialUpdate);
+		}
+
+		const uint32_t textureSamplerBinding = 0;
+		DescriptorSetUpdate testWhiteTextureUpdate = {};
+		testWhiteTextureUpdate.DescSet = mTestWhiteTextureDescriptorSet;
+		DescriptorUpdate whiteTextureUpdate = { textureSet->getUniforms()[textureSamplerBinding], ShapeRenderer::getWhiteTexture() };
+		testWhiteTextureUpdate.Updates.emplace_back(whiteTextureUpdate);
+		DescriptorApiVulkan::updateDescriptorSet(mLogicDevice, testWhiteTextureUpdate);
+
+		DescriptorSetUpdate testTextureUpdate = {};
+		testTextureUpdate.DescSet = mTestTextureDescriptorSet;
+		DescriptorUpdate textureUpdate = { textureSet->getUniforms()[textureSamplerBinding], *ShapeRenderer::getTestMonoSpaceTextureAtlas() };
+		testTextureUpdate.Updates.emplace_back(textureUpdate);
+		DescriptorApiVulkan::updateDescriptorSet(mLogicDevice, testTextureUpdate);
+
+		std::initializer_list<VkDescriptorSet> defaultTestSets = { mTestUboDescriptorSets[0], mTestWhiteTextureDescriptorSet };
+		mFirstTestShaderResourceInstance = std::make_shared<ShaderUniformSetsInstanceVulkan>(defaultTestSets);
+		mSecondTestShaderResourceInstance = std::make_shared<ShaderUniformSetsInstanceVulkan>(defaultTestSets);
+
+		mTestGraphicsPipeline = std::make_shared<GraphicsPipelineVulkan_2>(*mTestGraphicsPipelineInstanceInfo);
+		mTestGraphicsPipeline->init(mLogicDevice, mSwapChain->getExtent(), mAppSceneRenderPass->get());
+
+		const size_t indicesSize = mTestIndices.size() * sizeof(uint32_t);
+		mTestIndexBuffer = createIndexBuffer(indicesSize);
+		mTestIndexBuffer->setDataUnmapped(mLogicDevice, mTestIndices.data(), indicesSize);
+
+		std::shared_ptr<VertexArrayVulkan> vao = createVertexArray();
+		const size_t verticesSize = mTestVertices.size() * static_cast<size_t>(Vertex3d::BYTE_SIZE);
+		std::shared_ptr<VertexBufferVulkan> vbo = createVertexBuffer(
+			mTestGraphicsVertexInputLayout,
+			static_cast<VkDeviceSize>(verticesSize),
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+		);
+		vbo->setDataUnmapped(mLogicDevice, mTestVertices.data(), verticesSize);
+
+		vao->addVertexBuffer(vbo);
+		vao->setIndexBuffer(mTestIndexBuffer, false);
+		vao->setDrawCount(static_cast<uint32_t>(mTestIndices.size()));
+
+		mTestRenderable = std::make_shared<SimpleRenderable_2>(vao, mFirstTestShaderResourceInstance, true, &mTestTransform);
+		mSecondTestRenderable = std::make_shared<SimpleRenderable_2>(vao, mSecondTestShaderResourceInstance, true, &mTestTransformSecond);
+
+		mTestGraphicsPipeline->addRenderableToDraw(mTestRenderable);
+		mTestGraphicsPipeline->addRenderableToDraw(mSecondTestRenderable);
+	}
+
+	void RenderingContextVulkan::resizeTestPipeline() {
+		mTestGraphicsPipeline->recreate(mLogicDevice, mSwapChain->getExtent(), mAppSceneRenderPass->get());
+	}
+
+	void RenderingContextVulkan::closeTestPipeline() {
+		mTestGraphicsPipeline->close(mLogicDevice);
+		mTestShaderProgram->close(mLogicDevice);
+		//mTestShaderUniformLayout->close(mLogicDevice);
+		
+		for (auto& buffer : mTestCameraValueBuffers) {
+			buffer->close(mLogicDevice);
+		}
+
+		for (auto& buffer : mTestCameraOrthoValueBuffers) {
+			buffer->close(mLogicDevice);
+		}
+
+		mTestRenderable->getVao().close(mLogicDevice);
+		mTestIndexBuffer->close(mLogicDevice);
+
+		vkDestroyDescriptorPool(mLogicDevice, mTestDescriptorPool, nullptr);
 	}
 }

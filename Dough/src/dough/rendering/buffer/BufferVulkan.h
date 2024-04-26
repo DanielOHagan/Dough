@@ -94,7 +94,7 @@ namespace DOH {
 
 		inline VkBuffer getBuffer() const { return mBuffer; }
 		inline VkDeviceMemory getDeviceMemory() const { return mBufferMemory; }
-		inline size_t getSize() const { return mSize; }
+		inline VkDeviceSize getSize() const { return mSize; }
 		inline bool isMapped() const { return mData != nullptr; }
 
 	protected:

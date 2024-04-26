@@ -10,7 +10,7 @@ namespace DOH {
 		mPaused(!start)
 	{
 		if (start) {
-			this->start();
+			Timer::start();
 		}
 	}
 

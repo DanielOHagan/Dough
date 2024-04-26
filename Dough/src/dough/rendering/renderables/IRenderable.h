@@ -4,6 +4,8 @@
 
 namespace DOH {
 
+	class ShaderUniformSetsInstanceVulkan;
+
 	/** 
 	* Renderables are objects that hold the information for issuing draw commands, they DO NOT own the data.
 	*/
@@ -13,5 +15,7 @@ namespace DOH {
 		virtual void* getPushConstantPtr() const = 0;
 
 		virtual bool isIndexed() const = 0;
+
+		virtual std::shared_ptr<ShaderUniformSetsInstanceVulkan> getShaderResourceData() const { return nullptr; };
 	};
 }

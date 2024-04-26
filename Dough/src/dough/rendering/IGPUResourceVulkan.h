@@ -33,7 +33,5 @@ namespace DOH {
 	public:
 		virtual void close(VkDevice logicDevice) = 0;
 		virtual bool isUsingGpuResource() const { return mUsingGpuResource; }
-
-		//TODO:: virtual destructor? use for debugging?
 	};
 }

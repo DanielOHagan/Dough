@@ -181,7 +181,7 @@ namespace DOH {
 		);
 		VkExtent2D extent = SwapChainVulkan::chooseSwapExtent(scCreate.SupportDetails.capabilities, width, height);
 
-		uint32_t imageCount = scCreate.SupportDetails.capabilities.minImageCount + 1;
+		uint32_t imageCount = std::min(2u, scCreate.SupportDetails.capabilities.minImageCount + 1); //Set default image count to 2
 		if (scCreate.SupportDetails.capabilities.maxImageCount > 0 && imageCount > scCreate.SupportDetails.capabilities.maxImageCount) {
 			imageCount = scCreate.SupportDetails.capabilities.maxImageCount;
 		}

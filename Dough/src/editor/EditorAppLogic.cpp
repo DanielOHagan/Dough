@@ -178,6 +178,8 @@ namespace DOH::EDITOR {
 				) {
 					window.selectDisplayMode(EWindowDisplayMode::BORDERLESS_FULLSCREEN);
 				}
+				//TODO:: fix borderless windowed
+				EditorGui::displayHelpTooltip("Borderless windowed currently doesn't work!");
 				ImGui::SameLine();
 				bool displayModeFullscreenActive = window.getDisplayMode() == EWindowDisplayMode::FULLSCREEN;
 				if (

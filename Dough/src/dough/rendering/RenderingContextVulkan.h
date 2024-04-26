@@ -13,8 +13,11 @@
 
 #include <queue>
 
-namespace DOH {
+//TEMP::
+#include "dough/rendering/pipeline_2/GraphicsPipelineVulkan_2.h"
+#include "dough/rendering/pipeline_2/ShaderUniformLayoutVulkan_2.h"
 
+namespace DOH {
 
 	static std::array<const char*, 2> ERenderPassStrings = {
 		"APP_SCENE",
@@ -33,6 +36,19 @@ namespace DOH {
 		//NOTE:: Assumes only one VertexBuffer is bound at a time
 		VkBuffer VertexBuffer = VK_NULL_HANDLE;
 		VkBuffer IndexBuffer = VK_NULL_HANDLE;
+
+		std::array<VkDescriptorSet, 16> DescriptorSets;
+
+		CurrentBindingsState()
+		:	Pipeline(VK_NULL_HANDLE),
+			VertexBuffer(VK_NULL_HANDLE),
+			IndexBuffer(VK_NULL_HANDLE),
+			DescriptorSets()
+		{
+			for (size_t i = 0; i < DescriptorSets.size(); i++) {
+				DescriptorSets[i] = VK_NULL_HANDLE;
+			}
+		}
 	};
 
 	class RenderingContextVulkan {
@@ -114,6 +130,47 @@ namespace DOH {
 		std::vector<VkFence> mFramesInFlightFences;
 
 		VkFormat mDepthFormat;
+
+
+		//TEMP:: New graphics pipeline stuff
+		const StaticVertexInputLayout& mTestGraphicsVertexInputLayout = StaticVertexInputLayout::get(EVertexType::VERTEX_3D_TEXTURED);
+		std::shared_ptr<GraphicsPipelineVulkan_2> mTestGraphicsPipeline;
+		std::unique_ptr<GraphicsPipelineInstanceInfo_2> mTestGraphicsPipelineInstanceInfo;
+		std::shared_ptr<ShaderProgram_2> mTestShaderProgram;
+		std::shared_ptr<ShaderUniformLayoutVulkan_2> mTestShaderUniformLayout;
+		std::unordered_map<std::string, std::shared_ptr<ShaderUniformSetLayoutVulkan>> mAllUniformSetLayouts;
+		//Quad vertices & indices
+		const std::vector<Vertex3dTextured> mTestVertices = {
+			//	x		y		z		r		g		b		a		u		v		
+			{ { -0.5f,	-0.5f,	0.0f},	{1.0f,	0.0f,	0.0f,	1.0f},	{0.0f,	1.0f} },
+			{ {	 0.5f,	-0.5f,	0.0f},	{0.0f,	0.0f,	0.0f,	1.0f},	{1.0f,	1.0f} },
+			{ {	 0.5f,	0.5f,	0.0f},	{0.0f,	0.0f,	1.0f,	1.0f},	{1.0f,	0.0f} },
+			{ {	-0.5f,	0.5f,	0.0f},	{0.0f,	0.0f,	0.0f,	1.0f},	{0.0f,	0.0f} },
+
+			{ {	0.00f,	0.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{0.0f,	1.0f} },
+			{ {	1.00f,	0.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{1.0f,	1.0f} },
+			{ {	1.00f,	1.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{1.0f,	0.0f} },
+			{ {	0.00f,	1.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{0.0f,	0.0f} }
+		};
+		const std::vector<uint32_t> mTestIndices = {
+			0, 1, 2,
+			2, 3, 0
+		};
+		//Cube vertices & indices
+		std::shared_ptr<IndexBufferVulkan> mTestIndexBuffer;
+		std::shared_ptr<SimpleRenderable_2> mTestRenderable;
+		std::shared_ptr<SimpleRenderable_2> mSecondTestRenderable;
+		VkDescriptorPool mTestDescriptorPool = VK_NULL_HANDLE;
+		std::vector<std::shared_ptr<BufferVulkan>> mTestCameraValueBuffers;
+		std::vector<std::shared_ptr<BufferVulkan>> mTestCameraOrthoValueBuffers;
+		std::vector<VkDescriptorSet> mTestUboDescriptorSets;
+		std::vector<VkDescriptorSet> mTestUboOrthoDescriptorSets;
+		VkDescriptorSet mTestWhiteTextureDescriptorSet;
+		VkDescriptorSet mTestTextureDescriptorSet;
+		glm::mat4x4 mTestTransform = glm::mat4x4(1.0f);
+		glm::mat4x4 mTestTransformSecond = glm::mat4x4(1.0f);
+		std::shared_ptr<ShaderUniformSetsInstanceVulkan> mFirstTestShaderResourceInstance;
+		std::shared_ptr<ShaderUniformSetsInstanceVulkan> mSecondTestShaderResourceInstance; //TODO:: could this just be stored inside a Renderable ? like how ModelRenderable stores transform data
 
 	public:
 		RenderingContextVulkan(VkDevice logicDevice, VkPhysicalDevice physicalDevice);
@@ -233,6 +290,12 @@ namespace DOH {
 		inline RenderingDeviceInfo& getRenderingDeviceInfo() const { return *mRenderingDeviceInfo; }
 		inline size_t getCurrentFrame() const { return mCurrentFrame; }
 
+
+		//-----Descriptor Set layouts-----
+		void addSetLayout(const char* name, std::shared_ptr<ShaderUniformSetLayoutVulkan> setLayout);
+		std::shared_ptr<ShaderUniformSetLayoutVulkan> getSetLayout(const char* name);
+		void removeSetLayout(const char* name, bool closeLayout);
+
 		static VkImage createImage(
 			VkDevice logicDevice,
 			VkPhysicalDevice physicalDevice,
@@ -263,7 +326,8 @@ namespace DOH {
 		inline std::shared_ptr<IndexBufferVulkan> createIndexBuffer(VkDeviceSize size) const { return std::make_shared<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, size); }
 		inline std::shared_ptr<IndexBufferVulkan> createStagedIndexBuffer(void* data, VkDeviceSize size) const { return std::make_shared<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, (const void*) data, size); }
 		inline std::shared_ptr<IndexBufferVulkan> createStagedIndexBuffer(const void* data, VkDeviceSize size) const { return std::make_shared<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size); }
-		inline std::unique_ptr<IndexBufferVulkan> createSharedStagedIndexBuffer(const void* data, VkDeviceSize size) const { return std::make_unique<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size); }
+		//TODO:: createSharedIndexBuffer()
+		inline std::shared_ptr<IndexBufferVulkan> createSharedStagedIndexBuffer(const void* data, VkDeviceSize size) const { return std::make_shared<IndexBufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size); }
 		inline std::shared_ptr<BufferVulkan> createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props) const { return std::make_shared<BufferVulkan>(mLogicDevice, mPhysicalDevice, size, usage, props); }
 		inline std::shared_ptr<BufferVulkan> createStagedBuffer(void* data, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props) const { return std::make_shared<BufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, (const void*) data, size, usage, props); }
 		inline std::shared_ptr<BufferVulkan> createStagedBuffer(const void* data, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props) const { return std::make_shared<BufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size, usage, props); }
@@ -309,5 +373,12 @@ namespace DOH {
 
 		inline size_t getNextFrameIndex(size_t currentFrameIndex) const { return ((currentFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT); }
 		inline size_t getNextGpuResourceCloseFrameIndex(size_t currentReleaseFrameIndex) const { return ((currentReleaseFrameIndex + 1) % GPU_RESOURCE_CLOSE_FRAME_INDEX_COUNT); }
+
+
+
+		//TEMP:::
+		void createTestPipeline();
+		void closeTestPipeline();
+		void resizeTestPipeline();
 	};
 }

@@ -3,8 +3,14 @@
 #include "dough/application/Application.h"
 
 #define CONTEXT Application::get().getRenderer().getContext()
+//#define CONTEXT DOH::getContext()
 
 namespace DOH {
+
+	//static RenderingContextVulkan& getContext() {
+	//	static RenderingContextVulkan& context = Application::get().getRenderer().getContext();
+	//	return context;
+	//}
 
 	//-----Context-----
 	std::shared_ptr<SwapChainVulkan> ObjInit::swapChain(SwapChainCreationInfo& swapChainCreate) {

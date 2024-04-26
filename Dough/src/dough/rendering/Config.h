@@ -10,7 +10,6 @@ namespace DOH {
 
 	using ValueUniformInfo = VkDeviceSize; //TODO:: std::pair<VkDeviceSize, VkPipelineStage> to allow for input into different pipeline stages
 	using TextureUniformInfo = std::pair<VkImageView, VkSampler>;
-	using PushConstantInfo = VkPushConstantRange;
 	using DescriptorTypeInfo = std::pair<VkDescriptorType, uint32_t>;
 
 	struct SwapChainSupportDetails {
@@ -171,7 +170,7 @@ namespace DOH {
 
 	enum class EVertexType {
 		/** 
-		* Default value so itshould never be used as vertex input.
+		* Default value so it should never be used as vertex input.
 		*/
 		NONE = 0,
 

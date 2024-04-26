@@ -27,7 +27,7 @@ namespace DOH {
 		void updateTranslationMatrix() {
 			Translation = glm::translate(
 				glm::mat4x4(1.0f),
-				{ Position[0], Position[1],Position[2] }
+				{ Position[0], Position[1], Position[2] }
 			);
 
 			Translation *= glm::eulerAngleYXZ(
@@ -44,9 +44,10 @@ namespace DOH {
 	};
 
 	class RenderableModelVulkan : public IRenderable {
-	
 	public:
+		//TODO:: is a name necessary?
 		std::string Name;
+		//TODO:: does this have to be a shared_ptr ?
 		std::shared_ptr<ModelVulkan> Model;
 		std::shared_ptr<TransformationData> Transformation;
 		bool Render;

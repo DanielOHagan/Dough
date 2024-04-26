@@ -68,6 +68,8 @@ namespace DOH {
 		ShaderProgramVulkan& mShaderProgram;
 		const ERenderPass mRenderPass;
 
+		//TODO:: Could this be initialised as nullptr to indicate that all fields should be set to default and if
+		// not nullptr then use the optional fields. Should save some memory for any pipelines that use default fields.
 		std::unique_ptr<GraphicsPipelineOptionalFields> mOptionalFields;
 
 	public:
