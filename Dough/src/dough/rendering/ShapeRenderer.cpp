@@ -10,45 +10,48 @@
 namespace DOH {
 
 	std::unique_ptr<ShapeRenderer> ShapeRenderer::INSTANCE = nullptr;
-	const std::string ShapeRenderer::QUAD_SHADER_PATH_VERT = "Dough/res/shaders/spv/QuadBatch.vert.spv";
-	const std::string ShapeRenderer::QUAD_SHADER_PATH_FRAG = "Dough/res/shaders/spv/QuadBatch.frag.spv";
+	const char* ShapeRenderer::QUAD_SHADER_PATH_VERT = "Dough/res/shaders/spv/QuadBatch.vert.spv";
+	const char* ShapeRenderer::QUAD_SHADER_PATH_FRAG = "Dough/res/shaders/spv/QuadBatch.frag.spv";
 
 	ShapeRenderer::ShapeRenderer(RenderingContextVulkan& context)
 	:	mContext(context),
 		mDrawnQuadCount(0),
-		mTruncatedQuadCount(0)
+		mTruncatedQuadCount(0),
+		mQuadBatchTextureArrayDescSet(VK_NULL_HANDLE)
 	{}
 
 	void ShapeRenderer::initImpl() {
 		ZoneScoped;
 
-		mWhiteTexture = ObjInit::texture(
-			255.0f,
-			255.0f,
-			255.0f,
-			255.0f,
-			false,
-			"White Texture"
-		);
-
 		initQuadImpl();
+		//initCircleImpl();
+		//initTriangleImpl();
 	}
 
 	void ShapeRenderer::initQuadImpl() {
 		ZoneScoped;
 
-		mQuadShaderProgram = ObjInit::shaderProgram(
-			ObjInit::shader(EShaderType::VERTEX, ShapeRenderer::QUAD_SHADER_PATH_VERT),
-			ObjInit::shader(EShaderType::FRAGMENT, ShapeRenderer::QUAD_SHADER_PATH_FRAG)
+		std::vector<std::reference_wrapper<DescriptorSetLayoutVulkan>> quadDescSets = {
+			mContext.getCommonDescriptorSetLayouts().Ubo,
+			mContext.getCommonDescriptorSetLayouts().SingleTextureArray8
+		};
+		std::shared_ptr<ShaderDescriptorSetLayoutsVulkan> quadDescSetLayouts = std::make_shared<ShaderDescriptorSetLayoutsVulkan>(quadDescSets);
+		
+		mQuadVertexShader = mContext.createShader(EShaderStage::VERTEX, ShapeRenderer::QUAD_SHADER_PATH_VERT);
+		mQuadFragmentShader = mContext.createShader(EShaderStage::FRAGMENT, ShapeRenderer::QUAD_SHADER_PATH_FRAG);
+		mQuadShaderProgram = mContext.createShaderProgram(
+			mQuadVertexShader,
+			mQuadFragmentShader,
+			quadDescSetLayouts
 		);
 
 		mQuadBatchTextureArray = std::make_unique<TextureArray>(
 			EBatchSizeLimits::BATCH_MAX_COUNT_TEXTURE,
-			*mWhiteTexture
+			*mContext.getResourceDefaults().WhiteTexture
 		);
 
 		//Add blacnk white texture for quads that aren't using a texture
-		mQuadBatchTextureArray->addNewTexture(*mWhiteTexture);
+		mQuadBatchTextureArray->addNewTexture(*mContext.getResourceDefaults().WhiteTexture);
 
 		//Commented out after implementation of Texture Atlas,
 		// left as comment to show how to use individual textures
@@ -74,17 +77,14 @@ namespace DOH {
 		mQuadBatchTextureArray->addNewTexture(*mTestMonoSpaceTextureAtlas);
 		mQuadBatchTextureArray->addNewTexture(*mTestIndexedTextureAtlas);
 
-		ShaderUniformLayout& layout = mQuadShaderProgram->getUniformLayout();
-		layout.setValue(0, sizeof(glm::mat4x4));
-		layout.setTextureArray(1, *mQuadBatchTextureArray);
-
 		mQuadGraphicsPipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 			StaticVertexInputLayout::get(QUAD_VERTEX_INPUT_TYPE),
 			*mQuadShaderProgram,
 			ERenderPass::APP_SCENE
 		);
-		mQuadGraphicsPipelineInstanceInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS);
-		mQuadGraphicsPipelineInstanceInfo->getOptionalFields().setBlending(
+		auto& optionalFields = mQuadGraphicsPipelineInstanceInfo->enableOptionalFields();
+		optionalFields.setDepthTesting(true, VK_COMPARE_OP_LESS);
+		optionalFields.setBlending(
 			true,
 			VK_BLEND_OP_ADD,
 			VK_BLEND_FACTOR_SRC_ALPHA,
@@ -94,9 +94,11 @@ namespace DOH {
 			VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
 		);
 
-		mQuadGraphicsPipeline = mContext.createGraphicsPipeline(
-			*mQuadGraphicsPipelineInstanceInfo,
-			mContext.getSwapChain().getExtent()
+		mQuadGraphicsPipeline = mContext.createGraphicsPipeline(*mQuadGraphicsPipelineInstanceInfo);
+		mQuadGraphicsPipeline->init(
+			mContext.getLogicDevice(),
+			mContext.getSwapChain().getExtent(),
+			mContext.getRenderPass(ERenderPass::APP_SCENE).get()
 		);
 
 		//Quad Index Buffer
@@ -118,53 +120,56 @@ namespace DOH {
 			quadIndices.data(),
 			sizeof(uint32_t) * EBatchSizeLimits::BATCH_QUAD_INDEX_COUNT
 		);
+
+		DescriptorSetLayoutVulkan& texArrSetLayout = mContext.getCommonDescriptorSetLayouts().SingleTextureArray8;
+		mQuadBatchTextureArrayDescSet = DescriptorApiVulkan::allocateDescriptorSetFromLayout(
+			mContext.getLogicDevice(),
+			mContext.getEngineDescriptorPool(),
+			texArrSetLayout
+		);
+		const uint32_t texArrBinding = 0;
+		DescriptorSetUpdate texArrUpdate = {
+			{{ texArrSetLayout.getDescriptors()[texArrBinding], *mQuadBatchTextureArray }},
+			mQuadBatchTextureArrayDescSet
+		};
+		DescriptorApiVulkan::updateDescriptorSet(mContext.getLogicDevice(), texArrUpdate);
+
+		//TEMP:: These textures were stored in ShapeRenderer because rebinding never used to be supported.
+		//TODO:: Remove them from this class and allow for easy adding/removing of textures to the batch tex array.
+		
+
+		std::initializer_list<VkDescriptorSet> descSets = { VK_NULL_HANDLE, mQuadBatchTextureArrayDescSet };
+		mSceneBatchDescriptorSetInstance = std::make_shared<DescriptorSetsInstanceVulkan>(descSets);
 	}
 
 	void ShapeRenderer::closeImpl() {
 		ZoneScoped;
 
-		VkDevice logicDevice = mContext.getLogicDevice();
+		mContext.addGpuResourceToClose(mQuadVertexShader);
+		mContext.addGpuResourceToClose(mQuadFragmentShader);
+		mContext.addGpuResourceToClose(mQuadGraphicsPipeline);
+		mContext.addGpuResourceToClose(mTestMonoSpaceTextureAtlas);
+		mContext.addGpuResourceToClose(mTestIndexedTextureAtlas);
 
-		mQuadShaderProgram->close(logicDevice);
-		mQuadGraphicsPipeline->close(logicDevice);
-
-		mTestMonoSpaceTextureAtlas->close(logicDevice);
-		mTestIndexedTextureAtlas->close(logicDevice);
-
-		mWhiteTexture->close(logicDevice);
-
-		for (std::shared_ptr<TextureVulkan> texture : mTestTextures) {
-			texture->close(logicDevice);
-		}
+		//for (std::shared_ptr<TextureVulkan> texture : mTestTextures) {
+		//	mContext.addGpuResourceToClose(texture);
+		//}
 
 		for (const auto& renderableQuadBatch : mRenderableQuadBatches) {
-			renderableQuadBatch->getVao().close(logicDevice);
+			mContext.addGpuResourceToClose(renderableQuadBatch->getVaoPtr());
 		}
 
-		mQuadSharedIndexBuffer->close(logicDevice);
+		mContext.addGpuResourceToClose(mQuadSharedIndexBuffer);
 	}
 
 	void ShapeRenderer::onSwapChainResizeImpl(SwapChainVulkan& swapChain) {
 		ZoneScoped;
 
-		VkDevice logicDevice = mContext.getLogicDevice();
-
-		//vkDestroyDescriptorPool(logicDevice, mDescriptorPool, nullptr);
-
-		//createDescriptorPool();
-
-		mQuadGraphicsPipeline->recreate(
-			logicDevice,
+		mQuadGraphicsPipeline->resize(
+			mContext.getLogicDevice(),
 			swapChain.getExtent(),
 			mContext.getRenderPass(ERenderPass::APP_SCENE).get()
 		);
-		//mContext.createPipelineUniformObjects(*mQuadGraphicsPipeline, mDescriptorPool);
-	}
-
-	void ShapeRenderer::createPipelineUniformObjectsImpl(VkDescriptorPool descPool) {
-		ZoneScoped;
-
-		mContext.createPipelineUniformObjects(*mQuadGraphicsPipeline, descPool);
 	}
 
 	void ShapeRenderer::drawQuadSceneImpl(const Quad& quad) {
@@ -406,22 +411,6 @@ namespace DOH {
 		}
 	}
 
-	void ShapeRenderer::setUniformDataImpl(uint32_t currentImage, uint32_t uboBinding, glm::mat4x4& sceneProjView, glm::mat4x4& uiProjView) {
-		ZoneScoped;
-
-		VkDevice logicDevice = mContext.getLogicDevice();
-
-		mQuadGraphicsPipeline->setFrameUniformData(
-			logicDevice,
-			currentImage,
-			uboBinding,
-			&sceneProjView,
-			sizeof(glm::mat4x4)
-		);
-
-		//TODO:: UI
-	}
-
 	void ShapeRenderer::drawSceneImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
 		ZoneScoped;
 
@@ -436,18 +425,6 @@ namespace DOH {
 				const uint32_t quadCount = static_cast<uint32_t>(batch.getGeometryCount());
 
 				if (quadCount > 0) {
-					if (mQuadGraphicsPipeline->get() != currentBindings.Pipeline) {
-						mQuadGraphicsPipeline->bind(cmd);
-						currentBindings.Pipeline = mQuadGraphicsPipeline->get();
-						debugInfo.PipelineBinds++;
-					}
-
-					if (mQuadSharedIndexBuffer->getBuffer() != currentBindings.IndexBuffer) {
-						mQuadSharedIndexBuffer->bind(cmd);
-						currentBindings.IndexBuffer = mQuadSharedIndexBuffer->getBuffer();
-						debugInfo.IndexBufferBinds++;
-					}
-
 					const auto& renderableBatch = mRenderableQuadBatches[index];
 					VertexArrayVulkan& vao = renderableBatch->getVao();
 
@@ -470,7 +447,27 @@ namespace DOH {
 			}
 
 			if (hasQuadToDraw) {
-				mQuadGraphicsPipeline->recordDrawCommands(imageIndex, cmd, currentBindings);
+				if (mQuadGraphicsPipeline->get() != currentBindings.Pipeline) {
+					mQuadGraphicsPipeline->bind(cmd);
+					currentBindings.Pipeline = mQuadGraphicsPipeline->get();
+					debugInfo.PipelineBinds++;
+				}
+
+				if (mQuadSharedIndexBuffer->getBuffer() != currentBindings.IndexBuffer) {
+					mQuadSharedIndexBuffer->bind(cmd);
+					currentBindings.IndexBuffer = mQuadSharedIndexBuffer->getBuffer();
+					debugInfo.IndexBufferBinds++;
+				}
+
+				mContext.bindSceneUboToPipeline(
+					cmd,
+					*mQuadGraphicsPipeline,
+					imageIndex,
+					currentBindings,
+					debugInfo
+				);
+
+				mQuadGraphicsPipeline->recordDrawCommands(cmd, currentBindings, 1);
 			}
 		}
 	}
@@ -485,7 +482,6 @@ namespace DOH {
 		ZoneScoped;
 
 		if (mQuadRenderBatches.size() < EBatchSizeLimits::MAX_BATCH_COUNT_QUAD) {
-
 			constexpr size_t batchSizeBytes = EBatchSizeLimits::BATCH_QUAD_BYTE_SIZE;
 
 			RenderBatchQuad& batch = mQuadRenderBatches.emplace_back(
@@ -504,7 +500,7 @@ namespace DOH {
 			vao->setIndexBuffer(mQuadSharedIndexBuffer, true);
 			vao->getVertexBuffers()[0]->map(mContext.getLogicDevice(), batchSizeBytes);
 
-			mRenderableQuadBatches.emplace_back(std::make_shared<SimpleRenderable>(vao));
+			mRenderableQuadBatches.emplace_back(std::make_shared<SimpleRenderable>(vao, mSceneBatchDescriptorSetInstance));
 
 			return mQuadRenderBatches.size() - 1;
 		} else {
@@ -574,19 +570,6 @@ namespace DOH {
 		}
 	}
 
-	void ShapeRenderer::createPipelineUniformObjects(VkDescriptorPool descPool) {
-		if (INSTANCE != nullptr) {
-			INSTANCE->createPipelineUniformObjectsImpl(descPool);
-		} else {
-			LOG_WARN("Attempted createPipelineUniformObjects when ShapeRenderer is un-initialised/closed.");
-		}
-	}
-
-	void ShapeRenderer::setUniformData(uint32_t currentImage, uint32_t uboBinding, glm::mat4x4& sceneProjView, glm::mat4x4& uiProjView) {
-		//NOTE:: No nullptr check as this function is expected to be called each frame.
-		INSTANCE->setUniformDataImpl(currentImage, uboBinding, sceneProjView, uiProjView);
-	}
-
 	void ShapeRenderer::drawScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
 		//NOTE:: No nullptr check as this function is expected to be called each frame.
 		INSTANCE->drawSceneImpl(imageIndex, cmd, currentBindings);
@@ -635,26 +618,15 @@ namespace DOH {
 		INSTANCE->mTruncatedQuadCount = 0;
 	}
 
-	std::vector<DescriptorTypeInfo> ShapeRenderer::getDescriptorTypeInfos() {
-		ZoneScoped;
+	std::vector<DescriptorTypeInfo> ShapeRenderer::getEngineDescriptorTypeInfos() {
+		//TEMP:: Currently requires two textures & texture array
+		std::vector<DescriptorTypeInfo> descTypeInfos = {};
+		descTypeInfos.push_back({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2u }); //Test textures
+		descTypeInfos.push_back({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8u }); //Texture Array
+		return descTypeInfos;
 
-		if (INSTANCE != nullptr) {
-			std::vector<DescriptorTypeInfo> totalDescTypes = {};
-			{
-				std::vector<DescriptorTypeInfo> descTypes = INSTANCE->mQuadGraphicsPipeline->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes();
-				totalDescTypes.reserve(totalDescTypes.size() + descTypes.size());
-
-				for (const DescriptorTypeInfo& descType : descTypes) {
-					totalDescTypes.emplace_back(descType);
-				}
-			}
-
-			return totalDescTypes;
-		} else {
-			LOG_ERR("Attempted getDescriptorTypeInfos when ShapeRenderer is un-initialised/closed.");
-		}
-
-		return {};
+		//NOTE:: Currently there are no Descriptors owned by the ShapeRenderer::INSTANCE so this function is empty.
+		//return { };
 	}
 
 	void ShapeRenderer::drawQuadScene(const Quad& quad) {

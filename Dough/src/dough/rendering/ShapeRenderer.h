@@ -18,16 +18,20 @@ namespace DOH {
 
 	class ShapeRenderer {
 
+		friend class RenderingContextVulkan;
+
 	private:
 
 		static std::unique_ptr<ShapeRenderer> INSTANCE;
 
-		static const std::string QUAD_SHADER_PATH_VERT;
-		static const std::string QUAD_SHADER_PATH_FRAG;
+		static const char* QUAD_SHADER_PATH_VERT;
+		static const char* QUAD_SHADER_PATH_FRAG;
 
 		RenderingContextVulkan& mContext;
 
-		std::shared_ptr<ShaderProgramVulkan> mQuadShaderProgram;
+		std::shared_ptr<ShaderProgram> mQuadShaderProgram;
+		std::shared_ptr<ShaderVulkan> mQuadVertexShader;
+		std::shared_ptr<ShaderVulkan> mQuadFragmentShader;
 		std::unique_ptr<GraphicsPipelineInstanceInfo> mQuadGraphicsPipelineInstanceInfo;
 		std::shared_ptr<GraphicsPipelineVulkan> mQuadGraphicsPipeline;
 
@@ -36,14 +40,12 @@ namespace DOH {
 		//Quad indices buffer to be shared between Quad VAOs
 		std::shared_ptr<IndexBufferVulkan> mQuadSharedIndexBuffer;
 		std::unique_ptr<TextureArray> mQuadBatchTextureArray;
+		VkDescriptorSet mQuadBatchTextureArrayDescSet;
+		std::shared_ptr<DescriptorSetsInstanceVulkan> mSceneBatchDescriptorSetInstance;
 
-		//Textures
-		//TODO:: move this to context
-		std::shared_ptr<TextureVulkan> mWhiteTexture;
-
-		//TEMP:: Rebinding descriptors not available, all textures must be bound first. Needs fixing!
+		//TEMP:: Leftover from when rebinding descriptors was not available. Need to move this into demo code.
 		const char* testTexturesPath = "Dough/res/images/test textures/";
-		std::vector<std::shared_ptr<TextureVulkan>> mTestTextures;
+		//std::vector<std::shared_ptr<TextureVulkan>> mTestTextures;
 		std::shared_ptr<MonoSpaceTextureAtlas> mTestMonoSpaceTextureAtlas;
 		std::shared_ptr<IndexedTextureAtlas> mTestIndexedTextureAtlas;
 
@@ -62,9 +64,7 @@ namespace DOH {
 		//void initTriangleImpl();
 		void closeImpl();
 		void onSwapChainResizeImpl(SwapChainVulkan& swapChain);
-		void createPipelineUniformObjectsImpl(VkDescriptorPool descPool);
 
-		void setUniformDataImpl(uint32_t currentImage, uint32_t uboBinding, glm::mat4x4& sceneProjView, glm::mat4x4& uiProjView);
 		void drawSceneImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 		void drawUiImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 
@@ -96,9 +96,7 @@ namespace DOH {
 		//static void initTriangle();
 		static void close();
 		static void onSwapChainResize(SwapChainVulkan& swapChain);
-		static void createPipelineUniformObjects(VkDescriptorPool descPool);
 
-		static void setUniformData(uint32_t currentImage, uint32_t uboBinding, glm::mat4x4& sceneProjView, glm::mat4x4& uiProjView);
 		static void drawScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 		static void drawUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 
@@ -116,7 +114,7 @@ namespace DOH {
 		static uint32_t getTruncatedQuadCount();
 		static void resetLocalDebugInfo();
 
-		static std::vector<DescriptorTypeInfo> getDescriptorTypeInfos();
+		static std::vector<DescriptorTypeInfo> getEngineDescriptorTypeInfos();
 
 		//-----Shape Objects-----
 		static void drawQuadScene(const Quad& quad);
@@ -132,11 +130,10 @@ namespace DOH {
 
 
 		//TEMP:: 
-		static inline TextureVulkan& getWhiteTexture() { return *INSTANCE->mWhiteTexture; }
 		static inline std::shared_ptr<IndexBufferVulkan> getQuadSharedIndexBufferPtr() { return INSTANCE->mQuadSharedIndexBuffer; }
 		static inline TextureArray& getQuadBatchTextureArray() { return *INSTANCE->mQuadBatchTextureArray; }
 		static inline std::vector<RenderBatchQuad>& getQuadRenderBatches() { return INSTANCE->mQuadRenderBatches; }
-		static inline const std::vector<std::shared_ptr<TextureVulkan>>& getTestTextures() { return INSTANCE->mTestTextures; }
+		//static inline const std::vector<std::shared_ptr<TextureVulkan>>& getTestTextures() { return INSTANCE->mTestTextures; }
 		static inline const std::shared_ptr<MonoSpaceTextureAtlas> getTestMonoSpaceTextureAtlas() { return INSTANCE->mTestMonoSpaceTextureAtlas; }
 		static inline const std::shared_ptr<IndexedTextureAtlas> getTestIndexedTextureAtlas() { return INSTANCE->mTestIndexedTextureAtlas; }
 	};

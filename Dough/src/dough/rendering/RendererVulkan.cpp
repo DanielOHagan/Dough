@@ -2,7 +2,7 @@
 
 #include "dough/application/Application.h"
 #include "dough/Utils.h"
-#include "dough/rendering/pipeline/shader/ShaderVulkan.h"
+#include "dough/rendering/pipeline/ShaderVulkan.h"
 
 #include <set>
 #include <string>
@@ -353,7 +353,7 @@ namespace DOH {
 	void RendererVulkan::beginScene(ICamera& camera) {
 		ZoneScoped;
 
-		mRenderingContext->setAppSceneUniformBufferObject(camera);
+		mRenderingContext->setAppSceneCameraData(camera);
 	}
 
 	void RendererVulkan::endScene() {
@@ -366,7 +366,7 @@ namespace DOH {
 	void RendererVulkan::beginUi(glm::mat4x4& proj) {
 		ZoneScoped;
 
-		mRenderingContext->setAppUiProjection(proj);
+		mRenderingContext->setAppUiCameraData(proj);
 	}
 
 	void RendererVulkan::endUi() {
@@ -432,9 +432,7 @@ namespace DOH {
 		void* userDataPtr
 	) {
 		LOG_ERR("Validation layer: " << callbackDataPtr->pMessage);
-		#if defined (DOH_BREAK_ON_VK_VALIDATION_ERR)
-			int breakableStatement = 0;
-		#endif
+		int breakableStatement = 0;
 		return VK_FALSE;
 	}
 }

@@ -2,14 +2,14 @@
 
 namespace DOH {
 
-	static const char* EShaderStage_2Strings[3] = {
+	static const char* EShaderStageStrings[3] = {
 		"NONE",
 
 		"VERTEX",
 		"FRAGMENT"
 	};
 
-	enum class EShaderStage_2 {
+	enum class EShaderStage {
 		NONE = 0,
 
 		VERTEX,

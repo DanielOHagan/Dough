@@ -5,7 +5,7 @@ layout (push_constant) uniform PushConstant {
 	mat4 transformation;
 } pushConstant;
 
-layout (binding = 0) uniform UniformBufferObject {
+layout (set = 0, binding = 0) uniform UniformBufferObject {
 	mat4 projView;
 } ubo;
 

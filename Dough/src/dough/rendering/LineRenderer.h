@@ -9,6 +9,7 @@
 namespace DOH {
 
 	struct AppDebugInfo;
+	class DescriptorSetsInstanceVulkan;
 
 	//Primitives forward declarations
 	class Quad;
@@ -19,22 +20,28 @@ namespace DOH {
 		static constexpr const EVertexType SCENE_LINE_VERTEX_TYPE = EVertexType::VERTEX_3D;
 		std::unique_ptr<RenderBatchLineList> mSceneLineBatch;
 		//std::unique_ptr<RenderBatchLineStrip> mSceneLineBatch;
-		std::shared_ptr<ShaderProgramVulkan> mSceneLineShaderProgram;
+		std::shared_ptr<ShaderProgram> mSceneLineShaderProgram;
+		std::shared_ptr<ShaderVulkan> mSceneLineVertexShader;
+		std::shared_ptr<ShaderVulkan> mSceneLineFragmentShader;
 		std::unique_ptr<GraphicsPipelineInstanceInfo> mSceneLineGraphicsPipelineInfo;
 		std::shared_ptr<GraphicsPipelineVulkan> mSceneLineGraphicsPipeline;
 		std::shared_ptr<SimpleRenderable> mSceneLineRenderable;
-		const std::string mSceneLineRendererVertexShaderPath = "Dough/res/shaders/spv/LineRenderer3d.vert.spv";
-		const std::string mSceneLineRendererFragmentShaderPath = "Dough/res/shaders/spv/LineRenderer3d.frag.spv";
+		const char* mSceneLineRendererVertexShaderPath = "Dough/res/shaders/spv/LineRenderer3d.vert.spv";
+		const char* mSceneLineRendererFragmentShaderPath = "Dough/res/shaders/spv/LineRenderer3d.frag.spv";
 		//App UI
 		static constexpr const EVertexType UI_LINE_VERTEX_TYPE = EVertexType::VERTEX_2D;
 		std::unique_ptr<RenderBatchLineList> mUiLineBatch;
 		//std::unique_ptr<RenderBatchLineStrip> mUiLineBatch;
-		std::shared_ptr<ShaderProgramVulkan> mUiLineShaderProgram;
+		std::shared_ptr<ShaderProgram> mUiLineShaderProgram;
+		std::shared_ptr<ShaderVulkan> mUiLineVertexShader;
+		std::shared_ptr<ShaderVulkan> mUiLineFragmentShader;
 		std::unique_ptr<GraphicsPipelineInstanceInfo> mUiLineGraphicsPipelineInfo;
 		std::shared_ptr<GraphicsPipelineVulkan> mUiLineGraphicsPipeline;
 		std::shared_ptr<SimpleRenderable> mUiLineRenderable;
-		const std::string mUiLineRendererVertexShaderPath = "Dough/res/shaders/spv/LineRenderer2d.vert.spv";
-		const std::string mUiLineRendererFragmentShaderPath = "Dough/res/shaders/spv/LineRenderer2d.frag.spv";
+		const char* mUiLineRendererVertexShaderPath = "Dough/res/shaders/spv/LineRenderer2d.vert.spv";
+		const char* mUiLineRendererFragmentShaderPath = "Dough/res/shaders/spv/LineRenderer2d.frag.spv";
+
+		std::unique_ptr<DescriptorSetsInstanceVulkan> mLineShadersDescriptorsInstance;
 
 	public:
 		LineRenderer() = default;
@@ -63,6 +70,7 @@ namespace DOH {
 			AppDebugInfo& debugInfo
 		);
 
+		//TODO:: rename to onSwapChain resize
 		void recreateGraphicsPipelines(
 			VkDevice logicDevice,
 			VkExtent2D extent,
@@ -70,9 +78,6 @@ namespace DOH {
 			const RenderPassVulkan& uiRenderPass,
 			VkDescriptorPool descPool
 		);
-		void createShaderUniforms(VkDevice logicDevice, VkPhysicalDevice physicalDevice, const uint32_t imageCount, VkDescriptorPool descPool);
-		void updateShaderUniforms(VkDevice logicDevice, const uint32_t imageCount);
-		const std::vector<DescriptorTypeInfo> getDescriptorTypeInfo() const;
 
 		inline PipelineRenderableConveyor getSceneLineConveyor() const { return { *mSceneLineGraphicsPipeline }; }
 		inline PipelineRenderableConveyor getUiLineConveyor() const { return { *mUiLineGraphicsPipeline }; }

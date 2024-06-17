@@ -16,30 +16,38 @@ namespace DOH {
 
 	class TextRenderer {
 
+		friend class RenderingContextVulkan;
+
 	private:
 
 		static std::unique_ptr<TextRenderer> INSTANCE;
 
 		RenderingContextVulkan& mContext;
 
-		static const std::string SOFT_MASK_SCENE_SHADER_PATH_VERT;
-		static const std::string SOFT_MASK_SCENE_SHADER_PATH_FRAG;
-		static const std::string MSDF_SCENE_SHADER_PATH_VERT;
-		static const std::string MSDF_SCENE_SHADER_PATH_FRAG;
+		static const char* SOFT_MASK_SCENE_SHADER_PATH_VERT;
+		static const char* SOFT_MASK_SCENE_SHADER_PATH_FRAG;
+		static const char* MSDF_SCENE_SHADER_PATH_VERT;
+		static const char* MSDF_SCENE_SHADER_PATH_FRAG;
 
 		std::unordered_map<std::string, std::shared_ptr<FontBitmap>> mFontBitmaps;
 		std::unique_ptr<TextureArray> mFontBitmapPagesTextureArary;
 		std::shared_ptr<IndexBufferVulkan> mQuadSharedIndexBuffer;
+		std::shared_ptr<DescriptorSetsInstanceVulkan> mFontRenderingDescSetsInstanceScene;
+		VkDescriptorSet mFontBitmapPagesDescSet;
 
 		//Soft Mask
-		std::shared_ptr<ShaderProgramVulkan> mSoftMaskSceneShaderProgram;
+		std::shared_ptr<ShaderProgram> mSoftMaskSceneShaderProgram;
+		std::shared_ptr<ShaderVulkan> mSoftMaskSceneVertexShader;
+		std::shared_ptr<ShaderVulkan> mSoftMaskSceneFragmentShader;
 		std::unique_ptr<GraphicsPipelineInstanceInfo> mSoftMaskScenePipelineInstanceInfo;
 		std::shared_ptr<GraphicsPipelineVulkan> mSoftMaskScenePipeline;
 		std::unique_ptr<RenderBatchQuad> mSoftMaskSceneBatch;
 		std::shared_ptr<SimpleRenderable> mSoftMaskSceneRenderableBatch;
 
 		//MSDF
-		std::shared_ptr<ShaderProgramVulkan> mMsdfSceneShaderProgram;
+		std::shared_ptr<ShaderProgram> mMsdfSceneShaderProgram;
+		std::shared_ptr<ShaderVulkan> mMsdfSceneVertexShader;
+		std::shared_ptr<ShaderVulkan> mMsdfSceneFragmentShader;
 		std::unique_ptr<GraphicsPipelineInstanceInfo> mMsdfScenePipelineInstanceInfo;
 		std::shared_ptr<GraphicsPipelineVulkan> mMsdfScenePipeline;
 		std::unique_ptr<RenderBatchQuad> mMsdfSceneBatch;
@@ -52,13 +60,11 @@ namespace DOH {
 		void initImpl(TextureVulkan& fallbackTexture, std::shared_ptr<IndexBufferVulkan> quadSharedIndexBuffer);
 		void closeImpl();
 		void onSwapChainResizeImpl(SwapChainVulkan& swapChain);
-		void createPipelineUniformObjectsImpl(VkDescriptorPool descPool);
 		bool createFontBitmapImpl(const char* fontName, const char* filePath, const char* imageDir, ETextRenderMethod textRenderMethod);
 		void addFontBitmapToTextTextureArrayImpl(const FontBitmap& fontBitmap);
 
-		void setUniformDataImpl(uint32_t currentImage, uint32_t uboBinding, glm::mat4x4& sceneProjView, glm::mat4x4& uiProjView);
-		void drawSceneImpl(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
-		void drawUiImpl(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
+		void drawSceneImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
+		void drawUiImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 
 		void drawTextFromQuadsImpl(const std::vector<Quad>& quadArr, const FontBitmap& bitmap);
 		void drawTextSameTextureFromQuadsImpl(const std::vector<Quad>& quadArr, const FontBitmap& bitmap);
@@ -77,21 +83,19 @@ namespace DOH {
 		static void init(RenderingContextVulkan& context, TextureVulkan& fallbackTexture, std::shared_ptr<IndexBufferVulkan> quadSharedIndexBuffer);
 		static void close();
 		static void onSwapChainResize(SwapChainVulkan& swapChain);
-		static void createPipelineUniformObjects(VkDescriptorPool descPool);
 		//TODO:: Currently only private impl function is usable because creating font bitmaps post-init is not available.
 		//static void createFontBitmap(const char* fontName, std::shared_ptr<FontBitmap> fontBitmap);
 		static void addFontBitmapToTextTextureArray(const FontBitmap& fontBitmap);
 
-		static void setUniformData(uint32_t currentImage, uint32_t uboBinding, glm::mat4x4& sceneProjView, glm::mat4x4& uiProjView);
-		static void drawScene(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
-		static void drawUi(const uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
+		static void drawScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
+		static void drawUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 
 		static uint32_t getDrawnQuadCount();
 		static void resetLocalDebugInfo();
 
 		static bool hasFont(const char* fontName);
 		static FontBitmap& getFontBitmap(const char* fontName);
-		static std::vector<DescriptorTypeInfo> getDescriptorTypeInfos();
+		static std::vector<DescriptorTypeInfo> getEngineDescriptorTypeInfos();
 
 
 		//-----Primitives-----

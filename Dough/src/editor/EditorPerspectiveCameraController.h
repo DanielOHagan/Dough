@@ -10,7 +10,6 @@ using namespace DOH;
 namespace DOH::EDITOR {
 
 	class EditorPerspectiveCameraController : public ICameraController {
-
 	private:
 		std::unique_ptr<PerspectiveCamera> mCamera;
 		glm::vec3 mPosition;

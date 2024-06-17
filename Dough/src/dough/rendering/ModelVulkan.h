@@ -26,6 +26,7 @@ namespace DOH {
 		virtual void close(VkDevice logicDevice) override;
 
 		inline VertexArrayVulkan& getVao() const { return *mVao; }
+		inline std::shared_ptr<VertexArrayVulkan> getVaoPtr() const { return mVao; }
 
 		static std::shared_ptr<ModelVulkan> createModel(const std::string& filepath, const AVertexInputLayout& vertexInputLayout);
 	};

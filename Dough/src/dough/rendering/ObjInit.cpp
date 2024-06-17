@@ -17,10 +17,6 @@ namespace DOH {
 		return CONTEXT.createSwapChain(swapChainCreate);
 	}
 
-	//TODO:: Provide a render pass creation method here?
-	//std::shared_ptr<RenderPassVulkan> ObjInit::renderPass()
-
-
 	//-----VAO-----
 	std::shared_ptr<VertexArrayVulkan> ObjInit::vertexArray() {
 		return CONTEXT.createVertexArray();
@@ -82,14 +78,15 @@ namespace DOH {
 
 
 	//-----Shader-----
-	std::shared_ptr<ShaderProgramVulkan> ObjInit::shaderProgram(
+	std::shared_ptr<ShaderProgram> ObjInit::shaderProgram(
 		std::shared_ptr<ShaderVulkan> vertShader,
-		std::shared_ptr<ShaderVulkan> fragShader
+		std::shared_ptr<ShaderVulkan> fragShader,
+		std::shared_ptr<ShaderDescriptorSetLayoutsVulkan> descriptorSetLayouts
 	) {
-		return CONTEXT.createShaderProgram(vertShader, fragShader);
+		return CONTEXT.createShaderProgram(vertShader, fragShader, descriptorSetLayouts);
 	}
-	std::shared_ptr<ShaderVulkan> ObjInit::shader(EShaderType type, const std::string& filePath) {
-		return CONTEXT.createShader(type, filePath);
+	std::shared_ptr<ShaderVulkan> ObjInit::shader(EShaderStage stage, const char* filePath) {
+		return CONTEXT.createShader(stage, filePath);
 	}
 
 

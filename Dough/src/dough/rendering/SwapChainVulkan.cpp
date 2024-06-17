@@ -24,6 +24,9 @@ namespace DOH {
 				"SwapChain GPU resource NOT released before destructor was called." <<
 				"Handle: " << mSwapChain << " Format: " << mImageFormat
 			);
+
+			//NOTE:: This is to stop the IGPUResource::~IGPUReource from logging a misleading error message.
+			mUsingGpuResource = false;
 		}
 	}
 

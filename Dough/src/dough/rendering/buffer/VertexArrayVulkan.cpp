@@ -32,6 +32,9 @@ namespace DOH {
 			//	LOG_ERR_INLINE(" " << vertexBufferHandles[i] << " ");
 			//}
 			//LOG_ERR((mSharingIndexBuffer ? "Shared Index Buffer Handle: " : "Index Buffer Handle: ") << mIndexBuffer->getBuffer());
+
+			//NOTE:: This is to stop the IGPUResource::~IGPUReource from logging a misleading error message.
+			mUsingGpuResource = false;
 		}
 	}
 

@@ -1,13 +1,14 @@
-#include "dough/rendering/pipeline_2/DescriptorApiVulkan.h"
+#include "dough/rendering/pipeline/DescriptorApiVulkan.h"
 
-#include "dough/rendering/pipeline_2/ShaderUniformLayoutVulkan_2.h"
+#include "dough/rendering/pipeline/ShaderDescriptorSetLayoutsVulkan.h"
+#include "dough/rendering/pipeline/AShaderDescriptor.h"
 
 namespace DOH {
 
 	VkDescriptorSet DescriptorApiVulkan::allocateDescriptorSetFromLayout(
 		VkDevice logicDevice,
 		VkDescriptorPool descPool,
-		ShaderUniformSetLayoutVulkan& layout
+		DescriptorSetLayoutVulkan& layout
 	) {
 		VkDescriptorSet descSet = VK_NULL_HANDLE;
 
@@ -28,7 +29,7 @@ namespace DOH {
 	std::vector<VkDescriptorSet> DescriptorApiVulkan::allocateDescriptorSetsFromLayout(
 		VkDevice logicDevice,
 		VkDescriptorPool descPool,
-		ShaderUniformSetLayoutVulkan& layout,
+		DescriptorSetLayoutVulkan& layout,
 		uint32_t count
 	) {
 		std::vector<VkDescriptorSet> descSets = {};
@@ -69,16 +70,16 @@ namespace DOH {
 			VkWriteDescriptorSet write = {};
 			write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			write.dstSet = setUpdate.DescSet;
-			write.dstBinding = update.Uniform.getBinding();
+			write.dstBinding = update.Descriptor.getBinding();
 			write.dstArrayElement = 0;
 
-			switch (update.Uniform.getUniformType()) {
-				case EShaderUniformType::VALUE:
+			switch (update.Descriptor.getType()) {
+				case EShaderDescriptorType::VALUE:
 				{
-					if ((update.UpdateInstance.index() + 1) != static_cast<size_t>(EShaderUniformType::VALUE)) {
-						LOG_ERR("Descriptor Update instance does NOT match. Uniform type: " <<
-							EShaderUniformTypeStrings[static_cast<uint32_t>(EShaderUniformType::VALUE)] <<
-							" update type: " << update.UpdateInstance.index()
+					if ((update.UpdateInstance.index() + 1) != static_cast<size_t>(EShaderDescriptorType::VALUE)) {
+						LOG_ERR("Descriptor Update instance does NOT match. Descriptor type: " <<
+							EShaderDescriptorTypeStrings[static_cast<uint32_t>(EShaderDescriptorType::VALUE)] <<
+							" update type: " << EShaderDescriptorTypeStrings[update.UpdateInstance.index() + 1]
 						);
 						failedCount++;
 						break;
@@ -99,12 +100,12 @@ namespace DOH {
 					break;
 				}
 
-				case EShaderUniformType::TEXTURE:
+				case EShaderDescriptorType::TEXTURE:
 				{
-					if ((update.UpdateInstance.index() + 1) != static_cast<size_t>(EShaderUniformType::TEXTURE)) {
-						LOG_ERR("Descriptor Update instance does NOT match. Uniform type: " <<
-							EShaderUniformTypeStrings[static_cast<uint32_t>(EShaderUniformType::TEXTURE)] <<
-							" update type: " << update.UpdateInstance.index()
+					if ((update.UpdateInstance.index() + 1) != static_cast<size_t>(EShaderDescriptorType::TEXTURE)) {
+						LOG_ERR("Descriptor Update instance does NOT match. Descriptor type: " <<
+							EShaderDescriptorTypeStrings[static_cast<uint32_t>(EShaderDescriptorType::TEXTURE)] <<
+							" update type: " << EShaderDescriptorTypeStrings[update.UpdateInstance.index() + 1]
 						);
 						failedCount++;
 						break;
@@ -125,12 +126,12 @@ namespace DOH {
 					break;
 				}
 
-				case EShaderUniformType::TEXTURE_ARRAY:
+				case EShaderDescriptorType::TEXTURE_ARRAY:
 				{
-					if ((update.UpdateInstance.index() + 1) != static_cast<size_t>(EShaderUniformType::TEXTURE_ARRAY)) {
-						LOG_ERR("Descriptor Update instance does NOT match. Uniform type: " <<
-							EShaderUniformTypeStrings[static_cast<uint32_t>(EShaderUniformType::TEXTURE_ARRAY)] <<
-							" update type: " << update.UpdateInstance.index()
+					if ((update.UpdateInstance.index() + 1) != static_cast<size_t>(EShaderDescriptorType::TEXTURE_ARRAY)) {
+						LOG_ERR("Descriptor Update instance does NOT match. Descriptor type: " <<
+							EShaderDescriptorTypeStrings[static_cast<uint32_t>(EShaderDescriptorType::TEXTURE_ARRAY)] <<
+							" update type: " << EShaderDescriptorTypeStrings[update.UpdateInstance.index() + 1]
 						);
 						failedCount++;
 						break;
@@ -166,10 +167,10 @@ namespace DOH {
 					break;
 				}
 
-				case EShaderUniformType::NONE:
+				case EShaderDescriptorType::NONE:
 				default:
 				{
-					LOG_WARN("EShaderUniformType not recognised or is NONE when trying to update descriptor sets.");
+					LOG_WARN("EShaderDescriptorType not recognised or is NONE when trying to update descriptor sets.");
 					break;
 				}
 			}

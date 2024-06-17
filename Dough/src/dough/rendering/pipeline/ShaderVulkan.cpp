@@ -1,27 +1,30 @@
-#include "dough/rendering/pipeline_2/ShaderVulkan_2.h"
+#include "dough/rendering/pipeline/ShaderVulkan.h"
 
 #include "dough/files/ResourceHandler.h"
 #include "dough/Utils.h"
 
 namespace DOH {
 
-	ShaderVulkan_2::~ShaderVulkan_2() {
+	ShaderVulkan::~ShaderVulkan() {
 		if (isUsingGpuResource()) {
 			LOG_ERR(
 				"ShaderVulkan_2 GPU resource NOT released before destructor was called." <<
 				" Handle: " << mShaderModule << " FilePath: " << mFilePath <<
-				" Stage: " << EShaderStage_2Strings[static_cast<uint32_t>(mShaderStage)]
+				" Stage: " << EShaderStageStrings[static_cast<uint32_t>(mShaderStage)]
 			);
+
+			//NOTE:: This is to stop the IGPUResource::~IGPUReource from logging a misleading error message.
+			mUsingGpuResource = false;
 		}
 	}
 
-	void ShaderVulkan_2::close(VkDevice logicDevice) {
+	void ShaderVulkan::close(VkDevice logicDevice) {
 		vkDestroyShaderModule(logicDevice, mShaderModule, nullptr);
 		mShaderModule = VK_NULL_HANDLE;
 		mUsingGpuResource = false;
 	}
 
-	void ShaderVulkan_2::init(VkDevice logicDevice) {
+	void ShaderVulkan::init(VkDevice logicDevice) {
 		std::vector<char> shaderByteCode = ResourceHandler::readFile(mFilePath);
 
 		VkShaderModuleCreateInfo createInfo = {};

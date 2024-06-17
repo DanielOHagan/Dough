@@ -15,7 +15,6 @@ namespace DOH {
 	};
 
 	struct RenderPassAttachmentVulkan {
-	
 	public:
 		const ERenderPassAttachmentType AttachmentType;
 		const VkFormat Format;
@@ -63,7 +62,6 @@ namespace DOH {
 	};
 
 	class RenderPassVulkan : public IGPUResourceVulkan {
-
 	private:
 		
 		//TODO:: Multiple subpass support

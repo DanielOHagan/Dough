@@ -2,16 +2,17 @@
 
 #include "dough/Utils.h"
 #include "dough/files/ResourceHandler.h"
-#include "dough/rendering/pipeline/shader/ShaderVulkan.h"
+#include "dough/rendering/pipeline/ShaderVulkan.h"
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
+#include "dough/rendering/pipeline/ShaderDescriptorSetLayoutsVulkan.h"
 #include "dough/rendering/textures/TextureAtlas.h"
 #include "dough/rendering/SwapChainVulkan.h"
 #include "dough/rendering/text/FontBitmap.h"
+#include "dough/rendering/buffer/VertexArrayVulkan.h"
 
 namespace DOH {
 
 	class ObjInit {
-
 	private:
 		ObjInit() = delete;
 		ObjInit(const ObjInit& copy) = delete;
@@ -69,11 +70,12 @@ namespace DOH {
 
 
 		//-----Shader-----
-		static std::shared_ptr<ShaderProgramVulkan> shaderProgram(
+		static std::shared_ptr<ShaderProgram> shaderProgram(
 			std::shared_ptr<ShaderVulkan> vertShader,
-			std::shared_ptr<ShaderVulkan> fragShader
+			std::shared_ptr<ShaderVulkan> fragShader,
+			std::shared_ptr<ShaderDescriptorSetLayoutsVulkan> descriptorSetLayouts
 		);
-		static std::shared_ptr<ShaderVulkan> shader(EShaderType type, const std::string& filePath);
+		static std::shared_ptr<ShaderVulkan> shader(EShaderStage stage, const char* filePath);
 
 
 		//-----Texture-----

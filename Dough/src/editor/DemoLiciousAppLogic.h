@@ -30,9 +30,34 @@ namespace DOH::EDITOR {
 
 	private:
 
+		//Resources used by more than one demo
+		struct SharedDemoResources {
+			static const EVertexType TexturedVertexType = EVertexType::VERTEX_3D_TEXTURED;
+
+			static const char* TexturedShaderVertPath;
+			static const char* TexturedShaderFragPath;
+
+			constexpr static const char* TexturedPipelineName = "Textured";
+			std::unique_ptr<GraphicsPipelineInstanceInfo> TexturedPipelineInfo;
+			std::shared_ptr<ShaderProgram> TexturedShaderProgram;
+			std::shared_ptr<ShaderVulkan> TexturedVertexShader;
+			std::shared_ptr<ShaderVulkan> TexturedFragmentShader;
+
+			PipelineRenderableConveyor TexturedConveyor;
+
+			const char* TestTexturePath = "Dough/res/images/testTexture.jpg";
+			const char* TestTexture2Path = "Dough/res/images/testTexture2.jpg";
+			std::shared_ptr<TextureVulkan> TestTexture1;
+			std::shared_ptr<TextureVulkan> TestTexture2;
+			VkDescriptorSet TestTexture1DescSet = VK_NULL_HANDLE;
+			VkDescriptorSet TestTexture2DescSet = VK_NULL_HANDLE;
+
+			bool GpuResourcesLoaded = false;
+		};
+
 		class IDemo {
 		public:
-			virtual void init() = 0;
+			virtual void init(SharedDemoResources& sharedResources) = 0;
 			virtual void close() = 0;
 			virtual void renderImGuiMainTab() = 0;
 			virtual void renderImGuiExtras() = 0;
@@ -53,14 +78,15 @@ namespace DOH::EDITOR {
 			};
 			const uint32_t DefaultObjFilePathIndex = 0;
 
-			//TODO:: Loading shaders with const char* crashes, strings work, FIX
-			const std::string FlatColourShaderVertPath = "Dough/res/shaders/spv/FlatColour.vert.spv";
-			const std::string FlatColourShaderFragPath = "Dough/res/shaders/spv/FlatColour.frag.spv";
+			const char* FlatColourShaderVertPath = "Dough/res/shaders/spv/FlatColour.vert.spv";
+			const char* FlatColourShaderFragPath = "Dough/res/shaders/spv/FlatColour.frag.spv";
 			const char* ScenePipelineName = "ObjScene";
 			const char* SceneWireframePipelineName = "ObjWireframe";
 			const StaticVertexInputLayout& ColouredVertexInputLayout = StaticVertexInputLayout::get(EVertexType::VERTEX_3D);
 			const StaticVertexInputLayout& TexturedVertexInputLayout = StaticVertexInputLayout::get(EVertexType::VERTEX_3D_TEXTURED);
-			std::shared_ptr<ShaderProgramVulkan> SceneShaderProgram;
+			std::shared_ptr<ShaderProgram> SceneShaderProgram;
+			std::shared_ptr<ShaderVulkan> SceneVertexShader;
+			std::shared_ptr<ShaderVulkan> SceneFragmentShader;
 
 			std::unique_ptr<GraphicsPipelineInstanceInfo> ScenePipelineInfo;
 			std::unique_ptr<GraphicsPipelineInstanceInfo> SceneWireframePipelineInfo;
@@ -69,6 +95,7 @@ namespace DOH::EDITOR {
 			std::vector<std::shared_ptr<RenderableModelVulkan>> RenderableObjects;
 
 			std::shared_ptr<ModelVulkan> TexturedModel;
+			std::shared_ptr<DescriptorSetsInstanceVulkan> TexturedModelDescriptorSets;
 			std::shared_ptr<RenderableModelVulkan> RenderableTexturedModel;
 
 			PipelineRenderableConveyor ScenePipelineConveyor;
@@ -85,7 +112,7 @@ namespace DOH::EDITOR {
 
 			bool GpuResourcesLoaded = false;
 
-			virtual void init() override;
+			virtual void init(SharedDemoResources& sharedResources) override;
 			virtual void close() override;
 			virtual void renderImGuiMainTab() override;
 			virtual void renderImGuiExtras() override;
@@ -141,8 +168,8 @@ namespace DOH::EDITOR {
 				4, 5, 6, 6, 7, 4
 			};
 
-			const std::string UiShaderVertPath = "Dough/res/shaders/spv/SimpleUi.vert.spv";
-			const std::string UiShaderFragPath = "Dough/res/shaders/spv/SimpleUi.frag.spv";
+			const char* UiShaderVertPath = "Dough/res/shaders/spv/SimpleUi.vert.spv";
+			const char* UiShaderFragPath = "Dough/res/shaders/spv/SimpleUi.frag.spv";
 			const std::vector<Vertex2d> UiVertices = {
 				//	x		y			r		g		b		a
 				{{	-1.0f,	-0.90f},	{0.0f,	1.0f,	0.0f,	1.0f}},	//bot-left
@@ -157,13 +184,16 @@ namespace DOH::EDITOR {
 			glm::mat4x4 UiProjMat = glm::mat4x4(1.0f);
 
 			std::unique_ptr<GraphicsPipelineInstanceInfo> UiPipelineInfo;
-			std::shared_ptr<ShaderProgramVulkan> UiShaderProgram;
+			std::shared_ptr<ShaderProgram> UiShaderProgram;
+			std::shared_ptr<ShaderVulkan> UiVertexShader;
+			std::shared_ptr<ShaderVulkan> UiFragmentShader;
 			PipelineRenderableConveyor CustomUiConveyor;
 			constexpr static const char* UiPipelineName = "CustomUi";
 
 			//Renderables are for an easier API overall, they do not fully "own" an object,
 			// therefore, they are not responsible for clearing up resources
 			std::shared_ptr<SimpleRenderable> SceneRenderable;
+			std::shared_ptr<DescriptorSetsInstanceVulkan> SceneDescSetsInstance;
 			std::shared_ptr<VertexArrayVulkan> SceneVao;
 			const StaticVertexInputLayout& SceneVertexInputLayout = StaticVertexInputLayout::get(SharedDemoResources::TexturedVertexType);
 			std::shared_ptr<SimpleRenderable> UiRenderable;
@@ -175,7 +205,7 @@ namespace DOH::EDITOR {
 			bool RenderUi = false;
 			bool GpuResourcesLoaded = false;
 
-			virtual void init() override;
+			virtual void init(SharedDemoResources& sharedResources) override;
 			virtual void close() override;
 			virtual void renderImGuiMainTab() override;
 			virtual void renderImGuiExtras() override;
@@ -198,7 +228,7 @@ namespace DOH::EDITOR {
 
 			bool IsUpToDate = false;
 
-			virtual void init() override;
+			virtual void init(SharedDemoResources& sharedResources) override;
 			virtual void close() override;
 			virtual void renderImGuiMainTab() override;
 			virtual void renderImGuiExtras() override;
@@ -218,7 +248,7 @@ namespace DOH::EDITOR {
 			bool Update = false;
 			bool Render = false;
 		
-			virtual void init() override;
+			virtual void init(SharedDemoResources& sharedResources) override;
 			virtual void close() override;
 			virtual void renderImGuiMainTab() override;
 			virtual void renderImGuiExtras() override;
@@ -240,7 +270,7 @@ namespace DOH::EDITOR {
 			bool Update = false;
 			bool Render = false;
 
-			virtual void init() override;
+			virtual void init(SharedDemoResources& sharedResources) override;
 			virtual void close() override;
 			virtual void renderImGuiMainTab() override;
 			virtual void renderImGuiExtras() override;
@@ -266,7 +296,7 @@ namespace DOH::EDITOR {
 			bool RenderTextDemoOutlines = false;
 			bool RenderUiQuad = false;
 
-			virtual void init() override;
+			virtual void init(SharedDemoResources& sharedResources) override;
 			virtual void close() override;
 			virtual void renderImGuiMainTab() override;
 			virtual void renderImGuiExtras() override;
@@ -325,7 +355,7 @@ namespace DOH::EDITOR {
 			bool Update = false;
 			bool Render = false;
 
-			virtual void init() override;
+			virtual void init(SharedDemoResources& sharedResources) override;
 			virtual void close() override;
 			virtual void renderImGuiMainTab() override;
 			virtual void renderImGuiExtras() override;
@@ -343,31 +373,10 @@ namespace DOH::EDITOR {
 			bool Render = false;
 			bool RenderPreviewQuad = false;
 
-			virtual void init() override;
+			virtual void init(SharedDemoResources& sharedResources) override;
 			virtual void close() override;
 			virtual void renderImGuiMainTab() override;
 			virtual void renderImGuiExtras() override;
-		};
-
-		//Resources used by more than one demo
-		struct SharedDemoResources {
-			static const EVertexType TexturedVertexType = EVertexType::VERTEX_3D_TEXTURED;
-
-			static const std::string TexturedShaderVertPath;
-			static const std::string TexturedShaderFragPath;
-
-			constexpr static const char* TexturedPipelineName = "Textured";
-			std::unique_ptr<GraphicsPipelineInstanceInfo> TexturedPipelineInfo;
-			std::shared_ptr<ShaderProgramVulkan> TexturedShaderProgram;
-
-			PipelineRenderableConveyor TexturedConveyor;
-
-			const char* TestTexturePath = "Dough/res/images/testTexture.jpg";
-			const char* TestTexture2Path = "Dough/res/images/testTexture2.jpg";
-			std::shared_ptr<TextureVulkan> TestTexture1;
-			std::shared_ptr<TextureVulkan> TestTexture2;
-
-			bool GpuResourcesLoaded = false;
 		};
 
 		struct ImGuiSettings {

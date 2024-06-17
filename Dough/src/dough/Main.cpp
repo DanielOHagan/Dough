@@ -20,7 +20,7 @@ int main() {
 
 	TracySetProgramName("Dough Editor");
 
-	DOH_DEBUG_MEM_TRACK_START;
+	//DOH_DEBUG_MEM_TRACK_START;
 
 	int code = DOH::Application::start(
 		std::make_shared<DOH::EDITOR::EditorAppLogic>(
@@ -40,10 +40,10 @@ int main() {
 		}
 	);
 
-	DOH_DEBUG_MEM_TRACK_END;
+	//DOH_DEBUG_MEM_TRACK_END;
 
-	DOH_DEBUG_MEM_DUMP_TRACK;
-	DOH_DEBUG_MEM_DUMP_LEAKS;
+	//DOH_DEBUG_MEM_DUMP_TRACK;
+	//DOH_DEBUG_MEM_DUMP_LEAKS;
 
 	return code;
 }

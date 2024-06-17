@@ -1,35 +1,35 @@
 #pragma once
 
 #include "dough/rendering/IGPUResourceVulkan.h"
-#include "dough/rendering/pipeline_2/EShaderStage.h"
+#include "dough/rendering/pipeline/EShaderStage.h"
 
 namespace DOH {
 
-	class ShaderVulkan_2 : public IGPUResourceVulkan {
+	class ShaderVulkan : public IGPUResourceVulkan {
 
 	private:
 		VkShaderModule mShaderModule;
 		const char* mFilePath;
-		const EShaderStage_2 mShaderStage;
+		const EShaderStage mShaderStage;
 
 	public:
-		ShaderVulkan_2() = delete;
-		ShaderVulkan_2(const ShaderVulkan_2& copy) = delete;
-		ShaderVulkan_2 operator=(const ShaderVulkan_2& assignment) = delete;
+		ShaderVulkan() = delete;
+		ShaderVulkan(const ShaderVulkan& copy) = delete;
+		ShaderVulkan operator=(const ShaderVulkan& assignment) = delete;
 
-		ShaderVulkan_2(const EShaderStage_2 stage, const char* filePath)
+		ShaderVulkan(const EShaderStage stage, const char* filePath)
 		:	mShaderModule(VK_NULL_HANDLE),
 			mShaderStage(stage),
 			mFilePath(filePath)
 		{}
 
-		virtual ~ShaderVulkan_2() override;
+		virtual ~ShaderVulkan() override;
 		virtual void close(VkDevice logicDevice) override;
 
 		void init(VkDevice logicDevice);
 
 		inline VkShaderModule getShaderModule() const { return mShaderModule; }
-		inline const EShaderStage_2 getShaderStage() const { return mShaderStage; }
+		inline const EShaderStage getShaderStage() const { return mShaderStage; }
 		inline bool isModuleLoaded() const { return mShaderModule != VK_NULL_HANDLE; }
 	};
 }

@@ -1,8 +1,8 @@
-#include "dough/rendering/pipeline_2/ShaderProgram_2.h"
+#include "dough/rendering/pipeline/ShaderProgram.h"
 
 namespace DOH {
 
-	void ShaderProgram_2::init(VkDevice logicDevice) {
+	void ShaderProgram::init(VkDevice logicDevice) {
 		if (!mVertexShader->isModuleLoaded()) {
 			mVertexShader->init(logicDevice);
 		}
@@ -11,7 +11,7 @@ namespace DOH {
 		}
 	}
 
-	void ShaderProgram_2::close(VkDevice logicDevice) {
+	void ShaderProgram::close(VkDevice logicDevice) {
 		if (mVertexShader->isModuleLoaded()) {
 			mVertexShader->close(logicDevice);
 		}

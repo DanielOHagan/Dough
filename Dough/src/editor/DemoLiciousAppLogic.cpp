@@ -13,8 +13,8 @@
 
 namespace DOH::EDITOR {
 
-	const std::string DemoLiciousAppLogic::SharedDemoResources::TexturedShaderVertPath = "Dough/res/shaders/spv/Textured.vert.spv";
-	const std::string DemoLiciousAppLogic::SharedDemoResources::TexturedShaderFragPath = "Dough/res/shaders/spv/Textured.frag.spv";
+	const char* DemoLiciousAppLogic::SharedDemoResources::TexturedShaderVertPath = "Dough/res/shaders/spv/Textured.vert.spv";
+	const char* DemoLiciousAppLogic::SharedDemoResources::TexturedShaderFragPath = "Dough/res/shaders/spv/Textured.frag.spv";
 
 	void DemoLiciousAppLogic::init(float aspectRatio) {
 		ZoneScoped;
@@ -145,7 +145,7 @@ namespace DOH::EDITOR {
 				}
 
 				for (const Quad& quad : mTextDemo->MsdfText->getQuads()) {
-					lineRenderer.drawQuadScene(quad, {0.0f, 1.0f, 0.0f, 1.0f });
+					lineRenderer.drawQuadScene(quad, { 0.0f, 1.0f, 0.0f, 1.0f });
 				}
 			}
 
@@ -318,33 +318,28 @@ namespace DOH::EDITOR {
 		initSharedResources();
 
 		mGridDemo = std::make_unique<GridDemo>();
-		mGridDemo->init();
+		mGridDemo->init(*mSharedDemoResources);
 
 		mBouncingQuadDemo = std::make_unique<BouncingQuadDemo>();
-		mBouncingQuadDemo->init();
+		mBouncingQuadDemo->init(*mSharedDemoResources);
 
-		if (mSharedDemoResources != nullptr) {
-			mCustomDemo = std::make_unique<CustomDemo>();
-			mCustomDemo->init();
-			
-			mObjModelsDemo = std::make_unique<ObjModelsDemo>();
-			mObjModelsDemo->init();
-		}
+		mCustomDemo = std::make_unique<CustomDemo>();
+		mCustomDemo->init(*mSharedDemoResources);
+		
+		mObjModelsDemo = std::make_unique<ObjModelsDemo>();
+		mObjModelsDemo->init(*mSharedDemoResources);
 		
 		mTextDemo = std::make_unique<TextDemo>();
-		mTextDemo->init();
+		mTextDemo->init(*mSharedDemoResources);
 
 		mLineDemo = std::make_unique<LineDemo>();
-		mLineDemo->init();
+		mLineDemo->init(*mSharedDemoResources);
 
 		mBoundingBoxDemo = std::make_unique<BoundingBoxDemo>();
-		mBoundingBoxDemo->init();
+		mBoundingBoxDemo->init(*mSharedDemoResources);
 
 		mTileMapDemo = std::make_unique<TileMapDemo>();
-		mTileMapDemo->init();
-
-		//context.createPipelineUniformObjects();
-		context.createCustomUniformObjects();
+		mTileMapDemo->init(*mSharedDemoResources);
 	}
 
 	void DemoLiciousAppLogic::closeDemos() {
@@ -422,30 +417,59 @@ namespace DOH::EDITOR {
 
 		mSharedDemoResources = std::make_unique<SharedDemoResources>();
 
+		RenderingContextVulkan& context = Application::get().getRenderer().getContext();
+		DescriptorSetLayoutVulkan& textureSetLayout = context.getCommonDescriptorSetLayouts().SingleTexture;
+
 		mSharedDemoResources->TestTexture1 = ObjInit::texture(mSharedDemoResources->TestTexturePath);
 		mSharedDemoResources->TestTexture2 = ObjInit::texture(mSharedDemoResources->TestTexture2Path);
 
-		mSharedDemoResources->TexturedShaderProgram = ObjInit::shaderProgram(
-			ObjInit::shader(EShaderType::VERTEX, SharedDemoResources::TexturedShaderVertPath),
-			ObjInit::shader(EShaderType::FRAGMENT, SharedDemoResources::TexturedShaderFragPath)
+		std::vector<std::reference_wrapper<DescriptorSetLayoutVulkan>> texturedDescSetLayouts = {
+			context.getCommonDescriptorSetLayouts().Ubo,
+			textureSetLayout
+		};
+		std::shared_ptr<ShaderDescriptorSetLayoutsVulkan> texturedShaderDescSetLayouts = std::make_shared<ShaderDescriptorSetLayoutsVulkan>(texturedDescSetLayouts);
+		mSharedDemoResources->TexturedVertexShader = context.createShader(EShaderStage::VERTEX, SharedDemoResources::TexturedShaderVertPath);
+		mSharedDemoResources->TexturedFragmentShader = context.createShader(EShaderStage::FRAGMENT, SharedDemoResources::TexturedShaderFragPath);
+		mSharedDemoResources->TexturedShaderProgram = context.createShaderProgram(
+			mSharedDemoResources->TexturedVertexShader,
+			mSharedDemoResources->TexturedFragmentShader,
+			texturedShaderDescSetLayouts
 		);
-
-		ShaderUniformLayout& customLayout = mSharedDemoResources->TexturedShaderProgram->getUniformLayout();
-		customLayout.setValue(0, sizeof(CustomDemo::UniformBufferObject));
-		customLayout.setTexture(1, *mSharedDemoResources->TestTexture1);
 
 		mSharedDemoResources->TexturedPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 			StaticVertexInputLayout::get(SharedDemoResources::TexturedVertexType),
 			*mSharedDemoResources->TexturedShaderProgram,
 			ERenderPass::APP_SCENE
 		);
-		mSharedDemoResources->TexturedPipelineInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS);
+		auto& optionalFields = mSharedDemoResources->TexturedPipelineInfo->enableOptionalFields();
+		optionalFields.setDepthTesting(true, VK_COMPARE_OP_LESS);
 
-		RenderingContextVulkan& context = Application::get().getRenderer().getContext();
-		mSharedDemoResources->TexturedConveyor = context.createPipeline(
+		mSharedDemoResources->TexturedConveyor = context.createPipelineInCurrentRenderState(
 			mSharedDemoResources->TexturedPipelineName,
 			*mSharedDemoResources->TexturedPipelineInfo
 		);
+
+		mSharedDemoResources->TestTexture1DescSet = DescriptorApiVulkan::allocateDescriptorSetFromLayout(
+			context.getLogicDevice(),
+			context.getCustomDescriptorPool(),
+			textureSetLayout
+		);
+		const uint32_t textureSamplerBinding = 0;
+		DescriptorSetUpdate testTexture1Update = {
+			{{ textureSetLayout.getDescriptors()[textureSamplerBinding], *mSharedDemoResources->TestTexture1 }},
+			mSharedDemoResources->TestTexture1DescSet
+		};
+		DescriptorApiVulkan::updateDescriptorSet(context.getLogicDevice(), testTexture1Update);
+		mSharedDemoResources->TestTexture2DescSet = DescriptorApiVulkan::allocateDescriptorSetFromLayout(
+			context.getLogicDevice(),
+			context.getCustomDescriptorPool(),
+			textureSetLayout
+		);
+		DescriptorSetUpdate testTexture2Update = {
+			{{ textureSetLayout.getDescriptors()[textureSamplerBinding], *mSharedDemoResources->TestTexture2 }},
+			mSharedDemoResources->TestTexture2DescSet
+		};
+		DescriptorApiVulkan::updateDescriptorSet(context.getLogicDevice(), testTexture2Update);
 
 		mSharedDemoResources->GpuResourcesLoaded = true;
 	}
@@ -457,7 +481,8 @@ namespace DOH::EDITOR {
 			LOG_WARN("All demos using shared resources must be closed before closing shared resources");
 		} else if (mSharedDemoResources->GpuResourcesLoaded) {
 			RendererVulkan& renderer = GET_RENDERER;
-			renderer.closeGpuResource(mSharedDemoResources->TexturedShaderProgram);
+			renderer.closeGpuResource(mSharedDemoResources->TexturedVertexShader);
+			renderer.closeGpuResource(mSharedDemoResources->TexturedFragmentShader);
 			renderer.getContext().closePipeline(
 				mSharedDemoResources->TexturedPipelineInfo->getRenderPass(),
 				SharedDemoResources::TexturedPipelineName
@@ -469,7 +494,7 @@ namespace DOH::EDITOR {
 		}
 	}
 
-	void DemoLiciousAppLogic::ObjModelsDemo::init() {
+	void DemoLiciousAppLogic::ObjModelsDemo::init(SharedDemoResources& sharedResources) {
 		ZoneScoped;
 
 		for (const auto& filePath : ObjModelFilePaths) {
@@ -508,28 +533,29 @@ namespace DOH::EDITOR {
 		//for (uint32_t i = 0; i < 100; i++) {
 		//	objModelsDemoAddRandomisedObject();
 		//}
+
+		RenderingContextVulkan& context = Application::get().getRenderer().getContext();
 	
-		SceneShaderProgram = ObjInit::shaderProgram(
-			ObjInit::shader(
-				EShaderType::VERTEX,
-				FlatColourShaderVertPath
-			),
-			ObjInit::shader(
-				EShaderType::FRAGMENT,
-				FlatColourShaderFragPath
-			)
+		DescriptorSetLayoutVulkan& cameraUbo = context.getCommonDescriptorSetLayouts().Ubo;
+		std::vector<std::reference_wrapper<DescriptorSetLayoutVulkan>> sceneDescSets = { cameraUbo };
+		VkPushConstantRange pushConstant = context.pushConstantInfo(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::mat4x4), 0);
+		std::vector<VkPushConstantRange> pushConstants = { pushConstant };
+		std::shared_ptr<ShaderDescriptorSetLayoutsVulkan> sceneDescSetLayouts = std::make_shared<ShaderDescriptorSetLayoutsVulkan>(pushConstants, sceneDescSets);
+		SceneVertexShader = context.createShader(EShaderStage::VERTEX, FlatColourShaderVertPath);
+		SceneFragmentShader = context.createShader(EShaderStage::FRAGMENT, FlatColourShaderFragPath);
+		SceneShaderProgram = context.createShaderProgram(
+			SceneVertexShader,
+			SceneFragmentShader,
+			sceneDescSetLayouts
 		);
-		ShaderUniformLayout& cubeLayout = SceneShaderProgram->getUniformLayout();
-		cubeLayout.setValue(0, sizeof(ObjModelsDemo::UniformBufferObject));
-		//Push constant for transformation matrix
-		cubeLayout.addPushConstant(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::mat4x4));
 	
 		ScenePipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 			ColouredVertexInputLayout,
 			*SceneShaderProgram,
 			ERenderPass::APP_SCENE
 		);
-		ScenePipelineInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS);
+		auto& sceneOptionalFields = ScenePipelineInfo->enableOptionalFields();
+		sceneOptionalFields.setDepthTesting(true, VK_COMPARE_OP_LESS);
 
 		//TODO:: wireframe for each vertex type
 		SceneWireframePipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
@@ -537,19 +563,21 @@ namespace DOH::EDITOR {
 			*SceneShaderProgram,
 			ERenderPass::APP_SCENE
 		);
-		SceneWireframePipelineInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS);
-		SceneWireframePipelineInfo->getOptionalFields().CullMode = VK_CULL_MODE_NONE;
-		SceneWireframePipelineInfo->getOptionalFields().PolygonMode = VK_POLYGON_MODE_LINE;
+		auto& wireframeOptionalFields = SceneWireframePipelineInfo->enableOptionalFields();
+		wireframeOptionalFields.setDepthTesting(true, VK_COMPARE_OP_LESS);
+		wireframeOptionalFields.CullMode = VK_CULL_MODE_NONE;
+		wireframeOptionalFields.PolygonMode = VK_POLYGON_MODE_LINE;
 	
-		auto& context = Application::get().getRenderer().getContext();
-		ScenePipelineConveyor = context.createPipeline(ScenePipelineName, *ScenePipelineInfo);
-		WireframePipelineConveyor = context.createPipeline(
+		ScenePipelineConveyor = context.createPipelineInCurrentRenderState(ScenePipelineName, *ScenePipelineInfo);
+		WireframePipelineConveyor = context.createPipelineInCurrentRenderState(
 			SceneWireframePipelineName,
 			*SceneWireframePipelineInfo
 		);
 
 		TexturedModel = ModelVulkan::createModel("Dough/res/models/textured_cube.obj", TexturedVertexInputLayout);
-		RenderableTexturedModel = std::make_shared<RenderableModelVulkan>("TexturedObjModel", TexturedModel);
+		std::initializer_list<VkDescriptorSet> descSets = { VK_NULL_HANDLE, sharedResources.TestTexture1DescSet };
+		TexturedModelDescriptorSets = std::make_shared<DescriptorSetsInstanceVulkan>(descSets);
+		RenderableTexturedModel = std::make_shared<RenderableModelVulkan>("TexturedObjModel", TexturedModel, TexturedModelDescriptorSets);
 
 		GpuResourcesLoaded = true;
 	}
@@ -565,7 +593,8 @@ namespace DOH::EDITOR {
 		renderer.closeGpuResource(TexturedModel);
 		LoadedModels.clear();
 		RenderableObjects.clear();
-		renderer.closeGpuResource(SceneShaderProgram);
+		renderer.closeGpuResource(SceneVertexShader);
+		renderer.closeGpuResource(SceneFragmentShader);
 
 		auto& context = renderer.getContext();
 		context.closePipeline(ScenePipelineInfo->getRenderPass(), ScenePipelineName);
@@ -802,7 +831,7 @@ namespace DOH::EDITOR {
 		}
 	}
 
-	void DemoLiciousAppLogic::CustomDemo::init() {
+	void DemoLiciousAppLogic::CustomDemo::init(SharedDemoResources& sharedResources) {
 		ZoneScoped;
 
 		//for (int i = 0; i < 8; i++) {
@@ -810,6 +839,8 @@ namespace DOH::EDITOR {
 		//	std::shared_ptr<TextureVulkan> testTexture = ObjInit::texture(path);
 		//	mTestTextures.push_back(testTexture);
 		//}
+
+		RenderingContextVulkan& context = Application::get().getRenderer().getContext();
 
 		SceneVao = ObjInit::vertexArray();
 		std::shared_ptr<VertexBufferVulkan> sceneVb = ObjInit::stagedVertexBuffer(
@@ -826,13 +857,20 @@ namespace DOH::EDITOR {
 		);
 		SceneVao->setDrawCount(static_cast<uint32_t>(Indices.size()));
 		SceneVao->setIndexBuffer(sceneIb);
-		SceneRenderable = std::make_shared<SimpleRenderable>(SceneVao);
+		std::initializer_list<VkDescriptorSet> sceneDescSetsInstance = { VK_NULL_HANDLE, sharedResources.TestTexture1DescSet };
+		SceneDescSetsInstance = std::make_shared<DescriptorSetsInstanceVulkan>(sceneDescSetsInstance);
+		SceneRenderable = std::make_shared<SimpleRenderable>(SceneVao, SceneDescSetsInstance);
 	
-		UiShaderProgram = ObjInit::shaderProgram(
-			ObjInit::shader(EShaderType::VERTEX, UiShaderVertPath),
-			ObjInit::shader(EShaderType::FRAGMENT, UiShaderFragPath)
+		DescriptorSetLayoutVulkan& uboLayout = context.getCommonDescriptorSetLayouts().Ubo;
+		std::vector<std::reference_wrapper<DescriptorSetLayoutVulkan>> uiDescSetLayouts = { uboLayout };
+		std::shared_ptr<ShaderDescriptorSetLayoutsVulkan> uiShaderDescLayout = std::make_shared<ShaderDescriptorSetLayoutsVulkan>(uiDescSetLayouts);
+		UiVertexShader = context.createShader(EShaderStage::VERTEX, UiShaderVertPath);
+		UiFragmentShader = context.createShader(EShaderStage::FRAGMENT, UiShaderFragPath);
+		UiShaderProgram = context.createShaderProgram(
+			UiVertexShader,
+			UiFragmentShader,
+			uiShaderDescLayout
 		);
-		UiShaderProgram->getUniformLayout().setValue(0, sizeof(CustomDemo::UniformBufferObject));
 	
 		UiVao = ObjInit::vertexArray();
 		std::shared_ptr<VertexBufferVulkan> appUiVb = ObjInit::stagedVertexBuffer(
@@ -856,9 +894,10 @@ namespace DOH::EDITOR {
 			*UiShaderProgram,
 			ERenderPass::APP_UI
 		);
+		auto& uiOptionalFields = UiPipelineInfo->enableOptionalFields();
+		uiOptionalFields.ClearRenderablesAfterDraw = true;
 	
-		RenderingContextVulkan& context = Application::get().getRenderer().getContext();
-		CustomUiConveyor = context.createPipeline(UiPipelineName, *UiPipelineInfo);
+		CustomUiConveyor = context.createPipelineInCurrentRenderState(UiPipelineName, *UiPipelineInfo);
 
 		GpuResourcesLoaded = true;
 	}
@@ -873,7 +912,8 @@ namespace DOH::EDITOR {
 		RendererVulkan& renderer = GET_RENDERER;
 
 		renderer.closeGpuResource(SceneVao);
-		renderer.closeGpuResource(UiShaderProgram);
+		renderer.closeGpuResource(UiVertexShader);
+		renderer.closeGpuResource(UiFragmentShader);
 		renderer.closeGpuResource(UiVao);
 		renderer.getContext().closePipeline(UiPipelineInfo->getRenderPass(), UiPipelineName);
 
@@ -896,7 +936,7 @@ namespace DOH::EDITOR {
 		//No extra windows required for this demo
 	}
 
-	void DemoLiciousAppLogic::GridDemo::init() {
+	void DemoLiciousAppLogic::GridDemo::init(SharedDemoResources& sharedResources) {
 		ZoneScoped;
 
 		TestGridMaxQuadCount = EBatchSizeLimits::MAX_BATCH_COUNT_QUAD * EBatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD;
@@ -983,7 +1023,7 @@ namespace DOH::EDITOR {
 		//No extra windows required for this demo
 	}
 
-	void DemoLiciousAppLogic::BouncingQuadDemo::init() {
+	void DemoLiciousAppLogic::BouncingQuadDemo::init(SharedDemoResources& sharedResources) {
 		ZoneScoped;
 
 		addRandomQuads(5000);
@@ -1113,7 +1153,7 @@ namespace DOH::EDITOR {
 		}
 	}
 
-	void DemoLiciousAppLogic::TextDemo::init() {
+	void DemoLiciousAppLogic::TextDemo::init(SharedDemoResources& sharedResources) {
 		ZoneScoped;
 
 		//Generate quads for default message
@@ -1121,7 +1161,7 @@ namespace DOH::EDITOR {
 			StringBuffer,
 			TextRenderer::getFontBitmap(TextRenderer::ARIAL_SOFT_MASK_NAME)
 		);
-
+		
 		MsdfText = std::make_unique<TextString>(
 			MsdfStringBuffer,
 			TextRenderer::getFontBitmap(TextRenderer::ARIAL_MSDF_NAME)
@@ -1191,7 +1231,7 @@ namespace DOH::EDITOR {
 		//No extra windows required for this demo
 	}
 
-	void DemoLiciousAppLogic::LineDemo::init() {
+	void DemoLiciousAppLogic::LineDemo::init(SharedDemoResources& sharedResources) {
 		ZoneScoped;
 
 		LineData2d = {};
@@ -1324,7 +1364,7 @@ namespace DOH::EDITOR {
 		}
 	}
 
-	void DemoLiciousAppLogic::BoundingBoxDemo::init() {
+	void DemoLiciousAppLogic::BoundingBoxDemo::init(SharedDemoResources& sharedResources) {
 		ZoneScoped;
 
 		BoundingBox = std::make_unique<BoundingBox2d>();
@@ -1396,7 +1436,7 @@ namespace DOH::EDITOR {
 
 	}
 
-	void DemoLiciousAppLogic::TileMapDemo::init() {
+	void DemoLiciousAppLogic::TileMapDemo::init(SharedDemoResources& sharedResources) {
 		ZoneScoped;
 
 		//NOTE:: Texture atlas is created in QuadBatch init because rebiding descriptors not currently available.

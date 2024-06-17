@@ -7,8 +7,8 @@
 
 namespace DOH {
 
-	class ShaderUniform;
-	class ShaderUniformSetLayoutVulkan;
+	class AShaderDescriptor;
+	class DescriptorSetLayoutVulkan;
 
 	using DescriptorLayout = std::variant<
 		VkDeviceSize,
@@ -23,12 +23,11 @@ namespace DOH {
 	>;
 
 	struct DescriptorUpdate {
-		//TODO:: Rename to Binding
-		ShaderUniform& Uniform;
+		AShaderDescriptor& Descriptor;
 		DescriptorRef UpdateInstance;
 	};
 
-	//is it possible to turn this into a std::array<DescirptorUpdate, *template* Count> ? save 
+	//TODO:: is it possible to turn this into a std::array<DescirptorUpdate, *template* Count> to save performing an allocation?
 	struct DescriptorSetUpdate {
 		std::vector<DescriptorUpdate> Updates;
 		VkDescriptorSet DescSet;
@@ -39,12 +38,12 @@ namespace DOH {
 		static VkDescriptorSet allocateDescriptorSetFromLayout(
 			VkDevice logicDevice,
 			VkDescriptorPool descPool,
-			ShaderUniformSetLayoutVulkan& layout
+			DescriptorSetLayoutVulkan& layout
 		);
 		static std::vector<VkDescriptorSet> allocateDescriptorSetsFromLayout(
 			VkDevice logicDevice,
 			VkDescriptorPool descPool,
-			ShaderUniformSetLayoutVulkan& layout,
+			DescriptorSetLayoutVulkan& layout,
 			uint32_t count
 		);
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "dough/application/IApplicationLogic.h"
-#include "dough/rendering/pipeline/shader/ShaderProgramVulkan.h"
+#include "dough/rendering/pipeline/ShaderProgram.h"
 #include "dough/rendering/buffer/VertexArrayVulkan.h"
 #include "dough/rendering/textures/TextureVulkan.h"
 #include "dough/rendering/Config.h"

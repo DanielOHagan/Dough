@@ -5,7 +5,6 @@
 namespace DOH {
 
 	class PerspectiveCamera : public ICamera {
-
 	private:
 		glm::mat4x4 mProjectionMatrix;
 		glm::mat4x4 mViewMatrix;

@@ -50,34 +50,42 @@ namespace DOH {
 		//TODO:: does this have to be a shared_ptr ?
 		std::shared_ptr<ModelVulkan> Model;
 		std::shared_ptr<TransformationData> Transformation;
+		std::shared_ptr<DescriptorSetsInstanceVulkan> DescriptorSetsInstance;
 		bool Render;
 		bool RenderWireframe;
 
 		RenderableModelVulkan(
 			const std::string& name,
 			std::shared_ptr<ModelVulkan> model,
-			std::shared_ptr<TransformationData> transformation
+			std::shared_ptr<TransformationData> transformation,
+			std::shared_ptr<DescriptorSetsInstanceVulkan> descSetsInstance = nullptr
 		) : Name(name),
 			Model(model),
 			Transformation(transformation),
+			DescriptorSetsInstance(descSetsInstance),
 			Render(true),
 			RenderWireframe(false)
 		{}
 
 		RenderableModelVulkan(
 			const std::string& name,
-			std::shared_ptr<ModelVulkan> model
+			std::shared_ptr<ModelVulkan> model,
+			std::shared_ptr<DescriptorSetsInstanceVulkan> descSetsInstance = nullptr
 		) : Name(name),
 			Model(model),
 			Transformation({}),
+			DescriptorSetsInstance(descSetsInstance),
 			Render(true),
 			RenderWireframe(false)
 		{}
 
 		virtual VertexArrayVulkan& getVao() const override { return Model->getVao(); };
+		virtual std::shared_ptr<VertexArrayVulkan> getVaoPtr() const override { return Model->getVaoPtr(); };
 		//NOTE::Assumes pipeline wants transformation data for push constant
 		virtual void* getPushConstantPtr() const override { return &Transformation->Translation; };
 		virtual bool isIndexed() const override { return true; }
+		virtual bool hasDescriptorSetsInstance() const override { return DescriptorSetsInstance != nullptr; }
+		virtual std::shared_ptr<DescriptorSetsInstanceVulkan> getDescriptorSetsInstance() const override { return DescriptorSetsInstance; }
 
 		inline std::shared_ptr<ModelVulkan> getModel() const { return Model; }
 		inline const std::string& getName() const { return Name; }

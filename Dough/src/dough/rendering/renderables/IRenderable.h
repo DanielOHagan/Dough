@@ -4,7 +4,7 @@
 
 namespace DOH {
 
-	class ShaderUniformSetsInstanceVulkan;
+	class DescriptorSetsInstanceVulkan;
 
 	/** 
 	* Renderables are objects that hold the information for issuing draw commands, they DO NOT own the data.
@@ -12,10 +12,12 @@ namespace DOH {
 	class IRenderable {
 	public:
 		virtual VertexArrayVulkan& getVao() const = 0;
+		virtual std::shared_ptr<VertexArrayVulkan> getVaoPtr() const = 0;
 		virtual void* getPushConstantPtr() const = 0;
 
 		virtual bool isIndexed() const = 0;
 
-		virtual std::shared_ptr<ShaderUniformSetsInstanceVulkan> getShaderResourceData() const { return nullptr; };
+		virtual bool hasDescriptorSetsInstance() const { return false; }
+		virtual std::shared_ptr<DescriptorSetsInstanceVulkan> getDescriptorSetsInstance() const { return nullptr; };
 	};
 }

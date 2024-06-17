@@ -15,7 +15,6 @@ namespace DOH {
 	*
 	*/
 	class CustomRenderState {
-
 	private:
 		RenderPassGraphicsPipelineMap mRenderPassGraphicsPipelines;
 

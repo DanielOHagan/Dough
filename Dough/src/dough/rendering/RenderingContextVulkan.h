@@ -1,7 +1,6 @@
 #pragma once
 
 #include "dough/Utils.h"
-#include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 #include "dough/scene/camera/ICamera.h"
 #include "dough/ImGuiWrapper.h"
 #include "dough/rendering/SwapChainVulkan.h"
@@ -10,12 +9,10 @@
 #include "dough/rendering/text/ETextRenderMethod.h"
 #include "dough/rendering/textures/TextureAtlas.h"
 #include "dough/rendering/text/FontBitmap.h"
+#include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
+#include "dough/rendering/pipeline/ShaderDescriptorSetLayoutsVulkan.h"
 
 #include <queue>
-
-//TEMP::
-#include "dough/rendering/pipeline_2/GraphicsPipelineVulkan_2.h"
-#include "dough/rendering/pipeline_2/ShaderUniformLayoutVulkan_2.h"
 
 namespace DOH {
 
@@ -37,6 +34,7 @@ namespace DOH {
 		VkBuffer VertexBuffer = VK_NULL_HANDLE;
 		VkBuffer IndexBuffer = VK_NULL_HANDLE;
 
+		//NOTE:: Most desktop devices support 32 Descriptor Sets at one time but I don't think I'll use that many.
 		std::array<VkDescriptorSet, 16> DescriptorSets;
 
 		CurrentBindingsState()
@@ -52,15 +50,14 @@ namespace DOH {
 	};
 
 	class RenderingContextVulkan {
-
 	private:
 		static constexpr size_t MAX_FRAMES_IN_FLIGHT = 2;
 		static constexpr size_t GPU_RESOURCE_CLOSE_DELAY_FRAMES = 1;
 		static constexpr size_t GPU_RESOURCE_CLOSE_FRAME_INDEX_COUNT = MAX_FRAMES_IN_FLIGHT + GPU_RESOURCE_CLOSE_DELAY_FRAMES;
 
 		struct UniformBufferObject {
-			glm::mat4 ProjectionViewMat;
-		} mAppSceneUbo;
+			glm::mat4x4 ProjView;
+		};
 
 		struct RenderingDeviceInfo {
 			const std::string ApiVersion;
@@ -80,8 +77,41 @@ namespace DOH {
 			{}
 		};
 
-		//NOTE:: in OpenGL space because glm
-		glm::mat4x4 mAppUiProjection;
+		struct ResourceDefaults {
+			std::shared_ptr<TextureVulkan> WhiteTexture;
+			std::unique_ptr<TextureArray> EmptyTextureArray;
+			VkDescriptorSet WhiteTextureDescriptorSet = VK_NULL_HANDLE;
+			VkDescriptorSet EmptyTextureArrayDescriptorSet = VK_NULL_HANDLE;
+		} mResourceDefaults;
+
+		//Used for quick reference of frequently used DescriptorSetLayouts to save searching through a map each time.
+		struct CommonDescriptorSetLayouts {
+			std::reference_wrapper<DescriptorSetLayoutVulkan> Ubo;
+			std::reference_wrapper<DescriptorSetLayoutVulkan> SingleTexture;
+			std::reference_wrapper<DescriptorSetLayoutVulkan> SingleTextureArray8;
+
+			CommonDescriptorSetLayouts(DescriptorSetLayoutVulkan& ubo, DescriptorSetLayoutVulkan& singleTex, DescriptorSetLayoutVulkan& singelTexArr8)
+			:	Ubo(ubo),
+				SingleTexture(singleTex),
+				SingleTextureArray8(singelTexArr8)
+			{}
+		};
+		std::unique_ptr<CommonDescriptorSetLayouts> mCommonDescriptorSetLayouts;
+
+		//TODO:: Make some easier way of closing this. Same with ShaderProgram.
+		class CameraGpuData {
+		public:
+			UniformBufferObject CpuData;
+			std::vector<std::shared_ptr<BufferVulkan>> ValueBuffers;
+			std::vector<VkDescriptorSet> DescriptorSets;
+
+			CameraGpuData()
+			:	CpuData({})
+			{}
+		};
+
+		std::unique_ptr<CameraGpuData> mSceneCameraGpu;
+		std::unique_ptr<CameraGpuData> mUiCameraGpu;
 
 		//Shared device handles for convenience
 		VkDevice mLogicDevice;
@@ -110,7 +140,7 @@ namespace DOH {
 
 		std::vector<ImageVulkan> mAppSceneDepthImages;
 
-		//Descriptor pool owning descriptors of all built-in engine systems (e.g. shape & text rendering)
+		//Descriptor pool owning descriptors of all built-in engine systems and default resources.
 		VkDescriptorPool mEngineDescriptorPool;
 		//Descriptor pool owning descriptors required by IAppLogic instance.
 		VkDescriptorPool mCustomDescriptorPool;
@@ -131,46 +161,7 @@ namespace DOH {
 
 		VkFormat mDepthFormat;
 
-
-		//TEMP:: New graphics pipeline stuff
-		const StaticVertexInputLayout& mTestGraphicsVertexInputLayout = StaticVertexInputLayout::get(EVertexType::VERTEX_3D_TEXTURED);
-		std::shared_ptr<GraphicsPipelineVulkan_2> mTestGraphicsPipeline;
-		std::unique_ptr<GraphicsPipelineInstanceInfo_2> mTestGraphicsPipelineInstanceInfo;
-		std::shared_ptr<ShaderProgram_2> mTestShaderProgram;
-		std::shared_ptr<ShaderUniformLayoutVulkan_2> mTestShaderUniformLayout;
-		std::unordered_map<std::string, std::shared_ptr<ShaderUniformSetLayoutVulkan>> mAllUniformSetLayouts;
-		//Quad vertices & indices
-		const std::vector<Vertex3dTextured> mTestVertices = {
-			//	x		y		z		r		g		b		a		u		v		
-			{ { -0.5f,	-0.5f,	0.0f},	{1.0f,	0.0f,	0.0f,	1.0f},	{0.0f,	1.0f} },
-			{ {	 0.5f,	-0.5f,	0.0f},	{0.0f,	0.0f,	0.0f,	1.0f},	{1.0f,	1.0f} },
-			{ {	 0.5f,	0.5f,	0.0f},	{0.0f,	0.0f,	1.0f,	1.0f},	{1.0f,	0.0f} },
-			{ {	-0.5f,	0.5f,	0.0f},	{0.0f,	0.0f,	0.0f,	1.0f},	{0.0f,	0.0f} },
-
-			{ {	0.00f,	0.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{0.0f,	1.0f} },
-			{ {	1.00f,	0.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{1.0f,	1.0f} },
-			{ {	1.00f,	1.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{1.0f,	0.0f} },
-			{ {	0.00f,	1.00f,	0.0f},	{0.0f,	0.60f,	0.0f,	1.0f},	{0.0f,	0.0f} }
-		};
-		const std::vector<uint32_t> mTestIndices = {
-			0, 1, 2,
-			2, 3, 0
-		};
-		//Cube vertices & indices
-		std::shared_ptr<IndexBufferVulkan> mTestIndexBuffer;
-		std::shared_ptr<SimpleRenderable_2> mTestRenderable;
-		std::shared_ptr<SimpleRenderable_2> mSecondTestRenderable;
-		VkDescriptorPool mTestDescriptorPool = VK_NULL_HANDLE;
-		std::vector<std::shared_ptr<BufferVulkan>> mTestCameraValueBuffers;
-		std::vector<std::shared_ptr<BufferVulkan>> mTestCameraOrthoValueBuffers;
-		std::vector<VkDescriptorSet> mTestUboDescriptorSets;
-		std::vector<VkDescriptorSet> mTestUboOrthoDescriptorSets;
-		VkDescriptorSet mTestWhiteTextureDescriptorSet;
-		VkDescriptorSet mTestTextureDescriptorSet;
-		glm::mat4x4 mTestTransform = glm::mat4x4(1.0f);
-		glm::mat4x4 mTestTransformSecond = glm::mat4x4(1.0f);
-		std::shared_ptr<ShaderUniformSetsInstanceVulkan> mFirstTestShaderResourceInstance;
-		std::shared_ptr<ShaderUniformSetsInstanceVulkan> mSecondTestShaderResourceInstance; //TODO:: could this just be stored inside a Renderable ? like how ModelRenderable stores transform data
+		std::unordered_map<std::string, std::shared_ptr<DescriptorSetLayoutVulkan>> mAllDescriptorSetLayouts;
 
 	public:
 		RenderingContextVulkan(VkDevice logicDevice, VkPhysicalDevice physicalDevice);
@@ -186,27 +177,21 @@ namespace DOH {
 			VkInstance vulkanInstance
 		);
 		void close();
-		//Finalise the creation of custom pipelines
-		void createPipelineUniformObjects(GraphicsPipelineVulkan& pipeline, VkDescriptorPool descPool);
 
-		void createEngineUniformObjects();
-		void createCustomUniformObjects();
+		//Create and store the descriptor set layouts required by the engine.
+		void createEngineDescriptorLayouts();
+		//Create the descriptor pool used to allocate descriptor sets for engine resources.
+		void createEngineDescriptorPool();
+		//Create the descriptor sets of the engine's resources. This includes allocation and updating.
+		void createEngineDescriptorSets();
 
 		VkDescriptorPool createDescriptorPool(const std::vector<DescriptorTypeInfo>& descTypes);
 		bool isReady() const;
 		inline VkDevice getLogicDevice() const { return mLogicDevice; }
 
 		//TODO:: Take in a pipeline builder object?
-		PipelineRenderableConveyor createPipeline(
-			const std::string& name,
-			GraphicsPipelineInstanceInfo& instanceInfo,
-			const bool enabled = true
-		);
-		PipelineRenderableConveyor createPipelineConveyor(
-			const ERenderPass renderPass,
-			const std::string& name
-		);
-		void enablePipeline(const ERenderPass renderPass, const std::string& name, bool enable);
+		PipelineRenderableConveyor createPipelineInCurrentRenderState(const std::string& name, GraphicsPipelineInstanceInfo& instanceInfo);
+		PipelineRenderableConveyor createPipelineConveyor(const ERenderPass renderPass, const std::string& name);
 		void closePipeline(const ERenderPass renderPass, const char* name);
 
 		inline void onResize(
@@ -220,8 +205,22 @@ namespace DOH {
 		};
 
 		void drawFrame();
-		inline void setAppSceneUniformBufferObject(ICamera& camera) { mAppSceneUbo.ProjectionViewMat = camera.getProjectionViewMatrix(); }
-		inline void setAppUiProjection(glm::mat4x4& proj) { mAppUiProjection = proj; }
+		inline void setAppSceneCameraData(ICamera& camera) { mSceneCameraGpu->CpuData.ProjView = camera.getProjectionViewMatrix(); }
+		inline void setAppUiCameraData(glm::mat4x4& proj) { mUiCameraGpu->CpuData.ProjView = proj; }
+		void bindSceneUboToPipeline(
+			VkCommandBuffer cmd,
+			GraphicsPipelineVulkan& pipeline,
+			uint32_t imageindex,
+			CurrentBindingsState& currentBindings,
+			AppDebugInfo& debugInfo
+		);
+		void bindUiUboToPipeline(
+			VkCommandBuffer cmd,
+			GraphicsPipelineVulkan& pipeline,
+			uint32_t imageindex,
+			CurrentBindingsState& currentBindings,
+			AppDebugInfo& debugInfo
+		);
 
 		inline CustomRenderState& getCurrentRenderState() const { return *mCurrentRenderState; }
 		RenderPassVulkan& getRenderPass(const ERenderPass renderPass) const;
@@ -289,12 +288,19 @@ namespace DOH {
 		void setPhysicalDevice(VkPhysicalDevice physicalDevice);
 		inline RenderingDeviceInfo& getRenderingDeviceInfo() const { return *mRenderingDeviceInfo; }
 		inline size_t getCurrentFrame() const { return mCurrentFrame; }
+		inline VkDescriptorPool getEngineDescriptorPool() const { return mEngineDescriptorPool; }
+		inline VkDescriptorPool getCustomDescriptorPool() const { return mCustomDescriptorPool; }
+		inline CameraGpuData& getSceneCameraData() { return *mSceneCameraGpu; }
+		inline CameraGpuData& getUiCameraData() { return *mUiCameraGpu; }
 
+		//-----Resource Defaults-----
+		inline const ResourceDefaults& getResourceDefaults() const { return mResourceDefaults; }
 
 		//-----Descriptor Set layouts-----
-		void addSetLayout(const char* name, std::shared_ptr<ShaderUniformSetLayoutVulkan> setLayout);
-		std::shared_ptr<ShaderUniformSetLayoutVulkan> getSetLayout(const char* name);
-		void removeSetLayout(const char* name, bool closeLayout);
+		inline CommonDescriptorSetLayouts& getCommonDescriptorSetLayouts() const { return *mCommonDescriptorSetLayouts; }
+		void addDescriptorSetLayout(const char* name, std::shared_ptr<DescriptorSetLayoutVulkan> setLayout);
+		std::shared_ptr<DescriptorSetLayoutVulkan> getDescriptorSetLayout(const char* name);
+		void removeDescriptorSetLayout(const char* name, bool closeLayout);
 
 		static VkImage createImage(
 			VkDevice logicDevice,
@@ -312,9 +318,10 @@ namespace DOH {
 			VkMemoryPropertyFlags props
 		);
 
+		static VkPushConstantRange pushConstantInfo(VkShaderStageFlagBits stage, uint32_t size, uint32_t offset);
+
 		//-----Pipeline-----
-		//TODO:: having a "createPipeline" and "createGraphicsPipeline" is confusing
-		inline std::shared_ptr<GraphicsPipelineVulkan> createGraphicsPipeline(GraphicsPipelineInstanceInfo& instanceInfo, VkExtent2D extent) const { return std::make_shared<GraphicsPipelineVulkan>(mLogicDevice, instanceInfo, getRenderPass(instanceInfo.getRenderPass()).get(), extent); }
+		inline std::shared_ptr<GraphicsPipelineVulkan> createGraphicsPipeline(GraphicsPipelineInstanceInfo& instanceInfo) const { return std::make_shared<GraphicsPipelineVulkan>(instanceInfo); }
 
 		//-----Context-----
 		inline std::shared_ptr<SwapChainVulkan> createSwapChain(SwapChainCreationInfo& swapChainCreate) const { return std::make_shared<SwapChainVulkan>(mLogicDevice, swapChainCreate); }
@@ -333,8 +340,9 @@ namespace DOH {
 		inline std::shared_ptr<BufferVulkan> createStagedBuffer(const void* data, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props) const { return std::make_shared<BufferVulkan>(mLogicDevice, mPhysicalDevice, mCommandPool, mGraphicsQueue, data, size, usage, props); }
 
 		//-----Shader-----
-		inline std::shared_ptr<ShaderProgramVulkan> createShaderProgram(std::shared_ptr<ShaderVulkan> vertShader, std::shared_ptr<ShaderVulkan> fragShader) const { return std::make_shared<ShaderProgramVulkan>(vertShader, fragShader); }
-		inline std::shared_ptr<ShaderVulkan> createShader(EShaderType type, const std::string& filePath) const { return std::make_shared<ShaderVulkan>(type, filePath); }
+		inline std::shared_ptr<ShaderVulkan> createShader(EShaderStage stage, const char* filePath) const { return std::make_shared<ShaderVulkan>(stage, filePath); }
+		inline std::shared_ptr<ShaderProgram> createShaderProgram(std::shared_ptr<ShaderVulkan> vertShader, std::shared_ptr<ShaderVulkan> fragShader, std::shared_ptr<ShaderDescriptorSetLayoutsVulkan> descriptorSetLayouts) const { return std::make_shared<ShaderProgram>(vertShader, fragShader, descriptorSetLayouts); }
+		std::shared_ptr<DescriptorSetLayoutVulkan> createDescriptorSetLayout(const std::vector<AShaderDescriptor>& descriptors, bool addToLayoutCache, const char* name);
 
 		//-----Texture-----
 		inline std::shared_ptr<TextureVulkan> createTexture(const std::string& filePath) const { return std::make_shared<TextureVulkan>(mLogicDevice, mPhysicalDevice, filePath); }
@@ -373,12 +381,5 @@ namespace DOH {
 
 		inline size_t getNextFrameIndex(size_t currentFrameIndex) const { return ((currentFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT); }
 		inline size_t getNextGpuResourceCloseFrameIndex(size_t currentReleaseFrameIndex) const { return ((currentReleaseFrameIndex + 1) % GPU_RESOURCE_CLOSE_FRAME_INDEX_COUNT); }
-
-
-
-		//TEMP:::
-		void createTestPipeline();
-		void closeTestPipeline();
-		void resizeTestPipeline();
 	};
 }

@@ -52,6 +52,9 @@ namespace DOH {
 
 			//TODO:: some kind of "lost GPU resources" list to manage?
 
+
+			//NOTE:: This is to stop the IGPUResource::~IGPUReource from logging a misleading error message.
+			mUsingGpuResource = false;
 		}
 	}
 

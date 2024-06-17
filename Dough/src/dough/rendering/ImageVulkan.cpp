@@ -15,6 +15,9 @@ namespace DOH {
 				"Image Vulkan GPU resource NOT released before destructor was called." <<
 				"Image: " << mImage << " ImageView: " << mImageView << " Memory: " << mImageMemory
 			);
+
+			//NOTE:: This is to stop the IGPUResource::~IGPUReource from logging a misleading error message.
+			mUsingGpuResource = false;
 		}
 	}
 

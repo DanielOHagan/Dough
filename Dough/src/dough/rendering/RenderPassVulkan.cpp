@@ -223,6 +223,9 @@ namespace DOH {
 				"Render Pass GPU resource NOT released before destructor was called." <<
 				"Handle:" << mRenderPass
 			);
+
+			//NOTE:: This is to stop the IGPUResource::~IGPUReource from logging a misleading error message.
+			mUsingGpuResource = false;
 		}
 	}
 	

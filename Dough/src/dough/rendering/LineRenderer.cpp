@@ -2,6 +2,7 @@
 
 #include "dough/application/Application.h"
 #include "dough/scene/geometry/primitives/Quad.h"
+#include "dough/rendering/pipeline/ShaderDescriptorSetLayoutsVulkan.h"
 
 #include "tracy/public/tracy/Tracy.hpp"
 
@@ -10,7 +11,13 @@ namespace DOH {
 	void LineRenderer::init(VkDevice logicDevice, VkExtent2D swapChainExtent, ValueUniformInfo uboSize) {
 		ZoneScoped;
 
-		const auto& context = Application::get().getRenderer().getContext();
+		auto& context = Application::get().getRenderer().getContext();
+
+		std::vector<std::reference_wrapper<DescriptorSetLayoutVulkan>> linePipelinesDescSets = { context.getCommonDescriptorSetLayouts().Ubo };
+		//NOTE:: Line Renderer currently uses the same descriptor set layouts so the one instance can be used for both SCENE and UI
+		std::shared_ptr<ShaderDescriptorSetLayoutsVulkan> lineShadersDescSetLayouts = std::make_shared<ShaderDescriptorSetLayoutsVulkan>(linePipelinesDescSets);
+		std::initializer_list<VkDescriptorSet> descSets = { VK_NULL_HANDLE };
+		std::shared_ptr<DescriptorSetsInstanceVulkan> descSetInstance = std::make_shared<DescriptorSetsInstanceVulkan>(descSets);
 		{
 			//Scene
 			const StaticVertexInputLayout& sceneVertexLayout = StaticVertexInputLayout::get(SCENE_LINE_VERTEX_TYPE);
@@ -27,31 +34,37 @@ namespace DOH {
 
 			//TODO:: Index buffer usage?
 
-			mSceneLineRenderable = std::make_shared<SimpleRenderable>(vao, false);
+			mSceneLineRenderable = std::make_shared<SimpleRenderable>(vao, descSetInstance, false);
 
+			mSceneLineVertexShader = context.createShader(EShaderStage::VERTEX, mSceneLineRendererVertexShaderPath);
+			mSceneLineFragmentShader = context.createShader(EShaderStage::FRAGMENT, mSceneLineRendererFragmentShaderPath);
 			mSceneLineShaderProgram = context.createShaderProgram(
-				context.createShader(EShaderType::VERTEX, mSceneLineRendererVertexShaderPath),
-				context.createShader(EShaderType::FRAGMENT, mSceneLineRendererFragmentShaderPath)
+				mSceneLineVertexShader,
+				mSceneLineFragmentShader,
+				lineShadersDescSetLayouts
 			);
-
-			ShaderUniformLayout& layout = mSceneLineShaderProgram->getUniformLayout();
-			layout.setValue(0, uboSize);
 
 			mSceneLineGraphicsPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 				sceneVertexLayout,
 				*mSceneLineShaderProgram,
 				ERenderPass::APP_SCENE
 			);
-			mSceneLineGraphicsPipelineInfo->getOptionalFields().PolygonMode = VK_POLYGON_MODE_LINE;
-			mSceneLineGraphicsPipelineInfo->getOptionalFields().CullMode = VK_CULL_MODE_NONE;
-			mSceneLineGraphicsPipelineInfo->getOptionalFields().Topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-			//mSceneLineGraphicsPipelineInfo->getOptionalFields().Topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
-			mSceneLineGraphicsPipelineInfo->getOptionalFields().ClearRenderablesAfterDraw = false;
+			auto& optionalFields = mSceneLineGraphicsPipelineInfo->enableOptionalFields();
+			optionalFields.PolygonMode = VK_POLYGON_MODE_LINE;
+			optionalFields.CullMode = VK_CULL_MODE_NONE;
+			optionalFields.Topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+			//optionalFields.Topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+			optionalFields.ClearRenderablesAfterDraw = false;
 
 			//TODO:: Allow depth testing for line rendering?
-			//mSceneLineGraphicsPipelineInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS_OR_EQUAL);
+			//optionalFields.setDepthTesting(true, VK_COMPARE_OP_LESS_OR_EQUAL);
 
-			mSceneLineGraphicsPipeline = context.createGraphicsPipeline(*mSceneLineGraphicsPipelineInfo, swapChainExtent);
+			mSceneLineGraphicsPipeline = context.createGraphicsPipeline(*mSceneLineGraphicsPipelineInfo);
+			mSceneLineGraphicsPipeline->init(
+				context.getLogicDevice(),
+				context.getSwapChain().getExtent(),
+				context.getRenderPass(ERenderPass::APP_SCENE).get()
+			);
 			mSceneLineBatch = std::make_unique<RenderBatchLineList>(SCENE_LINE_VERTEX_TYPE, LINE_BATCH_MAX_LINE_COUNT);
 			mSceneLineGraphicsPipeline->addRenderableToDraw(mSceneLineRenderable);
 		}
@@ -72,29 +85,35 @@ namespace DOH {
 
 			//TODO:: Index buffer usage
 
-			mUiLineRenderable = std::make_shared<SimpleRenderable>(vao, false);
+			mUiLineRenderable = std::make_shared<SimpleRenderable>(vao, descSetInstance, false);
+			mUiLineVertexShader = context.createShader(EShaderStage::VERTEX, mUiLineRendererVertexShaderPath);
+			mUiLineFragmentShader = context.createShader(EShaderStage::FRAGMENT, mUiLineRendererFragmentShaderPath);
 			mUiLineShaderProgram = context.createShaderProgram(
-				context.createShader(EShaderType::VERTEX, mUiLineRendererVertexShaderPath),
-				context.createShader(EShaderType::FRAGMENT, mUiLineRendererFragmentShaderPath)
+				mUiLineVertexShader,
+				mUiLineFragmentShader,
+				lineShadersDescSetLayouts
 			);
-
-			ShaderUniformLayout& layout = mUiLineShaderProgram->getUniformLayout();
-			layout.setValue(0, uboSize);
 
 			mUiLineGraphicsPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 				uiVertexLayout,
 				*mUiLineShaderProgram,
 				ERenderPass::APP_UI
 			);
-			mUiLineGraphicsPipelineInfo->getOptionalFields().PolygonMode = VK_POLYGON_MODE_LINE;
-			mUiLineGraphicsPipelineInfo->getOptionalFields().CullMode = VK_CULL_MODE_NONE;
-			mUiLineGraphicsPipelineInfo->getOptionalFields().Topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-			mUiLineGraphicsPipelineInfo->getOptionalFields().ClearRenderablesAfterDraw = false;
+			auto& optionalFields = mUiLineGraphicsPipelineInfo->enableOptionalFields();
+			optionalFields.PolygonMode = VK_POLYGON_MODE_LINE;
+			optionalFields.CullMode = VK_CULL_MODE_NONE;
+			optionalFields.Topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+			optionalFields.ClearRenderablesAfterDraw = false;
 
 			//TODO:: Allow depth testing for line rendering?
 			//mUiLineGraphicsPipelineInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS_OR_EQUAL);
 
-			mUiLineGraphicsPipeline = context.createGraphicsPipeline(*mUiLineGraphicsPipelineInfo, swapChainExtent);
+			mUiLineGraphicsPipeline = context.createGraphicsPipeline(*mUiLineGraphicsPipelineInfo);
+			mUiLineGraphicsPipeline->init(
+				context.getLogicDevice(),
+				context.getSwapChain().getExtent(),
+				context.getRenderPass(ERenderPass::APP_UI).get()
+			);
 			mUiLineBatch = std::make_unique<RenderBatchLineList>(UI_LINE_VERTEX_TYPE, LINE_BATCH_MAX_LINE_COUNT);
 			mUiLineGraphicsPipeline->addRenderableToDraw(mUiLineRenderable);
 		}
@@ -102,15 +121,22 @@ namespace DOH {
 
 	void LineRenderer::close(VkDevice logicDevice) {
 		ZoneScoped;
+		
+		
+		//TODO:: All of these resources are closed immediately. Should switch to deletion queue through mContext.closeGpuResource()
 
-		mSceneLineRenderable->getVao().getVertexBuffers()[0]->unmap(logicDevice);
 		mSceneLineRenderable->getVao().close(logicDevice);
+		//mContext.addGpuResourceToClose(mSceneLineRenderable->getVaoPtr());
 		mSceneLineShaderProgram->close(logicDevice);
+		//mContext.addGpuResourceToClose(mSceneLineVertexShader);
+		//mContext.addGpuResourceToClose(mSceneLineFragmentShader);
 		mSceneLineGraphicsPipeline->close(logicDevice);
 
-		mUiLineRenderable->getVao().getVertexBuffers()[0]->unmap(logicDevice);
 		mUiLineRenderable->getVao().close(logicDevice);
+		//mContext.addGpuResourceToClose(mUiLineRenderable->getVaoPtr());
 		mUiLineShaderProgram->close(logicDevice);
+		//mContext.addGpuResourceToClose(mUiLineVertexShader);
+		//mContext.addGpuResourceToClose(mUiLineFragmentShader);
 		mUiLineGraphicsPipeline->close(logicDevice);
 	}
 
@@ -125,16 +151,9 @@ namespace DOH {
 	) {
 		ZoneScoped;
 
-		if (mSceneLineGraphicsPipeline->isEnabled() && mSceneLineBatch->getLineCount() > 0) {
-			const uint32_t binding = 0;
-			mSceneLineGraphicsPipeline->setFrameUniformData(
-				logicDevice,
-				imageIndex,
-				binding,
-				ubo,
-				uboSize
-			);
-
+		if (mSceneLineBatch->getLineCount() > 0) {
+			const uint32_t uboSlot = 0;
+			mSceneLineRenderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = Application::get().getRenderer().getContext().getSceneCameraData().DescriptorSets[imageIndex];
 			if (currentBindings.Pipeline != mSceneLineGraphicsPipeline->get()) {
 				mSceneLineGraphicsPipeline->bind(cmd);
 				debugInfo.PipelineBinds++;
@@ -143,7 +162,16 @@ namespace DOH {
 
 			mSceneLineRenderable->getVao().setDrawCount(mSceneLineBatch->getVertexCount());
 
-			mSceneLineGraphicsPipeline->recordDrawCommands(imageIndex, cmd, currentBindings);
+			Application::get().getRenderer().getContext().bindSceneUboToPipeline(
+				cmd,
+				*mUiLineGraphicsPipeline,
+				imageIndex,
+				currentBindings,
+				debugInfo
+			);
+
+			//Offset by 1 because UBO already bound to this pipeline
+			mSceneLineGraphicsPipeline->recordDrawCommands(cmd, currentBindings, 1);
 			debugInfo.SceneDrawCalls += mSceneLineGraphicsPipeline->getVaoDrawCount();
 
 			mSceneLineRenderable->getVao().getVertexBuffers()[0]->setDataMapped(
@@ -167,16 +195,9 @@ namespace DOH {
 	) {
 		ZoneScoped;
 
-		if (mUiLineGraphicsPipeline->isEnabled() && mUiLineBatch->getLineCount() > 0) {
-			const uint32_t binding = 0;
-			mUiLineGraphicsPipeline->setFrameUniformData(
-				logicDevice,
-				imageIndex,
-				binding,
-				ubo,
-				uboSize
-			);
-
+		if (mUiLineBatch->getLineCount() > 0) {
+			const uint32_t uboSlot = 0;
+			mSceneLineRenderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = Application::get().getRenderer().getContext().getSceneCameraData().DescriptorSets[imageIndex];
 			if (currentBindings.Pipeline != mUiLineGraphicsPipeline->get()) {
 				mUiLineGraphicsPipeline->bind(cmd);
 				debugInfo.PipelineBinds++;
@@ -185,7 +206,16 @@ namespace DOH {
 
 			mUiLineRenderable->getVao().setDrawCount(mUiLineBatch->getVertexCount());
 
-			mUiLineGraphicsPipeline->recordDrawCommands(imageIndex, cmd, currentBindings);
+			Application::get().getRenderer().getContext().bindUiUboToPipeline(
+				cmd,
+				*mUiLineGraphicsPipeline,
+				imageIndex,
+				currentBindings,
+				debugInfo
+			);
+
+			//Offset by 1 because UBO already bound to this pipeline
+			mUiLineGraphicsPipeline->recordDrawCommands(cmd, currentBindings, 1);
 			debugInfo.UiDrawCalls += mUiLineGraphicsPipeline->getVaoDrawCount();
 
 			mUiLineRenderable->getVao().getVertexBuffers()[0]->setDataMapped(
@@ -207,44 +237,8 @@ namespace DOH {
 	) {
 		ZoneScoped;
 
-		auto& context = Application::get().getRenderer().getContext();
-		mSceneLineGraphicsPipeline->recreate(logicDevice, extent, sceneRenderPass.get());
-		context.createPipelineUniformObjects(*mSceneLineGraphicsPipeline, descPool);
-
-		mUiLineGraphicsPipeline->recreate(logicDevice, extent, uiRenderPass.get());
-		context.createPipelineUniformObjects(*mUiLineGraphicsPipeline, descPool);
-	}
-
-	void LineRenderer::createShaderUniforms(VkDevice logicDevice, VkPhysicalDevice physicalDevice, const uint32_t imageCount, VkDescriptorPool descPool) {
-		ZoneScoped;
-
-		mSceneLineGraphicsPipeline->createShaderUniforms(logicDevice, physicalDevice, imageCount, descPool);
-		mUiLineGraphicsPipeline->createShaderUniforms(logicDevice, physicalDevice, imageCount, descPool);
-	}
-	
-	void LineRenderer::updateShaderUniforms(VkDevice logicDevice, const uint32_t imageCount) {
-		ZoneScoped;
-
-		mSceneLineGraphicsPipeline->updateShaderUniforms(logicDevice, imageCount);
-		mUiLineGraphicsPipeline->updateShaderUniforms(logicDevice, imageCount);
-	}
-
-	const std::vector<DescriptorTypeInfo> LineRenderer::getDescriptorTypeInfo() const {
-		ZoneScoped;
-
-		std::vector<DescriptorTypeInfo> sceneDescTypes = mSceneLineGraphicsPipeline->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes();
-		std::vector<DescriptorTypeInfo> uiDescTypes = mUiLineGraphicsPipeline->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes();
-
-		const size_t sceneDescTypesSize = sceneDescTypes.size();
-		const size_t uiDescTypesSize = uiDescTypes.size();
-		const size_t totalSize = sceneDescTypesSize + uiDescTypesSize;
-		sceneDescTypes.reserve(totalSize);
-
-		for (size_t i = 0; i < uiDescTypesSize; i++) {
-			sceneDescTypes.emplace_back(uiDescTypes[i]);
-		}
-
-		return sceneDescTypes;
+		mSceneLineGraphicsPipeline->resize(logicDevice, extent, sceneRenderPass.get());
+		mUiLineGraphicsPipeline->resize(logicDevice, extent, uiRenderPass.get());
 	}
 
 	void LineRenderer::drawLineScene(const glm::vec3& start, const glm::vec3& end, const glm::vec4& colour) {

@@ -15,7 +15,4 @@ C:\dev\__SDKs\Vulkan\Bin\glslc.exe LineRenderer2d.frag -o spv/LineRenderer2d.fra
 
 C:\dev\__SDKs\Vulkan\Bin\glslc.exe TextMsdf3d.vert -o spv/TextMsdf3d.vert.spv
 C:\dev\__SDKs\Vulkan\Bin\glslc.exe TextMsdf3d.frag -o spv/TextMsdf3d.frag.spv
-
-C:\dev\__SDKs\Vulkan\Bin\glslc.exe _TestShader.vert -o spv/_TestShader.vert.spv
-C:\dev\__SDKs\Vulkan\Bin\glslc.exe _TestShader.frag -o spv/_TestShader.frag.spv
 pause

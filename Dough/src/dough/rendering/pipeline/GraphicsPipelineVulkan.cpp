@@ -1,55 +1,151 @@
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 
-#include "dough/rendering/buffer/BufferVulkan.h"
-#include "dough/rendering/pipeline/shader/ShaderVulkan.h"
-#include "dough/rendering/ObjInit.h"
-#include "dough/Logging.h"
+#include "dough/rendering/pipeline/ShaderProgram.h"
+#include "dough/Utils.h"
+#include "dough/rendering/VertexInputLayout.h"
+#include "dough/rendering/RenderPassVulkan.h"
 #include "dough/rendering/RenderingContextVulkan.h"
+#include "dough/rendering/renderables/SimpleRenderable.h"
 
 namespace DOH {
 
-	GraphicsPipelineVulkan::GraphicsPipelineVulkan(
-		VkDevice logicDevice,
-		GraphicsPipelineInstanceInfo& instanceInfo,
-		VkRenderPass renderPass,
-		VkExtent2D extent
-	) : mGraphicsPipeline(VK_NULL_HANDLE),
-		mGraphicsPipelineLayout(VK_NULL_HANDLE),
-		mInstanceInfo(instanceInfo),
-		mEnabled(true)
-	{
-		createUniformObjects(logicDevice);
-		createPipelineLayout(logicDevice);
-		createPipeline(logicDevice, extent, renderPass);
+	GraphicsPipelineOptionalFields& GraphicsPipelineInstanceInfo::enableOptionalFields() {
+		if (mOptionalFields == nullptr) {
+			mOptionalFields = std::make_unique<GraphicsPipelineOptionalFields>();
+		}
+
+		return *mOptionalFields;
 	}
+
+	GraphicsPipelineVulkan::GraphicsPipelineVulkan(GraphicsPipelineInstanceInfo& instanceInfo)
+	:	mGraphicsPipeline(VK_NULL_HANDLE),
+		mGraphicsPipelineLayout(VK_NULL_HANDLE),
+		mInstanceInfo(instanceInfo)
+	{}
 
 	GraphicsPipelineVulkan::~GraphicsPipelineVulkan() {
 		if (isUsingGpuResource()) {
 			LOG_ERR(
-				"GraphicsPipeline GPU resource NOT released before destructor was called." <<
+				"GraphicsPipeline_2 GPU resource NOT released before destructor was called." <<
 				" Handle: " << mGraphicsPipeline << " Layout:" << mGraphicsPipelineLayout
 			);
 
 			//TODO:: Verbose error message to include mInstanceInfo
 
+
+			//NOTE:: This is to stop the IGPUResource::~IGPUReource from logging a misleading error message.
+			mUsingGpuResource = false;
+		}
+	}
+
+	void GraphicsPipelineVulkan::close(VkDevice logicDevice) {
+		vkDestroyPipeline(logicDevice, mGraphicsPipeline, nullptr);
+		vkDestroyPipelineLayout(logicDevice, mGraphicsPipelineLayout, nullptr);
+		mUsingGpuResource = false;
+	}
+
+	void GraphicsPipelineVulkan::init(VkDevice logicDevice, VkExtent2D extent, VkRenderPass renderPass) {
+		createPipelineLayout(logicDevice);
+		createPipeline(logicDevice, extent, renderPass);
+	}
+
+	void GraphicsPipelineVulkan::resize(VkDevice logicDevice, VkExtent2D extent, VkRenderPass renderPass) {
+		vkDestroyPipeline(logicDevice, mGraphicsPipeline, nullptr);
+		createPipeline(logicDevice, extent, renderPass);
+	}
+
+	void GraphicsPipelineVulkan::recordDrawCommands(VkCommandBuffer cmd, CurrentBindingsState& currentBindings, uint32_t descSetOffset) {
+		for (auto& renderable : mRenderableDrawList) {
+			//Bind descriptor sets
+			if (renderable->hasDescriptorSetsInstance()) {
+				DescriptorSetsInstanceVulkan& shaderResourceData = *renderable->getDescriptorSetsInstance();
+				const uint32_t descSetCount = static_cast<uint32_t>(shaderResourceData.getDescriptorSets().size());
+				for (uint32_t i = descSetOffset; i < descSetCount; i++) {
+					VkDescriptorSet descSet = shaderResourceData.getDescriptorSets()[i];
+					if (currentBindings.DescriptorSets[i] != descSet) {
+						vkCmdBindDescriptorSets(
+							cmd,
+							VK_PIPELINE_BIND_POINT_GRAPHICS,
+							mGraphicsPipelineLayout,
+							i,
+							1,
+							&descSet,
+							0,
+							nullptr
+						);
+						currentBindings.DescriptorSets[i] = descSet;
+						//debugInfo.DescriptorSetBinds++;
+
+						//TODO:: This should make profiling easier, save passing round a debugInfo reference
+						//DescriptorApiVulkan::bind(
+						//	cmd,
+						//	VK_PIPELINE_BIND_POINT_GRAPHICS,
+						//	mGraphicsPipelineLayout,
+						//	i,
+						//	1,
+						//	&descSet,
+						//	0,
+						//	nullptr
+						//);
+					}
+				}
+			}
+
+			//TODO:: Currently binding a vao (through vao.bind()) binds both vb and ib, removing that link in vao.bind() this code should look something more like this:
+			// Not using vao.bind() because that also calls ib.bind(). Currently trying to "un-link" that
+			// AND this only works for single VAOs with a single vb
+			const VkBuffer vb = renderable->getVao().getVertexBuffers()[0]->getBuffer();
+			if (currentBindings.VertexBuffer != vb) {
+				VkDeviceSize offset = 0;
+				vkCmdBindVertexBuffers(cmd, 0, 1, &vb, &offset);
+				currentBindings.VertexBuffer = vb;
+			}
+
+			for (const VkPushConstantRange& pushConstant : mInstanceInfo.getShaderProgram().getDescriptorSetLayouts().getPushConstants()) {
+				vkCmdPushConstants(
+					cmd,
+					mGraphicsPipelineLayout,
+					pushConstant.stageFlags,
+					pushConstant.offset,
+					pushConstant.size,
+					renderable->getPushConstantPtr()
+				);
+			}
+
+			//TODO:: better way of calling the intended draw cmd. e.g. virtual renderable->draw(cmd) or switch(renderable->getDrawCmdType())
+			if (renderable->isIndexed()) {
+				IndexBufferVulkan& ib = renderable->getVao().getIndexBuffer();
+				if (currentBindings.IndexBuffer != ib.getBuffer()) {
+					ib.bind(cmd);
+					currentBindings.IndexBuffer = ib.getBuffer();
+				}
+
+				vkCmdDrawIndexed(
+					cmd,
+					renderable->getVao().getDrawCount(),
+					1,
+					0,
+					0,
+					0
+				);
+			} else {
+				vkCmdDraw(cmd, renderable->getVao().getDrawCount(), 1, 0, 0);
+			}
+		}
+
+		if (mInstanceInfo.hasOptionalFields() && mInstanceInfo.getOptionalFields().ClearRenderablesAfterDraw) {
+			mRenderableDrawList.clear();
 		}
 	}
 
 	void GraphicsPipelineVulkan::createPipelineLayout(VkDevice logicDevice) {
 		VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
 		pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutCreateInfo.setLayoutCount = 1;
-		pipelineLayoutCreateInfo.pSetLayouts = &mInstanceInfo.getShaderProgram().getShaderDescriptorLayout().getDescriptorSetLayout();
-
-		if (mInstanceInfo.getShaderProgram().getUniformLayout().hasPushConstant()) {
-			const auto& pushConstantRanges = mInstanceInfo.getShaderProgram().getUniformLayout().getPushConstantRanges();
-			pipelineLayoutCreateInfo.pushConstantRangeCount =
-				static_cast<uint32_t>(pushConstantRanges.size());
-			pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges.data();
-		} else {
-			pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-			pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
-		}
+		pipelineLayoutCreateInfo.setLayoutCount = mInstanceInfo.getShaderProgram().getDescriptorSetLayouts().getSetCount();
+		std::vector<VkDescriptorSetLayout> layouts = mInstanceInfo.getShaderProgram().getDescriptorSetLayouts().getNativeSetLayouts();
+		pipelineLayoutCreateInfo.pSetLayouts = layouts.data();
+		pipelineLayoutCreateInfo.pushConstantRangeCount = mInstanceInfo.getShaderProgram().getDescriptorSetLayouts().getPushConstantCount();
+		pipelineLayoutCreateInfo.pPushConstantRanges = mInstanceInfo.getShaderProgram().getDescriptorSetLayouts().getPushConstants().data();
 
 		VK_TRY(
 			vkCreatePipelineLayout(
@@ -64,13 +160,12 @@ namespace DOH {
 		mUsingGpuResource = true;
 	}
 
-	void GraphicsPipelineVulkan::createPipeline(
-		VkDevice logicDevice,
-		VkExtent2D extent,
-		VkRenderPass renderPass
-	) {
-		mInstanceInfo.getShaderProgram().loadModules(logicDevice);
-		TRY(!mInstanceInfo.getShaderProgram().areShadersLoaded(), "Shader Modules not loaded");
+	void GraphicsPipelineVulkan::createPipeline(VkDevice logicDevice, VkExtent2D extent, VkRenderPass renderPass) {
+		//Make sure shaders are loaded
+		//TODO:: Checking for if individual shaders are loaded
+		if (!mInstanceInfo.getShaderProgram().areShadersLoaded()) {
+			mInstanceInfo.getShaderProgram().init(logicDevice);
+		}
 
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
 		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -89,7 +184,7 @@ namespace DOH {
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-		//IMPORTANT:: vertex input binding is always slot 0
+		//IMPORTANT:: in DOH vertex input binding is always slot 0
 		const uint32_t binding = 0;
 		const auto vertexAttribs = mInstanceInfo.getVertexInputLayout().asAttribDesc(binding);
 
@@ -105,12 +200,11 @@ namespace DOH {
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-		inputAssembly.topology = mInstanceInfo.getOptionalFields().Topology;
 		inputAssembly.primitiveRestartEnable = VK_FALSE;
 
 		VkViewport viewport = {};
 		viewport.x = 0.0f;
-		viewport.y = 0;
+		viewport.y = 0.0f;
 		viewport.width = static_cast<float>(extent.width);
 		viewport.height = static_cast<float>(extent.height);
 		viewport.minDepth = 0.0f;
@@ -131,10 +225,7 @@ namespace DOH {
 		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 		rasterizer.depthClampEnable = VK_FALSE;
 		rasterizer.rasterizerDiscardEnable = VK_FALSE;
-		rasterizer.polygonMode = mInstanceInfo.getOptionalFields().PolygonMode;
 		rasterizer.lineWidth = 1.0f;
-		rasterizer.cullMode = mInstanceInfo.getOptionalFields().CullMode;
-		rasterizer.frontFace = mInstanceInfo.getOptionalFields().FrontFace;
 		rasterizer.depthBiasEnable = VK_FALSE;
 
 		VkPipelineMultisampleStateCreateInfo multisampling = {};
@@ -148,13 +239,6 @@ namespace DOH {
 			VK_COLOR_COMPONENT_G_BIT |
 			VK_COLOR_COMPONENT_B_BIT |
 			VK_COLOR_COMPONENT_A_BIT;
-		colourBlendAttachment.blendEnable = mInstanceInfo.getOptionalFields().BlendingEnabled ? VK_TRUE : VK_FALSE;
-		colourBlendAttachment.srcColorBlendFactor = mInstanceInfo.getOptionalFields().ColourBlendSrcFactor;
-		colourBlendAttachment.dstColorBlendFactor = mInstanceInfo.getOptionalFields().ColourBlendDstFactor;
-		colourBlendAttachment.colorBlendOp = mInstanceInfo.getOptionalFields().ColourBlendOp;
-		colourBlendAttachment.srcAlphaBlendFactor = mInstanceInfo.getOptionalFields().AlphaBlendSrcFactor;
-		colourBlendAttachment.dstAlphaBlendFactor = mInstanceInfo.getOptionalFields().AlphaBlendDstFactor;
-		colourBlendAttachment.alphaBlendOp = mInstanceInfo.getOptionalFields().AlphaBlendOp;
 
 		VkPipelineColorBlendStateCreateInfo colourBlending = {};
 		colourBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -164,10 +248,6 @@ namespace DOH {
 
 		VkPipelineDepthStencilStateCreateInfo depthStencil = {};
 		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		depthStencil.depthTestEnable = mInstanceInfo.getOptionalFields().DepthTestingEnabled ? VK_TRUE : VK_FALSE;
-		depthStencil.depthWriteEnable = mInstanceInfo.getOptionalFields().DepthTestingEnabled ? VK_TRUE : VK_FALSE;
-		depthStencil.depthCompareOp = mInstanceInfo.getOptionalFields().DepthCompareOp;
-		depthStencil.depthBoundsTestEnable = VK_FALSE;
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
 		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -184,6 +264,50 @@ namespace DOH {
 		pipelineCreateInfo.subpass = 0;
 		pipelineCreateInfo.pDepthStencilState = &depthStencil;
 
+		//Optional Fields
+		if (mInstanceInfo.hasOptionalFields()) {
+			GraphicsPipelineOptionalFields& optFields = mInstanceInfo.getOptionalFields();
+
+			inputAssembly.topology = optFields.Topology;
+
+			rasterizer.polygonMode = optFields.PolygonMode;
+			rasterizer.cullMode = optFields.CullMode;
+			rasterizer.frontFace = optFields.FrontFace;
+
+			colourBlendAttachment.blendEnable = optFields.BlendingEnabled ? VK_TRUE : VK_FALSE;
+			colourBlendAttachment.srcColorBlendFactor = optFields.ColourBlendSrcFactor;
+			colourBlendAttachment.dstColorBlendFactor = optFields.ColourBlendDstFactor;
+			colourBlendAttachment.colorBlendOp = optFields.ColourBlendOp;
+			colourBlendAttachment.srcAlphaBlendFactor = optFields.AlphaBlendSrcFactor;
+			colourBlendAttachment.dstAlphaBlendFactor = optFields.AlphaBlendDstFactor;
+			colourBlendAttachment.alphaBlendOp = optFields.AlphaBlendOp;
+
+			depthStencil.depthTestEnable = optFields.DepthTestingEnabled ? VK_TRUE : VK_FALSE;
+			depthStencil.depthWriteEnable = optFields.DepthTestingEnabled ? VK_TRUE : VK_FALSE;
+			depthStencil.depthCompareOp = optFields.DepthCompareOp;
+			depthStencil.depthBoundsTestEnable = VK_FALSE;
+		} else {
+			//Defaults for optional fields
+			inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+			rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+			rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+			rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+
+			colourBlendAttachment.blendEnable = VK_FALSE;
+			colourBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+			colourBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+			colourBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+			colourBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+			colourBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+			colourBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+			depthStencil.depthTestEnable = VK_FALSE;
+			depthStencil.depthWriteEnable = VK_FALSE;
+			depthStencil.depthCompareOp = VK_COMPARE_OP_NEVER;
+			depthStencil.depthBoundsTestEnable = VK_FALSE;
+		}
+
 		VK_TRY(
 			vkCreateGraphicsPipelines(logicDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &mGraphicsPipeline),
 			"Failed to create Graphics Pipeline."
@@ -191,102 +315,7 @@ namespace DOH {
 
 		mUsingGpuResource = true;
 
-		mInstanceInfo.getShaderProgram().closeModules(logicDevice);
-	}
-
-	void GraphicsPipelineVulkan::close(VkDevice logicDevice) {
-		vkDestroyPipeline(logicDevice, mGraphicsPipeline, nullptr);
-		vkDestroyPipelineLayout(logicDevice, mGraphicsPipelineLayout, nullptr);
-
-		mUsingGpuResource = false;
-	}
-
-	void GraphicsPipelineVulkan::recreate(
-		VkDevice logicDevice,
-		VkExtent2D extent,
-		VkRenderPass renderPass
-	) {
-		mInstanceInfo.getShaderProgram().closePipelineSpecificObjects(logicDevice);
-		vkDestroyPipeline(logicDevice, mGraphicsPipeline, nullptr);
-
-		createPipeline(logicDevice, extent, renderPass);
-		mInstanceInfo.getShaderProgram().getShaderDescriptorLayout().createDescriptorSetLayout(logicDevice);
-	}
-
-	void GraphicsPipelineVulkan::createUniformObjects(VkDevice logicDevice) {
-		mInstanceInfo.getShaderProgram().getShaderDescriptorLayout().createDescriptorSetLayoutBindings(
-			logicDevice,
-			mInstanceInfo.getShaderProgram().getUniformLayout().getTotalUniformCount()
-		);
-		mInstanceInfo.getShaderProgram().getShaderDescriptorLayout().createDescriptorSetLayout(logicDevice);
-	}
-
-	void GraphicsPipelineVulkan::createShaderUniforms(
-		VkDevice logicDevice,
-		VkPhysicalDevice physicalDevice,
-		uint32_t imageCount,
-		VkDescriptorPool descPool
-	) {
-		DescriptorSetLayoutVulkan& desc = mInstanceInfo.getShaderProgram().getShaderDescriptorLayout();
-		desc.createValueBuffers(logicDevice, physicalDevice, imageCount);
-		desc.createDescriptorSets(logicDevice, imageCount, descPool);
-	}
-
-	void GraphicsPipelineVulkan::updateShaderUniforms(VkDevice logicDevice, uint32_t imageCount) {
-		mInstanceInfo.getShaderProgram().getShaderDescriptorLayout().updateAllDescriptorSets(logicDevice, imageCount);
-	}
-	
-	void GraphicsPipelineVulkan::setFrameUniformData(VkDevice logicDevice, uint32_t image, uint32_t binding, void* data, size_t size) {
-		mInstanceInfo.getShaderProgram().getShaderDescriptorLayout().getBuffersFromBinding(binding)[image]
-			->setDataUnmapped(logicDevice, data, size);
-	}
-
-	void GraphicsPipelineVulkan::recordDrawCommands(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
-		if (mInstanceInfo.getShaderProgram().getUniformLayout().hasUniforms()) {
-			mInstanceInfo.getShaderProgram().getShaderDescriptorLayout().bindDescriptorSets(
-				cmd,
-				mGraphicsPipelineLayout,
-				imageIndex
-			);
-		}
-
-		for (const auto& renderable : mRenderableDrawList) {
-			const VkBuffer vb = renderable->getVao().getVertexBuffers()[0]->getBuffer();
-			const VkBuffer ib = renderable->isIndexed() ? renderable->getVao().getIndexBuffer().getBuffer() : currentBindings.IndexBuffer;
-			if (currentBindings.VertexBuffer != vb || currentBindings.IndexBuffer != ib) {
-				renderable->getVao().bind(cmd);
-				currentBindings.VertexBuffer = vb;
-				currentBindings.IndexBuffer = ib;
-			}
-
-			for (const VkPushConstantRange& pushConstant : mInstanceInfo.getShaderProgram().getUniformLayout().getPushConstantRanges()) {
-				vkCmdPushConstants(
-					cmd,
-					mGraphicsPipelineLayout,
-					pushConstant.stageFlags,
-					pushConstant.offset,
-					pushConstant.size,
-					renderable->getPushConstantPtr()
-				);
-			}
-
-			//TODO:: better way of calling the intended draw cmd. e.g. renderable->draw(cmd) or switch(renderable->getDrawCmd())
-			if (renderable->isIndexed()) {
-				vkCmdDrawIndexed(
-					cmd,
-					renderable->getVao().getDrawCount(),
-					1,
-					0,
-					0,
-					0
-				);
-			} else {
-				vkCmdDraw(cmd, renderable->getVao().getDrawCount(), 1, 0, 0);
-			}
-		}
-
-		if (mInstanceInfo.getOptionalFields().ClearRenderablesAfterDraw) {
-			mRenderableDrawList.clear();
-		}
+		//TODO:: Currently this auto closes shaders. Maybe have a way of not closing if more than one pipeline uses the same module(s)
+		mInstanceInfo.getShaderProgram().close(logicDevice);
 	}
 }

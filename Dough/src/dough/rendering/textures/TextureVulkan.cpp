@@ -101,6 +101,9 @@ namespace DOH {
 		if (isUsingGpuResource()) {
 			LOG_ERR("Texture GPU resource NOT released before destructor was called." << " Name: " << mName);
 		}
+
+		//NOTE:: This is to stop the IGPUResource::~IGPUReource from logging a misleading error message.
+		mUsingGpuResource = false;
 	}
 
 	void TextureVulkan::close(VkDevice logicDevice) {

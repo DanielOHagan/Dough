@@ -7,7 +7,7 @@
 #include "dough/application/Application.h"
 #include "dough/rendering/ShapeRenderer.h"
 #include "dough/rendering/text/TextRenderer.h"
-#include "dough/rendering/pipeline_2/DescriptorApiVulkan.h"
+#include "dough/rendering/pipeline/DescriptorApiVulkan.h"
 
 #include <chrono>
 #include <glm/gtc/matrix_transform.hpp>
@@ -30,13 +30,8 @@ namespace DOH {
 		mEngineDescriptorPool(VK_NULL_HANDLE),
 		mCustomDescriptorPool(VK_NULL_HANDLE),
 		mCommandPool(VK_NULL_HANDLE),
-		mAppSceneUbo({ glm::mat4x4(1.0f) }),
-		mAppUiProjection(1.0f),
 		mDepthFormat(VK_FORMAT_UNDEFINED),
 		mGpuResourcesFrameCloseCount({})
-
-		,mTestTextureDescriptorSet(VK_NULL_HANDLE),
-		mTestWhiteTextureDescriptorSet(VK_NULL_HANDLE)
 	{}
 
 	bool RenderingContextVulkan::isReady() const {
@@ -97,8 +92,49 @@ namespace DOH {
 		createCommandBuffers();
 		createSyncObjects();
 
+		mResourceDefaults.WhiteTexture = createTexture(
+			255.0f,
+			255.0f,
+			255.0f,
+			255.0f,
+			false,
+			"White Texture"
+		);
+		mResourceDefaults.EmptyTextureArray = std::make_unique<TextureArray>(8, *mResourceDefaults.WhiteTexture);
+
+		mSceneCameraGpu = std::make_unique<CameraGpuData>();
+		mSceneCameraGpu->CpuData.ProjView = glm::mat4x4(1.0f);
+		mUiCameraGpu = std::make_unique<CameraGpuData>();
+		mUiCameraGpu->CpuData.ProjView = glm::mat4x4(1.0f);
+
+		const uint32_t imageCount = mSwapChain->getImageCount();
+		mSceneCameraGpu->ValueBuffers.resize(imageCount);
+		mUiCameraGpu->ValueBuffers.resize(imageCount);
+		for (uint32_t i = 0; i < imageCount; i++) {
+			mSceneCameraGpu->ValueBuffers[i] = createBuffer(
+				sizeof(UniformBufferObject),
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			);
+			mSceneCameraGpu->ValueBuffers[i]->map(mLogicDevice, sizeof(UniformBufferObject));
+
+			mUiCameraGpu->ValueBuffers[i] = createBuffer(
+				sizeof(UniformBufferObject),
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			);
+			mUiCameraGpu->ValueBuffers[i]->map(mLogicDevice, sizeof(UniformBufferObject));
+		}
+
+		createEngineDescriptorLayouts();
+		createEngineDescriptorPool();
+		createEngineDescriptorSets();
+
 		ShapeRenderer::init(*this);
-		TextRenderer::init(*this, ShapeRenderer::getWhiteTexture(), ShapeRenderer::getQuadSharedIndexBufferPtr());
+		TextRenderer::init(*this, *mResourceDefaults.WhiteTexture, ShapeRenderer::getQuadSharedIndexBufferPtr());
+
+		//TODO:: LineRenderer singleton class
+		//LineRenderer::init(*this);
 		mLineRenderer = std::make_unique<LineRenderer>();
 		mLineRenderer->init(mLogicDevice, mSwapChain->getExtent(), sizeof(UniformBufferObject));
 
@@ -120,19 +156,29 @@ namespace DOH {
 		//TEMP:: In future multiple custom render states will be possible at once along with "built-in" render states (e.g. 2D batch renderer and Text)
 		mCurrentRenderState = std::make_unique<CustomRenderState>("Application Render State");
 
-		createEngineUniformObjects();
-
-		createTestPipeline();
+		//Create custom pool with "max" limits so the editor can create as many as it needs.
+		//Currently set to an arbitrary number that should be enough for my uses.
+		//Some types are commented out since they are not currently used.
+		// 
+		//TODO:: Needs something to track descriptor counts to prevent trying to alloc after reaching limit.
+		std::vector<DescriptorTypeInfo> customPoolDescTypeInfos = {
+			//{ VK_DESCRIPTOR_TYPE_SAMPLER,					8192u },
+			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,	8192u },
+			//{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,				8192u },
+			//{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,				8192u },
+			//{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,		8192u },
+			//{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,		8192u },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,			8192u },
+			//{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,			8192u },
+			//{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,	8192u },
+			//{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC,	8192u }
+			//{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,			8192u }
+		};
+		mCustomDescriptorPool = createDescriptorPool(customPoolDescTypeInfos);
 	}
 
 	void RenderingContextVulkan::close() {
 		ZoneScoped;
-
-		const size_t gpuResourceCount = mGpuResourcesToClose.size();
-		for (size_t i = 0; i < gpuResourceCount; i++) {
-			mGpuResourcesToClose.front()->close(mLogicDevice);
-			mGpuResourcesToClose.pop();
-		}
 
 		vkFreeCommandBuffers(
 			mLogicDevice,
@@ -141,20 +187,24 @@ namespace DOH {
 			mCommandBuffers.data()
 		);
 
+		for (auto& buffer : mSceneCameraGpu->ValueBuffers) {
+			buffer->close(mLogicDevice);
+		}
+		for (auto& buffer : mUiCameraGpu->ValueBuffers) {
+			buffer->close(mLogicDevice);
+		}
+
 		TextRenderer::close();
 		ShapeRenderer::close();
-		if (mImGuiWrapper != nullptr) {
-			mImGuiWrapper->close(mLogicDevice);
-		}
 		if (mLineRenderer != nullptr) {
 			mLineRenderer->close(mLogicDevice);
 		}
+		if (mImGuiWrapper != nullptr) {
+			mImGuiWrapper->close(mLogicDevice);
+		}
 
-
-
-		closeTestPipeline();
-
-
+		//Resource Defaults
+		mResourceDefaults.WhiteTexture->close(mLogicDevice);
 
 		closeSyncObjects();
 		closeRenderPasses();
@@ -168,8 +218,16 @@ namespace DOH {
 			mCurrentRenderState->close(mLogicDevice);
 		}
 
-		for (auto& uniformSetLayout : mAllUniformSetLayouts) {
-			uniformSetLayout.second->close(mLogicDevice);
+		//Close deletion queue at end of function so other IGPU resources can be added before.
+		//NOTE:: This is fine since closing is single threaded.
+		const size_t gpuResourceCount = mGpuResourcesToClose.size();
+		for (size_t i = 0; i < gpuResourceCount; i++) {
+			mGpuResourcesToClose.front()->close(mLogicDevice);
+			mGpuResourcesToClose.pop();
+		}
+
+		for (auto& setLayout : mAllDescriptorSetLayouts) {
+			setLayout.second->close(mLogicDevice);
 		}
 
 		if (mEngineDescriptorPool != VK_NULL_HANDLE) {
@@ -216,57 +274,6 @@ namespace DOH {
 		) {
 			Application::get().getRenderer().deviceWaitIdle("Device waiting idle for swap chain recreation");
 
-			//Engine descriptors
-			std::vector<DescriptorTypeInfo> engineDescTypes = {};
-
-			{ //Shape Rendering
-				std::vector<DescriptorTypeInfo> shapesDescTypes = ShapeRenderer::getDescriptorTypeInfos();
-				engineDescTypes.reserve(engineDescTypes.size() + shapesDescTypes.size());
-				for (const auto& descType : shapesDescTypes) {
-					engineDescTypes.emplace_back(descType);
-				}
-			}
-			{ //Text Rendering
-				std::vector<DescriptorTypeInfo> textDescTypes = TextRenderer::getDescriptorTypeInfos();
-				engineDescTypes.reserve(engineDescTypes.size() + textDescTypes.size());
-				for (const auto& descType : textDescTypes) {
-					engineDescTypes.emplace_back(descType);
-				}
-			}
-			{ //Line Rendering
-				std::vector<DescriptorTypeInfo> lineDescTypes = mLineRenderer->getDescriptorTypeInfo();
-				engineDescTypes.reserve(engineDescTypes.size() + lineDescTypes.size());
-				for (const auto& descType : lineDescTypes) {
-					engineDescTypes.emplace_back(descType);
-				}
-			}
-
-			if (engineDescTypes.size() > 0) {
-				vkDestroyDescriptorPool(mLogicDevice, mEngineDescriptorPool, nullptr);
-
-				//TODO:: reset pool instead?
-				//vkResetDescriptorPool(mLogicDevice, mEngineDescriptorPool, 0);
-			}
-
-			//Custom descriptors
-			std::vector<DescriptorTypeInfo> customDescTypes;
-			for (const auto& pipelineGroup : mCurrentRenderState->getRenderPassGraphicsPipelineMap()) {
-				for (const auto& [name, pipeline] : pipelineGroup.second) {
-					std::vector<DescriptorTypeInfo> descTypes = pipeline->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes();
-					customDescTypes.reserve(customDescTypes.size() + descTypes.size());
-
-					for (const DescriptorTypeInfo& descType : descTypes) {
-						customDescTypes.emplace_back(descType);
-					}
-				}
-			}
-			if (customDescTypes.size() > 0) {
-				vkDestroyDescriptorPool(mLogicDevice, mCustomDescriptorPool, nullptr);
-
-				//TODO:: reset pool instead?
-				//vkResetDescriptorPool(mLogicDevice, mCustomDescriptorPool, 0);
-			}
-
 			closeRenderPasses();
 			closeAppSceneDepthResources();
 			closeFrameBuffers();
@@ -289,14 +296,8 @@ namespace DOH {
 			mImGuiWrapper->createFrameBuffers(mLogicDevice, mSwapChain->getImageViews(), mSwapChain->getExtent());
 
 			const VkExtent2D extent = mSwapChain->getExtent();
-			//Engine descriptors
-			if (engineDescTypes.size() > 0) {
-				mEngineDescriptorPool = createDescriptorPool(engineDescTypes);
-			}
 			ShapeRenderer::onSwapChainResize(*mSwapChain);
-			ShapeRenderer::createPipelineUniformObjects(mEngineDescriptorPool);
 			TextRenderer::onSwapChainResize(*mSwapChain);
-			TextRenderer::createPipelineUniformObjects(mEngineDescriptorPool);
 			mLineRenderer->recreateGraphicsPipelines(
 				mLogicDevice,
 				extent,
@@ -305,26 +306,16 @@ namespace DOH {
 				mEngineDescriptorPool
 			);
 
-			//CustomDescriptors
-			if (customDescTypes.size() > 0) {
-				mCustomDescriptorPool = createDescriptorPool(customDescTypes);
-			}
 			for (auto& pipelineGroup : mCurrentRenderState->getRenderPassGraphicsPipelineMap()) {
 				const VkRenderPass rp = getRenderPass(pipelineGroup.first).get();
 				for (auto& pipeline : pipelineGroup.second) {
-					pipeline.second->recreate(
+					pipeline.second->resize(
 						mLogicDevice,
 						extent,
 						rp
 					);
-					createPipelineUniformObjects(*pipeline.second, mCustomDescriptorPool);
 				}
 			}
-
-
-
-			//TEMP
-			mTestGraphicsPipeline->recreate(mLogicDevice, extent, mAppSceneRenderPass->get());
 		}
 	}
 
@@ -344,23 +335,20 @@ namespace DOH {
 		ShapeRenderer::resetLocalDebugInfo();
 		TextRenderer::resetLocalDebugInfo();
 
-		const uint32_t uboBinding = 0;
-
-		//TODO:: These calls may be redundant if a frame doesn't render any of the respective geo
-		ShapeRenderer::setUniformData(imageIndex, uboBinding, mAppSceneUbo.ProjectionViewMat, mAppUiProjection);
-		TextRenderer::setUniformData(imageIndex, uboBinding, mAppSceneUbo.ProjectionViewMat, mAppUiProjection);
+		//Set camera data
+		mSceneCameraGpu->ValueBuffers[imageIndex]->setDataMapped(mLogicDevice, &mSceneCameraGpu->CpuData.ProjView, sizeof(UniformBufferObject));
+		mUiCameraGpu->ValueBuffers[imageIndex]->setDataMapped(mLogicDevice, &mUiCameraGpu->CpuData.ProjView, sizeof(UniformBufferObject));
 
 		VkCommandBuffer cmd = mCommandBuffers[imageIndex];
 		beginCommandBuffer(cmd);
 
+		//TODO:: CurrentBindings should last after a frame is done, recreating here is in-efficient
 		CurrentBindingsState currentBindings = {};
 
-		//Draw scene
 		drawScene(imageIndex, cmd, currentBindings);
-
-		//Draw Application UI
 		drawUi(imageIndex, cmd, currentBindings);
 
+		debugInfo.QuadBatchRendererDrawCalls += ShapeRenderer::getDrawnQuadCount();
 		debugInfo.QuadBatchRendererDrawCalls += TextRenderer::getDrawnQuadCount();
 
 		//Draw ImGui
@@ -390,29 +378,30 @@ namespace DOH {
 		auto scenePipelines = mCurrentRenderState->getRenderPassGraphicsPipelineGroup(ERenderPass::APP_SCENE);
 		if (scenePipelines.has_value()) {
 			for (auto& pipeline : scenePipelines->get()) {
-				if (pipeline.second->isEnabled() && pipeline.second->getVaoDrawCount() > 0) {
-					//TODO:: 
-					// FIX:: This sets the data for all shader programs used by scene graphics pipelines in the frame.
-					// Even if the data in the descriptors has already been set when a prior pipeline, which has
-					// the same shader program, has been cycled through.
-
-					//IMPORTANT:: Assumes all scene pipelines use this UBO and they're at binding 0
-					const uint32_t binding = 0;
-					pipeline.second->setFrameUniformData(
-						mLogicDevice,
-						imageIndex,
-						binding,
-						&mAppSceneUbo,
-						sizeof(UniformBufferObject)
-					);
-
+				if (pipeline.second->getVaoDrawCount() > 0) {
 					if (currentBindings.Pipeline != pipeline.second->get()) {
 						pipeline.second->bind(cmd);
 						debugInfo.PipelineBinds++;
 						currentBindings.Pipeline = pipeline.second->get();
 					}
 
-					pipeline.second->recordDrawCommands(imageIndex, cmd, currentBindings);
+					//Bind scene ubo since GraphicsPipeline class doesn't have access to desc set object
+					const uint32_t uboSlot = 0;
+					VkDescriptorSet currentUboDescSet = mSceneCameraGpu->DescriptorSets[imageIndex];
+					vkCmdBindDescriptorSets(
+						cmd,
+						VK_PIPELINE_BIND_POINT_GRAPHICS,
+						pipeline.second->getGraphicsPipelineLayout(),
+						uboSlot,
+						1,
+						&currentUboDescSet,
+						0,
+						nullptr
+					);
+					currentBindings.DescriptorSets[uboSlot] = currentUboDescSet;
+					debugInfo.DescriptorSetBinds++;
+
+					pipeline.second->recordDrawCommands(cmd, currentBindings, 1);
 					debugInfo.SceneDrawCalls += pipeline.second->getVaoDrawCount();
 				}
 			}
@@ -425,91 +414,12 @@ namespace DOH {
 		mLineRenderer->drawScene(
 			mLogicDevice,
 			imageIndex,
-			&mAppSceneUbo,
+			&mSceneCameraGpu->CpuData.ProjView,
 			sizeof(UniformBufferObject),
 			cmd,
 			currentBindings,
 			debugInfo
 		);
-
-
-
-		//TEMP::
-		//mAppSceneUbo.ProjectionViewMat[1][1] *= -1;
-		mTestCameraValueBuffers[imageIndex]->setDataMapped(mLogicDevice, &mAppSceneUbo, sizeof(UniformBufferObject));
-		mTestCameraOrthoValueBuffers[imageIndex]->setDataMapped(mLogicDevice, &mAppUiProjection, sizeof(UniformBufferObject));
-
-		const uint32_t cameraDescSetSlot = 0;
-		const uint32_t textureDescSetSlot = 1;
-
-		//TEMP:: Demo for using different descriptor sets with new pipeline & descriptor system
-		static bool firstUsingPerspective = true;
-		static bool firstUsingWhiteTexture = true;
-		static bool secondUsingPerspective = true;
-		static bool secondUsingWhiteTexture = true;
-		if (ImGui::Begin("Test window")) {
-
-			ImGui::Text("First Quad");
-			if (ImGui::RadioButton("Perspective##First", firstUsingPerspective)) {
-				firstUsingPerspective = true;
-			}
-			if (ImGui::RadioButton("Ortho##First", !firstUsingPerspective)) {
-				firstUsingPerspective = false;
-			}
-
-			ImGui::NewLine();
-
-			if (ImGui::RadioButton("White Texture##First", firstUsingWhiteTexture)) {
-				firstUsingWhiteTexture = true;
-			}
-			if (ImGui::RadioButton("Test Texture##First", !firstUsingWhiteTexture)) {
-				firstUsingWhiteTexture = false;
-			}
-
-			static float transformFloats[3] = { 0.0f, 0.0f, 0.0f };
-			if (ImGui::DragFloat3("Transform##First", transformFloats)) {
-				mTestTransform = glm::translate(glm::mat4x4(1.0f), { transformFloats[0], transformFloats[1], transformFloats[2] });
-			}
-
-
-			ImGui::Text("Second Quad");
-			if (ImGui::RadioButton("Perspective##Second", secondUsingPerspective)) {
-				secondUsingPerspective = true;
-			}
-			if (ImGui::RadioButton("Ortho##Second", !secondUsingPerspective)) {
-				secondUsingPerspective = false;
-			}
-
-			ImGui::NewLine();
-
-			if (ImGui::RadioButton("White Texture##Second", secondUsingWhiteTexture)) {
-				secondUsingWhiteTexture = true;
-			}
-			if (ImGui::RadioButton("Test Texture##Second", !secondUsingWhiteTexture)) {
-				secondUsingWhiteTexture = false;
-			}
-
-			static float secondTransformFloats[3] = { 0.0f, 0.0f, 0.0f };
-			if (ImGui::DragFloat3("Transform##Second", secondTransformFloats)) {
-				mTestTransformSecond = glm::translate(glm::mat4x4(1.0f), { secondTransformFloats[0], secondTransformFloats[1], secondTransformFloats[2] });
-			}
-		}
-		ImGui::End();
-
-		mFirstTestShaderResourceInstance->getDescriptorSets()[cameraDescSetSlot] = firstUsingPerspective ? mTestUboDescriptorSets[imageIndex] : mTestUboOrthoDescriptorSets[imageIndex];
-		mFirstTestShaderResourceInstance->getDescriptorSets()[textureDescSetSlot] = firstUsingWhiteTexture ? mTestWhiteTextureDescriptorSet : mTestTextureDescriptorSet;
-
-		mSecondTestShaderResourceInstance->getDescriptorSets()[cameraDescSetSlot] = secondUsingPerspective ? mTestUboDescriptorSets[imageIndex] : mTestUboOrthoDescriptorSets[imageIndex];
-		mSecondTestShaderResourceInstance->getDescriptorSets()[textureDescSetSlot] = secondUsingWhiteTexture ? mTestWhiteTextureDescriptorSet : mTestTextureDescriptorSet;
-
-
-		mTestGraphicsPipeline->bind(cmd);
-		debugInfo.PipelineBinds++;
-		currentBindings.Pipeline = mTestGraphicsPipeline->get();
-		mTestGraphicsPipeline->recordDrawCommands(imageIndex, cmd, currentBindings);
-		debugInfo.SceneDrawCalls += mTestGraphicsPipeline->getVaoDrawCount();
-
-
 
 		RenderPassVulkan::endRenderPass(cmd);
 	}
@@ -524,29 +434,22 @@ namespace DOH {
 		auto uiPipelines = mCurrentRenderState->getRenderPassGraphicsPipelineGroup(ERenderPass::APP_UI);
 		if (uiPipelines.has_value()) {
 			for (auto& pipeline : uiPipelines->get()) {
-				if (pipeline.second->isEnabled() && pipeline.second->getVaoDrawCount() > 0) {
-
-					//TODO:: 
-					// FIX:: This sets the data for all shader programs used by scene graphics pipelines in the frame.
-					// Even if the data in the descriptors has already been set when a prior pipeline, which has
-					// the same shader program, has been cycled through.
-
-					//IMPORTANT:: Assumes all scene pipelines use this UBO and they're at binding 0
-					const uint32_t binding = 0;
-					pipeline.second->setFrameUniformData(
-						mLogicDevice,
-						imageIndex,
-						binding,
-						&mAppUiProjection,
-						sizeof(UniformBufferObject)
-					);
-
+				if (pipeline.second->getVaoDrawCount() > 0) {
 					if (currentBindings.Pipeline != pipeline.second->get()) {
 						pipeline.second->bind(cmd);
 						debugInfo.PipelineBinds++;
+						currentBindings.Pipeline = pipeline.second->get();
 					}
 
-					pipeline.second->recordDrawCommands(imageIndex, cmd, currentBindings);
+					bindUiUboToPipeline(
+						cmd,
+						*pipeline.second,
+						imageIndex,
+						currentBindings,
+						debugInfo
+					);
+
+					pipeline.second->recordDrawCommands(cmd, currentBindings, 1);
 					debugInfo.UiDrawCalls += pipeline.second->getVaoDrawCount();
 				}
 			}
@@ -557,7 +460,7 @@ namespace DOH {
 		mLineRenderer->drawUi(
 			mLogicDevice,
 			imageIndex,
-			&mAppUiProjection,
+			&mUiCameraGpu->CpuData.ProjView,
 			sizeof(UniformBufferObject),
 			cmd,
 			currentBindings,
@@ -613,6 +516,54 @@ namespace DOH {
 		//);
 	}
 
+	void RenderingContextVulkan::bindSceneUboToPipeline(
+		VkCommandBuffer cmd,
+		GraphicsPipelineVulkan& pipeline,
+		uint32_t imageIndex,
+		CurrentBindingsState& currentBindings,
+		AppDebugInfo& debugInfo
+	) {
+		//Bind scene ubo since GraphicsPipeline class doesn't have access to desc set object
+		const uint32_t uboSlot = 0;
+		VkDescriptorSet currentUboDescSet = mSceneCameraGpu->DescriptorSets[imageIndex];
+		vkCmdBindDescriptorSets(
+			cmd,
+			VK_PIPELINE_BIND_POINT_GRAPHICS,
+			pipeline.getGraphicsPipelineLayout(),
+			uboSlot,
+			1,
+			&currentUboDescSet,
+			0,
+			nullptr
+		);
+		currentBindings.DescriptorSets[uboSlot] = currentUboDescSet;
+		debugInfo.DescriptorSetBinds++;
+	}
+
+	void RenderingContextVulkan::bindUiUboToPipeline(
+		VkCommandBuffer cmd,
+		GraphicsPipelineVulkan& pipeline,
+		uint32_t imageIndex,
+		CurrentBindingsState& currentBindings,
+		AppDebugInfo& debugInfo
+	) {
+		//Bind scene ubo since GraphicsPipeline class doesn't have access to desc set object
+		const uint32_t uboSlot = 0;
+		VkDescriptorSet currentUboDescSet = mUiCameraGpu->DescriptorSets[imageIndex];
+		vkCmdBindDescriptorSets(
+			cmd,
+			VK_PIPELINE_BIND_POINT_GRAPHICS,
+			pipeline.getGraphicsPipelineLayout(),
+			uboSlot,
+			1,
+			&currentUboDescSet,
+			0,
+			nullptr
+		);
+		currentBindings.DescriptorSets[uboSlot] = currentUboDescSet;
+		debugInfo.DescriptorSetBinds++;
+	}
+
 	void RenderingContextVulkan::createQueues(QueueFamilyIndices& queueFamilyIndices) {
 		ZoneScoped;
 
@@ -658,19 +609,52 @@ namespace DOH {
 		VkDescriptorPool descPool;
 
 		const uint32_t imageCount = mSwapChain->getImageCount();
+		//NOTE:: Only supporting the first 11 types of VkDescriptorType. Most will likely not even be needed.
+		constexpr size_t MAX_DESC_TYPE_COUNT = 11;
 
 		std::vector<VkDescriptorPoolSize> poolSizes;
-		poolSizes.reserve(descTypes.size());
+		std::array<uint32_t, MAX_DESC_TYPE_COUNT> poolsSizeIndexes = {};
+		poolsSizeIndexes.fill(UINT_MAX);
+		poolSizes.reserve(MAX_DESC_TYPE_COUNT);
+		uint32_t descCount = 0;
+		uint32_t nextAvailablePoolIndex = 0;
 		for (const DescriptorTypeInfo& descType : descTypes) {
-			VkDescriptorPoolSize poolSize = { descType.first, descType.second * imageCount };
-			poolSizes.emplace_back(poolSize);
+
+			//IMPORTANT:: This cast works because poolSizeIndexes uses the same index order as the VkDescriptorType enum definitions
+			uint32_t typeIndex = static_cast<uint32_t>(descType.first);
+			if (poolsSizeIndexes[typeIndex] == UINT32_MAX) {
+				VkDescriptorPoolSize poolSize = { descType.first, 0 };
+				poolSizes.emplace_back(poolSize);
+
+				poolsSizeIndexes[typeIndex] = nextAvailablePoolIndex;
+				nextAvailablePoolIndex++;
+			}
+			poolSizes[poolsSizeIndexes[typeIndex]].descriptorCount += descType.second;
+
+			//If the cast option is not working then create a switch statement with a case for each descriptor type.
+			//switch (descType.first) {
+			//	case {DescriptorType}:
+			//	{
+			//		if (poolsSizeIndexes[{DescriptorTypeIndex}] == UINT32_MAX) {
+			//			VkDescriptorPoolSize poolSize = { descType.first, 0 };
+			//			poolSizes.emplace_back(poolSize);
+			//
+			//			poolsSizeIndexes[{DescriptorTypeIndex}] = nextAvailablePoolIndex;
+			//			nextAvailablePoolIndex++;
+			//		}
+			//		poolSizes[poolsSizeIndexes[{DescriptorTypeIndex}]].descriptorCount += descType.second;
+			//		break;
+			//	}
+			//}
+
+			descCount += descType.second;
 		}
 
 		VkDescriptorPoolCreateInfo poolCreateInfo = {};
 		poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		poolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 		poolCreateInfo.pPoolSizes = poolSizes.data();
-		poolCreateInfo.maxSets = static_cast<uint32_t>(descTypes.size()) * imageCount;
+		poolCreateInfo.maxSets = descCount;
 
 		VK_TRY(
 			vkCreateDescriptorPool(mLogicDevice, &poolCreateInfo, nullptr, &descPool),
@@ -870,26 +854,9 @@ namespace DOH {
 		}
 	}
 
-	void RenderingContextVulkan::createPipelineUniformObjects(GraphicsPipelineVulkan& pipeline, VkDescriptorPool descPool) {
-		ZoneScoped;
-
-		if (pipeline.getShaderProgram().getUniformLayout().hasUniforms()) {
-			pipeline.createShaderUniforms(
-				mLogicDevice,
-				mPhysicalDevice,
-				mSwapChain->getImageCount(),
-				descPool
-			);
-			pipeline.updateShaderUniforms(mLogicDevice, mSwapChain->getImageCount());
-		} else {
-			LOG_WARN("Tried to create uniform objects for pipeline without uniforms");
-		}
-	}
-
-	PipelineRenderableConveyor RenderingContextVulkan::createPipeline(
+	PipelineRenderableConveyor RenderingContextVulkan::createPipelineInCurrentRenderState(
 		const std::string& name,
-		GraphicsPipelineInstanceInfo& instanceInfo,
-		const bool enabled
+		GraphicsPipelineInstanceInfo& instanceInfo
 	) {
 		ZoneScoped;
 
@@ -903,7 +870,8 @@ namespace DOH {
 				return {};
 			}
 
-			const auto pipeline = createGraphicsPipeline(instanceInfo, mSwapChain->getExtent());
+			const auto pipeline = createGraphicsPipeline(instanceInfo);
+			pipeline->init(mLogicDevice, mSwapChain->getExtent(), getRenderPass(instanceInfo.getRenderPass()).get());
 			if (pipeline != nullptr) {
 				mCurrentRenderState->addPipelineToRenderPass(instanceInfo.getRenderPass(), name, pipeline);
 				return { *pipeline };
@@ -934,23 +902,8 @@ namespace DOH {
 				return {};
 			}
 		} else {
-			LOG_ERR("Pipeline group not found: " << ERenderPassStrings[(uint32_t) renderPass]);
+			LOG_ERR("Pipeline group not found: " << ERenderPassStrings[static_cast<uint32_t>(renderPass)]);
 			return {};
-		}
-	}
-
-	void RenderingContextVulkan::enablePipeline(const ERenderPass renderPass, const std::string& name, bool enable) {
-		ZoneScoped;
-
-		std::optional<std::reference_wrapper<GraphicsPipelineMap>> map = mCurrentRenderState->getRenderPassGraphicsPipelineGroup(renderPass);
-
-		if (map.has_value()) {
-			const auto& itr = map->get().find(name);
-			if (itr != map->get().end()) {
-				itr->second->setEnabled(enable);
-			} else {
-				LOG_WARN("Unable to find pipeline: " << name);
-			}
 		}
 	}
 
@@ -960,73 +913,129 @@ namespace DOH {
 		mCurrentRenderState->closePipeline(mLogicDevice, renderPass, name);
 	}
 
-	void RenderingContextVulkan::createEngineUniformObjects() {
-		ZoneScoped;
+	void RenderingContextVulkan::createEngineDescriptorLayouts() {
+		std::vector<AShaderDescriptor> uboDesc = {
+			ValueDescriptor(0, sizeof(UniformBufferObject))
+		};
+		std::vector<AShaderDescriptor> textureDesc = {
+			TextureDescriptor(0, *mResourceDefaults.WhiteTexture)
+		};
+		std::vector<AShaderDescriptor> textureArrayDesc = {
+			TextureArrayDescriptor(0, *mResourceDefaults.EmptyTextureArray)
+		};
 
-		std::vector<DescriptorTypeInfo> engineDescTypes = {};
-		{ //Shapes
-			std::vector<DescriptorTypeInfo> shapeDescTypes = ShapeRenderer::getDescriptorTypeInfos();
-			engineDescTypes.reserve(engineDescTypes.size() + shapeDescTypes.size());
-			for (const auto& descType : shapeDescTypes) {
-				engineDescTypes.emplace_back(descType);
-			}
-		}
-		{ //Text
-			std::vector<DescriptorTypeInfo> textDescTypes = TextRenderer::getDescriptorTypeInfos();
-			engineDescTypes.reserve(engineDescTypes.size() + textDescTypes.size());
-			for (const auto& descType : textDescTypes) {
-				engineDescTypes.emplace_back(descType);
-			}
-		}
-		{ //Line
-			std::vector<DescriptorTypeInfo> lineDescTypes = mLineRenderer->getDescriptorTypeInfo();
-			for (const auto& descType : lineDescTypes) {
-				engineDescTypes.emplace_back(descType);
-			}
-		}
-		if (engineDescTypes.size() > 0) {
-			mEngineDescriptorPool = createDescriptorPool(engineDescTypes);
-		}
+		std::shared_ptr<DescriptorSetLayoutVulkan> uboSet = createDescriptorSetLayout(uboDesc, true, "ubo");
+		std::shared_ptr<DescriptorSetLayoutVulkan> textureSet = createDescriptorSetLayout(textureDesc, true, "singleTexture");
+		std::shared_ptr<DescriptorSetLayoutVulkan> textureArraySet = createDescriptorSetLayout(textureArrayDesc, true, "singleTextureArray8");
 
-		const uint32_t imageCount = mSwapChain->getImageCount();
-
-		ShapeRenderer::createPipelineUniformObjects(mEngineDescriptorPool);
-		TextRenderer::createPipelineUniformObjects(mEngineDescriptorPool);
-		mLineRenderer->createShaderUniforms(mLogicDevice, mPhysicalDevice, imageCount, mEngineDescriptorPool);
-		mLineRenderer->updateShaderUniforms(mLogicDevice, imageCount);
-
+		//Allow for easier access outisde of the layout map
+		mCommonDescriptorSetLayouts = std::make_unique<CommonDescriptorSetLayouts>(*uboSet, *textureSet, *textureArraySet);
 	}
 
-	void RenderingContextVulkan::createCustomUniformObjects() {
-		ZoneScoped;
+	void RenderingContextVulkan::createEngineDescriptorPool() {
+		//IMPORTANT NOTE:: The desc count of a texture array is added to total desc type counts because allocation requires a set layout.
+		//This allows for the use of textures being used as a single sampler and also in an array in a different shader.
 
-		std::vector<DescriptorTypeInfo> customDescTypes = {};
-		uint32_t pipelineCount = 0;
-		for (const auto& pipelineGroup : mCurrentRenderState->getRenderPassGraphicsPipelineMap()) {
-			for (const auto& pipeline : pipelineGroup.second) {
-				for (const auto& descType : pipeline.second->getShaderProgram().getShaderDescriptorLayout().asDescriptorTypes()) {
-					customDescTypes.emplace_back(descType);
-				}
-				pipelineCount++;
-			}
+		std::vector<DescriptorTypeInfo> descTypeInfos;
+		
+		const uint32_t imageCount = mSwapChain->getImageCount();
+
+		//Init to 3 for required descriptor sets:
+		//Scene & UI UBO's and mResourceDefaults members
+		uint32_t descTypeInfoCount = 3;
+
+		std::vector<DescriptorTypeInfo> shapeDescTypeInfos = ShapeRenderer::getEngineDescriptorTypeInfos();
+		descTypeInfoCount += static_cast<uint32_t>(shapeDescTypeInfos.size());
+		std::vector<DescriptorTypeInfo> textDescTypeInfos = TextRenderer::getEngineDescriptorTypeInfos();
+		descTypeInfoCount += static_cast<uint32_t>(textDescTypeInfos.size());
+		//std::vector<DescriptorTypeInfo> lineDescTypeInfos = LineRenderer::getEngineDescriptorTypeInfos();
+		//descTypeInfoCount += lineDescTypeInfos.size();
+
+		descTypeInfos.reserve(descTypeInfoCount);
+
+		descTypeInfos.push_back({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, imageCount }); //Scene UBO
+		descTypeInfos.push_back({ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, imageCount }); //UI UBO
+		descTypeInfos.push_back({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1u }); //White Texture
+		descTypeInfos.push_back({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8u }); //Empty Texture Array
+
+		for (const auto& descTypeInfo : shapeDescTypeInfos) {
+			descTypeInfos.emplace_back(descTypeInfo);
+		}
+		for (const auto& descTypeInfo : textDescTypeInfos) {
+			descTypeInfos.emplace_back(descTypeInfo);
 		}
 
-		if (pipelineCount > 0) {
-			mCustomDescriptorPool = createDescriptorPool(customDescTypes);
+		mEngineDescriptorPool = createDescriptorPool(descTypeInfos);
+	}
 
-			const uint32_t imageCount = mSwapChain->getImageCount();
-			for (auto& pipelineGroup : mCurrentRenderState->getRenderPassGraphicsPipelineMap()) {
-				for (auto& pipeline : pipelineGroup.second) {
-					pipeline.second->createShaderUniforms(
-						mLogicDevice,
-						mPhysicalDevice,
-						imageCount,
-						mCustomDescriptorPool
-					);
-					pipeline.second->updateShaderUniforms(mLogicDevice, imageCount);
-				}
-			}
+	void RenderingContextVulkan::createEngineDescriptorSets() {
+		//Allocate descriptor sets
+		const uint32_t imageCount = mSwapChain->getImageCount();
+		DescriptorSetLayoutVulkan& uboSetLayout = mCommonDescriptorSetLayouts->Ubo;
+		DescriptorSetLayoutVulkan& textureSetLayout = mCommonDescriptorSetLayouts->SingleTexture;
+		DescriptorSetLayoutVulkan& texArrSetLayout = mCommonDescriptorSetLayouts->SingleTextureArray8;
+
+		//Uniform Buffers
+		mSceneCameraGpu->DescriptorSets = DescriptorApiVulkan::allocateDescriptorSetsFromLayout(
+			mLogicDevice,
+			mEngineDescriptorPool,
+			uboSetLayout,
+			imageCount
+		);
+		mUiCameraGpu->DescriptorSets = DescriptorApiVulkan::allocateDescriptorSetsFromLayout(
+			mLogicDevice,
+			mEngineDescriptorPool,
+			uboSetLayout,
+			imageCount
+		);
+
+		//Textures
+		mResourceDefaults.WhiteTextureDescriptorSet = DescriptorApiVulkan::allocateDescriptorSetFromLayout(
+			mLogicDevice,
+			mEngineDescriptorPool,
+			textureSetLayout
+		);
+
+		//Texture Array
+		mResourceDefaults.EmptyTextureArrayDescriptorSet = DescriptorApiVulkan::allocateDescriptorSetFromLayout(
+			mLogicDevice,
+			mEngineDescriptorPool,
+			texArrSetLayout
+		);
+
+		//Update descriptor sets
+		//Cameras
+		const uint32_t projViewBinding = 0;
+		for (uint32_t i = 0; i < imageCount; i++) {
+			//Scene camera
+			DescriptorSetUpdate sceneCameraUpdate = {
+				{{ uboSetLayout.getDescriptors()[projViewBinding], *mSceneCameraGpu->ValueBuffers[i] }},
+				mSceneCameraGpu->DescriptorSets[i]
+			};
+			DescriptorApiVulkan::updateDescriptorSet(mLogicDevice, sceneCameraUpdate);
+
+			//UI camera
+			DescriptorSetUpdate uiCameraUpdate = {
+				{{ uboSetLayout.getDescriptors()[projViewBinding], *mUiCameraGpu->ValueBuffers[i] }},
+				mUiCameraGpu->DescriptorSets[i]
+			};
+			DescriptorApiVulkan::updateDescriptorSet(mLogicDevice, uiCameraUpdate);
 		}
+
+		//Textures
+		const uint32_t textureSamplerBinding = 0;
+		DescriptorSetUpdate whiteTextureUpdate = {
+			{{ textureSetLayout.getDescriptors()[textureSamplerBinding], *mResourceDefaults.WhiteTexture }},
+			mResourceDefaults.WhiteTextureDescriptorSet
+		};
+		DescriptorApiVulkan::updateDescriptorSet(mLogicDevice, whiteTextureUpdate);
+
+		//Texture Arrays
+		const uint32_t texArrBinding = 0;
+		DescriptorSetUpdate texArrUpdate = {
+			{{ texArrSetLayout.getDescriptors()[texArrBinding], *mResourceDefaults.EmptyTextureArray }},
+			mResourceDefaults.EmptyTextureArrayDescriptorSet
+		};
 	}
 
 	VkCommandBuffer RenderingContextVulkan::beginSingleTimeCommands() {
@@ -1268,28 +1277,43 @@ namespace DOH {
 		vkGetPhysicalDeviceProperties(mPhysicalDevice, mPhysicalDeviceProperties.get());
 	}
 
-	void RenderingContextVulkan::addSetLayout(const char* name, std::shared_ptr<ShaderUniformSetLayoutVulkan> setLayout) {
-		auto result = mAllUniformSetLayouts.emplace(name, setLayout);
+	void RenderingContextVulkan::addDescriptorSetLayout(const char* name, std::shared_ptr<DescriptorSetLayoutVulkan> setLayout) {
+		auto result = mAllDescriptorSetLayouts.emplace(name, setLayout);
 		if (!result.second) {
 			LOG_ERR("Failed to add set layout to mAllDescriptorSets. Name: " << name);
 		}
 	}
 
-	std::shared_ptr<ShaderUniformSetLayoutVulkan> RenderingContextVulkan::getSetLayout(const char* name) {
-		auto result = mAllUniformSetLayouts.find(name);
-		if (result != mAllUniformSetLayouts.end()) {
-			return result->second;
-		}
+	std::shared_ptr<DescriptorSetLayoutVulkan> RenderingContextVulkan::getDescriptorSetLayout(const char* name) {
+		ZoneScoped;
 
-		return nullptr;
+		auto result = mAllDescriptorSetLayouts.find(name);
+		return result != mAllDescriptorSetLayouts.end() ? result->second : nullptr;
 	}
 
-	void RenderingContextVulkan::removeSetLayout(const char* name, bool closeLayout) {
-		auto set = mAllUniformSetLayouts.extract(name);
+	void RenderingContextVulkan::removeDescriptorSetLayout(const char* name, bool closeLayout) {
+		ZoneScoped;
+
+		auto set = mAllDescriptorSetLayouts.extract(name);
 
 		if (closeLayout && !set.empty()) {
 			addGpuResourceToClose(set.mapped());
 		}
+	}
+
+	std::shared_ptr<DescriptorSetLayoutVulkan> RenderingContextVulkan::createDescriptorSetLayout(
+		const std::vector<AShaderDescriptor>& uniforms,
+		bool addToLayoutCache,
+		const char* name
+	) {
+		ZoneScoped;
+
+		std::shared_ptr<DescriptorSetLayoutVulkan> set = std::make_shared<DescriptorSetLayoutVulkan>(uniforms);
+		set->init(mLogicDevice);
+		if (addToLayoutCache) {
+			addDescriptorSetLayout(name, set);
+		}
+		return set;
 	}
 
 	VkImage RenderingContextVulkan::createImage(
@@ -1372,184 +1396,11 @@ namespace DOH {
 		THROW("Unknown render pass");
 	}
 
-
-
-
-
-	void RenderingContextVulkan::createTestPipeline() {
-		const uint32_t imageCount = mSwapChain->getImageCount();
-
-		VkDescriptorPoolSize poolSizes[] =
-		{
-			{ VK_DESCRIPTOR_TYPE_SAMPLER, 100 },
-			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 100 },
-			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 100 },
-			{ VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 100 },
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 100 },
-			{ VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 100 },
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100 },
-			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 100 },
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 100 },
-			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 100 },
-			{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 100 }
-		};
-		VkDescriptorPoolCreateInfo poolInfo = {};
-		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-		poolInfo.maxSets = 100 * IM_ARRAYSIZE(poolSizes);
-		poolInfo.poolSizeCount = (uint32_t)IM_ARRAYSIZE(poolSizes);
-		poolInfo.pPoolSizes = poolSizes;
-		VK_TRY(
-			vkCreateDescriptorPool(mLogicDevice, &poolInfo, nullptr, &mTestDescriptorPool),
-			"Failed to create test descriptor pool"
-		);
-
-		std::shared_ptr<ShaderVulkan_2> vertShader = std::make_shared<ShaderVulkan_2>(
-			EShaderStage_2::VERTEX,
-			"Dough/res/shaders/spv/_TestShader.vert.spv"
-		);
-		std::shared_ptr<ShaderVulkan_2> fragShader = std::make_shared<ShaderVulkan_2>(
-			EShaderStage_2::FRAGMENT,
-			"Dough/res/shaders/spv/_TestShader.frag.spv"
-		);
-		std::vector<ShaderUniform> uboUniforms = {
-			ValueShaderUniform(0, sizeof(UniformBufferObject))
-		};
-		std::vector<ShaderUniform> textureUniforms = {
-			TextureShaderUniform(0, ShapeRenderer::getWhiteTexture())
-		};
-
-		std::shared_ptr<ShaderUniformSetLayoutVulkan> uboSet = std::make_shared<ShaderUniformSetLayoutVulkan>(uboUniforms);
-		uboSet->init(mLogicDevice);
-		addSetLayout("ubo", uboSet);
-
-		std::shared_ptr<ShaderUniformSetLayoutVulkan> textureSet = std::make_shared<ShaderUniformSetLayoutVulkan>(textureUniforms);
-		textureSet->init(mLogicDevice);
-		addSetLayout("texture", textureSet);
-
-		std::vector<std::reference_wrapper<ShaderUniformSetLayoutVulkan>> testPipelineSets = { *uboSet, *textureSet };
+	VkPushConstantRange RenderingContextVulkan::pushConstantInfo(VkShaderStageFlagBits stage, uint32_t size, uint32_t offset) {
 		VkPushConstantRange pushConstant = {};
-		pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-		pushConstant.size = sizeof(glm::mat4x4);
-		pushConstant.offset = 0;
-		std::vector<VkPushConstantRange> pushConstants = { pushConstant };
-
-		mTestShaderUniformLayout = std::make_shared<ShaderUniformLayoutVulkan_2>(pushConstants, testPipelineSets);
-
-		mTestShaderProgram = std::make_shared<ShaderProgram_2>(vertShader, fragShader, mTestShaderUniformLayout);
-
-		mTestGraphicsPipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo_2>(
-			mTestGraphicsVertexInputLayout,
-			*mTestShaderProgram,
-			ERenderPass::APP_SCENE
-		);
-
-		//create camera descriptors
-		mTestCameraValueBuffers.resize(imageCount);
-		mTestCameraOrthoValueBuffers.resize(imageCount);
-		for (uint32_t i = 0; i < imageCount; i++) {
-			mTestCameraValueBuffers[i] = createBuffer(
-				sizeof(UniformBufferObject),
-				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-			);
-			mTestCameraValueBuffers[i]->map(mLogicDevice, sizeof(UniformBufferObject));
-
-			mTestCameraOrthoValueBuffers[i] = createBuffer(
-				sizeof(UniformBufferObject),
-				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-			);
-			mTestCameraOrthoValueBuffers[i]->map(mLogicDevice, sizeof(UniformBufferObject));
-		}
-
-		mTestUboDescriptorSets = DescriptorApiVulkan::allocateDescriptorSetsFromLayout(mLogicDevice, mTestDescriptorPool, *uboSet, imageCount);
-		mTestUboOrthoDescriptorSets = DescriptorApiVulkan::allocateDescriptorSetsFromLayout(mLogicDevice, mTestDescriptorPool, *uboSet, imageCount);
-		mTestWhiteTextureDescriptorSet = DescriptorApiVulkan::allocateDescriptorSetFromLayout(mLogicDevice, mTestDescriptorPool, *textureSet);
-		mTestTextureDescriptorSet = DescriptorApiVulkan::allocateDescriptorSetFromLayout(mLogicDevice, mTestDescriptorPool, *textureSet);
-
-		const uint32_t projViewBinding = 0;
-		for (uint32_t i = 0; i < imageCount; i++) {
-			//Ortho camera
-			DescriptorSetUpdate testUboOrthoInitialUpdate = {};
-			testUboOrthoInitialUpdate.DescSet = mTestUboOrthoDescriptorSets[i];
-			DescriptorUpdate orthoUpdate = { uboSet->getUniforms()[projViewBinding], *mTestCameraOrthoValueBuffers[i] };
-			testUboOrthoInitialUpdate.Updates.emplace_back(orthoUpdate);
-			DescriptorApiVulkan::updateDescriptorSet(mLogicDevice, testUboOrthoInitialUpdate);
-			
-			//Perspective camera
-			DescriptorSetUpdate testUboInitialUpdate = {};
-			testUboInitialUpdate.DescSet = mTestUboDescriptorSets[i];
-			DescriptorUpdate update = { uboSet->getUniforms()[projViewBinding], *mTestCameraValueBuffers[i] };
-			testUboInitialUpdate.Updates.emplace_back(update);
-			DescriptorApiVulkan::updateDescriptorSet(mLogicDevice, testUboInitialUpdate);
-		}
-
-		const uint32_t textureSamplerBinding = 0;
-		DescriptorSetUpdate testWhiteTextureUpdate = {};
-		testWhiteTextureUpdate.DescSet = mTestWhiteTextureDescriptorSet;
-		DescriptorUpdate whiteTextureUpdate = { textureSet->getUniforms()[textureSamplerBinding], ShapeRenderer::getWhiteTexture() };
-		testWhiteTextureUpdate.Updates.emplace_back(whiteTextureUpdate);
-		DescriptorApiVulkan::updateDescriptorSet(mLogicDevice, testWhiteTextureUpdate);
-
-		DescriptorSetUpdate testTextureUpdate = {};
-		testTextureUpdate.DescSet = mTestTextureDescriptorSet;
-		DescriptorUpdate textureUpdate = { textureSet->getUniforms()[textureSamplerBinding], *ShapeRenderer::getTestMonoSpaceTextureAtlas() };
-		testTextureUpdate.Updates.emplace_back(textureUpdate);
-		DescriptorApiVulkan::updateDescriptorSet(mLogicDevice, testTextureUpdate);
-
-		std::initializer_list<VkDescriptorSet> defaultTestSets = { mTestUboDescriptorSets[0], mTestWhiteTextureDescriptorSet };
-		mFirstTestShaderResourceInstance = std::make_shared<ShaderUniformSetsInstanceVulkan>(defaultTestSets);
-		mSecondTestShaderResourceInstance = std::make_shared<ShaderUniformSetsInstanceVulkan>(defaultTestSets);
-
-		mTestGraphicsPipeline = std::make_shared<GraphicsPipelineVulkan_2>(*mTestGraphicsPipelineInstanceInfo);
-		mTestGraphicsPipeline->init(mLogicDevice, mSwapChain->getExtent(), mAppSceneRenderPass->get());
-
-		const size_t indicesSize = mTestIndices.size() * sizeof(uint32_t);
-		mTestIndexBuffer = createIndexBuffer(indicesSize);
-		mTestIndexBuffer->setDataUnmapped(mLogicDevice, mTestIndices.data(), indicesSize);
-
-		std::shared_ptr<VertexArrayVulkan> vao = createVertexArray();
-		const size_t verticesSize = mTestVertices.size() * static_cast<size_t>(Vertex3d::BYTE_SIZE);
-		std::shared_ptr<VertexBufferVulkan> vbo = createVertexBuffer(
-			mTestGraphicsVertexInputLayout,
-			static_cast<VkDeviceSize>(verticesSize),
-			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-		);
-		vbo->setDataUnmapped(mLogicDevice, mTestVertices.data(), verticesSize);
-
-		vao->addVertexBuffer(vbo);
-		vao->setIndexBuffer(mTestIndexBuffer, false);
-		vao->setDrawCount(static_cast<uint32_t>(mTestIndices.size()));
-
-		mTestRenderable = std::make_shared<SimpleRenderable_2>(vao, mFirstTestShaderResourceInstance, true, &mTestTransform);
-		mSecondTestRenderable = std::make_shared<SimpleRenderable_2>(vao, mSecondTestShaderResourceInstance, true, &mTestTransformSecond);
-
-		mTestGraphicsPipeline->addRenderableToDraw(mTestRenderable);
-		mTestGraphicsPipeline->addRenderableToDraw(mSecondTestRenderable);
-	}
-
-	void RenderingContextVulkan::resizeTestPipeline() {
-		mTestGraphicsPipeline->recreate(mLogicDevice, mSwapChain->getExtent(), mAppSceneRenderPass->get());
-	}
-
-	void RenderingContextVulkan::closeTestPipeline() {
-		mTestGraphicsPipeline->close(mLogicDevice);
-		mTestShaderProgram->close(mLogicDevice);
-		//mTestShaderUniformLayout->close(mLogicDevice);
-		
-		for (auto& buffer : mTestCameraValueBuffers) {
-			buffer->close(mLogicDevice);
-		}
-
-		for (auto& buffer : mTestCameraOrthoValueBuffers) {
-			buffer->close(mLogicDevice);
-		}
-
-		mTestRenderable->getVao().close(mLogicDevice);
-		mTestIndexBuffer->close(mLogicDevice);
-
-		vkDestroyDescriptorPool(mLogicDevice, mTestDescriptorPool, nullptr);
+		pushConstant.stageFlags = stage;
+		pushConstant.size = size;
+		pushConstant.offset = offset;
+		return pushConstant;
 	}
 }
