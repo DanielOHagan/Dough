@@ -21,7 +21,6 @@ namespace DOH {
 		friend class RenderingContextVulkan;
 
 	private:
-
 		static std::unique_ptr<ShapeRenderer> INSTANCE;
 
 		static const char* QUAD_SHADER_PATH_VERT;
@@ -97,8 +96,8 @@ namespace DOH {
 		static void close();
 		static void onSwapChainResize(SwapChainVulkan& swapChain);
 
-		static void drawScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
-		static void drawUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
+		static inline void drawScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) { INSTANCE->drawSceneImpl(imageIndex, cmd, currentBindings); }
+		static inline void drawUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) { INSTANCE->drawUiImpl(imageIndex, cmd, currentBindings); }
 
 		//Close the dynamic batches that have a geo count of 0
 		static size_t createNewBatchQuad();
@@ -109,28 +108,28 @@ namespace DOH {
 		//static void closeEmptyTriangleBatches();
 
 
-		static size_t getQuadBatchCount();
-		static uint32_t getDrawnQuadCount();
-		static uint32_t getTruncatedQuadCount();
+		static inline size_t getQuadBatchCount() { return INSTANCE->mQuadRenderBatches.size(); }
+		static inline uint32_t getDrawnQuadCount() { return INSTANCE->mDrawnQuadCount; }
+		static inline uint32_t getTruncatedQuadCount() { return INSTANCE->mTruncatedQuadCount; }
 		static void resetLocalDebugInfo();
 
 		static std::vector<DescriptorTypeInfo> getEngineDescriptorTypeInfos();
 
 		//-----Shape Objects-----
-		static void drawQuadScene(const Quad& quad);
-		static void drawQuadTexturedScene(const Quad& quad);
-		static void drawQuadArrayScene(const std::vector<Quad>& quadArr);
-		static void drawQuadArrayTexturedScene(const std::vector<Quad>& quadArr);
-		static void drawQuadArraySameTextureScene(const std::vector<Quad>& quadArr);
-		//static void drawQuadUi(Quad& quad);
-		//static void drawQuadTexturedUi(const Quad& quad);
-		//static void drawQuadArrayUi(const std::vector<Quad>& quadArr);
-		//static void drawQuadArrayTexturedUi(const std::vector<Quad>& quadArr);
-		//static void drawQuadArraySameTextureUi(const std::vector<Quad>& quadArr);
+		static inline void drawQuadScene(const Quad& quad) { INSTANCE->drawQuadSceneImpl(quad); }
+		static inline void drawQuadTexturedScene(const Quad& quad) { INSTANCE->drawQuadTexturedSceneImpl(quad); }
+		static inline void drawQuadArrayScene(const std::vector<Quad>& quadArr) { INSTANCE->drawQuadArraySceneImpl(quadArr); }
+		static inline void drawQuadArrayTexturedScene(const std::vector<Quad>& quadArr) { INSTANCE->drawQuadArrayTexturedSceneImpl(quadArr); }
+		static inline void drawQuadArraySameTextureScene(const std::vector<Quad>& quadArr) { INSTANCE->drawQuadArraySameTextureSceneImpl(quadArr); }
+		//static inline void drawQuadUi(Quad& quad);
+		//static inline void drawQuadTexturedUi(const Quad& quad);
+		//static inline void drawQuadArrayUi(const std::vector<Quad>& quadArr);
+		//static inline void drawQuadArrayTexturedUi(const std::vector<Quad>& quadArr);
+		//static inline void drawQuadArraySameTextureUi(const std::vector<Quad>& quadArr);
 
+		static inline std::shared_ptr<IndexBufferVulkan> getQuadSharedIndexBufferPtr() { return INSTANCE->mQuadSharedIndexBuffer; }
 
 		//TEMP:: 
-		static inline std::shared_ptr<IndexBufferVulkan> getQuadSharedIndexBufferPtr() { return INSTANCE->mQuadSharedIndexBuffer; }
 		static inline TextureArray& getQuadBatchTextureArray() { return *INSTANCE->mQuadBatchTextureArray; }
 		static inline std::vector<RenderBatchQuad>& getQuadRenderBatches() { return INSTANCE->mQuadRenderBatches; }
 		//static inline const std::vector<std::shared_ptr<TextureVulkan>>& getTestTextures() { return INSTANCE->mTestTextures; }

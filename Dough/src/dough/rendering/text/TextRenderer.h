@@ -31,7 +31,9 @@ namespace DOH {
 
 		std::unordered_map<std::string, std::shared_ptr<FontBitmap>> mFontBitmaps;
 		std::unique_ptr<TextureArray> mFontBitmapPagesTextureArary;
-		std::shared_ptr<IndexBufferVulkan> mQuadSharedIndexBuffer;
+		std::shared_ptr<IndexBufferVulkan> mQuadIndexBuffer;
+		//Whether the index buffer used here is the same as ShapeRenderer::mQuadSharedIndexBuffer.
+		bool mQuadIndexBufferShared;
 		std::shared_ptr<DescriptorSetsInstanceVulkan> mFontRenderingDescSetsInstanceScene;
 		VkDescriptorSet mFontBitmapPagesDescSet;
 
@@ -57,7 +59,7 @@ namespace DOH {
 		//Includes both Scene & UI Quads
 		uint32_t mDrawnQuadCount;
 
-		void initImpl(TextureVulkan& fallbackTexture, std::shared_ptr<IndexBufferVulkan> quadSharedIndexBuffer);
+		void initImpl();
 		void closeImpl();
 		void onSwapChainResizeImpl(SwapChainVulkan& swapChain);
 		bool createFontBitmapImpl(const char* fontName, const char* filePath, const char* imageDir, ETextRenderMethod textRenderMethod);
@@ -80,18 +82,18 @@ namespace DOH {
 
 		TextRenderer(RenderingContextVulkan& context);
 
-		static void init(RenderingContextVulkan& context, TextureVulkan& fallbackTexture, std::shared_ptr<IndexBufferVulkan> quadSharedIndexBuffer);
+		static void init(RenderingContextVulkan& context);
 		static void close();
 		static void onSwapChainResize(SwapChainVulkan& swapChain);
 		//TODO:: Currently only private impl function is usable because creating font bitmaps post-init is not available.
 		//static void createFontBitmap(const char* fontName, std::shared_ptr<FontBitmap> fontBitmap);
 		static void addFontBitmapToTextTextureArray(const FontBitmap& fontBitmap);
 
-		static void drawScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
-		static void drawUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
+		static inline void drawScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) { INSTANCE->drawSceneImpl(imageIndex, cmd, currentBindings); }
+		static inline void drawUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) { INSTANCE->drawUiImpl(imageIndex, cmd, currentBindings); }
 
-		static uint32_t getDrawnQuadCount();
-		static void resetLocalDebugInfo();
+		static inline uint32_t getDrawnQuadCount() { return INSTANCE->mDrawnQuadCount; }
+		static inline void resetLocalDebugInfo() { INSTANCE->mDrawnQuadCount = 0; }
 
 		static bool hasFont(const char* fontName);
 		static FontBitmap& getFontBitmap(const char* fontName);
@@ -99,13 +101,13 @@ namespace DOH {
 
 
 		//-----Primitives-----
-		static void drawTextFromQuads(const std::vector<Quad>& quadArr, const FontBitmap& bitmap);
-		static void drawTextSameTextureFromQuads(const std::vector<Quad>& quadArr, const FontBitmap& bitmap);
+		static inline void drawTextFromQuads(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) { INSTANCE->drawTextFromQuadsImpl(quadArr, bitmap); }
+		static inline void drawTextSameTextureFromQuads(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) { INSTANCE->drawTextSameTextureFromQuadsImpl(quadArr, bitmap); }
 		//TODO:: drawTextFromQuads Scene & UI
 		//TODO:: drawTextSameTextureFromQuads Scene & UI
 
 		//-----Collection Objects-----
-		static void drawTextString(TextString& string);
+		static inline void drawTextString(TextString& string) { INSTANCE->drawTextStringImpl(string); }
 		//TODO:: drawTextString Scene & UI
 
 	};

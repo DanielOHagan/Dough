@@ -1,14 +1,12 @@
 #include "editor/EditorAppLogic.h"
 
-#include "dough/rendering/ObjInit.h"
 #include "dough/application/Application.h"
 #include "dough/input/InputCodes.h"
 #include "dough/Logging.h"
 #include "dough/rendering/ShapeRenderer.h"
 #include "dough/rendering/text/TextRenderer.h"
 
-#include "tracy/public/tracy/Tracy.hpp"
-
+#include <tracy/public/tracy/Tracy.hpp>
 #include <imgui/imgui.h>
 
 #define GET_RENDERER Application::get().getRenderer()

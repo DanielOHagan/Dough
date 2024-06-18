@@ -5,11 +5,15 @@
 #include "dough/files/TextFileUtils.h"
 #include "dough/rendering/animations/TextureAtlasAnimation.h"
 
+#include <tracy/public/tracy/Tracy.hpp>
+
 namespace DOH {
 
 	IndexedAtlasInfoFileReader::IndexedAtlasInfoFileReader(const char* atlastInfoFilePath, const bool openNow)
 	:	AFileReader(atlastInfoFilePath)
 	{
+		ZoneScoped;
+
 		bool isValid = true;
 		if (!ResourceHandler::isFileOfType(atlastInfoFilePath, "txt")) {
 			LOG_ERR("Invalid file type for reader (.txt): " << atlastInfoFilePath);
@@ -24,6 +28,8 @@ namespace DOH {
 	}
 
 	const bool IndexedAtlasInfoFileReader::open() {
+		ZoneScoped;
+
 		if (!mOpen) {
 			mChars = ResourceHandler::readFile(mFilepath);
 			mOpen = true;
@@ -35,6 +41,8 @@ namespace DOH {
 	}
 
 	std::shared_ptr<IndexedAtlasInfoFileData> IndexedAtlasInfoFileReader::read(const bool closeWhenRead) {
+		ZoneScoped;
+
 		//TODO:: Currently using a custom format to describe indexed texture atlasses, will likely have a system to handle texture atlasses from other file types.
 
 		if (!mOpen) {

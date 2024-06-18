@@ -9,7 +9,6 @@ namespace DOH {
 
 	//TODO:: keep this as AGeometry or make a "ACollection" that extends AGeometry
 	class TextString : public AGeometry {
-
 	private:
 		std::vector<Quad> mStringQuads;
 		const char* mString;

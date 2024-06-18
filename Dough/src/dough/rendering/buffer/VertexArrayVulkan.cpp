@@ -3,6 +3,8 @@
 #include "dough/Logging.h"
 #include "dough/application/Application.h"
 
+#include <tracy/public/tracy/Tracy.hpp>
+
 namespace DOH {
 
 	const uint32_t VertexArrayVulkan::MAX_VBO_COUNT = 1;
@@ -39,6 +41,8 @@ namespace DOH {
 	}
 
 	void VertexArrayVulkan::bind(VkCommandBuffer cmd) {
+		ZoneScoped;
+
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 		const size_t vbSize = mVertexBuffers.size();
 
@@ -90,6 +94,8 @@ namespace DOH {
 	}
 
 	void VertexArrayVulkan::addVertexBuffer(std::shared_ptr<VertexBufferVulkan> vertexBuffer) {
+		ZoneScoped;
+
 		const uint32_t vboCount = static_cast<uint32_t>(mVertexBuffers.size());
 		if (vboCount + 1 > VertexArrayVulkan::MAX_VBO_COUNT) {
 			LOG_WARN(
@@ -102,6 +108,8 @@ namespace DOH {
 	}
 
 	void VertexArrayVulkan::closeVertexBuffers(VkDevice logicDevice) {
+		ZoneScoped;
+
 		for (std::shared_ptr<VertexBufferVulkan> vbo : mVertexBuffers) {
 			vbo->close(logicDevice);
 		}
@@ -110,6 +118,8 @@ namespace DOH {
 	}
 
 	void VertexArrayVulkan::close(VkDevice logicDevice) {
+		ZoneScoped;
+
 		for (std::shared_ptr<VertexBufferVulkan> vertexBuffer : mVertexBuffers) {
 			vertexBuffer->close(logicDevice);
 		}

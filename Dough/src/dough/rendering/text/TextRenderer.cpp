@@ -5,7 +5,7 @@
 #include "dough/application/Application.h"
 #include "dough/rendering/ShapeRenderer.h"
 
-#include "tracy/public/tracy/Tracy.hpp"
+#include <tracy/public/tracy/Tracy.hpp>
 
 namespace DOH {
 
@@ -19,24 +19,42 @@ namespace DOH {
 	TextRenderer::TextRenderer(RenderingContextVulkan& context)
 	:	mContext(context),
 		mFontBitmapPagesDescSet(VK_NULL_HANDLE),
+		mQuadIndexBufferShared(false),
 		mDrawnQuadCount(0)
 	{}
 
-	void TextRenderer::initImpl(TextureVulkan& fallbackTexture, std::shared_ptr<IndexBufferVulkan> quadSharedIndexBuffer) {
+	void TextRenderer::initImpl() {
 		ZoneScoped;
 
 		mFontBitmapPagesTextureArary = std::make_unique<TextureArray>(
 			EBatchSizeLimits::BATCH_MAX_COUNT_TEXTURE,
-			fallbackTexture
+			*mContext.getResourceDefaults().WhiteTexture
 		);
 
 		mFontBitmaps = {};
 
-		if (ShapeRenderer::getQuadSharedIndexBufferPtr() == nullptr) {
-			THROW("TextRenderer::init QuadSharedIndexBuffer is null but is required for TextRenderer.");
-			return;
+		mQuadIndexBuffer = ShapeRenderer::getQuadSharedIndexBufferPtr();
+		if (mQuadIndexBuffer == nullptr) {
+			std::vector<uint32_t> quadIndices;
+			quadIndices.resize(EBatchSizeLimits::BATCH_QUAD_INDEX_COUNT);
+			uint32_t vertexOffset = 0;
+			for (uint32_t i = 0; i < EBatchSizeLimits::BATCH_QUAD_INDEX_COUNT; i += EBatchSizeLimits::SINGLE_QUAD_INDEX_COUNT) {
+				quadIndices[i + 0] = vertexOffset + 0;
+				quadIndices[i + 1] = vertexOffset + 1;
+				quadIndices[i + 2] = vertexOffset + 2;
+
+				quadIndices[i + 3] = vertexOffset + 2;
+				quadIndices[i + 4] = vertexOffset + 3;
+				quadIndices[i + 5] = vertexOffset + 0;
+
+				vertexOffset += EBatchSizeLimits::SINGLE_QUAD_VERTEX_COUNT;
+			}
+			mQuadIndexBuffer = mContext.createStagedIndexBuffer(
+				quadIndices.data(),
+				sizeof(uint32_t) * EBatchSizeLimits::BATCH_QUAD_INDEX_COUNT
+			);
 		} else {
-			mQuadSharedIndexBuffer = quadSharedIndexBuffer;
+			mQuadIndexBufferShared = true;
 		}
 
 		DescriptorSetLayoutVulkan& texArrSetLayout = mContext.getCommonDescriptorSetLayouts().SingleTextureArray8;
@@ -110,7 +128,7 @@ namespace DOH {
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
 			);
 			vao->addVertexBuffer(vbo);
-			vao->setIndexBuffer(quadSharedIndexBuffer, true);
+			vao->setIndexBuffer(mQuadIndexBuffer, true);
 			vao->getVertexBuffers()[0]->map(mContext.getLogicDevice(), batchSizeBytes);
 
 			mSoftMaskSceneRenderableBatch = std::make_shared<SimpleRenderable>(vao, mFontRenderingDescSetsInstanceScene);
@@ -189,7 +207,7 @@ namespace DOH {
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
 			);
 			vao->addVertexBuffer(vbo);
-			vao->setIndexBuffer(quadSharedIndexBuffer, true);
+			vao->setIndexBuffer(mQuadIndexBuffer, true);
 			vao->getVertexBuffers()[0]->map(mContext.getLogicDevice(), batchSizeBytes);
 
 			mMsdfSceneRenderableBatch = std::make_shared<SimpleRenderable>(vao, mFontRenderingDescSetsInstanceScene);
@@ -218,6 +236,9 @@ namespace DOH {
 		mContext.addGpuResourceToClose(mMsdfScenePipeline);
 		mContext.addGpuResourceToClose(mSoftMaskSceneRenderableBatch->getVaoPtr());
 		mContext.addGpuResourceToClose(mMsdfSceneRenderableBatch->getVaoPtr());
+		if (!mQuadIndexBufferShared) {
+			mContext.addGpuResourceToClose(mQuadIndexBuffer);
+		}
 
 		for (auto& fontBitmap : mFontBitmaps) {
 			for (auto& page : fontBitmap.second->getPageTextures()) {
@@ -287,10 +308,10 @@ namespace DOH {
 				currentBindings.Pipeline = mSoftMaskScenePipeline->get();
 			}
 
-			if (mQuadSharedIndexBuffer->getBuffer() != currentBindings.IndexBuffer) {
+			if (mQuadIndexBuffer->getBuffer() != currentBindings.IndexBuffer) {
 				//NOTE:: Text is currently rendered as a Quad so it can share the Quad batch index buffer
-				mQuadSharedIndexBuffer->bind(cmd);
-				currentBindings.IndexBuffer = mQuadSharedIndexBuffer->getBuffer();
+				mQuadIndexBuffer->bind(cmd);
+				currentBindings.IndexBuffer = mQuadIndexBuffer->getBuffer();
 				debugInfo.IndexBufferBinds++;
 			}
 
@@ -327,10 +348,10 @@ namespace DOH {
 				currentBindings.Pipeline = mMsdfScenePipeline->get();
 			}
 
-			if (mQuadSharedIndexBuffer->getBuffer() != currentBindings.IndexBuffer) {
+			if (mQuadIndexBuffer->getBuffer() != currentBindings.IndexBuffer) {
 				//NOTE:: Text is currently rendered as a Quad so it can share the Quad batch index buffer
-				mQuadSharedIndexBuffer->bind(cmd);
-				currentBindings.IndexBuffer = mQuadSharedIndexBuffer->getBuffer();
+				mQuadIndexBuffer->bind(cmd);
+				currentBindings.IndexBuffer = mQuadIndexBuffer->getBuffer();
 				debugInfo.IndexBufferBinds++;
 			}
 
@@ -441,10 +462,10 @@ namespace DOH {
 		}
 	}
 
-	void TextRenderer::init(RenderingContextVulkan& context, TextureVulkan& fallbackTexture, std::shared_ptr<IndexBufferVulkan> quadSharedIndexBuffer) {
+	void TextRenderer::init(RenderingContextVulkan& context) {
 		if (INSTANCE == nullptr) {
 			INSTANCE = std::make_unique<TextRenderer>(context);
-			INSTANCE->initImpl(fallbackTexture, quadSharedIndexBuffer);
+			INSTANCE->initImpl();
 		} else {
 			LOG_WARN("Tried to initialise alreaday initialised text renderer.");
 		}
@@ -474,26 +495,6 @@ namespace DOH {
 		} else {
 			LOG_ERR("addFontBitmapToTextTextureArray called when text renderer is NOT initialised.");
 		}
-	}
-
-	void TextRenderer::drawScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
-		//NOTE:: No nullptr check as this function is expected to be called each frame.
-		INSTANCE->drawSceneImpl(imageIndex, cmd, currentBindings);
-	}
-
-	void TextRenderer::drawUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
-		//NOTE:: No nullptr check as this function is expected to be called each frame.
-		INSTANCE->drawUiImpl(imageIndex, cmd, currentBindings);
-	}
-
-	uint32_t TextRenderer::getDrawnQuadCount() {
-		//NOTE:: No nullptr check as this function is expected to be called each frame.
-		return INSTANCE->mDrawnQuadCount;
-	}
-
-	void TextRenderer::resetLocalDebugInfo() {
-		//NOTE:: No nullptr check as this function is expected to be called each frame.
-		INSTANCE->mDrawnQuadCount = 0;
 	}
 
 	bool TextRenderer::hasFont(const char* fontName) {
@@ -529,20 +530,5 @@ namespace DOH {
 		descInfoTypes.push_back({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8u }); //Font Pages Texture Array
 
 		return descInfoTypes;
-	}
-
-	void TextRenderer::drawTextFromQuads(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) {
-		//NOTE:: No nullptr check as this function is expected to be called multiple times each frame.
-		INSTANCE->drawTextFromQuadsImpl(quadArr, bitmap);
-	}
-
-	void TextRenderer::drawTextSameTextureFromQuads(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) {
-		//NOTE:: No nullptr check as this function is expected to be called multiple times each frame.
-		INSTANCE->drawTextSameTextureFromQuadsImpl(quadArr, bitmap);
-	}
-
-	void TextRenderer::drawTextString(TextString& string) {
-		//NOTE:: No nullptr check as this function is expected to be called multiple times each frame.
-		INSTANCE->drawTextStringImpl(string);
 	}
 }

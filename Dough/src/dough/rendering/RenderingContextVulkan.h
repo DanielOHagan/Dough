@@ -130,7 +130,6 @@ namespace DOH {
 		std::unique_ptr<CustomRenderState> mCurrentRenderState;
 
 		std::unique_ptr<ImGuiWrapper> mImGuiWrapper;
-		std::unique_ptr<LineRenderer> mLineRenderer;
 
 		std::vector<VkFramebuffer> mAppSceneFrameBuffers;
 		std::vector<VkFramebuffer> mAppUiFrameBuffers;
@@ -283,7 +282,6 @@ namespace DOH {
 		inline uint32_t getAppFrameBufferCount() const { return static_cast<uint32_t>(mAppSceneFrameBuffers.size() + mAppUiFrameBuffers.size()); }
 		inline ImGuiWrapper& getImGuiWrapper() const { return *mImGuiWrapper; }
 		inline SwapChainVulkan& getSwapChain() const { return *mSwapChain; }
-		inline LineRenderer& getLineRenderer() const { return *mLineRenderer; }
 		inline void setLogicDevice(VkDevice logicDevice) { mLogicDevice = logicDevice; }
 		void setPhysicalDevice(VkPhysicalDevice physicalDevice);
 		inline RenderingDeviceInfo& getRenderingDeviceInfo() const { return *mRenderingDeviceInfo; }

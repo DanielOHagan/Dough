@@ -1,7 +1,6 @@
 #include "dough/rendering/RenderingContextVulkan.h"
 
 #include "dough/rendering/RendererVulkan.h"
-#include "dough/rendering/ObjInit.h"
 #include "dough/Logging.h"
 #include "dough/time/Time.h"
 #include "dough/application/Application.h"
@@ -11,8 +10,7 @@
 
 #include <chrono>
 #include <glm/gtc/matrix_transform.hpp>
-
-#include "tracy/public/tracy/Tracy.hpp"
+#include <tracy/public/tracy/Tracy.hpp>
 
 //TODO:: Is this really necessary?
 #define NOT_NULL_CHECK(objPtr) if (objPtr == nullptr) {\
@@ -83,7 +81,7 @@ namespace DOH {
 			VK_PRESENT_MODE_MAILBOX_KHR,
 			true
 		);
-		mSwapChain = ObjInit::swapChain(*mSwapChainCreationInfo);
+		mSwapChain = createSwapChain(*mSwapChainCreationInfo);
 
 		createAppSceneDepthResources();
 		createRenderPasses();
@@ -131,12 +129,8 @@ namespace DOH {
 		createEngineDescriptorSets();
 
 		ShapeRenderer::init(*this);
-		TextRenderer::init(*this, *mResourceDefaults.WhiteTexture, ShapeRenderer::getQuadSharedIndexBufferPtr());
-
-		//TODO:: LineRenderer singleton class
-		//LineRenderer::init(*this);
-		mLineRenderer = std::make_unique<LineRenderer>();
-		mLineRenderer->init(mLogicDevice, mSwapChain->getExtent(), sizeof(UniformBufferObject));
+		TextRenderer::init(*this);
+		LineRenderer::init(*this);
 
 		mImGuiWrapper = std::make_unique<ImGuiWrapper>();
 		ImGuiInitInfo imGuiInitInfo = {};
@@ -196,9 +190,7 @@ namespace DOH {
 
 		TextRenderer::close();
 		ShapeRenderer::close();
-		if (mLineRenderer != nullptr) {
-			mLineRenderer->close(mLogicDevice);
-		}
+		LineRenderer::close();
 		if (mImGuiWrapper != nullptr) {
 			mImGuiWrapper->close(mLogicDevice);
 		}
@@ -286,7 +278,7 @@ namespace DOH {
 			if (mSwapChain != nullptr) {
 				mSwapChain->resize(mLogicDevice, *mSwapChainCreationInfo);
 			} else {
-				mSwapChain = ObjInit::swapChain(*mSwapChainCreationInfo);
+				mSwapChain = createSwapChain(*mSwapChainCreationInfo);
 			}
 
 			createRenderPasses();
@@ -295,17 +287,11 @@ namespace DOH {
 			createFrameBuffers();
 			mImGuiWrapper->createFrameBuffers(mLogicDevice, mSwapChain->getImageViews(), mSwapChain->getExtent());
 
-			const VkExtent2D extent = mSwapChain->getExtent();
 			ShapeRenderer::onSwapChainResize(*mSwapChain);
 			TextRenderer::onSwapChainResize(*mSwapChain);
-			mLineRenderer->recreateGraphicsPipelines(
-				mLogicDevice,
-				extent,
-				*mAppSceneRenderPass,
-				*mAppUiRenderPass,
-				mEngineDescriptorPool
-			);
+			LineRenderer::onSwapChainResize(*mSwapChain);
 
+			const VkExtent2D extent = mSwapChain->getExtent();
 			for (auto& pipelineGroup : mCurrentRenderState->getRenderPassGraphicsPipelineMap()) {
 				const VkRenderPass rp = getRenderPass(pipelineGroup.first).get();
 				for (auto& pipeline : pipelineGroup.second) {
@@ -407,19 +393,9 @@ namespace DOH {
 			}
 		}
 
-		//Batch VAOs should have only one VAO and if the batch has at least one quad then there is a draw call
 		ShapeRenderer::drawScene(imageIndex, cmd, currentBindings);
 		TextRenderer::drawScene(imageIndex, cmd, currentBindings);
-
-		mLineRenderer->drawScene(
-			mLogicDevice,
-			imageIndex,
-			&mSceneCameraGpu->CpuData.ProjView,
-			sizeof(UniformBufferObject),
-			cmd,
-			currentBindings,
-			debugInfo
-		);
+		LineRenderer::drawScene(imageIndex, cmd, currentBindings);
 
 		RenderPassVulkan::endRenderPass(cmd);
 	}
@@ -457,14 +433,10 @@ namespace DOH {
 
 		TextRenderer::drawUi(imageIndex, cmd, currentBindings);
 
-		mLineRenderer->drawUi(
-			mLogicDevice,
+		LineRenderer::drawUi(
 			imageIndex,
-			&mUiCameraGpu->CpuData.ProjView,
-			sizeof(UniformBufferObject),
 			cmd,
-			currentBindings,
-			debugInfo
+			currentBindings
 		);
 
 		RenderPassVulkan::endRenderPass(cmd);

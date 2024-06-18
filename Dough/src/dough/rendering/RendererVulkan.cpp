@@ -7,7 +7,7 @@
 #include <set>
 #include <string>
 
-#include "tracy/public/tracy/Tracy.hpp"
+#include <tracy/public/tracy/Tracy.hpp>
 
 namespace DOH {
 

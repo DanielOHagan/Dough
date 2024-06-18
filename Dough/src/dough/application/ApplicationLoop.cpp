@@ -2,6 +2,7 @@
 #include "dough/Logging.h"
 
 #include <algorithm>
+#include <tracy/public/tracy/Tracy.hpp>
 
 namespace DOH {
 
@@ -35,6 +36,8 @@ namespace DOH {
 	}
 
 	void ApplicationLoop::run() {
+		ZoneScoped;
+
 		AppDebugInfo& debugInfo = mApplication.getDebugInfo();
 
 		while (mApplication.isRunning()) {

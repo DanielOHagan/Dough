@@ -2,10 +2,9 @@
 
 #include "dough/rendering/RenderingContextVulkan.h"
 #include "dough/Logging.h"
-#include "dough/rendering/ObjInit.h"
 #include "dough/application/Application.h"
 
-#include "tracy/public/tracy/Tracy.hpp"
+#include <tracy/public/tracy/Tracy.hpp>
 
 namespace DOH {
 
@@ -64,12 +63,12 @@ namespace DOH {
 		//	mQuadBatchTextureArray->addNewTexture(*testTexture);
 		//}
 
-		mTestMonoSpaceTextureAtlas = ObjInit::monoSpaceTextureAtlas(
+		mTestMonoSpaceTextureAtlas = mContext.createMonoSpaceTextureAtlas(
 			"Dough/res/images/test textures/texturesAtlas.png",
 			5,
 			5
 		);
-		mTestIndexedTextureAtlas = ObjInit::indexedTextureAtlas(
+		mTestIndexedTextureAtlas = mContext.createIndexedTextureAtlas(
 			"Dough/res/images/textureAtlasses/indexed_testAtlas.txt",
 			"Dough/res/images/textureAtlasses/"
 		);
@@ -116,7 +115,7 @@ namespace DOH {
 
 			vertexOffset += EBatchSizeLimits::SINGLE_QUAD_VERTEX_COUNT;
 		}
-		mQuadSharedIndexBuffer = ObjInit::stagedIndexBuffer(
+		mQuadSharedIndexBuffer = mContext.createStagedIndexBuffer(
 			quadIndices.data(),
 			sizeof(uint32_t) * EBatchSizeLimits::BATCH_QUAD_INDEX_COUNT
 		);
@@ -489,8 +488,8 @@ namespace DOH {
 				EBatchSizeLimits::BATCH_MAX_COUNT_TEXTURE
 			);
 
-			std::shared_ptr<VertexArrayVulkan> vao = ObjInit::vertexArray();
-			std::shared_ptr<VertexBufferVulkan> vbo = ObjInit::vertexBuffer(
+			std::shared_ptr<VertexArrayVulkan> vao = mContext.createVertexArray();
+			std::shared_ptr<VertexBufferVulkan> vbo = mContext.createVertexBuffer(
 				StaticVertexInputLayout::get(QUAD_VERTEX_INPUT_TYPE),
 				batchSizeBytes,
 				VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -570,16 +569,6 @@ namespace DOH {
 		}
 	}
 
-	void ShapeRenderer::drawScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
-		//NOTE:: No nullptr check as this function is expected to be called each frame.
-		INSTANCE->drawSceneImpl(imageIndex, cmd, currentBindings);
-	}
-
-	void ShapeRenderer::drawUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
-		//NOTE:: No nullptr check as this function is expected to be called each frame.
-		INSTANCE->drawUiImpl(imageIndex, cmd, currentBindings);
-	}
-
 	size_t ShapeRenderer::createNewBatchQuad() {
 		if (INSTANCE != nullptr) {
 			return INSTANCE->createNewBatchQuadImpl();
@@ -599,19 +588,6 @@ namespace DOH {
 		}
 	}
 
-	size_t ShapeRenderer::getQuadBatchCount() {
-		//NOTE:: No nullptr check as this function is expected to be called each frame.
-		return INSTANCE->mQuadRenderBatches.size();
-	}
-
-	uint32_t ShapeRenderer::getDrawnQuadCount() {
-		//NOTE:: No nullptr check as this function is expected to be called each frame.
-		return INSTANCE->mDrawnQuadCount;
-	}
-	uint32_t ShapeRenderer::getTruncatedQuadCount() {
-		//NOTE:: No nullptr check as this function is expected to be called each frame.
-		return INSTANCE->mTruncatedQuadCount;
-	}
 	void ShapeRenderer::resetLocalDebugInfo() {
 		//NOTE:: No nullptr check as this function is expected to be called each frame.
 		INSTANCE->mDrawnQuadCount = 0;
@@ -628,35 +604,4 @@ namespace DOH {
 		//NOTE:: Currently there are no Descriptors owned by the ShapeRenderer::INSTANCE so this function is empty.
 		//return { };
 	}
-
-	void ShapeRenderer::drawQuadScene(const Quad& quad) {
-		//NOTE:: No nullptr check as this function is expected to be called multiple times each frame.
-		INSTANCE->drawQuadSceneImpl(quad);
-	}
-
-	void ShapeRenderer::drawQuadTexturedScene(const Quad& quad) {
-		//NOTE:: No nullptr check as this function is expected to be called multiple times each frame.
-		INSTANCE->drawQuadTexturedSceneImpl(quad);
-	}
-
-	void ShapeRenderer::drawQuadArrayScene(const std::vector<Quad>& quadArr) {
-		//NOTE:: No nullptr check as this function is expected to be called multiple times each frame.
-		INSTANCE->drawQuadArraySceneImpl(quadArr);
-	}
-
-	void ShapeRenderer::drawQuadArrayTexturedScene(const std::vector<Quad>& quadArr) {
-		//NOTE:: No nullptr check as this function is expected to be called multiple times each frame.
-		INSTANCE->drawQuadArrayTexturedSceneImpl(quadArr);
-	}
-
-	void ShapeRenderer::drawQuadArraySameTextureScene(const std::vector<Quad>& quadArr) {
-		//NOTE:: No nullptr check as this function is expected to be called multiple times each frame.
-		INSTANCE->drawQuadArraySameTextureSceneImpl(quadArr);
-	}
-
-	//void ShapeRenderer::drawQuadUi(Quad& quad) {}
-	//void ShapeRenderer::drawQuadTexturedUi(const Quad& quad) {}
-	//void ShapeRenderer::drawQuadArrayUi(const std::vector<Quad>& quadArr) {}
-	//void ShapeRenderer::drawQuadArrayTexturedUi(const std::vector<Quad>& quadArr) {}
-	//void ShapeRenderer::drawQuadArraySameTextureUi(const std::vector<Quad>& quadArr) {}
 }

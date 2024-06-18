@@ -3,6 +3,8 @@
 #include "dough/files/ResourceHandler.h"
 #include "dough/Utils.h"
 
+#include <tracy/public/tracy/Tracy.hpp>
+
 namespace DOH {
 
 	ShaderVulkan::~ShaderVulkan() {
@@ -19,12 +21,16 @@ namespace DOH {
 	}
 
 	void ShaderVulkan::close(VkDevice logicDevice) {
+		ZoneScoped;
+
 		vkDestroyShaderModule(logicDevice, mShaderModule, nullptr);
 		mShaderModule = VK_NULL_HANDLE;
 		mUsingGpuResource = false;
 	}
 
 	void ShaderVulkan::init(VkDevice logicDevice) {
+		ZoneScoped;
+
 		std::vector<char> shaderByteCode = ResourceHandler::readFile(mFilePath);
 
 		VkShaderModuleCreateInfo createInfo = {};

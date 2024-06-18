@@ -10,12 +10,19 @@ namespace DOH {
 
 	struct AppDebugInfo;
 	class DescriptorSetsInstanceVulkan;
-
-	//Primitives forward declarations
+	class RenderingContextVulkan;
 	class Quad;
+	class SwapChainVulkan;
 
 	class LineRenderer {
+
+		friend class RenderingContextVulkan;
+
 	private:
+		static std::unique_ptr<LineRenderer> INSTANCE;
+
+		RenderingContextVulkan& mContext;
+
 		//App Scene
 		static constexpr const EVertexType SCENE_LINE_VERTEX_TYPE = EVertexType::VERTEX_3D;
 		std::unique_ptr<RenderBatchLineList> mSceneLineBatch;
@@ -26,8 +33,8 @@ namespace DOH {
 		std::unique_ptr<GraphicsPipelineInstanceInfo> mSceneLineGraphicsPipelineInfo;
 		std::shared_ptr<GraphicsPipelineVulkan> mSceneLineGraphicsPipeline;
 		std::shared_ptr<SimpleRenderable> mSceneLineRenderable;
-		const char* mSceneLineRendererVertexShaderPath = "Dough/res/shaders/spv/LineRenderer3d.vert.spv";
-		const char* mSceneLineRendererFragmentShaderPath = "Dough/res/shaders/spv/LineRenderer3d.frag.spv";
+		static const char* SCENE_LINE_SHADER_PATH_VERT;
+		static const char* SCENE_LINE_SHADER_PATH_FRAG;
 		//App UI
 		static constexpr const EVertexType UI_LINE_VERTEX_TYPE = EVertexType::VERTEX_2D;
 		std::unique_ptr<RenderBatchLineList> mUiLineBatch;
@@ -38,59 +45,44 @@ namespace DOH {
 		std::unique_ptr<GraphicsPipelineInstanceInfo> mUiLineGraphicsPipelineInfo;
 		std::shared_ptr<GraphicsPipelineVulkan> mUiLineGraphicsPipeline;
 		std::shared_ptr<SimpleRenderable> mUiLineRenderable;
-		const char* mUiLineRendererVertexShaderPath = "Dough/res/shaders/spv/LineRenderer2d.vert.spv";
-		const char* mUiLineRendererFragmentShaderPath = "Dough/res/shaders/spv/LineRenderer2d.frag.spv";
+		static const char* UI_LINE_SHADER_PATH_VERT;
+		static const char* UI_LINE_SHADER_PATH_FRAG;
 
 		std::unique_ptr<DescriptorSetsInstanceVulkan> mLineShadersDescriptorsInstance;
 
+	private:
+		void initImpl();
+		void closeImpl();
+		void onSwapChainResizeImpl(SwapChainVulkan& swapChain);
+
+		void drawSceneImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
+		void drawUiImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
+
+		void drawLineSceneImpl(const glm::vec3& start, const glm::vec3& end, const glm::vec4& colour);
+		void drawLineUiImpl(const glm::vec2& start, const glm::vec2& end, const glm::vec4& colour);
+
+		void drawQuadSceneImpl(const Quad& quad, const glm::vec4& colour);
+		void drawQuadUiImpl(const Quad& quad, const glm::vec4& colour);
+
+		static void drawScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
+		static void drawUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
+
+		static void init(RenderingContextVulkan& context);
+		static void close();
+		static void onSwapChainResize(SwapChainVulkan& swapChain);
+
 	public:
-		LineRenderer() = default;
-		LineRenderer(const LineRenderer& copy) = delete;
-		LineRenderer operator=(const LineRenderer& assignment) = delete;
+		LineRenderer(RenderingContextVulkan& context);
 
-		void init(VkDevice logicDevice, VkExtent2D swapChainExtent, ValueUniformInfo uboSize);
-		void close(VkDevice logicDevice);
+		static inline void drawLineScene(const glm::vec3& start, const glm::vec3& end, const glm::vec4& colour) { INSTANCE->drawLineSceneImpl(start, end, colour); }
+		static inline void drawLineUi(const glm::vec2 & start, const glm::vec2 & end, const glm::vec4 & colour) { INSTANCE->drawLineUiImpl(start, end, colour); }
 
-		void drawScene(
-			VkDevice logicDevice,
-			const uint32_t imageIndex,
-			void* ubo,
-			size_t uboSize,
-			VkCommandBuffer cmd,
-			CurrentBindingsState& currentBindings,
-			AppDebugInfo& debugInfo
-		);
-		void drawUi(
-			VkDevice logicDevice,
-			const uint32_t imageIndex,
-			void* ubo,
-			size_t uboSize,
-			VkCommandBuffer cmd,
-			CurrentBindingsState& currentBindings,
-			AppDebugInfo& debugInfo
-		);
+		static inline void drawQuadScene(const Quad& quad, const glm::vec4& colour) { INSTANCE->drawQuadSceneImpl(quad, colour); }
+		static inline void drawQuadUi(const Quad& quad, const glm::vec4& colour) { INSTANCE->drawQuadUiImpl(quad, colour); }
 
-		//TODO:: rename to onSwapChain resize
-		void recreateGraphicsPipelines(
-			VkDevice logicDevice,
-			VkExtent2D extent,
-			const RenderPassVulkan& sceneRenderPass,
-			const RenderPassVulkan& uiRenderPass,
-			VkDescriptorPool descPool
-		);
-
-		inline PipelineRenderableConveyor getSceneLineConveyor() const { return { *mSceneLineGraphicsPipeline }; }
-		inline PipelineRenderableConveyor getUiLineConveyor() const { return { *mUiLineGraphicsPipeline }; }
-		inline uint32_t getSceneLineCount() const { return mSceneLineBatch->getLineCount(); }
-		inline uint32_t getSceneMaxLineCount() const { return mSceneLineBatch->getMaxLineCount(); }
-		inline uint32_t getUiLineCount() const { return mUiLineBatch->getLineCount(); }
-		inline uint32_t getUiMaxLineCount() const { return mUiLineBatch->getMaxLineCount(); }
-
-
-		void drawLineScene(const glm::vec3& start, const glm::vec3& end, const glm::vec4& colour);
-		void drawLineUi(const glm::vec2& start, const glm::vec2& end, const glm::vec4& colour);
-
-		void drawQuadScene(const Quad& quad, const glm::vec4& colour);
-		void drawQuadUi(const Quad& quad, const glm::vec4& colour);
+		static inline uint32_t getSceneLineCount() { return INSTANCE->mSceneLineBatch->getLineCount(); }
+		static inline uint32_t getSceneMaxLineCount() { return INSTANCE->mSceneLineBatch->getMaxLineCount(); }
+		static inline uint32_t getUiLineCount() { return INSTANCE->mUiLineBatch->getLineCount(); }
+		static inline uint32_t getUiMaxLineCount() { return INSTANCE->mUiLineBatch->getMaxLineCount(); }
 	};
 }

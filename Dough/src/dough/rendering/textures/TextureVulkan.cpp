@@ -1,7 +1,9 @@
 #include "dough/rendering/textures/TextureVulkan.h"
 
 #include "dough/application/Application.h"
-#include "dough/rendering/ObjInit.h"
+#include "dough/files/ResourceHandler.h"
+
+#include <tracy/public/tracy/Tracy.hpp>
 
 namespace DOH {
 
@@ -25,6 +27,8 @@ namespace DOH {
 		mHeight(0),
 		mChannels(0)
 	{
+		ZoneScoped;
+
 		TextureCreationData textureData = ResourceHandler::loadTexture(filePath.c_str());
 
 		if (textureData.Failed) {
@@ -61,6 +65,8 @@ namespace DOH {
 		mHeight(1),
 		mChannels(4)
 	{
+		ZoneScoped;
+
 		if (!rgbaNormalised) {
 			r = (r / TextureVulkan::COLOUR_MAX_VALUE);
 			g = (g / TextureVulkan::COLOUR_MAX_VALUE);
@@ -107,21 +113,24 @@ namespace DOH {
 	}
 
 	void TextureVulkan::close(VkDevice logicDevice) {
+		ZoneScoped;
+
 		vkDestroySampler(logicDevice, mSampler, nullptr);
 		mTextureImage->close(logicDevice);
 		mUsingGpuResource = false;
 	}
 
 	void TextureVulkan::load(void* data, VkDeviceSize size) {
+		ZoneScoped;
+
 		if (!isUsingGpuResource()) {
-			std::shared_ptr<BufferVulkan> imageStagingBuffer = ObjInit::stagedBuffer(
+			auto& context = Application::get().getRenderer().getContext();
+			std::shared_ptr<BufferVulkan> imageStagingBuffer = context.createStagedBuffer(
 				data,
 				size,
 				VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
 			);
-
-			auto& context = Application::get().getRenderer().getContext();
 			VkImage image = context.createImage(
 				static_cast<uint32_t>(mWidth),
 				static_cast<uint32_t>(mHeight),

@@ -14,7 +14,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
 
-#include "tracy/public/tracy/Tracy.hpp"
+#include <tracy/public/tracy/Tracy.hpp>
 
 //Hash function based off of example from https://vulkan-tutorial.com/Loading_models
 namespace std {

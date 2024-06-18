@@ -3,6 +3,8 @@
 #include "dough/Logging.h"
 #include "dough/application/Application.h"
 
+#include <tracy/public/tracy/Tracy.hpp>
+
 namespace DOH {
 
 	Window::Window(uint32_t width, uint32_t height, EWindowDisplayMode displayMode)
@@ -16,6 +18,8 @@ namespace DOH {
 	}
 
 	void Window::init(const std::string& windowTitle) {
+		ZoneScoped;
+
 		TRY(!glfwInit(), "Failed to initialise GLFW.");
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -71,6 +75,8 @@ namespace DOH {
 	}
 
 	void Window::selectDisplayMode(const EWindowDisplayMode displayMode) {
+		ZoneScoped;
+
 		if (displayMode != mCurrentDisplayMode) {
 			switch (displayMode) {
 				case EWindowDisplayMode::WINDOWED:
@@ -114,6 +120,8 @@ namespace DOH {
 	}
 
 	void Window::selectMonitor(int selectedMonitorIndex) {
+		ZoneScoped;
+
 		if (selectedMonitorIndex > mAvailableMonitors.size() - 1) {
 			LOG_ERR("Selected monitor index (" << selectedMonitorIndex << ") is not available");
 		} else {
@@ -165,10 +173,14 @@ namespace DOH {
 	}
 
 	void Window::setTitle(const std::string& title) {
+		ZoneScoped;
+
 		glfwSetWindowTitle(mWindowPtr, title.c_str());
 	}
 
 	const std::string& Window::getSelectedMonitorName() const {
+		ZoneScoped;
+
 		for (const auto& monitor : mAvailableMonitors) {
 			if (monitor.first == mSelectedMonitor) {
 				return monitor.second;
@@ -179,10 +191,14 @@ namespace DOH {
 	}
 
 	void Window::setResolution(uint32_t width, uint32_t height) {
+		ZoneScoped;
+
 		glfwSetWindowSize(mWindowPtr, width, height);
 	}
 
 	VkSurfaceKHR Window::createVulkanSurface(VkInstance vulkanInstance) {
+		ZoneScoped;
+
 		VkSurfaceKHR surface = VK_NULL_HANDLE;
 
 		VK_TRY(
@@ -194,6 +210,8 @@ namespace DOH {
 	}
 
 	std::vector<const char*> Window::getRequiredExtensions(bool validationLayersEnabled) {
+		ZoneScoped;
+
 		uint32_t glfwExtensionCount = 0;
 		const char** glfwExtensionNames;
 		glfwExtensionNames = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -208,17 +226,23 @@ namespace DOH {
 	}
 
 	void Window::close() {
+		ZoneScoped;
+
 		glfwDestroyWindow(mWindowPtr);
 		glfwTerminate();
 	}
 
 	void Window::iconify() {
+		ZoneScoped;
+
 		if (!Application::get().isIconified()) {
 			glfwIconifyWindow(mWindowPtr);
 		}
 	}
 
 	void Window::setUpCallbacks() {
+		ZoneScoped;
+
 		//Setup callbacks
 		glfwSetWindowSizeCallback(mWindowPtr, [](GLFWwindow* windowPtr, int width, int height) {
 			if (width > 0 && height > 0) {
@@ -259,17 +283,14 @@ namespace DOH {
 					Application::get().onKeyEvent(keyDown);
 					return;
 				}
-
 				case GLFW_RELEASE: {
 					KeyUpEvent keyUp(key);
 					Application::get().onKeyEvent(keyUp);
 					return;
 				}
-
 				case GLFW_REPEAT: {
 					return;
 				}
-
 				default: {
 					LOG_WARN("Unknown action type: " << action);
 					return;
@@ -297,7 +318,6 @@ namespace DOH {
 					Application::get().onMouseEvent(mouseBtnUp);
 					return;
 				}
-
 				default: {
 					LOG_WARN("Unknown mouse button action: " << action);
 					return;
@@ -323,11 +343,12 @@ namespace DOH {
 	}
 
 	void Window::changeToDisplayModeWindowed() {
+		ZoneScoped;
+
 		const GLFWvidmode* videoMode = glfwGetVideoMode(mSelectedMonitor);
 		glfwWindowHint(GLFW_RED_BITS, videoMode->redBits);
 		glfwWindowHint(GLFW_GREEN_BITS, videoMode->greenBits);
 		glfwWindowHint(GLFW_BLUE_BITS, videoMode->blueBits);
-
 		glfwWindowHint(GLFW_REFRESH_RATE, videoMode->refreshRate);
 
 		int x = 0;
@@ -349,6 +370,8 @@ namespace DOH {
 	}
 
 	void Window::changeToDisplayModeBorderlessFullscreen() {
+		ZoneScoped;
+
 		const GLFWvidmode* videoMode = glfwGetVideoMode(mSelectedMonitor);
 		glfwWindowHint(GLFW_RED_BITS, videoMode->redBits);
 		glfwWindowHint(GLFW_GREEN_BITS, videoMode->greenBits);
@@ -374,11 +397,12 @@ namespace DOH {
 	}
 
 	void Window::changeToDisplayModeFullscreen() {
+		ZoneScoped;
+
 		const GLFWvidmode* videoMode = glfwGetVideoMode(mSelectedMonitor);
 		glfwWindowHint(GLFW_RED_BITS, videoMode->redBits);
 		glfwWindowHint(GLFW_GREEN_BITS, videoMode->greenBits);
 		glfwWindowHint(GLFW_BLUE_BITS, videoMode->blueBits);
-
 		glfwWindowHint(GLFW_REFRESH_RATE, videoMode->refreshRate);
 
 		int x = 0;

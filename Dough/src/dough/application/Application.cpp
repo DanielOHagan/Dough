@@ -2,7 +2,7 @@
 
 #include "dough/Logging.h"
 
-#include "tracy/public/tracy/Tracy.hpp"
+#include <tracy/public/tracy/Tracy.hpp>
 
 namespace DOH {
 

@@ -1,23 +1,28 @@
 #include "dough/rendering/ModelVulkan.h"
 
-#include "dough/rendering/ObjInit.h"
+#include "dough/application/Application.h"
+
+#include <tracy/public/tracy/Tracy.hpp>
 
 namespace DOH {
 
 	ModelVulkan::ModelVulkan(std::shared_ptr<Model3dCreationData> modelCreationData) {
-		std::shared_ptr<VertexBufferVulkan> vbo = ObjInit::stagedVertexBuffer(
+		ZoneScoped;
+
+		auto& context = Application::get().getRenderer().getContext();
+		std::shared_ptr<VertexBufferVulkan> vbo = context.createStagedVertexBuffer(
 			modelCreationData->VertexInputLayout,
 			modelCreationData->Vertices.data(),
 			modelCreationData->Vertices.size() * sizeof(float),
 			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
-		std::shared_ptr<IndexBufferVulkan> ibo = ObjInit::stagedIndexBuffer(
+		std::shared_ptr<IndexBufferVulkan> ibo = context.createStagedIndexBuffer(
 			modelCreationData->Indices.data(),
 			modelCreationData->Indices.size() * sizeof(uint32_t)
 		);
 
-		mVao = ObjInit::vertexArray();
+		mVao = context.createVertexArray();
 		mVao->addVertexBuffer(vbo);
 		mVao->setIndexBuffer(ibo);
 		mVao->setDrawCount(static_cast<uint32_t>(modelCreationData->Indices.size()));
@@ -36,6 +41,8 @@ namespace DOH {
 	}
 
 	void ModelVulkan::close(VkDevice logicDevice) {
+		ZoneScoped;
+
 		mVao->close(logicDevice);
 		mUsingGpuResource = false;
 	}

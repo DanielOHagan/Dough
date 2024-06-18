@@ -3,8 +3,10 @@
 #include "dough/files/ResourceHandler.h"
 #include "dough/Logging.h"
 #include "dough/scene/geometry/primitives/Quad.h"
-#include "dough/rendering/ObjInit.h"
 #include "dough/files/readers/JsonFileReader.h"
+#include "dough/application/Application.h"
+
+#include <tracy/public/tracy/Tracy.hpp>
 
 namespace DOH {
 
@@ -15,6 +17,8 @@ namespace DOH {
 		mLineHeightNorm(0.0f),
 		mBaseNorm(0.0f)
 	{
+		ZoneScoped;
+
 		//IMPORTANT:: Assumes charset is ASCII or unicode
 
 		//Prefer to use MSDF where possible
@@ -54,9 +58,10 @@ namespace DOH {
 				THROW("");
 				return;
 			} else if (textureNames.isString()) {
+				auto& context = Application::get().getRenderer().getContext();
 				std::string textureFileName = atlasAndTextureInfo["textureName"].getString();
 				std::string textureFilePath = imageDir + textureFileName;
-				std::shared_ptr<TextureVulkan> texture = ObjInit::texture(textureFilePath);
+				std::shared_ptr<TextureVulkan> texture = context.createTexture(textureFilePath);
 				mPageTextures.emplace_back(texture);
 				mPageCount = 1;
 			}
@@ -138,6 +143,7 @@ namespace DOH {
 			//std::vector<JsonElement>& kernings = root["kernings"].getArray();
 
 		} else if (ResourceHandler::isFileOfType(filePath, "fnt")) {
+			auto& context = Application::get().getRenderer().getContext();
 			std::shared_ptr<FntFileData> fileData = ResourceHandler::loadFntFile(filePath);
 
 			if (fileData == nullptr) {
@@ -146,7 +152,7 @@ namespace DOH {
 			}
 
 			for (const FntFilePageData& page : fileData->Pages) {
-				std::shared_ptr<TextureVulkan> pageTexture = ObjInit::texture(imageDir + page.PageFilepath);
+				std::shared_ptr<TextureVulkan> pageTexture = context.createTexture(imageDir + page.PageFilepath);
 				mPageTextures.emplace_back(pageTexture);
 			}
 

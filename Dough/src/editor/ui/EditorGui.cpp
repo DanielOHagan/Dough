@@ -2,11 +2,15 @@
 
 #include "dough/application/Application.h"
 
+#include <tracy/public/tracy/Tracy.hpp>
+
 namespace DOH::EDITOR {
 
 	std::unique_ptr<EditorGui> EditorGui::INSTANCE = nullptr;
 
 	void EditorGui::init() {
+		ZoneScoped;
+
 		if (INSTANCE == nullptr) {
 			INSTANCE = std::make_unique<EditorGui>();
 
@@ -18,6 +22,8 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorGui::close() {
+		ZoneScoped;
+
 		if (INSTANCE != nullptr) {
 			INSTANCE->mResourceViewerMap.clear();
 			INSTANCE->mTextureArrayViewerWindows.clear();
@@ -32,6 +38,8 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorGui::openTextureViewerWindowImpl(const TextureVulkan& texture) {
+		ZoneScoped;
+
 		const auto& itr = mResourceViewerMap.find(texture.getId());
 		if (itr != mResourceViewerMap.end()) {
 			itr->second->Display = true;
@@ -49,6 +57,8 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorGui::openMonoSpaceTextureAtlasViewerWindowImpl(const MonoSpaceTextureAtlas& textureAtlas) {
+		ZoneScoped;
+
 		const auto& itr = mResourceViewerMap.find(textureAtlas.getId());
 		if (itr != mResourceViewerMap.end()) {
 			itr->second->Display = true;
@@ -66,6 +76,8 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorGui::openIndexedTextureAtlasViewerWindowImpl(const IndexedTextureAtlas& textureAtlas) {
+		ZoneScoped;
+
 		const auto& itr = mResourceViewerMap.find(textureAtlas.getId());
 		if (itr != mResourceViewerMap.end()) {
 			itr->second->Display = true;
@@ -83,6 +95,8 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorGui::openTextureArrayViewerWindowImpl(const char* title, const TextureArray& texArray) {
+		ZoneScoped;
+
 		const auto& itr = mTextureArrayViewerWindows.find(title);
 		if (itr != mTextureArrayViewerWindows.end()) {
 			itr->second.Display = true;
@@ -99,6 +113,8 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorGui::closeTextureViewerWindowImpl(const uint32_t textureId) {
+		ZoneScoped;
+
 		const auto& texItr = mResourceViewerMap.find(textureId);
 		if (texItr != mResourceViewerMap.end()) {
 			mResourceViewerMap.erase(texItr);
@@ -107,6 +123,8 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorGui::closeMonoSpaceTextureAtlasViewerWindowImpl(const uint32_t textureId) {
+		ZoneScoped;
+
 		const auto& monoSpaceTexAtlasItr = mResourceViewerMap.find(textureId);
 		if (monoSpaceTexAtlasItr != mResourceViewerMap.end()) {
 			mResourceViewerMap.erase(monoSpaceTexAtlasItr);
@@ -115,6 +133,8 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorGui::closeTextureArrayViewerWindowImpl(const char* title) {
+		ZoneScoped;
+
 		bool closed = false;
 		const auto& itr = mTextureArrayViewerWindows.find(title);
 		if (itr != mTextureArrayViewerWindows.end()) {
@@ -141,6 +161,8 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorGui::imGuiDrawTextureViewerWindowsImpl() {
+		ZoneScoped;
+
 		for (auto& resource : mResourceViewerMap) {
 			if (resource.second->Display) {
 				resource.second->draw(true);
@@ -431,125 +453,5 @@ namespace DOH::EDITOR {
 				LOG_ERR("uiViewer of type:" << EResourceViewerUiTypeStrings[static_cast<uint32_t>(uiViewer.getResourceUiType())] << "can nott be drawn.");
 				break;
 		}
-	}
-
-	void EditorGui::drawTextureViewerWindows() {
-		INSTANCE->imGuiDrawTextureViewerWindowsImpl();
-	}
-
-	void EditorGui::openTextureViewerWindow(const TextureVulkan& texture) {
-		INSTANCE->openTextureViewerWindowImpl(texture);
-	}
-
-	void EditorGui::openMonoSpaceTextureAtlasViewerWindow(const MonoSpaceTextureAtlas& textureAtlas) {
-		INSTANCE->openMonoSpaceTextureAtlasViewerWindowImpl(textureAtlas);
-	}
-
-	void EditorGui::openIndexedTextureAtlasViewerWindow(const IndexedTextureAtlas& textureAtlas) {
-		INSTANCE->openIndexedTextureAtlasViewerWindowImpl(textureAtlas);
-	}
-
-	void EditorGui::openTextureArrayViewerWindow(const char* title, const TextureArray& texArray) {
-		INSTANCE->openTextureArrayViewerWindowImpl(title, texArray);
-	}
-
-	void EditorGui::closeTextureViewerWindow(const uint32_t textureId) {
-		INSTANCE->closeTextureViewerWindowImpl(textureId);
-	}
-
-	void EditorGui::closeMonoSpaceTextureAtlasViewerWindow(const uint32_t textureId) {
-		INSTANCE->closeMonoSpaceTextureAtlasViewerWindowImpl(textureId);
-	}
-
-	void EditorGui::closeTextureArrayViewerWindow(const char* title) {
-		INSTANCE->closeTextureArrayViewerWindowImpl(title);
-	}
-
-	void EditorGui::removeHiddenTextureViewerWindows() {
-		INSTANCE->imGuiRemoveHiddenTextureViewerWindowsImpl();
-	}
-
-	bool EditorGui::hasTextureViewerWindow(const uint32_t textureId) {
-		return INSTANCE->hasTextureViewerWindowImpl(textureId);
-	}
-
-	bool EditorGui::hasMonoSpaceTextureAtlasViewerWindow(const uint32_t textureId) {
-		return INSTANCE->hasMonoSpaceTextureAtlasViewerWindowImpl(textureId);
-	}
-
-	bool EditorGui::hasTextureArrayViewerWindow(const char* title) {
-		return INSTANCE->hasTextureArrayViewerWindowImpl(title);
-	}
-
-	void EditorGui::displayHelpTooltip(const char* message) {
-		INSTANCE->imGuiDisplayHelpTooltipImpl(message);
-	}
-
-	void EditorGui::bulletTextWrapped(const char* message) {
-		INSTANCE->imGuiBulletTextWrappedImpl(message);
-	}
-
-	void EditorGui::printDrawCallTableColumn(const char* pipelineName, const uint32_t drawCount, const char* renderPass) {
-		INSTANCE->imGuiPrintDrawCallTableColumnImpl(pipelineName, drawCount, renderPass);
-	}
-
-	void EditorGui::printMat4x4(const glm::mat4x4& mat, const char* name) {
-		INSTANCE->imGuiPrintMat4x4Impl(mat, name);
-	}
-
-	void EditorGui::singleUnitTime(const uint64_t nanos, const bool attachSuffix) {
-		INSTANCE->imGuiSingleUnitTimeImpl(nanos, attachSuffix);
-	}
-
-	void EditorGui::singleUnitTime(const long micros, const bool attachSuffix) {
-		INSTANCE->imGuiSingleUnitTimeImpl(micros, attachSuffix);
-	}
-
-	void EditorGui::singleUnitTime(const double millis, const bool attachSuffix) {
-		INSTANCE->imGuiSingleUnitTimeImpl(millis, attachSuffix);
-	}
-
-	void EditorGui::singleUnitTime(const float seconds, const bool attachSuffix) {
-		INSTANCE->imGuiSingleUnitTimeImpl(seconds, attachSuffix);
-	}
-
-	bool EditorGui::isGuiHandlingKeyboardInput() {
-		return INSTANCE->isGuiHandlingKeyboardInputImpl();
-	}
-
-	bool EditorGui::isGuiHandlingMouseInput() {
-		return INSTANCE->isGuiHandlingMouseInputImpl();
-	}
-
-	bool EditorGui::isGuiHandlingTextInput() {
-		return INSTANCE->isGuiHandlingTextInputImpl();
-	}
-
-	void EditorGui::controlsAGeometry(AGeometry& geo, const char* name) {
-		INSTANCE->imGuiControlsAGeometryImpl(geo, name);
-	}
-
-	void EditorGui::controlsQuad(Quad& quad, const char* name) {
-		INSTANCE->imGuiControlsQuadImpl(quad, name);
-	}
-
-	void EditorGui::infoAGeometry(AGeometry& geo, const char* name) {
-		INSTANCE->imGuiInfoAGeometryImpl(geo, name);
-	}
-
-	void EditorGui::infoQuad(Quad& quad, const char* name) {
-		INSTANCE->imGuiInfoQuadImpl(quad, name);
-	}
-
-	void EditorGui::jsonElement(JsonElement& element, const char* name) {
-		INSTANCE->imGuiJsonElementImpl(element, name);
-	}
-
-	void EditorGui::jsonObject(JsonElement& object, const char* name) {
-		INSTANCE->imGuiJsonObjectImpl(object, name);
-	}
-
-	void EditorGui::jsonArray(JsonElement& array, const char* name) {
-		INSTANCE->imGuiJsonArrayImpl(array, name);
 	}
 }

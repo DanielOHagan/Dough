@@ -7,9 +7,13 @@
 #include "dough/rendering/RenderingContextVulkan.h"
 #include "dough/rendering/renderables/SimpleRenderable.h"
 
+#include <tracy/public/tracy/Tracy.hpp>
+
 namespace DOH {
 
 	GraphicsPipelineOptionalFields& GraphicsPipelineInstanceInfo::enableOptionalFields() {
+		ZoneScoped;
+
 		if (mOptionalFields == nullptr) {
 			mOptionalFields = std::make_unique<GraphicsPipelineOptionalFields>();
 		}
@@ -24,6 +28,8 @@ namespace DOH {
 	{}
 
 	GraphicsPipelineVulkan::~GraphicsPipelineVulkan() {
+		ZoneScoped;
+
 		if (isUsingGpuResource()) {
 			LOG_ERR(
 				"GraphicsPipeline_2 GPU resource NOT released before destructor was called." <<
@@ -39,22 +45,30 @@ namespace DOH {
 	}
 
 	void GraphicsPipelineVulkan::close(VkDevice logicDevice) {
+		ZoneScoped;
+
 		vkDestroyPipeline(logicDevice, mGraphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(logicDevice, mGraphicsPipelineLayout, nullptr);
 		mUsingGpuResource = false;
 	}
 
 	void GraphicsPipelineVulkan::init(VkDevice logicDevice, VkExtent2D extent, VkRenderPass renderPass) {
+		ZoneScoped;
+
 		createPipelineLayout(logicDevice);
 		createPipeline(logicDevice, extent, renderPass);
 	}
 
 	void GraphicsPipelineVulkan::resize(VkDevice logicDevice, VkExtent2D extent, VkRenderPass renderPass) {
+		ZoneScoped;
+
 		vkDestroyPipeline(logicDevice, mGraphicsPipeline, nullptr);
 		createPipeline(logicDevice, extent, renderPass);
 	}
 
 	void GraphicsPipelineVulkan::recordDrawCommands(VkCommandBuffer cmd, CurrentBindingsState& currentBindings, uint32_t descSetOffset) {
+		ZoneScoped;
+
 		for (auto& renderable : mRenderableDrawList) {
 			//Bind descriptor sets
 			if (renderable->hasDescriptorSetsInstance()) {
@@ -161,6 +175,8 @@ namespace DOH {
 	}
 
 	void GraphicsPipelineVulkan::createPipeline(VkDevice logicDevice, VkExtent2D extent, VkRenderPass renderPass) {
+		ZoneScoped;
+
 		//Make sure shaders are loaded
 		//TODO:: Checking for if individual shaders are loaded
 		if (!mInstanceInfo.getShaderProgram().areShadersLoaded()) {

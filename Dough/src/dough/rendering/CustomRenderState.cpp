@@ -3,6 +3,8 @@
 #include "dough/Logging.h"
 #include "dough/application/Application.h"
 
+#include <tracy/public/tracy/Tracy.hpp>
+
 namespace DOH {
 
 	CustomRenderState::CustomRenderState(const char* name)
@@ -12,6 +14,8 @@ namespace DOH {
 	{}
 
 	void CustomRenderState::addRenderPassGroup(const ERenderPass renderPass) {
+		ZoneScoped;
+
 		const auto& group = mRenderPassGraphicsPipelines.emplace(renderPass, GraphicsPipelineMap());
 		if (!group.second) {
 			LOG_WARN("Render pass group already exists: " << ERenderPassStrings[static_cast<uint32_t>(renderPass)]);
@@ -19,6 +23,8 @@ namespace DOH {
 	}
 
 	void CustomRenderState::addRenderPassGroup(const ERenderPass renderPass, const GraphicsPipelineMap& pipelineMap) {
+		ZoneScoped;
+
 		const auto& group = mRenderPassGraphicsPipelines.emplace(renderPass, pipelineMap);
 		if (!group.second) {
 			LOG_WARN("Render pass group already exists: " << ERenderPassStrings[static_cast<uint32_t>(renderPass)]);
@@ -32,6 +38,8 @@ namespace DOH {
 		const std::string& name,
 		const std::shared_ptr<GraphicsPipelineVulkan> graphicsPipeline
 	) {
+		ZoneScoped;
+
 		const auto& group = mRenderPassGraphicsPipelines.find(renderPass);
 		if (group != mRenderPassGraphicsPipelines.end()) {
 			if (group->second.emplace(name, graphicsPipeline).second) {
@@ -45,6 +53,8 @@ namespace DOH {
 	}
 
 	void CustomRenderState::closePipeline(VkDevice logicDevice, const ERenderPass renderPass, const std::string& name) {
+		ZoneScoped;
+
 		std::optional<std::reference_wrapper<GraphicsPipelineMap>> group = getRenderPassGraphicsPipelineGroup(renderPass);
 		if (group.has_value()) {
 			const auto pipeline = group->get().find(name);
@@ -60,6 +70,8 @@ namespace DOH {
 	}
 
 	void CustomRenderState::closeRenderPassGroup(VkDevice logicDevice, const ERenderPass renderPass) {
+		ZoneScoped;
+
 		const auto group = mRenderPassGraphicsPipelines.find(renderPass);
 
 		if (group != mRenderPassGraphicsPipelines.end()) {
@@ -74,6 +86,8 @@ namespace DOH {
 	}
 
 	void CustomRenderState::close(VkDevice logicDevice) {
+		ZoneScoped;
+
 		for (auto& pipelineGroup : mRenderPassGraphicsPipelines) {
 			for (auto& pipeline : pipelineGroup.second) {
 				auto& renderer = Application::get().getRenderer();

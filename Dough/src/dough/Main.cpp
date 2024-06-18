@@ -1,9 +1,9 @@
 #include "dough/application/Application.h"
 #include "editor/EditorAppLogic.h"
 #include "editor/DemoLiciousAppLogic.h"
-
 #include "dough/EmptyDefines.h"
-#include "tracy/public/tracy/Tracy.hpp"
+
+#include <tracy/public/tracy/Tracy.hpp>
 
 #ifdef _DEBUG
 	#undef DOH_DEBUG_DEFINES_EMPTY

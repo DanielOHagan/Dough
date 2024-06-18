@@ -3,6 +3,8 @@
 #include "dough/rendering/RendererVulkan.h"
 #include "dough/application/Application.h"
 
+#include <tracy/public/tracy/Tracy.hpp>
+
 namespace DOH {
 
 	//Non-staged
@@ -59,6 +61,8 @@ namespace DOH {
 	}
 
 	void BufferVulkan::close(VkDevice logicDevice) {
+		ZoneScoped;
+
 		if (isMapped()) {
 			unmap(logicDevice);
 		}
@@ -75,6 +79,8 @@ namespace DOH {
 		VkBufferUsageFlags usage,
 		VkMemoryPropertyFlags props
 	) {
+		ZoneScoped;
+
 		mSize = size;
 
 		VkBufferCreateInfo bufferCreateInfo = {};
@@ -120,6 +126,8 @@ namespace DOH {
 		VkBufferUsageFlags usage,
 		VkMemoryPropertyFlags props
 	) {
+		ZoneScoped;
+
 		mSize = size;
 
 		//Add transfer destination bit to usage if not included already
@@ -147,6 +155,8 @@ namespace DOH {
 		VkBufferUsageFlags usage,
 		VkMemoryPropertyFlags props
 	) {
+		ZoneScoped;
+
 		clearBuffer(logicDevice);
 		init(logicDevice, physicalDevice, size, usage, props);
 	}
@@ -161,11 +171,15 @@ namespace DOH {
 		VkBufferUsageFlags usage,
 		VkMemoryPropertyFlags props
 	) {
+		ZoneScoped;
+
 		clearBuffer(logicDevice);
 		initStaged(logicDevice, physicalDevice, cmdPool, graphicsQueue, data, size, usage, props);
 	}
 
 	void BufferVulkan::setDataUnmapped(VkDevice logicDevice, const void* data, size_t size) {
+		ZoneScoped;
+
 		mSize = size;
 		mData = map(logicDevice, size);
 		memcpy(mData, data, size);
@@ -173,20 +187,28 @@ namespace DOH {
 	}
 
 	void BufferVulkan::setDataMapped(VkDevice logicDevice, const void* data, size_t size) {
+		ZoneScoped;
+
 		memcpy(mData, data, size);
 	}
 
 	void* BufferVulkan::map(VkDevice logicDevice, size_t size) {
+		ZoneScoped;
+
 		vkMapMemory(logicDevice, mBufferMemory, 0, size, 0, &mData);
 		return mData;
 	}
 
 	void BufferVulkan::unmap(VkDevice logicDevice) {
+		ZoneScoped;
+
 		vkUnmapMemory(logicDevice, mBufferMemory);
 		mData = nullptr;
 	}
 
 	void BufferVulkan::clearBuffer(VkDevice logicDevice) {
+		ZoneScoped;
+
 		vkDestroyBuffer(logicDevice, mBuffer, nullptr);
 		vkFreeMemory(logicDevice, mBufferMemory, nullptr);
 
@@ -210,6 +232,8 @@ namespace DOH {
 		VkBuffer dstBuffer,
 		VkDeviceSize size
 	) {
+		ZoneScoped;
+
 		VkCommandBufferAllocateInfo allocation = {};
 		allocation.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		allocation.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;

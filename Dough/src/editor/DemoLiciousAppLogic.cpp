@@ -3,11 +3,10 @@
 #include "editor/ui/EditorGui.h"
 
 #include "dough/application/Application.h"
-#include "dough/rendering/ObjInit.h"
 #include "dough/rendering/ShapeRenderer.h"
 #include "dough/rendering/text/TextRenderer.h"
 
-#include "tracy/public/tracy/Tracy.hpp"
+#include <tracy/public/tracy/Tracy.hpp>
 
 #define GET_RENDERER Application::get().getRenderer()
 
@@ -136,22 +135,21 @@ namespace DOH::EDITOR {
 		}
 
 		if (mLineDemo->Render) {
-			auto& lineRenderer = context.getLineRenderer();
-			const uint32_t spaceRemaining = lineRenderer.getSceneMaxLineCount() - lineRenderer.getSceneLineCount();
+			const uint32_t spaceRemaining = LineRenderer::getSceneMaxLineCount() - LineRenderer::getSceneLineCount();
 
 			if (mLineDemo->RenderTextDemoOutlines) {
 				for (const Quad& quad : mTextDemo->Text->getQuads()) {
-					lineRenderer.drawQuadScene(quad, { 1.0f, 0.0f, 1.0f, 1.0f });
+					LineRenderer::drawQuadScene(quad, { 1.0f, 0.0f, 1.0f, 1.0f });
 				}
 
 				for (const Quad& quad : mTextDemo->MsdfText->getQuads()) {
-					lineRenderer.drawQuadScene(quad, { 0.0f, 1.0f, 0.0f, 1.0f });
+					LineRenderer::drawQuadScene(quad, { 0.0f, 1.0f, 0.0f, 1.0f });
 				}
 			}
 
 			for (uint32_t i = 0; i < mLineDemo->LineCount3d && i < spaceRemaining; i++) {
 				const size_t lineStartIndex = static_cast<size_t>(i) * LineDemo::LINE_3D_INPUT_COMPONENT_COUNT;
-				lineRenderer.drawLineScene(
+				LineRenderer::drawLineScene(
 					{
 						mLineDemo->LineData3d[lineStartIndex + 0],
 						mLineDemo->LineData3d[lineStartIndex + 1],
@@ -179,7 +177,7 @@ namespace DOH::EDITOR {
 		if (mBoundingBoxDemo->Render) {
 			if (mBoundingBoxDemo->Quads.size() > 0) {
 				ShapeRenderer::drawQuadArrayScene(mBoundingBoxDemo->Quads);
-				context.getLineRenderer().drawQuadScene(mBoundingBoxDemo->BoundingBox->getQuad(), {0.0f, 1.0f, 0.0f, 1.0f});
+				LineRenderer::drawQuadScene(mBoundingBoxDemo->BoundingBox->getQuad(), { 0.0f, 1.0f, 0.0f, 1.0f });
 			}
 		}
 
@@ -198,17 +196,15 @@ namespace DOH::EDITOR {
 		}
 
 		if (mLineDemo->Render) {
-			auto& lineRenderer = context.getLineRenderer();
-
 			if (mLineDemo->RenderUiQuad) {
-				lineRenderer.drawQuadUi(mLineDemo->UiQuadTest, mLineDemo->UiQuadTest.Colour);
+				LineRenderer::drawQuadUi(mLineDemo->UiQuadTest, mLineDemo->UiQuadTest.Colour);
 			}
 
-			const uint32_t spaceRemaining = lineRenderer.getUiMaxLineCount() - lineRenderer.getUiLineCount();
+			const uint32_t spaceRemaining = LineRenderer::getUiMaxLineCount() - LineRenderer::getUiLineCount();
 
 			for (uint32_t i = 0; i < mLineDemo->LineCount2d && i < spaceRemaining; i++) {
 				const size_t lineStartIndex = static_cast<size_t>(i) * LineDemo::LINE_2D_INPUT_COMPONENT_COUNT;
-				lineRenderer.drawLineUi(
+				LineRenderer::drawLineUi(
 					{ mLineDemo->LineData2d[lineStartIndex + 0], mLineDemo->LineData2d[lineStartIndex + 1] },
 					{ mLineDemo->LineData2d[lineStartIndex + 2], mLineDemo->LineData2d[lineStartIndex + 3] },
 					{
@@ -420,8 +416,8 @@ namespace DOH::EDITOR {
 		RenderingContextVulkan& context = Application::get().getRenderer().getContext();
 		DescriptorSetLayoutVulkan& textureSetLayout = context.getCommonDescriptorSetLayouts().SingleTexture;
 
-		mSharedDemoResources->TestTexture1 = ObjInit::texture(mSharedDemoResources->TestTexturePath);
-		mSharedDemoResources->TestTexture2 = ObjInit::texture(mSharedDemoResources->TestTexture2Path);
+		mSharedDemoResources->TestTexture1 = context.createTexture(mSharedDemoResources->TestTexturePath);
+		mSharedDemoResources->TestTexture2 = context.createTexture(mSharedDemoResources->TestTexture2Path);
 
 		std::vector<std::reference_wrapper<DescriptorSetLayoutVulkan>> texturedDescSetLayouts = {
 			context.getCommonDescriptorSetLayouts().Ubo,
@@ -842,8 +838,8 @@ namespace DOH::EDITOR {
 
 		RenderingContextVulkan& context = Application::get().getRenderer().getContext();
 
-		SceneVao = ObjInit::vertexArray();
-		std::shared_ptr<VertexBufferVulkan> sceneVb = ObjInit::stagedVertexBuffer(
+		SceneVao = context.createVertexArray();
+		std::shared_ptr<VertexBufferVulkan> sceneVb = context.createStagedVertexBuffer(
 			SceneVertexInputLayout,
 			SceneVertices.data(),
 			static_cast<size_t>(SceneVertexInputLayout.getStride()) * SceneVertices.size(),
@@ -851,7 +847,7 @@ namespace DOH::EDITOR {
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
 		SceneVao->addVertexBuffer(sceneVb);
-		std::shared_ptr<IndexBufferVulkan> sceneIb = ObjInit::stagedIndexBuffer(
+		std::shared_ptr<IndexBufferVulkan> sceneIb = context.createStagedIndexBuffer(
 			Indices.data(),
 			sizeof(uint32_t) * Indices.size()
 		);
@@ -872,8 +868,8 @@ namespace DOH::EDITOR {
 			uiShaderDescLayout
 		);
 	
-		UiVao = ObjInit::vertexArray();
-		std::shared_ptr<VertexBufferVulkan> appUiVb = ObjInit::stagedVertexBuffer(
+		UiVao = context.createVertexArray();
+		std::shared_ptr<VertexBufferVulkan> appUiVb = context.createStagedVertexBuffer(
 			UiVertexInputLayout,
 			UiVertices.data(),
 			static_cast<size_t>(UiVertexInputLayout.getStride()) * UiVertices.size(),
@@ -881,7 +877,7 @@ namespace DOH::EDITOR {
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
 		);
 		UiVao->addVertexBuffer(appUiVb);
-		std::shared_ptr<IndexBufferVulkan> appUiIb = ObjInit::stagedIndexBuffer(
+		std::shared_ptr<IndexBufferVulkan> appUiIb = context.createStagedIndexBuffer(
 			UiIndices.data(),
 			sizeof(UiIndices[0]) * UiIndices.size()
 		);
@@ -1263,11 +1259,9 @@ namespace DOH::EDITOR {
 			ImGui::Checkbox("Render Text Demo Outlines", &RenderTextDemoOutlines);
 			ImGui::Checkbox("Render Ui Quad", &RenderUiQuad);
 
-			auto& lineRenderer = GET_RENDERER.getContext().getLineRenderer();
-
-			ImGui::Text("Scene Line Count: %i", lineRenderer.getSceneLineCount());
+			ImGui::Text("Scene Line Count: %i", LineRenderer::getSceneLineCount());
 			EditorGui::displayHelpTooltip("This includes lines created from \"Add Line Scene\" and from any draw{ Primitive }3d() function calls.");
-			ImGui::Text("UI Line Count: %i", lineRenderer.getUiLineCount());
+			ImGui::Text("UI Line Count: %i", LineRenderer::getUiLineCount());
 			EditorGui::displayHelpTooltip("This includes lines created from \"Add Line UI\" and from any draw{ Primitive }2d() function calls.");
 
 			float lineData[LineDemo::LINE_3D_INPUT_COMPONENT_COUNT] = {};

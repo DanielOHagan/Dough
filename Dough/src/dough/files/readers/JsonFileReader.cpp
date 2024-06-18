@@ -4,12 +4,15 @@
 #include "dough/Logging.h"
 
 #include <stack>
+#include <tracy/public/tracy/Tracy.hpp>
 
 namespace DOH {
 
 	JsonFileReader::JsonFileReader(const char* jsonFilePath, const bool openNow)
 	:	AFileReader(jsonFilePath)
 	{
+		ZoneScoped;
+
 		bool isValid = true;
 		if (!ResourceHandler::isFileOfType(jsonFilePath, ".json")) {
 			LOG_ERR("Invalid file type for reader (.json): " << jsonFilePath);
@@ -24,6 +27,8 @@ namespace DOH {
 	}
 
 	const bool JsonFileReader::open() {
+		ZoneScoped;
+
 		if (!mOpen) {
 			mChars = ResourceHandler::readFile(mFilepath);
 			mOpen = true;
@@ -35,6 +40,8 @@ namespace DOH {
 	}
 
 	std::shared_ptr<JsonFileData> JsonFileReader::read(const bool closeWhenRead) {
+		ZoneScoped;
+
 		if (!mOpen) {
 			LOG_ERR("Attempting to read JSON file when not open");
 			return nullptr;

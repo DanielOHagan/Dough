@@ -4,6 +4,8 @@
 #include "dough/Logging.h"
 #include "dough/files/TextFileUtils.h"
 
+#include <tracy/public/tracy/Tracy.hpp>
+
 #define DOH_FNT_MAX_STRING_CHAR_LENGTH 128
 #define DOH_FNT_MAX_INT_CHAR_LENGTH 8
 
@@ -12,6 +14,8 @@ namespace DOH {
 	FntFileReader::FntFileReader(const char* filepath, const bool openNow)
 	:	AFileReader(filepath)
 	{
+		ZoneScoped;
+
 		bool isValid = true;
 		if (!ResourceHandler::isFileOfType(filepath, "fnt")) {
 			LOG_ERR("Invalid file type for reader (.fnt): " << filepath)
@@ -26,6 +30,8 @@ namespace DOH {
 	}
 
 	const bool FntFileReader::open() {
+		ZoneScoped;
+
 		if (!mOpen) {
 			mChars = ResourceHandler::readFile(mFilepath);
 			mOpen = true;
@@ -37,6 +43,8 @@ namespace DOH {
 	}
 
 	std::shared_ptr<FntFileData> FntFileReader::read(const bool closeWhenRead) {
+		ZoneScoped;
+
 		if (!mOpen) {
 			LOG_ERR("Attempting to read fnt file when not open");
 			return nullptr;

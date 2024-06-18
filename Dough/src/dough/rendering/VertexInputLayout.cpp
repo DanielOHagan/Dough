@@ -2,6 +2,8 @@
 
 #include "dough/Logging.h"
 
+#include <tracy/public/tracy/Tracy.hpp>
+
 namespace DOH {
 
 	AVertexInputLayout::AVertexInputLayout(const EVertexInputLayoutType vertexInputLayoutType, uint32_t stride)
@@ -21,6 +23,8 @@ namespace DOH {
 	}
 
 	bool StaticVertexInputLayout::hasSameLayout(const AVertexInputLayout& other) const {
+		ZoneScoped;
+
 		if (other.getVertexInputLayoutType() == EVertexInputLayoutType::STATIC) {
 			const StaticVertexInputLayout& staticVertexInputLayout = (const StaticVertexInputLayout&) other;
 			return mVertexType == staticVertexInputLayout.mVertexType;
@@ -47,6 +51,8 @@ namespace DOH {
 	{}
 
 	std::vector<VkVertexInputAttributeDescription> CustomVertexInputLayout::asAttribDesc(uint32_t binding) const {
+		ZoneScoped;
+
 		std::vector<VkVertexInputAttributeDescription> attribDescs = {};
 		attribDescs.reserve(mVertexLayout.size());
 
@@ -64,6 +70,8 @@ namespace DOH {
 	}
 
 	bool CustomVertexInputLayout::hasSameLayout(const AVertexInputLayout& other) const {
+		ZoneScoped;
+
 		if (other.getVertexInputLayoutType() == EVertexInputLayoutType::CUSTOM) {
 			const CustomVertexInputLayout& customVertexInputLayout = (const CustomVertexInputLayout&) other;
 			const size_t dataTypeCount = customVertexInputLayout.getVertexLayout().size();

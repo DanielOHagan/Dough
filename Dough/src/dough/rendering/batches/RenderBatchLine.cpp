@@ -2,8 +2,6 @@
 
 #include "dough/Logging.h"
 
-#include <cmath>
-
 namespace DOH {
 
 	RenderBatchLineList::RenderBatchLineList(const EVertexType vertexType, const uint32_t maxLineCount)

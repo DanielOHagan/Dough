@@ -3,6 +3,8 @@
 #include "dough/rendering/pipeline/ShaderDescriptorSetLayoutsVulkan.h"
 #include "dough/rendering/pipeline/AShaderDescriptor.h"
 
+#include <tracy/public/tracy/Tracy.hpp>
+
 namespace DOH {
 
 	VkDescriptorSet DescriptorApiVulkan::allocateDescriptorSetFromLayout(
@@ -10,6 +12,8 @@ namespace DOH {
 		VkDescriptorPool descPool,
 		DescriptorSetLayoutVulkan& layout
 	) {
+		ZoneScoped;
+
 		VkDescriptorSet descSet = VK_NULL_HANDLE;
 
 		VkDescriptorSetAllocateInfo allocation = {};
@@ -32,6 +36,8 @@ namespace DOH {
 		DescriptorSetLayoutVulkan& layout,
 		uint32_t count
 	) {
+		ZoneScoped;
+
 		std::vector<VkDescriptorSet> descSets = {};
 		descSets.resize(count);
 
@@ -56,6 +62,8 @@ namespace DOH {
 	}
 
 	void DescriptorApiVulkan::updateDescriptorSet(VkDevice logicDevice, DescriptorSetUpdate& setUpdate) {
+		ZoneScoped;
+
 		std::vector<VkWriteDescriptorSet> descWrites = {};
 		std::vector<VkDescriptorBufferInfo> bufferInfos;
 		std::vector<VkDescriptorImageInfo> imageInfos;

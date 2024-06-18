@@ -2,6 +2,8 @@
 
 #include "dough/Logging.h"
 
+#include <tracy/public/tracy/Tracy.hpp>
+
 namespace DOH {
 
 	const std::pair<std::string, size_t> TextFileUtils::readElementString(
@@ -9,6 +11,8 @@ namespace DOH {
 		const char* elementName,
 		size_t startIndex
 	) {
+		ZoneScoped;
+
 		const size_t elementNameLength = strlen(elementName);
 
 		if (elementNameLength == 0) {
@@ -55,6 +59,8 @@ namespace DOH {
 		size_t startIndex,
 		uint32_t valueCount
 	) {
+		ZoneScoped;
+
 		const std::pair<std::string, size_t>& listElementValue = TextFileUtils::readElementString(lineBuffer, elementName, startIndex);
 
 		std::vector<std::string> innerStrings = {};
@@ -98,6 +104,8 @@ namespace DOH {
 		const char* elementName,
 		size_t startIndex
 	) {
+		ZoneScoped;
+
 		const size_t elementNameLength = strlen(elementName);
 
 		if (elementNameLength == 0) {
@@ -145,6 +153,8 @@ namespace DOH {
 		size_t startIndex,
 		uint32_t valueCount
 	) {
+		ZoneScoped;
+
 		const size_t elementNameLength = strlen(elementName);
 
 		if (valueCount > TextFileUtils::MAX_MULTIPLE_INT_COUNT || valueCount == 0 || elementNameLength == 0) {
@@ -208,6 +218,8 @@ namespace DOH {
 		const char* elementName,
 		size_t startIndex
 	) {
+		ZoneScoped;
+
 		const size_t elementNameLength = strlen(elementName);
 
 		if (elementNameLength == 0) {
@@ -252,6 +264,8 @@ namespace DOH {
 		size_t startIndex,
 		uint32_t valueCount
 	) {
+		ZoneScoped;
+
 		const size_t elementNameLength = strlen(elementName);
 
 		if (valueCount > TextFileUtils::MAX_MULTIPLE_FLOAT_COUNT || valueCount == 0 || elementNameLength == 0) {
@@ -316,6 +330,8 @@ namespace DOH {
 		const char* elementName,
 		size_t startIndex
 	) {
+		ZoneScoped;
+
 		const size_t elementNameLength = strlen(elementName);
 
 		if (elementNameLength == 0) {

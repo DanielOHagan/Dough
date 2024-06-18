@@ -2,9 +2,13 @@
 
 #include "dough/Utils.h"
 
+#include <tracy/public/tracy/Tracy.hpp>
+
 namespace DOH {
 
 	RenderPassVulkan::RenderPassVulkan(VkDevice logicDevice, const SubPassVulkan& subPass) {
+		ZoneScoped;
+
 		uint32_t subPassAttachIndex = 0;
 		const size_t colourAttachCount = subPass.ColourAttachments.size();
 

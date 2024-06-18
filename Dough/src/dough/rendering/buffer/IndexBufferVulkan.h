@@ -5,7 +5,6 @@
 namespace DOH {
 
 	class IndexBufferVulkan : public BufferVulkan {
-
 	public:
 		IndexBufferVulkan() = delete;
 		IndexBufferVulkan(const IndexBufferVulkan& copy) = delete;

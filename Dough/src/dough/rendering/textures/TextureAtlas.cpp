@@ -4,6 +4,8 @@
 #include "dough/files/ResourceHandler.h"
 #include "dough/files/IndexedAtlasInfoFileData.h"
 
+#include <tracy/public/tracy/Tracy.hpp>
+
 namespace DOH {
 
 	MonoSpaceTextureAtlas::MonoSpaceTextureAtlas(
@@ -78,6 +80,8 @@ namespace DOH {
 		const char* atlasInfoFilePath,
 		const char* atlasTextureDir
 	) : TextureVulkan() {
+		ZoneScoped;
+
 		std::shared_ptr<IndexedAtlasInfoFileData> atlasFileData = ResourceHandler::loadIndexedTextureAtlas(atlasInfoFilePath);
 
 		if (atlasFileData == nullptr) {

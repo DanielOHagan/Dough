@@ -2,9 +2,10 @@
 
 #include "dough/Logging.h"
 #include "dough/Utils.h"
-#include "dough/rendering/ObjInit.h"
 #include "dough/rendering/pipeline/DescriptorApiVulkan.h"
 #include "dough/rendering/pipeline/AShaderDescriptor.h"
+
+#include <tracy/public/tracy/Tracy.hpp>
 
 namespace DOH {
 
@@ -22,16 +23,22 @@ namespace DOH {
 	}
 
 	void DescriptorSetLayoutVulkan::close(VkDevice logicDevice) {
+		ZoneScoped;
+
 		vkDestroyDescriptorSetLayout(logicDevice, mLayout, nullptr);
 		mUsingGpuResource = false;
 	}
 
 	void DescriptorSetLayoutVulkan::init(VkDevice logicDevice) {
+		ZoneScoped;
+
 		createDescriptorSetLayoutBindings();
 		createDescriptorSetLayout(logicDevice);
 	}
 
 	void DescriptorSetLayoutVulkan::createDescriptorSetLayoutBindings() {
+		ZoneScoped;
+
 		mBindings.reserve(mDescriptors.size());
 
 		for (const auto& desc : mDescriptors) {
@@ -40,6 +47,8 @@ namespace DOH {
 	}
 
 	void DescriptorSetLayoutVulkan::createDescriptorSetLayout(VkDevice logicDevice) {
+		ZoneScoped;
+
 		VkDescriptorSetLayoutCreateInfo dslCreateInfo = {};
 		dslCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		dslCreateInfo.bindingCount = static_cast<uint32_t>(mBindings.size());
@@ -54,6 +63,8 @@ namespace DOH {
 	}
 
 	std::vector<VkDescriptorSetLayout> ShaderDescriptorSetLayoutsVulkan::getNativeSetLayouts() const {
+		ZoneScoped;
+
 		std::vector<VkDescriptorSetLayout> layouts;
 		layouts.reserve(mDescriptorSetLayouts.size());
 		for (const auto& set : mDescriptorSetLayouts) {
