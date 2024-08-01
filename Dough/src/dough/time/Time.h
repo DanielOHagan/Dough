@@ -37,7 +37,6 @@ namespace DOH {
 	};
 
 	class Time {
-
 	private:
 		Time() = delete;
 		Time(const Time& copy) = delete;
@@ -70,5 +69,7 @@ namespace DOH {
 		static const uint64_t convertMicrosToNanos(long micros) { return static_cast<long long>(micros * 1000); }
 		static const uint64_t convertMillisToNanos(double millis) { return static_cast<long long>(millis * 1000000); }
 		static const uint64_t convertSecondsToNanos(float seconds) { return static_cast<long long>(seconds * 1000000000); }
+
+		constexpr static const uint32_t ONE_SECOND_MILLIS = 1000000000u;
 	};
 }

@@ -11,4 +11,9 @@ layout (location = 0) out vec4 outColour;
 
 void main() {
 	outColour = texture(samplers[int(vTexIndex)], vTexCoord) * vFragColour;
+
+	//Discard to help with transparency issues that can't be solved without sorting quads into other batches.
+	if (outColour.a == 0.0) {
+		discard;
+	}
 }

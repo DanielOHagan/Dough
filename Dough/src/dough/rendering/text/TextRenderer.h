@@ -19,15 +19,14 @@ namespace DOH {
 		friend class RenderingContextVulkan;
 
 	private:
-
 		static std::unique_ptr<TextRenderer> INSTANCE;
 
 		RenderingContextVulkan& mContext;
 
-		static const char* SOFT_MASK_SCENE_SHADER_PATH_VERT;
-		static const char* SOFT_MASK_SCENE_SHADER_PATH_FRAG;
-		static const char* MSDF_SCENE_SHADER_PATH_VERT;
-		static const char* MSDF_SCENE_SHADER_PATH_FRAG;
+		static const char* SOFT_MASK_SHADER_PATH_VERT;
+		static const char* SOFT_MASK_SHADER_PATH_FRAG;
+		static const char* MSDF_SHADER_PATH_VERT;
+		static const char* MSDF_SHADER_PATH_FRAG;
 
 		std::unordered_map<std::string, std::shared_ptr<FontBitmap>> mFontBitmaps;
 		std::unique_ptr<TextureArray> mFontBitmapPagesTextureArary;
@@ -35,25 +34,29 @@ namespace DOH {
 		//Whether the index buffer used here is the same as ShapeRenderer::mQuadSharedIndexBuffer.
 		bool mQuadIndexBufferShared;
 		std::shared_ptr<DescriptorSetsInstanceVulkan> mFontRenderingDescSetsInstanceScene;
+		std::shared_ptr<DescriptorSetsInstanceVulkan> mFontRenderingDescSetsInstanceUi;
 		VkDescriptorSet mFontBitmapPagesDescSet;
 
-		//Soft Mask
-		std::shared_ptr<ShaderProgram> mSoftMaskSceneShaderProgram;
-		std::shared_ptr<ShaderVulkan> mSoftMaskSceneVertexShader;
-		std::shared_ptr<ShaderVulkan> mSoftMaskSceneFragmentShader;
-		std::unique_ptr<GraphicsPipelineInstanceInfo> mSoftMaskScenePipelineInstanceInfo;
-		std::shared_ptr<GraphicsPipelineVulkan> mSoftMaskScenePipeline;
-		std::unique_ptr<RenderBatchQuad> mSoftMaskSceneBatch;
-		std::shared_ptr<SimpleRenderable> mSoftMaskSceneRenderableBatch;
+		struct TextRenderingObjects {
+			std::shared_ptr<ShaderProgram> SceneShaderProgram;
+			std::shared_ptr<ShaderVulkan> SceneVertexShader;
+			std::shared_ptr<ShaderVulkan> SceneFragmentShader;
+			//Scene
+			std::unique_ptr<GraphicsPipelineInstanceInfo> ScenePipelineInstanceInfo;
+			std::shared_ptr<GraphicsPipelineVulkan> ScenePipeline;
+			std::unique_ptr<RenderBatchQuad> SceneBatch;
+			std::shared_ptr<SimpleRenderable> SceneRenderableBatch;
+			//Ui
+			std::unique_ptr<GraphicsPipelineInstanceInfo> UiPipelineInstanceInfo;
+			std::shared_ptr<GraphicsPipelineVulkan> UiPipeline;
+			std::unique_ptr<RenderBatchQuad> UiBatch;
+			std::shared_ptr<SimpleRenderable> UiRenderableBatch;
+		};
 
-		//MSDF
-		std::shared_ptr<ShaderProgram> mMsdfSceneShaderProgram;
-		std::shared_ptr<ShaderVulkan> mMsdfSceneVertexShader;
-		std::shared_ptr<ShaderVulkan> mMsdfSceneFragmentShader;
-		std::unique_ptr<GraphicsPipelineInstanceInfo> mMsdfScenePipelineInstanceInfo;
-		std::shared_ptr<GraphicsPipelineVulkan> mMsdfScenePipeline;
-		std::unique_ptr<RenderBatchQuad> mMsdfSceneBatch;
-		std::shared_ptr<SimpleRenderable> mMsdfSceneRenderableBatch;
+		//std::unique_ptr<TextRenderingObjects> mSoftMaskRendering;
+		//std::unique_ptr<TextRenderingObjects> mMsdfRendering;
+		TextRenderingObjects mSoftMaskRendering;
+		TextRenderingObjects mMsdfRendering;
 
 		//Local Debug Info
 		//Includes both Scene & UI Quads
@@ -68,12 +71,14 @@ namespace DOH {
 		void drawSceneImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 		void drawUiImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 
-		void drawTextFromQuadsImpl(const std::vector<Quad>& quadArr, const FontBitmap& bitmap);
-		void drawTextSameTextureFromQuadsImpl(const std::vector<Quad>& quadArr, const FontBitmap& bitmap);
-		//TODO:: drawTextFromQuads Scene & UI
-		//TODO:: drawTextSameTextureFromQuads Scene & UI
-		void drawTextStringImpl(TextString& string);
-		//TODO:: drawTextString Scene & UI
+		void drawTextFromQuadsImpl(const std::vector<Quad>& quadArr, const FontBitmap& bitmap, RenderBatchQuad& renderBatch);
+		void drawTextSameTextureFromQuadsImpl(const std::vector<Quad>& quadArr, const FontBitmap& bitmap, RenderBatchQuad& renderBatch);
+		void drawTextStringImpl(TextString& string, RenderBatchQuad& renderBatch);
+
+		RenderBatchQuad& getSuitableTextBatchScene(const FontBitmap& bitmap);
+		RenderBatchQuad& getSuitableTextBatchUi(const FontBitmap& bitmap);
+		static inline RenderBatchQuad& getSuitableTextBatchScene(TextString& string) { return INSTANCE->getSuitableTextBatchScene(string.getCurrentFontBitmap()); }
+		static inline RenderBatchQuad& getSuitableTextBatchUi(TextString& string) { return INSTANCE->getSuitableTextBatchUi(string.getCurrentFontBitmap()); }
 
 	public:
 
@@ -101,14 +106,14 @@ namespace DOH {
 
 
 		//-----Primitives-----
-		static inline void drawTextFromQuads(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) { INSTANCE->drawTextFromQuadsImpl(quadArr, bitmap); }
-		static inline void drawTextSameTextureFromQuads(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) { INSTANCE->drawTextSameTextureFromQuadsImpl(quadArr, bitmap); }
-		//TODO:: drawTextFromQuads Scene & UI
-		//TODO:: drawTextSameTextureFromQuads Scene & UI
+		static inline void drawTextFromQuadsScene(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) { INSTANCE->drawTextFromQuadsImpl(quadArr, bitmap, INSTANCE->getSuitableTextBatchScene(bitmap));
+		}
+		static inline void drawTextSameTextureFromQuadsScene(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) { INSTANCE->drawTextSameTextureFromQuadsImpl(quadArr, bitmap, INSTANCE->getSuitableTextBatchScene(bitmap)); }
+		static inline void drawTextFromQuadsUi(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) { INSTANCE->drawTextFromQuadsImpl(quadArr, bitmap, INSTANCE->getSuitableTextBatchUi(bitmap)); }
+		static inline void drawTextSameTextureFromQuadsUi(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) { INSTANCE->drawTextSameTextureFromQuadsImpl(quadArr, bitmap, INSTANCE->getSuitableTextBatchUi(bitmap)); }
 
 		//-----Collection Objects-----
-		static inline void drawTextString(TextString& string) { INSTANCE->drawTextStringImpl(string); }
-		//TODO:: drawTextString Scene & UI
-
+		static inline void drawTextStringScene(TextString& string) { INSTANCE->drawTextStringImpl(string, INSTANCE->getSuitableTextBatchScene(string.getCurrentFontBitmap())); }
+		static inline void drawTextStringUi(TextString& string) { INSTANCE->drawTextStringImpl(string, INSTANCE->getSuitableTextBatchUi(string.getCurrentFontBitmap())); }
 	};
 }

@@ -5,19 +5,22 @@
 #include "dough/scene/geometry/collections/TextString.h"
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 #include "dough/rendering/batches/RenderBatchQuad.h"
+#include "dough/rendering/batches/RenderBatchCircle.h"
 #include "dough/rendering/renderables/SimpleRenderable.h"
 #include "dough/rendering/textures/TextureArray.h"
 #include "dough/rendering/textures/TextureAtlas.h"
 #include "dough/rendering/SwapChainVulkan.h"
+#include "dough/rendering/ShapeRenderingObjects.h"
 
 #include <vulkan/vulkan_core.h>
 
 namespace DOH {
 
+	//TODO:: create a DynamicBatchArray<RenderBatchQuad> or something like that.
+
 	class RenderingContextVulkan;
 
 	class ShapeRenderer {
-
 		friend class RenderingContextVulkan;
 
 	private:
@@ -25,22 +28,21 @@ namespace DOH {
 
 		static const char* QUAD_SHADER_PATH_VERT;
 		static const char* QUAD_SHADER_PATH_FRAG;
+		static const char* CIRCLE_SHADER_PATH_VERT;
+		static const char* CIRCLE_SHADER_PATH_FRAG;
 
 		RenderingContextVulkan& mContext;
 
-		std::shared_ptr<ShaderProgram> mQuadShaderProgram;
-		std::shared_ptr<ShaderVulkan> mQuadVertexShader;
-		std::shared_ptr<ShaderVulkan> mQuadFragmentShader;
-		std::unique_ptr<GraphicsPipelineInstanceInfo> mQuadGraphicsPipelineInstanceInfo;
-		std::shared_ptr<GraphicsPipelineVulkan> mQuadGraphicsPipeline;
+		ShapeRenderingObjects<RenderBatchQuad> mQuadScene;
+		ShapeRenderingObjects<RenderBatchQuad> mQuadUi;
+		ShapeRenderingObjects<RenderBatchCircle> mCircleScene;
+		ShapeRenderingObjects<RenderBatchCircle> mCircleUi;
 
-		std::vector<RenderBatchQuad> mQuadRenderBatches;
-		std::vector<std::shared_ptr<SimpleRenderable>> mRenderableQuadBatches; // mQuadBatchRenderables;
-		//Quad indices buffer to be shared between Quad VAOs
 		std::shared_ptr<IndexBufferVulkan> mQuadSharedIndexBuffer;
-		std::unique_ptr<TextureArray> mQuadBatchTextureArray;
-		VkDescriptorSet mQuadBatchTextureArrayDescSet;
-		std::shared_ptr<DescriptorSetsInstanceVulkan> mSceneBatchDescriptorSetInstance;
+		std::unique_ptr<TextureArray> mTextureArray;
+		VkDescriptorSet mTextureArrayDescSet;
+		std::shared_ptr<ShaderDescriptorSetLayoutsVulkan> mShapeDescSetLayouts;
+		std::shared_ptr<DescriptorSetsInstanceVulkan> mShapesDescSetsInstance;
 
 		//TEMP:: Leftover from when rebinding descriptors was not available. Need to move this into demo code.
 		const char* testTexturesPath = "Dough/res/images/test textures/";
@@ -51,64 +53,59 @@ namespace DOH {
 		//-----Debug information-----
 		uint32_t mDrawnQuadCount;
 		uint32_t mTruncatedQuadCount;
-		//uint32_t mDrawnCircleCount;
-		//uint32_t mTruncatedCircleCount;
+		uint32_t mDrawnCircleCount;
+		uint32_t mTruncatedCircleCount;
 		//uint32_t mDrawnTriangleCount;
 		//uint32_t mTruncatedTriangleCount;
 
 	private:
 		void initImpl();
-		void initQuadImpl();
-		//void initCircleImpl();
-		//void initTriangleImpl();
+		void initQuad();
+		void initCircle();
+		//void initTriangle();
 		void closeImpl();
 		void onSwapChainResizeImpl(SwapChainVulkan& swapChain);
 
 		void drawSceneImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 		void drawUiImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 
-		size_t createNewBatchQuadImpl();
-		//size_t createNewBatchCircleImpl();
-		//size_t createNewBatchTriangleImpl();
+		size_t createNewBatchQuad(ShapeRenderingObjects<RenderBatchQuad>& shapeRendering);
+		size_t createNewBatchCircle(ShapeRenderingObjects<RenderBatchCircle>& shapeRendering);
+		//size_t createNewBatchTriangle();
+
 		void closeEmptyQuadBatchesImpl();
-		//void closeEmptyCircleBatchesImpl();
+		void closeEmptyCircleBatchesImpl();
 		//void closeEmptyTriangleBatchesImpl();
 
-		void drawQuadSceneImpl(const Quad& quad);
-		void drawQuadTexturedSceneImpl(const Quad& quad);
-		void drawQuadArraySceneImpl(const std::vector<Quad>& quadArr);
-		void drawQuadArrayTexturedSceneImpl(const std::vector<Quad>& quadArr);
-		void drawQuadArraySameTextureSceneImpl(const std::vector<Quad>& quadArr);
-		//void drawQuadUiImpl(Quad& quad);
-		//void drawQuadTexturedUiImpl(const Quad& quad);
-		//void drawQuadArrayUiImpl(const std::vector<Quad>& quadArr);
-		//void drawQuadArrayTexturedUiImpl(const std::vector<Quad>& quadArr);
-		//void drawQuadArraySameTextureUiImpl(const std::vector<Quad>& quadArr);
+		//Quad
+		void drawQuad(ShapeRenderingObjects<RenderBatchQuad>& quadGroup, const Quad& quad);
+		void drawQuadTextured(ShapeRenderingObjects<RenderBatchQuad>& quadGroup, const Quad& quad);
+		void drawQuadArray(ShapeRenderingObjects<RenderBatchQuad>& quadGroup, const std::vector<Quad>& quadArr);
+		void drawQuadArrayTextured(ShapeRenderingObjects<RenderBatchQuad>& quadGroup, const std::vector<Quad>& quadArr);
+		void drawQuadArraySameTexture(ShapeRenderingObjects<RenderBatchQuad>& quadGroup, const std::vector<Quad>& quadArr);
+
+		//Circle
+		void drawCircle(ShapeRenderingObjects<RenderBatchCircle>& circleGroup, const Circle& circle);
+		void drawCircleTextured(ShapeRenderingObjects<RenderBatchCircle>& circleGroup, const Circle& circle);
+		void drawCircleArray(ShapeRenderingObjects<RenderBatchCircle>& circleGroup, const std::vector<Circle>& circleArr);
+		void drawCircleArrayTextured(ShapeRenderingObjects<RenderBatchCircle>& circleGroup, const std::vector<Circle>& circleArr);
+		void drawCircleArraySameTexture(ShapeRenderingObjects<RenderBatchCircle>& circleGroup, const std::vector<Circle>& circleArr);
 
 	public:
 		ShapeRenderer(RenderingContextVulkan& context);
 
 		static void init(RenderingContextVulkan& context);
-		static void initQuad();
-		//TODO::
-		//static void initCircle();
-		//static void initTriangle();
 		static void close();
 		static void onSwapChainResize(SwapChainVulkan& swapChain);
 
 		static inline void drawScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) { INSTANCE->drawSceneImpl(imageIndex, cmd, currentBindings); }
 		static inline void drawUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) { INSTANCE->drawUiImpl(imageIndex, cmd, currentBindings); }
 
-		//Close the dynamic batches that have a geo count of 0
-		static size_t createNewBatchQuad();
-		//static size_t createNewBatchCircle();
-		//static size_t createNewBatchTriangle();
 		static void closeEmptyQuadBatches();
-		//static void closeEmptyCircleBatches();
+		static void closeEmptyCircleBatches();
 		//static void closeEmptyTriangleBatches();
 
-
-		static inline size_t getQuadBatchCount() { return INSTANCE->mQuadRenderBatches.size(); }
+		static inline uint32_t getQuadBatchCount() { return INSTANCE->mQuadScene.getBatchCount() + INSTANCE->mQuadUi.getBatchCount(); }
 		static inline uint32_t getDrawnQuadCount() { return INSTANCE->mDrawnQuadCount; }
 		static inline uint32_t getTruncatedQuadCount() { return INSTANCE->mTruncatedQuadCount; }
 		static void resetLocalDebugInfo();
@@ -116,24 +113,42 @@ namespace DOH {
 		static std::vector<DescriptorTypeInfo> getEngineDescriptorTypeInfos();
 
 		//-----Shape Objects-----
-		static inline void drawQuadScene(const Quad& quad) { INSTANCE->drawQuadSceneImpl(quad); }
-		static inline void drawQuadTexturedScene(const Quad& quad) { INSTANCE->drawQuadTexturedSceneImpl(quad); }
-		static inline void drawQuadArrayScene(const std::vector<Quad>& quadArr) { INSTANCE->drawQuadArraySceneImpl(quadArr); }
-		static inline void drawQuadArrayTexturedScene(const std::vector<Quad>& quadArr) { INSTANCE->drawQuadArrayTexturedSceneImpl(quadArr); }
-		static inline void drawQuadArraySameTextureScene(const std::vector<Quad>& quadArr) { INSTANCE->drawQuadArraySameTextureSceneImpl(quadArr); }
-		//static inline void drawQuadUi(Quad& quad);
-		//static inline void drawQuadTexturedUi(const Quad& quad);
-		//static inline void drawQuadArrayUi(const std::vector<Quad>& quadArr);
-		//static inline void drawQuadArrayTexturedUi(const std::vector<Quad>& quadArr);
-		//static inline void drawQuadArraySameTextureUi(const std::vector<Quad>& quadArr);
+		//Quad
+		static inline void drawQuadScene(const Quad& quad) { INSTANCE->drawQuad(INSTANCE->mQuadScene, quad); }
+		static inline void drawQuadTexturedScene(const Quad& quad) { INSTANCE->drawQuadTextured(INSTANCE->mQuadScene, quad); }
+		static inline void drawQuadArrayScene(const std::vector<Quad>& quadArr) { INSTANCE->drawQuadArray(INSTANCE->mQuadScene, quadArr); }
+		static inline void drawQuadArrayTexturedScene(const std::vector<Quad>& quadArr) { INSTANCE->drawQuadArrayTextured(INSTANCE->mQuadScene, quadArr); }
+		static inline void drawQuadArraySameTextureScene(const std::vector<Quad>& quadArr) { INSTANCE->drawQuadArraySameTexture(INSTANCE->mQuadScene, quadArr); }
+		static inline void drawQuadUi(Quad& quad) { INSTANCE->drawQuad(INSTANCE->mQuadUi, quad); }
+		static inline void drawQuadTexturedUi(const Quad& quad) { INSTANCE->drawQuadTextured(INSTANCE->mQuadUi, quad); }
+		static inline void drawQuadArrayUi(const std::vector<Quad>& quadArr) { INSTANCE->drawQuadArray(INSTANCE->mQuadUi, quadArr); }
+		static inline void drawQuadArrayTexturedUi(const std::vector<Quad>& quadArr) { INSTANCE->drawQuadArrayTextured(INSTANCE->mQuadUi, quadArr); }
+		static inline void drawQuadArraySameTextureUi(const std::vector<Quad>& quadArr) { INSTANCE->drawQuadArraySameTexture(INSTANCE->mQuadUi, quadArr); }
+		//Circle
+		static inline void drawCircleScene(const Circle& circle) { INSTANCE->drawCircle(INSTANCE->mCircleScene, circle); }
+		static inline void drawCircleTexturedScene(const Circle& circle) { INSTANCE->drawCircleTextured(INSTANCE->mCircleScene, circle); }
+		static inline void drawCircleArrayScene(const std::vector<Circle>& circleArr) { INSTANCE->drawCircleArray(INSTANCE->mCircleScene, circleArr); }
+		static inline void drawCircleArrayTexturedScene(const std::vector<Circle>& circleArr) { INSTANCE->drawCircleArrayTextured(INSTANCE->mCircleScene, circleArr); }
+		static inline void drawCircleArraySameTextureScene(const std::vector<Circle>& circleArr) { INSTANCE->drawCircleArraySameTexture(INSTANCE->mCircleScene, circleArr); }
+		static inline void drawCircleUi(const Circle& circle) { INSTANCE->drawCircle(INSTANCE->mCircleUi, circle); }
+		static inline void drawCircleTexturedUi(const Circle& circle) { INSTANCE->drawCircleTextured(INSTANCE->mCircleUi, circle); }
+		static inline void drawCircleArrayUi(const std::vector<Circle>& circleArr) { INSTANCE->drawCircleArray(INSTANCE->mCircleUi, circleArr); }
+		static inline void drawCircleArrayTexturedUi(const std::vector<Circle>& circleArr) { INSTANCE->drawCircleArrayTextured(INSTANCE->mCircleUi, circleArr); }
+		static inline void drawCircleArraySameTextureUi(const std::vector<Circle>& circleArr) { INSTANCE->drawCircleArraySameTexture(INSTANCE->mCircleUi, circleArr); }
 
 		static inline std::shared_ptr<IndexBufferVulkan> getQuadSharedIndexBufferPtr() { return INSTANCE->mQuadSharedIndexBuffer; }
+		static inline TextureArray& getShapesTextureArray() { return *INSTANCE->mTextureArray; }
+		static inline std::vector<std::shared_ptr<RenderBatchQuad>>& getQuadSceneRenderBatches() { return INSTANCE->mQuadScene.GeoBatches; }
+		static inline std::vector<std::shared_ptr<RenderBatchQuad>>& getQuadUiRenderBatches() { return INSTANCE->mQuadUi.GeoBatches; }
+		static inline uint32_t getQuadSceneBatchCount() { return INSTANCE->mQuadScene.getBatchCount(); }
+		static inline uint32_t getQuadUiBatchCount() { return INSTANCE->mQuadUi.getBatchCount(); }
+		static inline uint32_t getCircleSceneBatchCount() { return INSTANCE->mCircleScene.getBatchCount(); }
 
-		//TEMP:: 
-		static inline TextureArray& getQuadBatchTextureArray() { return *INSTANCE->mQuadBatchTextureArray; }
-		static inline std::vector<RenderBatchQuad>& getQuadRenderBatches() { return INSTANCE->mQuadRenderBatches; }
 		//static inline const std::vector<std::shared_ptr<TextureVulkan>>& getTestTextures() { return INSTANCE->mTestTextures; }
 		static inline const std::shared_ptr<MonoSpaceTextureAtlas> getTestMonoSpaceTextureAtlas() { return INSTANCE->mTestMonoSpaceTextureAtlas; }
 		static inline const std::shared_ptr<IndexedTextureAtlas> getTestIndexedTextureAtlas() { return INSTANCE->mTestIndexedTextureAtlas; }
+		static inline const std::vector<std::shared_ptr<RenderBatchCircle>>& getCircleSceneBatches() { return INSTANCE->mCircleScene.GeoBatches; }
+		static inline const std::vector<std::shared_ptr<RenderBatchCircle>>& getCircleUiBatches() { return INSTANCE->mCircleUi.GeoBatches; }
+		static inline uint32_t getCircleUiBatchCount() { return INSTANCE->mCircleUi.getBatchCount(); }
 	};
 }

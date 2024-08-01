@@ -50,6 +50,8 @@ namespace DOH {
 			}
 		}
 
+		StaticVertexInputLayout::initEngineDefaultVertexInputLayouts();
+
 		mAppDebugInfo = std::make_unique<AppDebugInfo>();
 		mAppInfoTimer = std::make_unique<IntervalTimer>(true);
 		mAppInfoTimer->recordInterval("Application.init() start");

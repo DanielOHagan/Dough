@@ -39,9 +39,7 @@ namespace DOH {
 			JsonElement& root = fileData->getRoot();
 
 			JsonElement& atlasAndTextureInfo = root["atlas"];
-			//const uint32_t fontPixelSize = static_cast<uint32_t>(atlasAndTextureInfo["size"].getLong());
 			const float fontPixelSizeFloat = static_cast<float>(atlasAndTextureInfo["size"].getLong());
-			//const float fontPixelSizeFloat = static_cast<float>(fontPixelSize);
 			const uint32_t fileWidth = static_cast<uint32_t>(atlasAndTextureInfo["width"].getLong());
 			const uint32_t fileHeight = static_cast<uint32_t>(atlasAndTextureInfo["height"].getLong());
 			const bool isBottomY = atlasAndTextureInfo["yOrigin"].getString().compare("bottom") == 0;

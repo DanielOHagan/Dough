@@ -31,7 +31,7 @@ namespace DOH {
 		);
 
 		bool hasTextureId(const uint32_t textureId) const;
-		//Search through texture slots for matching texture id, else return 0
+		//Search through texture slots for matching texture id, else return -1.
 		uint32_t getTextureSlotIndex(const uint32_t textureId) const;
 
 		//TODO:: Sometimes when this is called it is after hasTextureSlotAvailable() has already been called,

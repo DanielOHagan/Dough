@@ -11,12 +11,10 @@ namespace DOH {
 		mStride(stride)
 	{}
 
-
 	StaticVertexInputLayout::StaticVertexInputLayout(const EVertexType vertexType)
-	:	AVertexInputLayout(EVertexInputLayoutType::STATIC, static_cast<uint32_t>(vertexType)),
+	:	AVertexInputLayout(EVertexInputLayoutType::STATIC, getVertexTypeSize(vertexType)),
 		mVertexType(vertexType)
 	{}
-
 
 	std::vector<VkVertexInputAttributeDescription> StaticVertexInputLayout::asAttribDesc(uint32_t binding) const {
 		return getVertexTypeAsAttribDesc(mVertexType, binding);
@@ -88,16 +86,34 @@ namespace DOH {
 		return false;
 	}
 
-	const std::unique_ptr<StaticVertexInputLayout> StaticVertexInputLayout::VERTEX_2D = std::make_unique<StaticVertexInputLayout>(EVertexType::VERTEX_2D);
-	const std::unique_ptr<StaticVertexInputLayout> StaticVertexInputLayout::VERTEX_3D = std::make_unique<StaticVertexInputLayout>(EVertexType::VERTEX_3D);
-	const std::unique_ptr<StaticVertexInputLayout> StaticVertexInputLayout::VERTEX_3D_TEXTURED = std::make_unique<StaticVertexInputLayout>(EVertexType::VERTEX_3D_TEXTURED);
-	const std::unique_ptr<StaticVertexInputLayout> StaticVertexInputLayout::VERTEX_3D_TEXTURED_INDEXED = std::make_unique<StaticVertexInputLayout>(EVertexType::VERTEX_3D_TEXTURED_INDEXED);
-	const std::unique_ptr<StaticVertexInputLayout> StaticVertexInputLayout::VERTEX_3D_LIT_TEXTURED = std::make_unique<StaticVertexInputLayout>(EVertexType::VERTEX_3D_LIT_TEXTURED);
+	std::unique_ptr<StaticVertexInputLayout> StaticVertexInputLayout::VERTEX_2D = nullptr;
+	std::unique_ptr<StaticVertexInputLayout> StaticVertexInputLayout::VERTEX_2D_TEXTURED = nullptr;
+	std::unique_ptr<StaticVertexInputLayout> StaticVertexInputLayout::VERTEX_2D_TEXTURED_INDEXED = nullptr;
+	std::unique_ptr<StaticVertexInputLayout> StaticVertexInputLayout::VERTEX_3D = nullptr;
+	std::unique_ptr<StaticVertexInputLayout> StaticVertexInputLayout::VERTEX_3D_TEXTURED = nullptr;
+	std::unique_ptr<StaticVertexInputLayout> StaticVertexInputLayout::VERTEX_3D_TEXTURED_INDEXED = nullptr;
+	std::unique_ptr<StaticVertexInputLayout> StaticVertexInputLayout::VERTEX_3D_LIT_TEXTURED = nullptr;
+	std::unique_ptr<StaticVertexInputLayout> StaticVertexInputLayout::VERTEX_CIRCLE_3D = nullptr;
+
+	void StaticVertexInputLayout::initEngineDefaultVertexInputLayouts() {
+		StaticVertexInputLayout::VERTEX_2D = std::make_unique<StaticVertexInputLayout>(EVertexType::VERTEX_2D);
+		StaticVertexInputLayout::VERTEX_2D_TEXTURED = std::make_unique<StaticVertexInputLayout>(EVertexType::VERTEX_2D_TEXTURED);
+		StaticVertexInputLayout::VERTEX_2D_TEXTURED_INDEXED = std::make_unique<StaticVertexInputLayout>(EVertexType::VERTEX_2D_TEXTURED_INDEXED);
+		StaticVertexInputLayout::VERTEX_3D = std::make_unique<StaticVertexInputLayout>(EVertexType::VERTEX_3D);
+		StaticVertexInputLayout::VERTEX_3D_TEXTURED = std::make_unique<StaticVertexInputLayout>(EVertexType::VERTEX_3D_TEXTURED);
+		StaticVertexInputLayout::VERTEX_3D_TEXTURED_INDEXED = std::make_unique<StaticVertexInputLayout>(EVertexType::VERTEX_3D_TEXTURED_INDEXED);
+		StaticVertexInputLayout::VERTEX_3D_LIT_TEXTURED = std::make_unique<StaticVertexInputLayout>(EVertexType::VERTEX_3D_LIT_TEXTURED);
+		StaticVertexInputLayout::VERTEX_CIRCLE_3D = std::make_unique<StaticVertexInputLayout>(EVertexType::VERTEX_CIRCLE_3D);
+	}
 
 	const StaticVertexInputLayout& StaticVertexInputLayout::get(const EVertexType vertexType) {
 		switch (vertexType) {
 			case EVertexType::VERTEX_2D:
 				return *VERTEX_2D;
+			case EVertexType::VERTEX_2D_TEXTURED:
+				return *VERTEX_2D_TEXTURED;
+			case EVertexType::VERTEX_2D_TEXTURED_INDEXED:
+				return *VERTEX_2D_TEXTURED_INDEXED;
 			case EVertexType::VERTEX_3D:
 				return *VERTEX_3D;
 			case EVertexType::VERTEX_3D_TEXTURED:
@@ -106,6 +122,8 @@ namespace DOH {
 				return *VERTEX_3D_TEXTURED_INDEXED;
 			case EVertexType::VERTEX_3D_LIT_TEXTURED:
 				return *VERTEX_3D_LIT_TEXTURED;
+			case EVertexType::VERTEX_CIRCLE_3D:
+				return *VERTEX_CIRCLE_3D;
 
 			case EVertexType::NONE:
 			default:

@@ -6,6 +6,8 @@
 
 namespace DOH {
 
+	class RenderingContextVulkan;
+
 	class IGPUResourceVulkan {
 	protected:
 		IGPUResourceVulkan()
@@ -33,5 +35,16 @@ namespace DOH {
 	public:
 		virtual void close(VkDevice logicDevice) = 0;
 		virtual bool isUsingGpuResource() const { return mUsingGpuResource; }
+	};
+
+	//A class interface for classes that store, own and areresponsible for the lifetime of IGPUResource(s) but is not
+	//an IGPUResource itself. This is so a class doesn't have to derive from IGPUResource but the class can still
+	//interact with the IGUResource API and the deletion queue (addGpuResourceToClose()) function.
+	class IGPUResourceOwnerVulkan {
+	protected:
+		IGPUResourceOwnerVulkan() = default;
+
+	public:
+		virtual void addOwnedResourcesToClose(RenderingContextVulkan& context) = 0;
 	};
 }

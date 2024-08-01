@@ -223,6 +223,8 @@ namespace DOH {
 
 		inline CustomRenderState& getCurrentRenderState() const { return *mCurrentRenderState; }
 		RenderPassVulkan& getRenderPass(const ERenderPass renderPass) const;
+		inline RenderPassVulkan& getRenderPassScene() const { return *mAppSceneRenderPass; }
+		inline RenderPassVulkan& getRenderPassUi() const { return *mAppUiRenderPass; }
 
 		//Add GPU resource to close queue which is flushed after GPU_OBJECT_RELEASE_FRAME_INDEX_COUNT number of frames
 		inline void addGpuResourceToClose(std::shared_ptr<IGPUResourceVulkan> res) {

@@ -1,5 +1,8 @@
+#include "dough/rendering/SwapChainVulkan.h"
+
 #include "dough/application/Application.h"
 #include "dough/Logging.h"
+#include "dough/time/Time.h"
 
 #include <tracy/public/tracy/Tracy.hpp>
 
@@ -69,13 +72,13 @@ namespace DOH {
 	) {
 		ZoneScoped;
 
-		vkWaitForFences(logicDevice, 1, &frameInFlightFence, VK_TRUE, 1000000000); //1 Second timout
+		vkWaitForFences(logicDevice, 1, &frameInFlightFence, VK_TRUE, Time::ONE_SECOND_MILLIS);
 
 		uint32_t imageIndex;
 		vkAcquireNextImageKHR(
 			logicDevice,
 			mSwapChain,
-			1000000000, //1 Second timout
+			Time::ONE_SECOND_MILLIS,
 			imageAvailableSemaphore,
 			VK_NULL_HANDLE,
 			&imageIndex
@@ -136,7 +139,7 @@ namespace DOH {
 
 		for (const auto& availablePresentMode : availablePresentModes) {
 			if (availablePresentMode == desiredPresentMode) {
-				LOG_INFO("Desired present mode found.");
+				//LOG_INFO("Desired present mode found.");
 				return availablePresentMode;
 			}
 		}
@@ -156,7 +159,7 @@ namespace DOH {
 		if (capabilities.currentExtent.width != UINT32_MAX) {
 			return capabilities.currentExtent;
 		} else {
-			VkExtent2D actualExtent = {width, height};
+			VkExtent2D actualExtent = { width, height };
 
 			actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
 			actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));

@@ -137,16 +137,12 @@ namespace DOH {
 					glyphHeightScaled
 				};
 				quad.TextureCoords = {
+					//botLeft
 					g->second.TexCoordTopLeft.x,
 					g->second.TexCoordBotRight.y,
 
+					//topRight
 					g->second.TexCoordBotRight.x,
-					g->second.TexCoordBotRight.y,
-
-					g->second.TexCoordBotRight.x,
-					g->second.TexCoordTopLeft.y,
-
-					g->second.TexCoordTopLeft.x,
 					g->second.TexCoordTopLeft.y
 				};
 				quad.Colour = colour;

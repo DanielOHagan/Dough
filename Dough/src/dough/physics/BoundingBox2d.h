@@ -11,7 +11,6 @@ namespace DOH {
 	class AGeometry;
 
 	class BoundingBox2d {
-
 	private:
 		//The quad used to define this BoundingBox
 		std::unique_ptr<Quad> mQuad;

@@ -14,9 +14,7 @@
 namespace DOH {
 
 	class RendererVulkan {
-
 	private:
-
 		const std::vector<const char*> mValidationLayers = {
 			"VK_LAYER_KHRONOS_validation"
 		};

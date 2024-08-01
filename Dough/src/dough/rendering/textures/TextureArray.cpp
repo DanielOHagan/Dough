@@ -49,7 +49,7 @@ namespace DOH {
 			}
 		}
 
-		return 0;
+		return -1;
 	}
 
 	uint32_t TextureArray::addNewTexture(TextureVulkan& texture) {

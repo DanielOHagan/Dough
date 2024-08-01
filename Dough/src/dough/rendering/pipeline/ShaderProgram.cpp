@@ -1,8 +1,21 @@
 #include "dough/rendering/pipeline/ShaderProgram.h"
 
+#include "dough/rendering/RenderingContextVulkan.h"
+
 #include <tracy/public/tracy/Tracy.hpp>
 
 namespace DOH {
+
+	void ShaderProgram::addOwnedResourcesToClose(RenderingContextVulkan& context) {
+		
+		if (mVertexShader->isModuleLoaded()) {
+			context.addGpuResourceToClose(mVertexShader);
+		}
+
+		if (mFragmentShader->isModuleLoaded()) {
+			context.addGpuResourceToClose(mFragmentShader);
+		}
+	}
 
 	void ShaderProgram::init(VkDevice logicDevice) {
 		ZoneScoped;

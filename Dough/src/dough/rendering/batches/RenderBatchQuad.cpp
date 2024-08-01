@@ -7,7 +7,7 @@ namespace DOH {
 	RenderBatchQuad::RenderBatchQuad(const uint32_t maxGeometryCount, const uint32_t maxTextureCount)
 	:	ARenderBatch(
 			maxGeometryCount,
-			EBatchSizeLimits::SINGLE_QUAD_BYTE_SIZE,
+			Quad::BYTE_SIZE,
 			maxTextureCount
 		)
 	{}
@@ -16,6 +16,7 @@ namespace DOH {
 		float texCoordsIndex = 0;
 		float textureSlot = static_cast<float>(textureSlotIndex);
 
+		//Bot Left
 		addQuadVertex(
 			quad.Position.x,
 			quad.Position.y,
@@ -24,11 +25,12 @@ namespace DOH {
 			quad.Colour.y,
 			quad.Colour.z,
 			quad.Colour.w,
-			quad.TextureCoords[0],
-			quad.TextureCoords[1],
+			quad.getTextureCoordsBotLeftX(),
+			quad.getTextureCoordsBotLeftY(),
 			textureSlot
 		);
 
+		//Bot Right
 		addQuadVertex(
 			quad.Position.x + quad.Size.x,
 			quad.Position.y,
@@ -37,11 +39,12 @@ namespace DOH {
 			quad.Colour.y,
 			quad.Colour.z,
 			quad.Colour.w,
-			quad.TextureCoords[2],
-			quad.TextureCoords[3],
+			quad.getTextureCoordsTopRightX(),
+			quad.getTextureCoordsBotLeftY(),
 			textureSlot
 		);
 
+		//Top Right
 		addQuadVertex(
 			quad.Position.x + quad.Size.x,
 			quad.Position.y + quad.Size.y,
@@ -50,11 +53,12 @@ namespace DOH {
 			quad.Colour.y,
 			quad.Colour.z,
 			quad.Colour.w,
-			quad.TextureCoords[4],
-			quad.TextureCoords[5],
+			quad.getTextureCoordsTopRightX(),
+			quad.getTextureCoordsTopRightY(),
 			textureSlot
 		);
 
+		//Top Left
 		addQuadVertex(
 			quad.Position.x,
 			quad.Position.y + quad.Size.y,
@@ -63,8 +67,8 @@ namespace DOH {
 			quad.Colour.y,
 			quad.Colour.z,
 			quad.Colour.w,
-			quad.TextureCoords[6],
-			quad.TextureCoords[7],
+			quad.getTextureCoordsBotLeftX(),
+			quad.getTextureCoordsTopRightY(),
 			textureSlot
 		);
 
@@ -75,6 +79,7 @@ namespace DOH {
 		const float textureSlot = static_cast<float>(textureSlotIndex);
 
 		for (const Quad& quad : quadArr) {
+			//Bot Left
 			addQuadVertex(
 				quad.Position.x,
 				quad.Position.y,
@@ -83,11 +88,12 @@ namespace DOH {
 				quad.Colour.y,
 				quad.Colour.z,
 				quad.Colour.w,
-				quad.TextureCoords[0],
-				quad.TextureCoords[1],
+				quad.getTextureCoordsBotLeftX(),
+				quad.getTextureCoordsBotLeftY(),
 				textureSlot
 			);
 
+			//Bot Right
 			addQuadVertex(
 				quad.Position.x + quad.Size.x,
 				quad.Position.y,
@@ -96,11 +102,12 @@ namespace DOH {
 				quad.Colour.y,
 				quad.Colour.z,
 				quad.Colour.w,
-				quad.TextureCoords[2],
-				quad.TextureCoords[3],
+				quad.getTextureCoordsTopRightX(),
+				quad.getTextureCoordsBotLeftY(),
 				textureSlot
 			);
 
+			//Top Right
 			addQuadVertex(
 				quad.Position.x + quad.Size.x,
 				quad.Position.y + quad.Size.y,
@@ -109,11 +116,12 @@ namespace DOH {
 				quad.Colour.y,
 				quad.Colour.z,
 				quad.Colour.w,
-				quad.TextureCoords[4],
-				quad.TextureCoords[5],
+				quad.getTextureCoordsTopRightX(),
+				quad.getTextureCoordsTopRightY(),
 				textureSlot
 			);
 
+			//Top Left
 			addQuadVertex(
 				quad.Position.x,
 				quad.Position.y + quad.Size.y,
@@ -122,8 +130,8 @@ namespace DOH {
 				quad.Colour.y,
 				quad.Colour.z,
 				quad.Colour.w,
-				quad.TextureCoords[6],
-				quad.TextureCoords[7],
+				quad.getTextureCoordsBotLeftX(),
+				quad.getTextureCoordsTopRightY(),
 				textureSlot
 			);
 		}
@@ -140,9 +148,8 @@ namespace DOH {
 		const float textureSlot = static_cast<float>(textureSlotIndex);
 
 		for (size_t i = startIndex; i < endIndex; i++) {
-
 			const Quad& quad = quadArr[i];
-			
+			//Bot Left
 			addQuadVertex(
 				quad.Position.x,
 				quad.Position.y,
@@ -151,11 +158,12 @@ namespace DOH {
 				quad.Colour.y,
 				quad.Colour.z,
 				quad.Colour.w,
-				quad.TextureCoords[0],
-				quad.TextureCoords[1],
+				quad.getTextureCoordsBotLeftX(),
+				quad.getTextureCoordsBotLeftY(),
 				textureSlot
 			);
 
+			//Bot Right
 			addQuadVertex(
 				quad.Position.x + quad.Size.x,
 				quad.Position.y,
@@ -164,11 +172,12 @@ namespace DOH {
 				quad.Colour.y,
 				quad.Colour.z,
 				quad.Colour.w,
-				quad.TextureCoords[2],
-				quad.TextureCoords[3],
+				quad.getTextureCoordsTopRightX(),
+				quad.getTextureCoordsBotLeftY(),
 				textureSlot
 			);
 
+			//Top Right
 			addQuadVertex(
 				quad.Position.x + quad.Size.x,
 				quad.Position.y + quad.Size.y,
@@ -177,11 +186,12 @@ namespace DOH {
 				quad.Colour.y,
 				quad.Colour.z,
 				quad.Colour.w,
-				quad.TextureCoords[4],
-				quad.TextureCoords[5],
+				quad.getTextureCoordsTopRightX(),
+				quad.getTextureCoordsTopRightY(),
 				textureSlot
 			);
 
+			//Top Left
 			addQuadVertex(
 				quad.Position.x,
 				quad.Position.y + quad.Size.y,
@@ -190,8 +200,8 @@ namespace DOH {
 				quad.Colour.y,
 				quad.Colour.z,
 				quad.Colour.w,
-				quad.TextureCoords[6],
-				quad.TextureCoords[7],
+				quad.getTextureCoordsBotLeftX(),
+				quad.getTextureCoordsTopRightY(),
 				textureSlot
 			);
 		}

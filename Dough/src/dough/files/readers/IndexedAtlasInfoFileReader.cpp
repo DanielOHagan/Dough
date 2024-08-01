@@ -135,19 +135,6 @@ namespace DOH {
 				texelCoords[7] > 0 ? static_cast<float>(texelCoords[7]) / height : 0.0f
 			};
 
-			{
-				//Flip Y-axis values to Vulkan texture coords space
-				float topY1 = textureCoords[1];
-				float topY2 = textureCoords[3];
-				float botY1 = textureCoords[5];
-				float botY2 = textureCoords[7];
-
-				textureCoords[1] = botY1;
-				textureCoords[3] = botY2;
-				textureCoords[5] = topY1;
-				textureCoords[7] = topY2;
-			}
-
 			InnerTexture innerTexture = { texelCoords, textureCoords };
 
 			atlasInfoFileData->InnerTextures.emplace(iNameValue.first, innerTexture);

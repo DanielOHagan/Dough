@@ -7,7 +7,6 @@
 namespace DOH {
 
 	class RenderBatchQuad : public ARenderBatch<Quad> {
-
 	public:
 		RenderBatchQuad(const uint32_t maxGeometryCount, const uint32_t maxTextureCount);
 

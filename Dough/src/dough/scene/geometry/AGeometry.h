@@ -7,7 +7,6 @@
 namespace DOH {
 
 	class AGeometry {
-
 	protected:
 		AGeometry(glm::vec3 pos, glm::vec2 size, float rotationRads = 0.0f)
 		:	Position(pos),

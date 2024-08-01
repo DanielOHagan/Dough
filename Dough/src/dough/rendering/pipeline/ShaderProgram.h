@@ -5,7 +5,9 @@
 
 namespace DOH {
 
-	class ShaderProgram {
+	class RenderingContextVulkan;
+
+	class ShaderProgram : public IGPUResourceOwnerVulkan {
 	private:
 		std::shared_ptr<ShaderVulkan> mVertexShader;
 		std::shared_ptr<ShaderVulkan> mFragmentShader;
@@ -25,6 +27,8 @@ namespace DOH {
 			mFragmentShader(fragShader),
 			mDescriptorSetLayout(descSetLayouts)
 		{}
+
+		virtual void addOwnedResourcesToClose(RenderingContextVulkan& context) override;
 
 		void init(VkDevice logicDevice);
 		void close(VkDevice logicDevice);

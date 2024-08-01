@@ -370,23 +370,7 @@ namespace DOH {
 						debugInfo.PipelineBinds++;
 						currentBindings.Pipeline = pipeline.second->get();
 					}
-
-					//Bind scene ubo since GraphicsPipeline class doesn't have access to desc set object
-					const uint32_t uboSlot = 0;
-					VkDescriptorSet currentUboDescSet = mSceneCameraGpu->DescriptorSets[imageIndex];
-					vkCmdBindDescriptorSets(
-						cmd,
-						VK_PIPELINE_BIND_POINT_GRAPHICS,
-						pipeline.second->getGraphicsPipelineLayout(),
-						uboSlot,
-						1,
-						&currentUboDescSet,
-						0,
-						nullptr
-					);
-					currentBindings.DescriptorSets[uboSlot] = currentUboDescSet;
-					debugInfo.DescriptorSetBinds++;
-
+					bindSceneUboToPipeline(cmd, *pipeline.second, imageIndex, currentBindings, debugInfo);
 					pipeline.second->recordDrawCommands(cmd, currentBindings, 1);
 					debugInfo.SceneDrawCalls += pipeline.second->getVaoDrawCount();
 				}
@@ -431,13 +415,9 @@ namespace DOH {
 			}
 		}
 
+		ShapeRenderer::drawUi(imageIndex, cmd, currentBindings);
 		TextRenderer::drawUi(imageIndex, cmd, currentBindings);
-
-		LineRenderer::drawUi(
-			imageIndex,
-			cmd,
-			currentBindings
-		);
+		LineRenderer::drawUi(imageIndex,cmd, currentBindings);
 
 		RenderPassVulkan::endRenderPass(cmd);
 	}

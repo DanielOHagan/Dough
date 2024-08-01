@@ -6,6 +6,11 @@
 
 namespace DOH {
 
+	constexpr static std::array<const char*, 2> EVertexInputLayoutTypeString = {
+		"STATIC",
+		"CUSTOM"
+	};
+
 	enum class EVertexInputLayoutType {
 		STATIC,
 		CUSTOM
@@ -34,17 +39,17 @@ namespace DOH {
 	* The wrapper class is used for a consolidated API between statically existing VertexTypes and custom ones.
 	*/
 	class StaticVertexInputLayout : public AVertexInputLayout {
-
-	//Pre-defined engine default StaticVertexInputLayouts
-	private:
-		static const std::unique_ptr<StaticVertexInputLayout> VERTEX_2D;
-		static const std::unique_ptr<StaticVertexInputLayout> VERTEX_3D;
-		static const std::unique_ptr<StaticVertexInputLayout> VERTEX_3D_TEXTURED;
-		static const std::unique_ptr<StaticVertexInputLayout> VERTEX_3D_TEXTURED_INDEXED;
-		static const std::unique_ptr<StaticVertexInputLayout> VERTEX_3D_LIT_TEXTURED;
-
 	private:
 		const EVertexType mVertexType;
+		//Pre-defined engine default StaticVertexInputLayouts
+		static std::unique_ptr<StaticVertexInputLayout> VERTEX_2D;
+		static std::unique_ptr<StaticVertexInputLayout> VERTEX_2D_TEXTURED;
+		static std::unique_ptr<StaticVertexInputLayout> VERTEX_2D_TEXTURED_INDEXED;
+		static std::unique_ptr<StaticVertexInputLayout> VERTEX_3D;
+		static std::unique_ptr<StaticVertexInputLayout> VERTEX_3D_TEXTURED;
+		static std::unique_ptr<StaticVertexInputLayout> VERTEX_3D_TEXTURED_INDEXED;
+		static std::unique_ptr<StaticVertexInputLayout> VERTEX_3D_LIT_TEXTURED;
+		static std::unique_ptr<StaticVertexInputLayout> VERTEX_CIRCLE_3D;
 
 	public:
 		StaticVertexInputLayout(const EVertexType vertexType);
@@ -55,6 +60,8 @@ namespace DOH {
 		inline const EVertexType getVertexType() const { return mVertexType; }
 
 		static const StaticVertexInputLayout& get(const EVertexType vertexType);
+
+		static void initEngineDefaultVertexInputLayouts();
 	};
 
 	class CustomVertexInputLayout : public AVertexInputLayout {

@@ -1,45 +1,47 @@
 #pragma once
 
 #include "dough/scene/geometry/AGeometry.h"
-#include "dough/rendering/textures/TextureVulkan.h"
 
 #include <optional>
 #include <array>
 
 namespace DOH {
 
-	class Quad : public AGeometry {
+	class TextureVulkan;
+
+	class Circle : public AGeometry {
 	private:
-		//TODO:: Material member to handle texture or solid/pattern/gradient/vertex colour
-		//	I think it best if the end result is a "GameObject" class which contains Quad for purely spacial properties
-		//	& a material class for Colour, Texture, etc...
 		std::optional<std::reference_wrapper<TextureVulkan>> Texture;
 
 	public:
 		//Interlaced texture coords for a quad ordered: botLeft.x, botLeft.y, topRight.x, topRight.Y
 		constexpr static std::array<float, 4> DEFAULT_TEXTURE_COORDS = { 0.0f, 1.0f, 1.0f, 0.0 };
-		constexpr static uint32_t BYTE_SIZE = 160u;// Vertex3dTexturedIndexed::BYTE_SIZE * 4;
+		constexpr static uint32_t BYTE_SIZE = 224u; //VertexCircle3d::BYTE_SIZE * 4u;
 
 		glm::vec4 Colour;
 		//Interlaced texture coords for a quad ordered: botLeft.x, botLeft.y, topRight.x, topRight.Y
 		std::array<float, 4> TextureCoords;
+		glm::vec2 Decorations;
 
-		Quad()
+		Circle()
 		:	AGeometry({ 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, 0.0f),
 			Colour(1.0f, 1.0f, 1.0f, 1.0f),
-			TextureCoords(Quad::DEFAULT_TEXTURE_COORDS)
+			TextureCoords(Circle::DEFAULT_TEXTURE_COORDS),
+			Decorations(1.0f, 0.0f)
 		{}
-		Quad(
+		Circle(
 			glm::vec3 pos,
-			glm::vec2 size,
+			glm::vec3 size,
 			glm::vec4 colour,
 			float rotationRads = 0.0f,
 			std::shared_ptr<TextureVulkan> texture = nullptr,
-			std::array<float, 4> texCoords = Quad::DEFAULT_TEXTURE_COORDS
+			std::array<float, 4> texCoords = Circle::DEFAULT_TEXTURE_COORDS,
+			float thickness = 1.0f
 		) : AGeometry(pos, size, rotationRads),
 			Texture(std::nullopt),
 			Colour(colour),
-			TextureCoords(texCoords)
+			TextureCoords(texCoords),
+			Decorations(thickness, 0.0f)
 		{
 			if (texture != nullptr) {
 				Texture.emplace(*texture);
@@ -57,5 +59,8 @@ namespace DOH {
 		inline float getTextureCoordsBotLeftY() const { return TextureCoords[1]; };
 		inline float getTextureCoordsTopRightX() const { return TextureCoords[2]; };
 		inline float getTextureCoordsTopRightY() const { return TextureCoords[3]; };
+
+		inline float getThickness() const { return Decorations.x; }
+		inline float getFade() const { return Decorations.y; }
 	};
 }

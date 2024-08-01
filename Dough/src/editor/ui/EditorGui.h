@@ -5,6 +5,7 @@
 #include "dough/rendering/textures/TextureVulkan.h"
 #include "dough/ImGuiWrapper.h"
 #include "dough/scene/geometry/primitives/Quad.h"
+#include "dough/scene/geometry/primitives/Circle.h"
 #include "dough/files/JsonFileData.h"
 
 #include "editor/ui/EditorResourceUiViewer.h"
@@ -12,7 +13,6 @@
 namespace DOH::EDITOR {
 
 	class EditorGui {
-
 	private:
 		static std::unique_ptr<EditorGui> INSTANCE;
 
@@ -48,9 +48,11 @@ namespace DOH::EDITOR {
 
 		void imGuiControlsAGeometryImpl(AGeometry& geo, const char* name);
 		void imGuiControlsQuadImpl(Quad& quad, const char* name);
+		void imGuiControlsCircleImpl(Circle& circle, const char* name);
 
 		void imGuiInfoAGeometryImpl(AGeometry& geo, const char* name);
 		void imGuiInfoQuadImpl(Quad& quad, const char* name);
+		void imGuiInfoCircleImpl(Circle& circle, const char* name);
 
 		void imGuiJsonElementImpl(JsonElement& element, const char* name);
 		void imGuiJsonObjectImpl(JsonElement& object, const char* name);
@@ -272,10 +274,18 @@ namespace DOH::EDITOR {
 		/**
 		* Display controls for the primitive: Quad
 		* 
-		* @param Quad The quad to display a set of controls (a.k.a editable properties) for.
+		* @param quad The quad to display a set of controls (a.k.a editable properties) for.
 		* @param name Unique name for Quad to display.
 		*/
 		static inline void controlsQuad(Quad& quad, const char* name) { INSTANCE->imGuiControlsQuadImpl(quad, name); }
+
+		/**
+		* Display controls for the primitive: Circle
+		*
+		* @param circle The circle to display a set of controls (a.k.a editable properties) for.
+		* @param name Unique name for Circle to display.
+		*/
+		static inline void controlsCircle(Circle& circle, const char* name) { INSTANCE->imGuiControlsCircleImpl(circle, name); }
 
 		//-----Primitive Information-----
 		/**
@@ -293,6 +303,15 @@ namespace DOH::EDITOR {
 		*/
 		static inline void infoQuad(Quad& quad, const char* name) { INSTANCE->imGuiInfoQuadImpl(quad, name); }
 		static inline void infoQuad(const Quad& quad, const char* name) { infoQuad((Quad&) quad, name); }
+
+		/**
+		* Display information for the primitive: Circle
+		*
+		* @param circle The Circle to display.
+		* @param name Unique name for Circle to display.
+		*/
+		static inline void infoCircle(Circle& circle, const char* name) { INSTANCE->imGuiInfoCircleImpl(circle, name); }
+		static inline void infoCircle(const Circle& circle, const char* name) { INSTANCE->imGuiInfoCircleImpl((Circle&) circle, name); }
 
 		//-----File Data Viewers-----
 		/**

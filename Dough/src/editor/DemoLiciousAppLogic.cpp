@@ -31,11 +31,11 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::update(float delta) {
 		ZoneScoped;
 
-		if (mBouncingQuadDemo->Update) {
+		if (mShapesDemo->mBouncingQuadDemo->Update) {
 			const float translationDelta = 0.2f * delta;
-			for (size_t i = 0; i < mBouncingQuadDemo->BouncingQuads.size(); i++) {
-				Quad& quad = mBouncingQuadDemo->BouncingQuads[i];
-				glm::vec2& velocity = mBouncingQuadDemo->BouncingQuadVelocities[i];
+			for (size_t i = 0; i < mShapesDemo->mBouncingQuadDemo->BouncingQuads.size(); i++) {
+				Quad& quad = mShapesDemo->mBouncingQuadDemo->BouncingQuads[i];
+				glm::vec2& velocity = mShapesDemo->mBouncingQuadDemo->BouncingQuadVelocities[i];
 
 				if (quad.Position.x + quad.Size.x >= 20.0f || quad.Position.x <= -20.0f) {
 					velocity.x = -velocity.x;
@@ -50,9 +50,9 @@ namespace DOH::EDITOR {
 			}
 		}
 
-		if (mGridDemo->Update && !mGridDemo->IsUpToDate) {
+		if (mShapesDemo->mGridDemo->Update && !mShapesDemo->mGridDemo->IsUpToDate) {
 			//Repopulate entire array each update, not very efficient but the test grid is just an example
-			populateTestGrid(static_cast<uint32_t>(mGridDemo->TestGridSize[0]), static_cast<uint32_t>(mGridDemo->TestGridSize[1]));
+			mShapesDemo->mGridDemo->populateTestGrid(static_cast<uint32_t>(mShapesDemo->mGridDemo->TestGridSize[0]), static_cast<uint32_t>(mShapesDemo->mGridDemo->TestGridSize[1]));
 		}
 
 		//NOTE:: Obj models aren't updated per Update cycle, done during ImGui render stage, as currently only the ImGui
@@ -67,7 +67,7 @@ namespace DOH::EDITOR {
 
 		if (mTileMapDemo->Update) {
 			if (mTileMapDemo->PreviewAnimationController->update(delta)) {
-				mTileMapDemo->AnimatedQuad.TextureCoords = mTileMapDemo->PreviewAnimationController->getCurrentInnerTexture().TextureCoords;
+				mTileMapDemo->AnimatedQuad.TextureCoords = mTileMapDemo->PreviewAnimationController->getCurrentInnerTexture().getTexCoordsAsSquare();
 			}
 		}
 	}
@@ -109,41 +109,77 @@ namespace DOH::EDITOR {
 			}
 		}
 
-		if (mGridDemo->Render) {
-			if (mGridDemo->QuadDrawColour) {
-				for (const std::vector<Quad>& sameTexturedQuads : mGridDemo->TexturedTestGrid) {
+		if (mShapesDemo->mGridDemo->Render) {
+			if (mShapesDemo->mGridDemo->QuadDrawColour) {
+				for (const std::vector<Quad>& sameTexturedQuads : mShapesDemo->mGridDemo->TexturedTestGrid) {
 					ShapeRenderer::drawQuadArrayScene(sameTexturedQuads);
 				}
 			} else {
-				for (const std::vector<Quad>& sameTexturedQuads : mGridDemo->TexturedTestGrid) {
+				for (const std::vector<Quad>& sameTexturedQuads : mShapesDemo->mGridDemo->TexturedTestGrid) {
 					ShapeRenderer::drawQuadArraySameTextureScene(sameTexturedQuads);
 				}
 			}
 		}
 
-		if (mBouncingQuadDemo->Render) {
-			if (mBouncingQuadDemo->QuadDrawColour) {
-				ShapeRenderer::drawQuadArrayScene(mBouncingQuadDemo->BouncingQuads);
+		if (mShapesDemo->mBouncingQuadDemo->Render) {
+			if (mShapesDemo->mBouncingQuadDemo->QuadDrawColour) {
+				ShapeRenderer::drawQuadArrayScene(mShapesDemo->mBouncingQuadDemo->BouncingQuads);
 			} else {
-				ShapeRenderer::drawQuadArrayTexturedScene(mBouncingQuadDemo->BouncingQuads);
+				ShapeRenderer::drawQuadArraySameTextureScene(mShapesDemo->mBouncingQuadDemo->BouncingQuads);
+			}
+		}
+
+		if (mShapesDemo->mCircleDemo->Render) {
+			if (mShapesDemo->mCircleDemo->DrawColour) {
+				//Render circles 1 at a time, much slower than passing as an array
+				//for (const Circle& circle : mShapesDemo->mCircleDemo->CirclesScene) {
+				//	ShapeRenderer::drawCircleScene(circle);
+				//}
+
+				ShapeRenderer::drawCircleArrayScene(mShapesDemo->mCircleDemo->CirclesScene);
+			} else {
+
+				//Render circles 1 at a time, much slower than passing as an array
+				//for (const Circle& circle : mShapesDemo->mCircleDemo->CirclesScene) {
+				//	ShapeRenderer::drawCircleTexturedScene(circle);
+				//}
+
+				//ShapeRenderer::drawCircleArrayTexturedScene(mShapesDemo->mCircleDemo->CirclesScene);
+				ShapeRenderer::drawCircleArraySameTextureScene(mShapesDemo->mCircleDemo->CirclesScene);
+			}
+
+			if (mShapesDemo->mCircleDemo->RenderTestCircles) {
+				ShapeRenderer::drawCircleScene(mShapesDemo->mCircleDemo->TestCircleScene);
+				ShapeRenderer::drawCircleUi(mShapesDemo->mCircleDemo->TestCircleUi);
 			}
 		}
 
 		if (mTextDemo->Render) {
-			TextRenderer::drawTextString(*mTextDemo->Text);
-			TextRenderer::drawTextString(*mTextDemo->MsdfText);
+			TextRenderer::drawTextStringScene(*mTextDemo->SoftMaskScene);
+			TextRenderer::drawTextStringScene(*mTextDemo->MsdfTextScene);
+
+			TextRenderer::drawTextStringUi(*mTextDemo->SoftMaskTextUi);
+			TextRenderer::drawTextStringUi(*mTextDemo->MsdfTextUi);
 		}
 
 		if (mLineDemo->Render) {
 			const uint32_t spaceRemaining = LineRenderer::getSceneMaxLineCount() - LineRenderer::getSceneLineCount();
 
 			if (mLineDemo->RenderTextDemoOutlines) {
-				for (const Quad& quad : mTextDemo->Text->getQuads()) {
+				for (const Quad& quad : mTextDemo->SoftMaskScene->getQuads()) {
 					LineRenderer::drawQuadScene(quad, { 1.0f, 0.0f, 1.0f, 1.0f });
 				}
 
-				for (const Quad& quad : mTextDemo->MsdfText->getQuads()) {
+				for (const Quad& quad : mTextDemo->MsdfTextScene->getQuads()) {
 					LineRenderer::drawQuadScene(quad, { 0.0f, 1.0f, 0.0f, 1.0f });
+				}
+
+				for (const Quad& quad : mTextDemo->SoftMaskTextUi->getQuads()) {
+					LineRenderer::drawQuadUi(quad, { 1.0f, 0.0f, 1.0f, 1.0f });
+				}
+
+				for (const Quad& quad : mTextDemo->MsdfTextUi->getQuads()) {
+					LineRenderer::drawQuadUi(quad, { 0.0f, 1.0f, 0.0f, 1.0f });
 				}
 			}
 
@@ -232,27 +268,34 @@ namespace DOH::EDITOR {
 		if (ImGui::Begin("DemoLicious Demos")) {
 			ImGui::Text("Demo Settings & Info:");
 
-			ImGui::BeginTabBar("Demo Tab Bar");
+			if (ImGui::BeginCombo("Demo", mSelectedDemoIndex != UINT32_MAX ? mDemos[mSelectedDemoIndex].get().getName() : "Click Here To Select a Demo" )) {
+				uint32_t i = 0;
+				for (auto& demo : mDemos) {
+					bool selected = false;
+					ImGui::Selectable(demo.get().getName(), &selected);
+					if (selected) {
+						mSelectedDemoIndex = i;
+					}
+					i++;
+				}
+				ImGui::EndCombo();
+			}
 
-			mGridDemo->renderImGuiMainTab();
-			mBouncingQuadDemo->renderImGuiMainTab();
-			mCustomDemo->renderImGuiMainTab();
-			mObjModelsDemo->renderImGuiMainTab();
-			mTextDemo->renderImGuiMainTab();
-			mLineDemo->renderImGuiMainTab();
-			mBoundingBoxDemo->renderImGuiMainTab();
-			mTileMapDemo->renderImGuiMainTab();
-
-			ImGui::EndTabBar();
+			if (mSelectedDemoIndex != UINT32_MAX) {
+				mDemos[mSelectedDemoIndex].get().renderImGuiMainTab();
+			}
 
 			ImGui::NewLine();
 			ImGui::Text("Cross-demo functions/resources");
 			if (ImGui::Button("Disable all demos")) {
-				mGridDemo->Render = false;
-				mGridDemo->Update = false;
+				mShapesDemo->mGridDemo->Render = false;
+				mShapesDemo->mGridDemo->Update = false;
 
-				mBouncingQuadDemo->Render = false;
-				mBouncingQuadDemo->Update = false;
+				mShapesDemo->mBouncingQuadDemo->Render = false;
+				mShapesDemo->mBouncingQuadDemo->Update = false;
+
+				mShapesDemo->mCircleDemo->Render = false;
+				mShapesDemo->mCircleDemo->Update = false;
 
 				mCustomDemo->RenderScene = false;
 				mCustomDemo->RenderUi = false;
@@ -281,8 +324,8 @@ namespace DOH::EDITOR {
 		}
 		ImGui::End();
 
-		mGridDemo->renderImGuiExtras();
-		mBouncingQuadDemo->renderImGuiExtras();
+
+		mShapesDemo->renderImGuiExtras();
 		mCustomDemo->renderImGuiExtras();
 		mObjModelsDemo->renderImGuiExtras();
 		mTextDemo->renderImGuiExtras();
@@ -312,30 +355,37 @@ namespace DOH::EDITOR {
 		//populateTestGrid(static_cast<uint32_t>(mGridDemo.TestGridSize[0]), static_cast<uint32_t>(mGridDemo.TestGridSize[1]));
 
 		initSharedResources();
+		mDemos.reserve(9);
 
-		mGridDemo = std::make_unique<GridDemo>();
-		mGridDemo->init(*mSharedDemoResources);
-
-		mBouncingQuadDemo = std::make_unique<BouncingQuadDemo>();
-		mBouncingQuadDemo->init(*mSharedDemoResources);
+		mShapesDemo = std::make_unique<ShapesDemo>();
+		mShapesDemo->init(*mSharedDemoResources);
+		mDemos.emplace_back(*mShapesDemo->mGridDemo);
+		mDemos.emplace_back(*mShapesDemo->mBouncingQuadDemo);
+		mDemos.emplace_back(*mShapesDemo->mCircleDemo);
 
 		mCustomDemo = std::make_unique<CustomDemo>();
 		mCustomDemo->init(*mSharedDemoResources);
+		mDemos.emplace_back(*mCustomDemo);
 		
 		mObjModelsDemo = std::make_unique<ObjModelsDemo>();
 		mObjModelsDemo->init(*mSharedDemoResources);
+		mDemos.emplace_back(*mObjModelsDemo);
 		
 		mTextDemo = std::make_unique<TextDemo>();
 		mTextDemo->init(*mSharedDemoResources);
+		mDemos.emplace_back(*mTextDemo);
 
 		mLineDemo = std::make_unique<LineDemo>();
 		mLineDemo->init(*mSharedDemoResources);
+		mDemos.emplace_back(*mLineDemo);
 
 		mBoundingBoxDemo = std::make_unique<BoundingBoxDemo>();
 		mBoundingBoxDemo->init(*mSharedDemoResources);
+		mDemos.emplace_back(*mBoundingBoxDemo);
 
 		mTileMapDemo = std::make_unique<TileMapDemo>();
 		mTileMapDemo->init(*mSharedDemoResources);
+		mDemos.emplace_back(*mTileMapDemo);
 	}
 
 	void DemoLiciousAppLogic::closeDemos() {
@@ -354,8 +404,8 @@ namespace DOH::EDITOR {
 		mTextDemo->close();
 		mTextDemo.release();
 
-		mGridDemo->close();
-		mGridDemo.release();
+		mShapesDemo->close();
+		mShapesDemo.release();
 
 		mLineDemo->close();
 		mLineDemo.release();
@@ -369,14 +419,14 @@ namespace DOH::EDITOR {
 		closeSharedResources();
 	}
 	
-	void DemoLiciousAppLogic::populateTestGrid(uint32_t width, uint32_t height) {
+	void DemoLiciousAppLogic::ShapesDemo::GridDemo::populateTestGrid(uint32_t width, uint32_t height) {
 		ZoneScoped;
 
 		const auto& atlas = ShapeRenderer::getTestMonoSpaceTextureAtlas();
 	
-		mGridDemo->TexturedTestGrid.clear();
-		mGridDemo->TexturedTestGrid.resize(ShapeRenderer::getQuadBatchTextureArray().getTextureSlots().size());
-		const uint32_t textureSlot = ShapeRenderer::getQuadBatchTextureArray().getTextureSlotIndex(atlas->getId());
+		TexturedTestGrid.clear();
+		TexturedTestGrid.resize(ShapeRenderer::getShapesTextureArray().getTextureSlots().size());
+		const uint32_t textureSlot = ShapeRenderer::getShapesTextureArray().getTextureSlotIndex(atlas->getId());
 	
 		uint32_t index = 0;
 		for (uint32_t y = 0; y < height; y++) {
@@ -386,26 +436,26 @@ namespace DOH::EDITOR {
 				// in this case whether it is drawn with a texture or with a colour
 				// is determined by mGridDemo.QuadDrawColour
 	
-				mGridDemo->TexturedTestGrid[textureSlot].push_back({
+				TexturedTestGrid[textureSlot].push_back({
 					{
-						static_cast<float>(x) * mGridDemo->TestGridQuadGapSize[0],
-						static_cast<float>(y) * mGridDemo->TestGridQuadGapSize[1],
+						static_cast<float>(x) * TestGridQuadGapSize[0],
+						static_cast<float>(y) * TestGridQuadGapSize[1],
 						0.5f
 					},
-					{ mGridDemo->TestGridQuadSize[0], mGridDemo->TestGridQuadSize[1] },
-					{ mGridDemo->QuadColour.x, mGridDemo->QuadColour.y, mGridDemo->QuadColour.z, mGridDemo->QuadColour.w },
+					{ TestGridQuadSize[0], TestGridQuadSize[1] },
+					{ QuadColour.x, QuadColour.y, QuadColour.z, QuadColour.w },
 					0.0f,
 					atlas,
 					atlas->getInnerTextureCoords(
-						x + mGridDemo->TestTexturesRowOffset,
-						y + mGridDemo->TestTexturesColumnOffset
+						x + TestTexturesRowOffset,
+						y + TestTexturesColumnOffset
 					)
 				});
 				index++;
 			}
 		}
 	
-		mGridDemo->IsUpToDate = true;
+		IsUpToDate = true;
 	}
 
 	void DemoLiciousAppLogic::initSharedResources() {
@@ -602,63 +652,59 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::ObjModelsDemo::renderImGuiMainTab() {
 		ZoneScoped;
 
-		if (ImGui::BeginTabItem("Obj Models")) {
-			static const std::string addLabel = std::string(ImGuiWrapper::EMPTY_LABEL) + "Add";
-			static const std::string popLabel = std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop";
+		static const std::string addLabel = std::string(ImGuiWrapper::EMPTY_LABEL) + "Add";
+		static const std::string popLabel = std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop";
 
-			//TODO:: Pipeline uniform objects are NOT re-created during runtime causing a crash when trying to access them (e.g. camera UBO's)
-			//if (ImGui::Button("Load") && !mObjModelsDemo->GpuResourcesLoaded) {
-			//	mObjModelsDemo->init();
-			//}
-			//ImGui::SameLine();
-			if (ImGui::Button("Unload") && GpuResourcesLoaded) {
-				close();
-			}
-			EditorGui::displayHelpTooltip("TEMP:: Currently only unloading certain GPU resources during runtime is supported, this is ONLY a demonstration and once unloaded this demo can only be loaded again by restarting.");
-			ImGui::TextColored(GpuResourcesLoaded ? ImVec4(0, 1, 0, 1) : ImVec4(1, 0, 0, 1), GpuResourcesLoaded ? "LOADED" : "NOT LOADED");
-
-			ImGui::Checkbox("Render", &Render);
-			ImGui::Checkbox("Update", &Update);
-			ImGui::Text("Object Count: %i", RenderableObjects.size());
-			if (ImGui::InputInt(addLabel.c_str(), &AddNewObjectsCount, 5, 5)) {
-				if (AddNewObjectsCount < 0) {
-					AddNewObjectsCount = 0;
-				} else if (AddNewObjectsCount > 1000) {
-					AddNewObjectsCount = 1000;
-				}
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Add Object")) {
-				for (int i = 0; i < AddNewObjectsCount; i++) {
-					addRandomisedObject();
-				}
-			}
-			if (ImGui::InputInt(popLabel.c_str(), &PopObjectsCount, 5, 5)) {
-				if (PopObjectsCount < 0) {
-					PopObjectsCount = 0;
-				}
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Pop Object")) {
-				//Max out pop count to renderables list size
-				const int size = static_cast<int>(RenderableObjects.size());
-				const int popCount = PopObjectsCount > size ? size : PopObjectsCount;
-
-				for (int i = 0; i < popCount; i++) {
-					RenderableObjects.pop_back();
-				}
-			}
-			ImGui::Checkbox("Display Renderable Models List", &RenderObjModelsList);
-			if (ImGui::Button("Clear Objects")) {
-				RenderableObjects.clear();
-			}
-
-			ImGui::Checkbox("Render Textured Model", &RenderableTexturedModel->Render);
-			//TODO:: TexturedModel Wireframe rendering not currently supported
-			//ImGui::Checkbox("Render Wireframe Textured Model", &mObjModelsDemo->RenderableTexturedModel->RenderWireframe);
-
-			ImGui::EndTabItem();
+		//TODO:: Pipeline uniform objects are NOT re-created during runtime causing a crash when trying to access them (e.g. camera UBO's)
+		//if (ImGui::Button("Load") && !mObjModelsDemo->GpuResourcesLoaded) {
+		//	mObjModelsDemo->init();
+		//}
+		//ImGui::SameLine();
+		if (ImGui::Button("Unload") && GpuResourcesLoaded) {
+			close();
 		}
+		EditorGui::displayHelpTooltip("TEMP:: Currently only unloading certain GPU resources during runtime is supported, this is ONLY a demonstration and once unloaded this demo can only be loaded again by restarting.");
+		ImGui::TextColored(GpuResourcesLoaded ? ImVec4(0, 1, 0, 1) : ImVec4(1, 0, 0, 1), GpuResourcesLoaded ? "LOADED" : "NOT LOADED");
+
+		ImGui::Checkbox("Render", &Render);
+		ImGui::Checkbox("Update", &Update);
+		ImGui::Text("Object Count: %i", RenderableObjects.size());
+		if (ImGui::InputInt(addLabel.c_str(), &AddNewObjectsCount, 5, 5)) {
+			if (AddNewObjectsCount < 0) {
+				AddNewObjectsCount = 0;
+			} else if (AddNewObjectsCount > 1000) {
+				AddNewObjectsCount = 1000;
+			}
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Add Object")) {
+			for (int i = 0; i < AddNewObjectsCount; i++) {
+				addRandomisedObject();
+			}
+		}
+		if (ImGui::InputInt(popLabel.c_str(), &PopObjectsCount, 5, 5)) {
+			if (PopObjectsCount < 0) {
+				PopObjectsCount = 0;
+			}
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Pop Object")) {
+			//Max out pop count to renderables list size
+			const int size = static_cast<int>(RenderableObjects.size());
+			const int popCount = PopObjectsCount > size ? size : PopObjectsCount;
+
+			for (int i = 0; i < popCount; i++) {
+				RenderableObjects.pop_back();
+			}
+		}
+		ImGui::Checkbox("Display Renderable Models List", &RenderObjModelsList);
+		if (ImGui::Button("Clear Objects")) {
+			RenderableObjects.clear();
+		}
+
+		ImGui::Checkbox("Render Textured Model", &RenderableTexturedModel->Render);
+		//TODO:: TexturedModel Wireframe rendering not currently supported
+		//ImGui::Checkbox("Render Wireframe Textured Model", &mObjModelsDemo->RenderableTexturedModel->RenderWireframe);
 	}
 
 	void DemoLiciousAppLogic::ObjModelsDemo::renderImGuiExtras() {
@@ -919,162 +965,150 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::CustomDemo::renderImGuiMainTab() {
 		ZoneScoped;
 
-		if (ImGui::BeginTabItem("Custom")) {
-			ImGui::Checkbox("Render Scene", &RenderScene);
-			ImGui::Checkbox("Render UI", &RenderUi);
-			ImGui::Checkbox("Update", &Update);
-
-			ImGui::EndTabItem();
-		}
+		ImGui::Checkbox("Render Scene", &RenderScene);
+		ImGui::Checkbox("Render UI", &RenderUi);
+		ImGui::Checkbox("Update", &Update);
 	}
 
 	void DemoLiciousAppLogic::CustomDemo::renderImGuiExtras() {
 		//No extra windows required for this demo
 	}
 
-	void DemoLiciousAppLogic::GridDemo::init(SharedDemoResources& sharedResources) {
+	void DemoLiciousAppLogic::ShapesDemo::GridDemo::init(SharedDemoResources& sharedResources) {
 		ZoneScoped;
 
-		TestGridMaxQuadCount = EBatchSizeLimits::MAX_BATCH_COUNT_QUAD * EBatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD;
+		//NOTE:: Arbitrary limit that doesn't take into account whether any other demo is rendering quads.
+		TestGridMaxQuadCount = EBatchSizeLimits::QUAD_MAX_BATCH_COUNT * EBatchSizeLimits::QUAD_BATCH_MAX_GEO_COUNT;
 	}
 
-	void DemoLiciousAppLogic::GridDemo::close() {
+	void DemoLiciousAppLogic::ShapesDemo::GridDemo::close() {
 		ZoneScoped;
 
 		TexturedTestGrid.clear();
 	}
 
-	void DemoLiciousAppLogic::GridDemo::renderImGuiMainTab() {
+	void DemoLiciousAppLogic::ShapesDemo::GridDemo::renderImGuiMainTab() {
 		ZoneScoped;
 
-		if (ImGui::BeginTabItem("Grid")) {
-			ImGui::Checkbox("Render", &Render);
-			ImGui::Checkbox("Update", &Update);
-			ImGui::Checkbox("Draw Colour", &QuadDrawColour);
-			ImGui::Text("Grid Quad Count: %i of Max %i", TestGridSize[0] * TestGridSize[1], TestGridMaxQuadCount);
-			int tempTestGridSize[2] = { TestGridSize[0], TestGridSize[1] };
-			if (ImGui::InputInt2("Grid Size", tempTestGridSize)) {
-				if (tempTestGridSize[0] > 0 && tempTestGridSize[1] > 0) {
-					const int tempGridQuadCount = tempTestGridSize[0] * tempTestGridSize[1];
-					if (tempGridQuadCount <= TestGridMaxQuadCount) {
-						TestGridSize[0] = tempTestGridSize[0];
-						TestGridSize[1] = tempTestGridSize[1];
-						IsUpToDate = false;
-					} else {
-						LOG_WARN(
-							"New grid size of " << tempTestGridSize[0] << "x" << tempTestGridSize[1] <<
-							" (" << tempTestGridSize[0] * tempTestGridSize[1] <<
-							") is too large, max quad count is " << TestGridMaxQuadCount
-						);
-					}
+		ImGui::Checkbox("Render", &Render);
+		ImGui::Checkbox("Update", &Update);
+		ImGui::Checkbox("Draw Colour", &QuadDrawColour);
+		ImGui::Text("Grid Quad Count: %i of Max %i", TestGridSize[0] * TestGridSize[1], TestGridMaxQuadCount);
+		int tempTestGridSize[2] = { TestGridSize[0], TestGridSize[1] };
+		if (ImGui::InputInt2("Grid Size", tempTestGridSize)) {
+			if (tempTestGridSize[0] > 0 && tempTestGridSize[1] > 0) {
+				const int tempGridQuadCount = tempTestGridSize[0] * tempTestGridSize[1];
+				if (tempGridQuadCount <= TestGridMaxQuadCount) {
+					TestGridSize[0] = tempTestGridSize[0];
+					TestGridSize[1] = tempTestGridSize[1];
+					IsUpToDate = false;
+				} else {
+					LOG_WARN(
+						"New grid size of " << tempTestGridSize[0] << "x" << tempTestGridSize[1] <<
+						" (" << tempTestGridSize[0] * tempTestGridSize[1] <<
+						") is too large, max quad count is " << TestGridMaxQuadCount
+					);
 				}
 			}
-			if (ImGui::DragFloat2("Quad Size", TestGridQuadSize, 0.001f, 0.01f, 0.5f)) {
-				IsUpToDate = false;
-			}
-			if (ImGui::DragFloat2("Quad Gap Size", TestGridQuadGapSize, 0.001f, 0.01f, 0.5f)) {
-				IsUpToDate = false;
-			}
-			//ImGui::DragFloat2("Test Grid Origin Pos", );
-			//ImGui::Text("UI Quad Count: %i", renderer.getContext().getRenderer2d().getStorage().getUiQuadCount());
+		}
+		if (ImGui::DragFloat2("Quad Size", TestGridQuadSize, 0.001f, 0.01f, 0.5f)) {
+			IsUpToDate = false;
+		}
+		if (ImGui::DragFloat2("Quad Gap Size", TestGridQuadGapSize, 0.001f, 0.01f, 0.5f)) {
+			IsUpToDate = false;
+		}
+		//ImGui::DragFloat2("Test Grid Origin Pos", );
+		//ImGui::Text("UI Quad Count: %i", renderer.getContext().getRenderer2d().getStorage().getUiQuadCount());
 
-			//TOOD:: maybe have radio buttons for RenderStaticGrid or RenderDynamicGrid,
-			//	static being the default values and dynamic being from the variables determined by ths menu
-			// Maybe have the dynamic settings hidden unless dynamic is selected
+		//TOOD:: maybe have radio buttons for RenderStaticGrid or RenderDynamicGrid,
+		//	static being the default values and dynamic being from the variables determined by ths menu
+		// Maybe have the dynamic settings hidden unless dynamic is selected
 
-			MonoSpaceTextureAtlas& atlas = *ShapeRenderer::getTestMonoSpaceTextureAtlas();
+		MonoSpaceTextureAtlas& atlas = *ShapeRenderer::getTestMonoSpaceTextureAtlas();
 
-			int tempTestTextureRowOffset = TestTexturesRowOffset;
-			if (ImGui::InputInt("Test Texture Row Offset", &tempTestTextureRowOffset)) {
-				TestTexturesRowOffset = tempTestTextureRowOffset < 0 ?
-					0 : tempTestTextureRowOffset % atlas.getRowCount();
-				IsUpToDate = false;
-			}
-			int tempTestTextureColOffset = TestTexturesColumnOffset;
-			if (ImGui::InputInt("Test Texture Col Offset", &tempTestTextureColOffset)) {
-				TestTexturesColumnOffset = tempTestTextureColOffset < 0 ?
-					0 : tempTestTextureColOffset % atlas.getColCount();
-				IsUpToDate = false;
-			}
+		int tempTestTextureRowOffset = TestTexturesRowOffset;
+		if (ImGui::InputInt("Test Texture Row Offset", &tempTestTextureRowOffset)) {
+			TestTexturesRowOffset = tempTestTextureRowOffset < 0 ?
+				0 : tempTestTextureRowOffset % atlas.getRowCount();
+			IsUpToDate = false;
+		}
+		int tempTestTextureColOffset = TestTexturesColumnOffset;
+		if (ImGui::InputInt("Test Texture Col Offset", &tempTestTextureColOffset)) {
+			TestTexturesColumnOffset = tempTestTextureColOffset < 0 ?
+				0 : tempTestTextureColOffset % atlas.getColCount();
+			IsUpToDate = false;
+		}
 
-			if (ImGui::ColorEdit4("Grid Colour", &QuadColour.x)) {
-				IsUpToDate = false;
-			}
+		if (ImGui::ColorEdit4("Grid Colour", &QuadColour.x)) {
+			IsUpToDate = false;
+		}
 
-			if (ImGui::Button("Reset Grid")) {
-				TestGridSize[0] = 10;
-				TestGridSize[1] = 10;
-				TestGridQuadSize[0] = 0.1f;
-				TestGridQuadSize[1] = 0.1f;
-				TestGridQuadGapSize[0] = TestGridQuadSize[0] * 1.5f;
-				TestGridQuadGapSize[1] = TestGridQuadSize[1] * 1.5f;
-				IsUpToDate = false;
-			}
-
-			ImGui::EndTabItem();
+		if (ImGui::Button("Reset Grid")) {
+			TestGridSize[0] = 10;
+			TestGridSize[1] = 10;
+			TestGridQuadSize[0] = 0.1f;
+			TestGridQuadSize[1] = 0.1f;
+			TestGridQuadGapSize[0] = TestGridQuadSize[0] * 1.5f;
+			TestGridQuadGapSize[1] = TestGridQuadSize[1] * 1.5f;
+			IsUpToDate = false;
 		}
 	}
 
-	void DemoLiciousAppLogic::GridDemo::renderImGuiExtras() {
+	void DemoLiciousAppLogic::ShapesDemo::GridDemo::renderImGuiExtras() {
 		//No extra windows required for this demo
 	}
 
-	void DemoLiciousAppLogic::BouncingQuadDemo::init(SharedDemoResources& sharedResources) {
+	void DemoLiciousAppLogic::ShapesDemo::BouncingQuadDemo::init(SharedDemoResources& sharedResources) {
 		ZoneScoped;
 
 		addRandomQuads(5000);
 	}
 
-	void DemoLiciousAppLogic::BouncingQuadDemo::close() {
+	void DemoLiciousAppLogic::ShapesDemo::BouncingQuadDemo::close() {
 		ZoneScoped;
 
 		BouncingQuads.clear();
 		BouncingQuadVelocities.clear();
 	}
 
-
-	void DemoLiciousAppLogic::BouncingQuadDemo::renderImGuiMainTab() {
+	void DemoLiciousAppLogic::ShapesDemo::BouncingQuadDemo::renderImGuiMainTab() {
 		ZoneScoped;
 
-		if (ImGui::BeginTabItem("Bouncing Quads")) {
-			ImGui::Checkbox("Render", &Render);
-			ImGui::Checkbox("Update", &Update);
-			ImGui::Checkbox("Draw Colour", &QuadDrawColour);
-			ImGui::Text("Bouncing Quads Count: %i", BouncingQuads.size());
+		ImGui::Checkbox("Render", &Render);
+		ImGui::Checkbox("Update", &Update);
+		ImGui::Checkbox("Draw Colour", &QuadDrawColour);
+		ImGui::Text("Bouncing Quads Count: %i", BouncingQuads.size());
 
-			if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Add").c_str(), &AddNewQuadCount, 5, 5)) {
-				if (AddNewQuadCount < 0) {
-					AddNewQuadCount = 0;
-				} else if (AddNewQuadCount > 5000) {
-					AddNewQuadCount = 5000;
-				}
+		if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Add").c_str(), &AddNewQuadCount, 5, 5)) {
+			if (AddNewQuadCount < 0) {
+				AddNewQuadCount = 0;
+			} else if (AddNewQuadCount > 5000) {
+				AddNewQuadCount = 5000;
 			}
-			ImGui::SameLine();
-			if (ImGui::Button("Add Quads")) {
-				addRandomQuads(AddNewQuadCount);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Add Quads")) {
+			addRandomQuads(AddNewQuadCount);
+		}
+		if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop").c_str(), &PopQuadCount, 5, 5)) {
+			if (PopQuadCount < 0) {
+				PopQuadCount = 0;
 			}
-			if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop").c_str(), &PopQuadCount, 5, 5)) {
-				if (PopQuadCount < 0) {
-					PopQuadCount = 0;
-				}
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Pop Quads")) {
-				popQuads(PopQuadCount);
-			}
-			if (ImGui::Button("Clear Quads")) {
-				BouncingQuads.clear();
-			}
-
-			ImGui::EndTabItem();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Pop Quads")) {
+			popQuads(PopQuadCount);
+		}
+		if (ImGui::Button("Clear Quads")) {
+			BouncingQuads.clear();
 		}
 	}
 
-	void DemoLiciousAppLogic::BouncingQuadDemo::renderImGuiExtras() {
+	void DemoLiciousAppLogic::ShapesDemo::BouncingQuadDemo::renderImGuiExtras() {
 		//No extra windows required for this demo
 	}
 
-	void DemoLiciousAppLogic::BouncingQuadDemo::addRandomQuads(size_t count) {
+	void DemoLiciousAppLogic::ShapesDemo::BouncingQuadDemo::addRandomQuads(size_t count) {
 		ZoneScoped;
 
 		const auto& atlas = ShapeRenderer::getTestMonoSpaceTextureAtlas();
@@ -1135,7 +1169,7 @@ namespace DOH::EDITOR {
 		}
 	}
 
-	void DemoLiciousAppLogic::BouncingQuadDemo::popQuads(size_t count) {
+	void DemoLiciousAppLogic::ShapesDemo::BouncingQuadDemo::popQuads(size_t count) {
 		ZoneScoped;
 
 		const size_t size = BouncingQuads.size();
@@ -1149,17 +1183,203 @@ namespace DOH::EDITOR {
 		}
 	}
 
+	void DemoLiciousAppLogic::ShapesDemo::CircleDemo::init(SharedDemoResources& sharedResources) {
+		ZoneScoped;
+
+		addRandomCirclesScene(5000);
+
+		TestCircleScene = {};
+		TestCircleScene.Position = { 0.5f, 0.5f, 0.1f };
+		TestCircleScene.Size = { 0.5f, 0.5f };
+		TestCircleScene.Colour = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+		TestCircleUi = {};
+		TestCircleUi.Position = { 0.5f, 0.5f, 0.1f };
+		TestCircleUi.Size = { 0.5f, 0.5f };
+		TestCircleUi.Colour = { 0.0f, 0.0f, 0.0f, 1.0f };
+	}
+
+	void DemoLiciousAppLogic::ShapesDemo::CircleDemo::close() {
+		ZoneScoped;
+
+		CirclesScene.clear();
+	}
+
+	void DemoLiciousAppLogic::ShapesDemo::CircleDemo::renderImGuiMainTab() {
+		ZoneScoped;
+
+		ImGui::Checkbox("Render", &Render);
+		ImGui::Checkbox("Update", &Update);
+		ImGui::Checkbox("Draw Colour", &DrawColour);
+		ImGui::Checkbox("RenderTestCircles", &RenderTestCircles);
+		ImGui::Text("Count Scene: %i", CirclesScene.size());
+		//ImGui::Text("Count UI: %i", CirclesUi.size());
+
+		if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Add").c_str(), &AddNewCount, 5, 5)) {
+			if (AddNewCount < 0) {
+				AddNewCount = 0;
+			} else if (AddNewCount > 5000) {
+				AddNewCount = 5000;
+			}
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Add Scene")) {
+			addRandomCirclesScene(AddNewCount);
+		}
+		if (ImGui::InputInt((std::string(ImGuiWrapper::EMPTY_LABEL) + "Pop").c_str(), &PopCount, 5, 5)) {
+			if (PopCount < 0) {
+				PopCount = 0;
+			}
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Pop Scene")) {
+			popScene(PopCount);
+		}
+		if (ImGui::Button("Clear Scene")) {
+			CirclesScene.clear();
+		}
+
+		ImGui::Text("TestCircleScene");
+		EditorGui::controlsCircle(TestCircleScene, "TestCircleScene");
+		ImGui::Text("TestCircleUi");
+		EditorGui::controlsCircle(TestCircleUi, "TestCircleUi");
+
+		ImGui::NewLine();
+		{
+			ImGui::Text("Scene");
+			int i = 0;
+			const auto& batches = ShapeRenderer::getCircleSceneBatches();
+			for (const auto& batch : batches) {
+				ImGui::Text("Batch: %i Count: %i", i, static_cast<int>(batch->getGeometryCount()));
+				i++;
+			}
+			if (i == 0) {
+				ImGui::Text("No Batches Used");
+			}
+		}
+
+		{
+			ImGui::Text("UI");
+			int i = 0;
+			const auto& batches = ShapeRenderer::getCircleUiBatches();
+			for (const auto& batch : batches) {
+				ImGui::Text("Batch: %i Count: %i", i, static_cast<int>(batch->getGeometryCount()));
+				i++;
+			}
+			if (i == 0) {
+				ImGui::Text("No Batches Used");
+			}
+		}
+	}
+
+	void DemoLiciousAppLogic::ShapesDemo::CircleDemo::renderImGuiExtras() {
+		
+	}
+
+	void DemoLiciousAppLogic::ShapesDemo::CircleDemo::addRandomCirclesScene(size_t count) {
+		ZoneScoped;
+
+		const auto& atlas = ShapeRenderer::getTestMonoSpaceTextureAtlas();
+
+		//Stop quad count going over MaxCount
+		if (count + CirclesScene.size() > MaxCirclesCount) {
+			count = MaxCirclesCount - CirclesScene.size();
+		}
+		CirclesScene.reserve(CirclesScene.size() + count);
+
+		for (int i = 0; i < count; i++) {
+			Circle circle = {};
+			circle.Position = {
+				(static_cast<float>((rand() % 5000)) / 500.0f) - 1.0f,
+				(static_cast<float>((rand() % 5000)) / 500.0f) - 1.0f,
+				0.8f
+			};
+			circle.Size = { 0.1f, 0.1f };
+			circle.Colour = {
+				//TODO:: Easier & cleaner way of getting a random normalised RGB value
+				(1.0f / 255.0f) * static_cast<float>(rand() % static_cast<int>(TextureVulkan::COLOUR_MAX_VALUE)),
+				(1.0f / 255.0f) * static_cast<float>(rand() % static_cast<int>(TextureVulkan::COLOUR_MAX_VALUE)),
+				(1.0f / 255.0f) * static_cast<float>(rand() % static_cast<int>(TextureVulkan::COLOUR_MAX_VALUE)),
+				1.0f
+			};
+			circle.setTexture(*atlas);
+			circle.TextureCoords = atlas->getInnerTextureCoords(
+				rand() % atlas->getRowCount(),
+				rand() % atlas->getColCount()
+			);
+			
+			CirclesScene.emplace_back(circle);
+		}
+	}
+
+	void DemoLiciousAppLogic::ShapesDemo::CircleDemo::popScene(size_t count) {
+		ZoneScoped;
+
+		const size_t size = CirclesScene.size();
+		CirclesScene.resize(count > size ? 0 : size - count);
+	}
+	
+	void DemoLiciousAppLogic::ShapesDemo::init(SharedDemoResources& sharedResources) {
+		ZoneScoped;
+
+		mGridDemo = std::make_unique<GridDemo>();
+		mBouncingQuadDemo = std::make_unique<BouncingQuadDemo>();
+		mCircleDemo = std::make_unique<CircleDemo>();
+
+		mGridDemo->init(sharedResources);
+		mBouncingQuadDemo->init(sharedResources);
+		mCircleDemo->init(sharedResources);
+	}
+
+	void DemoLiciousAppLogic::ShapesDemo::close() {
+		ZoneScoped;
+
+		mGridDemo->close();
+		mBouncingQuadDemo->close();
+		mCircleDemo->close();
+
+		mGridDemo.release();
+		mBouncingQuadDemo.release();
+		mCircleDemo.release();
+	}
+
+	void DemoLiciousAppLogic::ShapesDemo::renderImGuiMainTab() {
+		ZoneScoped;
+
+		mGridDemo->renderImGuiMainTab();
+		mBouncingQuadDemo->renderImGuiMainTab();
+		mCircleDemo->renderImGuiMainTab();
+	}
+
+	void DemoLiciousAppLogic::ShapesDemo::renderImGuiExtras() {
+		ZoneScoped;
+
+		mGridDemo->renderImGuiExtras();
+		mBouncingQuadDemo->renderImGuiExtras();
+		mCircleDemo->renderImGuiExtras();
+	}
+
 	void DemoLiciousAppLogic::TextDemo::init(SharedDemoResources& sharedResources) {
 		ZoneScoped;
 
 		//Generate quads for default message
-		Text = std::make_unique<TextString>(
-			StringBuffer,
+		SoftMaskScene = std::make_unique<TextString>(
+			SoftMaskSceneStringBuffer,
 			TextRenderer::getFontBitmap(TextRenderer::ARIAL_SOFT_MASK_NAME)
 		);
 		
-		MsdfText = std::make_unique<TextString>(
-			MsdfStringBuffer,
+		MsdfTextScene = std::make_unique<TextString>(
+			MsdfSceneStringBuffer,
+			TextRenderer::getFontBitmap(TextRenderer::ARIAL_MSDF_NAME)
+		);
+
+		SoftMaskTextUi = std::make_unique<TextString>(
+			SoftMaskUiStringBuffer,
+			TextRenderer::getFontBitmap(TextRenderer::ARIAL_SOFT_MASK_NAME)
+		);
+
+		MsdfTextUi = std::make_unique<TextString>(
+			MsdfUiStringBuffer,
 			TextRenderer::getFontBitmap(TextRenderer::ARIAL_MSDF_NAME)
 		);
 	}
@@ -1167,59 +1387,89 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::TextDemo::close() {
 		ZoneScoped;
 
-		Text.release();
-		MsdfText.release();
+		SoftMaskScene.release();
+		MsdfTextScene.release();
+		SoftMaskTextUi.release();
+		MsdfTextUi.release();
 	}
 
 	void DemoLiciousAppLogic::TextDemo::renderImGuiMainTab() {
 		ZoneScoped;
 
-		if (ImGui::BeginTabItem("Text")) {
-			ImGui::Checkbox("Render", &Render);
+		ImGui::Checkbox("Render", &Render);
 
-			ImGui::Text("String length limit: %i", TextDemo::StringLengthLimit);
-			EditorGui::displayHelpTooltip(
-				R"(Larger strings can be displayed as the text renderer uses a Quad batch of size 10,000 (by default). )"
-				R"(The limitation is because ImGui InputText field requires extra implementation for dynamic data on the heap.)"
-			);
+		ImGui::Text("String length limit: %i", TextDemo::StringLengthLimit);
+		EditorGui::displayHelpTooltip(
+			R"(Larger strings can be displayed as the text renderer uses a Quad batch of size 10,000 (by default). )"
+			R"(The limitation is because ImGui InputText field requires extra implementation for dynamic data on the heap.)"
+		);
 
-			if (ImGui::InputTextMultiline("Display Text", StringBuffer, sizeof(StringBuffer))) {
-				Text->setString(StringBuffer);
+		//Soft Mask Scene
+		if (ImGui::InputTextMultiline("Display Text Scene", SoftMaskSceneStringBuffer, sizeof(SoftMaskSceneStringBuffer))) {
+			SoftMaskScene->setString(SoftMaskSceneStringBuffer);
+		}
+		float tempScale = SoftMaskScene->getScale();
+		if (ImGui::DragFloat("Text Scale", &tempScale, 0.05f, 0.0005f, 5.0f)) {
+			if (tempScale > 0.0f) {
+				SoftMaskScene->setScale(tempScale);
 			}
+		}
+		float tempRootPos[3] = { SoftMaskScene->Position.x, SoftMaskScene->Position.y, SoftMaskScene->Position.z };
+		if (ImGui::DragFloat3("Root Pos", tempRootPos, 0.05f, -10.0f, 10.0f)) {
+			SoftMaskScene->setRoot({ tempRootPos[0], tempRootPos[1], tempRootPos[2] });
+		}
 
-			float tempScale = Text->getScale();
-			if (ImGui::DragFloat("Text Scale", &tempScale, 0.05f, 0.0005f, 5.0f)) {
-				if (tempScale > 0.0f) {
-					Text->setScale(tempScale);
-				}
+		//MSDF Scene
+		if (ImGui::InputTextMultiline("MSDF Text Scene", MsdfSceneStringBuffer, sizeof(MsdfSceneStringBuffer))) {
+			MsdfTextScene->setString(MsdfSceneStringBuffer);
+		}
+		float tempMsdfScale = MsdfTextScene->getScale();
+		if (ImGui::DragFloat("MSDF Text Scene Scale", &tempMsdfScale, 0.05f, 0.0005f, 10.0f)) {
+			if (tempMsdfScale > 0.0f) {
+				MsdfTextScene->setScale(tempMsdfScale);
 			}
-			float tempRootPos[3] = { Text->Position.x, Text->Position.y, Text->Position.z };
-			if (ImGui::DragFloat3("Root Pos", tempRootPos, 0.05f, -10.0f, 10.0f)) {
-				Text->setRoot({ tempRootPos[0], tempRootPos[1], tempRootPos[2] });
-			}
+		}
+		float tempMsdfRootPos[3] = { MsdfTextScene->Position.x, MsdfTextScene->Position.y, MsdfTextScene->Position.z };
+		if (ImGui::DragFloat3("MSDF Root Pos", tempMsdfRootPos, 0.05f, -10.0f, 10.0f)) {
+			MsdfTextScene->setRoot({ tempMsdfRootPos[0], tempMsdfRootPos[1], tempMsdfRootPos[2] });
+		}
 
-			if (ImGui::ColorEdit4("String Colour", &Colour.x)) {
-				Text->setColour(Colour);
-				MsdfText->setColour(Colour);
+		ImGui::Text("UI Text");
+		//Soft Mask UI
+		if (ImGui::InputTextMultiline("Soft Mask UI Text", SoftMaskUiStringBuffer, sizeof(SoftMaskUiStringBuffer))) {
+			SoftMaskTextUi->setString(SoftMaskUiStringBuffer);
+		}
+		float tempSoftMaskUiScale = SoftMaskTextUi->getScale();
+		if (ImGui::DragFloat("Soft Mask UI Scale", &tempSoftMaskUiScale, 0.05f, 0.0005f, 10.0f)) {
+			if (tempSoftMaskUiScale > 0.0f) {
+				SoftMaskTextUi->setScale(tempSoftMaskUiScale);
 			}
+		}
+		float tempSoftMaskUiRootPos[3] = { SoftMaskTextUi->Position.x, SoftMaskTextUi->Position.y, SoftMaskTextUi->Position.z };
+		if (ImGui::DragFloat3("Soft Mask UI Root Pos", tempSoftMaskUiRootPos, 0.05f, -10.0f, 10.0f)) {
+			SoftMaskTextUi->setRoot({ tempSoftMaskUiRootPos[0], tempSoftMaskUiRootPos[1], tempSoftMaskUiRootPos[2] });
+		}
+		//MSDF UI
+		if (ImGui::InputTextMultiline("MSDF UI Text", MsdfUiStringBuffer, sizeof(MsdfUiStringBuffer))) {
+			MsdfTextUi->setString(MsdfUiStringBuffer);
+		}
+		float tempMsdfUiScale = MsdfTextUi->getScale();
+		if (ImGui::DragFloat("MSDF UI Scale", &tempMsdfUiScale, 0.05f, 0.0005f, 10.0f)) {
+			if (tempMsdfUiScale > 0.0f) {
+				MsdfTextUi->setScale(tempMsdfUiScale);
+			}
+		}
+		float tempMsdfUiRootPos[3] = { MsdfTextUi->Position.x, MsdfTextUi->Position.y, MsdfTextUi->Position.z };
+		if (ImGui::DragFloat3("MSDF UI Root Pos", tempMsdfUiRootPos, 0.05f, -10.0f, 10.0f)) {
+			MsdfTextUi->setRoot({ tempMsdfUiRootPos[0], tempMsdfUiRootPos[1], tempMsdfUiRootPos[2] });
+		}
 
-			if (ImGui::InputTextMultiline("MSDF Text", MsdfStringBuffer, sizeof(MsdfStringBuffer))) {
-				MsdfText->setString(MsdfStringBuffer);
-			}
-			float tempMsdfScale = MsdfText->getScale();
-			if (ImGui::DragFloat("Text MSDF Scale", &tempMsdfScale, 0.05f, 0.0005f, 10.0f)) {
-				if (tempMsdfScale > 0.0f) {
-					MsdfText->setScale(tempMsdfScale);
-				}
-			}
-			float tempMsdfRootPos[3] = { MsdfText->Position.x, MsdfText->Position.y, MsdfText->Position.z };
-			if (ImGui::DragFloat3("MSDF Root Pos", tempMsdfRootPos, 0.05f, -10.0f, 10.0f)) {
-				MsdfText->setRoot({ tempMsdfRootPos[0], tempMsdfRootPos[1], tempMsdfRootPos[2] });
-			}
-
-			EditorGui::infoAGeometry(*MsdfText, "MSDF String");
-
-			ImGui::EndTabItem();
+		//Colour for all strings, all strings (and even individual characters) can have separate colours, this is limited for brevity.
+		if (ImGui::ColorEdit4("String Colour", &Colour.x)) {
+			SoftMaskScene->setColour(Colour);
+			MsdfTextScene->setColour(Colour);
+			SoftMaskTextUi->setColour(Colour);
+			MsdfTextUi->setColour(Colour);
 		}
 	}
 
@@ -1254,64 +1504,60 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::LineDemo::renderImGuiMainTab() {
 		ZoneScoped;
 
-		if (ImGui::BeginTabItem("Line")) {
-			ImGui::Checkbox("Render", &Render);
-			ImGui::Checkbox("Render Text Demo Outlines", &RenderTextDemoOutlines);
-			ImGui::Checkbox("Render Ui Quad", &RenderUiQuad);
+		ImGui::Checkbox("Render", &Render);
+		ImGui::Checkbox("Render Text Demo Outlines", &RenderTextDemoOutlines);
+		ImGui::Checkbox("Render Ui Quad", &RenderUiQuad);
 
-			ImGui::Text("Scene Line Count: %i", LineRenderer::getSceneLineCount());
-			EditorGui::displayHelpTooltip("This includes lines created from \"Add Line Scene\" and from any draw{ Primitive }3d() function calls.");
-			ImGui::Text("UI Line Count: %i", LineRenderer::getUiLineCount());
-			EditorGui::displayHelpTooltip("This includes lines created from \"Add Line UI\" and from any draw{ Primitive }2d() function calls.");
+		ImGui::Text("Scene Line Count: %i", LineRenderer::getSceneLineCount());
+		EditorGui::displayHelpTooltip("This includes lines created from \"Add Line Scene\" and from any draw{ Primitive }3d() function calls.");
+		ImGui::Text("UI Line Count: %i", LineRenderer::getUiLineCount());
+		EditorGui::displayHelpTooltip("This includes lines created from \"Add Line UI\" and from any draw{ Primitive }2d() function calls.");
 
-			float lineData[LineDemo::LINE_3D_INPUT_COMPONENT_COUNT] = {};
-			for (int i = 0; i < LineDemo::LINE_3D_INPUT_COMPONENT_COUNT; i++) {
-				lineData[i] = LineDataInput[i];
-			}
-			ImGui::InputFloat3("Start", lineData);
-			ImGui::InputFloat3("End", &lineData[3]);
-			ImGui::ColorEdit4("Colour", &lineData[6]);
-			if (ImGui::Button("Add Line Scene")) {
-				if (lineData[0] != lineData[3] || lineData[1] != lineData[4] || lineData[2] != lineData[5]) {
-					addLine3d(
-						{ lineData[0], lineData[1], lineData[2] },
-						{ lineData[3], lineData[4], lineData[5] },
-						{ lineData[6], lineData[7], lineData[8], lineData[9] }
-					);
-				} else {
-					LOG_WARN("Line Start and End are at the same point, line has not been added.")
-				}
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Add Line UI")) {
-				if (lineData[0] != lineData[3] || lineData[1] != lineData[4]) {
-					addLine2d(
-						{ lineData[0], lineData[1] },
-						{ lineData[3], lineData[4] },
-						{ lineData[6], lineData[7], lineData[8], lineData[9] }
-					);
-				} else {
-					LOG_WARN("Line Start and End are at the same point, line has not been added.")
-				}
-			}
-			for (int i = 0; i < LineDemo::LINE_3D_INPUT_COMPONENT_COUNT; i++) {
-				LineDataInput[i] = lineData[i];
-			}
-			ImGui::InputInt("Pop count", &LinePopCount);
-			if (ImGui::Button("Pop Line(s) Scene")) {
-				popLines3d(LinePopCount);
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Pop Line(s) UI")) {
-				popLines2d(LinePopCount);
-			}
-			EditorGui::displayHelpTooltip("Only pops lines created from \"Add Line Scene/UI\", any created by draw{Primitive} calls are not affected.");
-
-			ImGui::Text("UI Quad");
-			EditorGui::controlsQuad(UiQuadTest, "Ui Quad");
-
-			ImGui::EndTabItem();
+		float lineData[LineDemo::LINE_3D_INPUT_COMPONENT_COUNT] = {};
+		for (int i = 0; i < LineDemo::LINE_3D_INPUT_COMPONENT_COUNT; i++) {
+			lineData[i] = LineDataInput[i];
 		}
+		ImGui::InputFloat3("Start", lineData);
+		ImGui::InputFloat3("End", &lineData[3]);
+		ImGui::ColorEdit4("Colour", &lineData[6]);
+		if (ImGui::Button("Add Line Scene")) {
+			if (lineData[0] != lineData[3] || lineData[1] != lineData[4] || lineData[2] != lineData[5]) {
+				addLine3d(
+					{ lineData[0], lineData[1], lineData[2] },
+					{ lineData[3], lineData[4], lineData[5] },
+					{ lineData[6], lineData[7], lineData[8], lineData[9] }
+				);
+			} else {
+				LOG_WARN("Line Start and End are at the same point, line has not been added.")
+			}
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Add Line UI")) {
+			if (lineData[0] != lineData[3] || lineData[1] != lineData[4]) {
+				addLine2d(
+					{ lineData[0], lineData[1] },
+					{ lineData[3], lineData[4] },
+					{ lineData[6], lineData[7], lineData[8], lineData[9] }
+				);
+			} else {
+				LOG_WARN("Line Start and End are at the same point, line has not been added.")
+			}
+		}
+		for (int i = 0; i < LineDemo::LINE_3D_INPUT_COMPONENT_COUNT; i++) {
+			LineDataInput[i] = lineData[i];
+		}
+		ImGui::InputInt("Pop count", &LinePopCount);
+		if (ImGui::Button("Pop Line(s) Scene")) {
+			popLines3d(LinePopCount);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Pop Line(s) UI")) {
+			popLines2d(LinePopCount);
+		}
+		EditorGui::displayHelpTooltip("Only pops lines created from \"Add Line Scene/UI\", any created by draw{Primitive} calls are not affected.");
+
+		ImGui::Text("UI Quad");
+		EditorGui::controlsQuad(UiQuadTest, "Ui Quad");
 	}
 
 	void DemoLiciousAppLogic::LineDemo::renderImGuiExtras() {
@@ -1374,55 +1620,51 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::BoundingBoxDemo::renderImGuiMainTab() {
 		ZoneScoped;
 
-		if (ImGui::BeginTabItem("Bounding Box")) {
-			ImGui::Checkbox("Render", &Render);
-			ImGui::Text("Quad Count: %i", Quads.size());
+		ImGui::Checkbox("Render", &Render);
+		ImGui::Text("Quad Count: %i", Quads.size());
 
-			ImGui::Text("Bounding Box");
-			EditorGui::infoQuad(BoundingBox->getQuad(), "BoundingBox");
+		ImGui::Text("Bounding Box");
+		EditorGui::infoQuad(BoundingBox->getQuad(), "BoundingBox");
 
-			ImGui::NewLine();
-			ImGui::Text("New Quad:");
-			EditorGui::controlsQuad(TempQuadToAdd, "QuadToAdd");
-			if (ImGui::Button("Add Quad")) {
-				if (TempQuadToAdd.Size.x != 0.0f && TempQuadToAdd.Size.y != 0.0f) {
+		ImGui::NewLine();
+		ImGui::Text("New Quad:");
+		EditorGui::controlsQuad(TempQuadToAdd, "QuadToAdd");
+		if (ImGui::Button("Add Quad")) {
+			if (TempQuadToAdd.Size.x != 0.0f && TempQuadToAdd.Size.y != 0.0f) {
 
-					Quads.emplace_back(TempQuadToAdd);
-					BoundingBox->resizeToFit(TempQuadToAdd);
-				} else {
-					LOG_WARN("New Quad must have a size.x & size.y greater than 0 to add to bounding box.");
-				}
+				Quads.emplace_back(TempQuadToAdd);
+				BoundingBox->resizeToFit(TempQuadToAdd);
+			} else {
+				LOG_WARN("New Quad must have a size.x & size.y greater than 0 to add to bounding box.");
 			}
-			ImGui::SameLine();
-			if (ImGui::Button("Pop Quad")) {
-				if (!Quads.empty()) {
-					Quads.pop_back();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Pop Quad")) {
+			if (!Quads.empty()) {
+				Quads.pop_back();
 
-					if (Quads.empty()) {
-						BoundingBox->reset();
-					} else {
-						//TODO:: very inefficient to re-calculate for all geo,
-						//	maybe include in box a vector of all geo
-						
-						//Since individual geo can't be removed from bounding box without potentially falsifying the bounding box pos & size
-						//a full reset is required to guarantee it is correct.
-						BoundingBox->reset();
-						for (Quad& quad : Quads) {
-							BoundingBox->resizeToFit(quad);
-						}
+				if (Quads.empty()) {
+					BoundingBox->reset();
+				} else {
+					//TODO:: very inefficient to re-calculate for all geo,
+					//	maybe include in box a vector of all geo
+					
+					//Since individual geo can't be removed from bounding box without potentially falsifying the bounding box pos & size
+					//a full reset is required to guarantee it is correct.
+					BoundingBox->reset();
+					for (Quad& quad : Quads) {
+						BoundingBox->resizeToFit(quad);
 					}
 				}
 			}
-			if (ImGui::Button("Reset")) {
-				BoundingBox->reset();
-				Quads.clear();
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Reset New Quad")) {
-				TempQuadToAdd = {};
-			}
-
-			ImGui::EndTabItem();
+		}
+		if (ImGui::Button("Reset")) {
+			BoundingBox->reset();
+			Quads.clear();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Reset New Quad")) {
+			TempQuadToAdd = {};
 		}
 	}
 
@@ -1444,7 +1686,7 @@ namespace DOH::EDITOR {
 		PreviewQuad = { { 0.0f, -1.0f, 1.0f }, { 2.0f, 2.0f }, { 1.f, 1.0f, 1.0f, 1.0f }, 0.0f, texAtlas };
 		PreviewQuad.setTexture(*texAtlas);
 
-		AnimatedQuad = { { -2.0f, -1.0f, 1.0f }, { 2.0f, 2.0f }, { 1.f, 1.0f, 1.0f, 1.0f }, 0.0f, texAtlas, PreviewAnimationController->getCurrentInnerTexture().TextureCoords };
+		AnimatedQuad = { { -2.0f, -1.0f, 1.0f }, { 2.0f, 2.0f }, { 1.f, 1.0f, 1.0f, 1.0f }, 0.0f, texAtlas, PreviewAnimationController->getCurrentInnerTexture().getTexCoordsAsSquare() };
 		AnimatedQuad.setTexture(*texAtlas);
 	}
 
@@ -1455,50 +1697,46 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::TileMapDemo::renderImGuiMainTab() {
 		ZoneScoped;
 
-		if (ImGui::BeginTabItem("Tile Map")) {
-			ImGui::Checkbox("Render", &Render);
-			ImGui::Checkbox("Update", &Update);
-			ImGui::Checkbox("Render Preview Quad", &RenderPreviewQuad);
+		ImGui::Checkbox("Render", &Render);
+		ImGui::Checkbox("Update", &Update);
+		ImGui::Checkbox("Render Preview Quad", &RenderPreviewQuad);
 
-			if (ImGui::Button("View Texture Atlas")) {
-				EditorGui::openIndexedTextureAtlasViewerWindow(*ShapeRenderer::getTestIndexedTextureAtlas());
+		if (ImGui::Button("View Texture Atlas")) {
+			EditorGui::openIndexedTextureAtlasViewerWindow(*ShapeRenderer::getTestIndexedTextureAtlas());
+		}
+
+		EditorGui::controlsQuad(PreviewQuad, "PreviewQuad");
+
+		ImGui::Text("Inner Textures");
+
+		for (const auto& innerTexture : SceneTileMap->getTextureAtlas().getInnerTextures()) {
+			const char* texName = innerTexture.first.c_str();
+			bool previewButton = texName == PreviewedInnerTexture;
+			if (previewButton) {
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.5f, 0.0f, 1.0f));
 			}
-
-			EditorGui::controlsQuad(PreviewQuad, "PreviewQuad");
-
-			ImGui::Text("Inner Textures");
-
-			for (const auto& innerTexture : SceneTileMap->getTextureAtlas().getInnerTextures()) {
-				const char* texName = innerTexture.first.c_str();
-				bool previewButton = texName == PreviewedInnerTexture;
-				if (previewButton) {
-					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.5f, 0.0f, 1.0f));
-				}
-				if (ImGui::Button(innerTexture.first.c_str())) {
-					PreviewedInnerTexture = innerTexture.first.c_str();
-					PreviewQuad.TextureCoords = innerTexture.second.TextureCoords;
-				}
-				if (previewButton) {
-					ImGui::PopStyleColor(1);
-				}
+			if (ImGui::Button(innerTexture.first.c_str())) {
+				PreviewedInnerTexture = innerTexture.first.c_str();
+				PreviewQuad.TextureCoords = innerTexture.second.getTexCoordsAsSquare();
 			}
-
-			if (ImGui::Button("Reset Preview")) {
-				PreviewQuad.TextureCoords = Quad::DEFAULT_TEXTURE_COORDS;
-				PreviewedInnerTexture = "NONE";
+			if (previewButton) {
+				ImGui::PopStyleColor(1);
 			}
+		}
 
-			ImGui::Text("Animation");
-			const bool isPlaying = PreviewAnimationController->isPlaying();
-			if (ImGui::Button(isPlaying ? "Pause" : "Play")) {
-				PreviewAnimationController->setPlaying(!isPlaying);
-			}
-			if (ImGui::Button("Reset Animation")) {
-				PreviewAnimationController->reset();
-				AnimatedQuad.TextureCoords = PreviewAnimationController->getCurrentInnerTexture().TextureCoords;
-			}
+		if (ImGui::Button("Reset Preview")) {
+			PreviewQuad.TextureCoords = Quad::DEFAULT_TEXTURE_COORDS;
+			PreviewedInnerTexture = "NONE";
+		}
 
-			ImGui::EndTabItem();
+		ImGui::Text("Animation");
+		const bool isPlaying = PreviewAnimationController->isPlaying();
+		if (ImGui::Button(isPlaying ? "Pause" : "Play")) {
+			PreviewAnimationController->setPlaying(!isPlaying);
+		}
+		if (ImGui::Button("Reset Animation")) {
+			PreviewAnimationController->reset();
+			AnimatedQuad.TextureCoords = PreviewAnimationController->getCurrentInnerTexture().getTexCoordsAsSquare();
 		}
 	}
 

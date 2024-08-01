@@ -31,7 +31,6 @@ namespace DOH::EDITOR {
 	};
 
 	class EditorInputLayer : public AInputLayer {
-	
 	public:
 		constexpr static const char* EDITOR_INPUT_LAYER_NAME = "DOH Editor";
 
@@ -61,7 +60,6 @@ namespace DOH::EDITOR {
 	};
 
 	class EditorAppLogic : public IApplicationLogic {
-
 	private:
 		struct EditorSettings {
 			//ImGui window rendering controls

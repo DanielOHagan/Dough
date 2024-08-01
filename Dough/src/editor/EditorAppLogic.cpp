@@ -415,16 +415,19 @@ UPS displayed is the count of frames in the last full second interval)"
 				ImGui::Text("Batch Renderer Info:");
 				ImGui::Text("Quads Drawn: %i", ShapeRenderer::getDrawnQuadCount());
 				ImGui::Text("Quads Truncated: %i", ShapeRenderer::getTruncatedQuadCount());
-				ImGui::Text("Quad Batch Max Size: %i", EBatchSizeLimits::BATCH_MAX_GEO_COUNT_QUAD);
+				ImGui::Text("Quad Batch Max Size: %i", EBatchSizeLimits::QUAD_BATCH_MAX_GEO_COUNT);
 				ImGui::Text(
 					"Quad Batch Count: %i of Max %i",
 					ShapeRenderer::getQuadBatchCount(),
-					EBatchSizeLimits::MAX_BATCH_COUNT_QUAD
+					EBatchSizeLimits::QUAD_MAX_BATCH_COUNT
 				);
-				uint32_t quadBatchIndex = 0;
-				for (RenderBatchQuad& batch : ShapeRenderer::getQuadRenderBatches()) {
-					ImGui::Text("Batch: %i Geo Count: %i", quadBatchIndex, batch.getGeometryCount());
-					quadBatchIndex++;
+				for (uint32_t i = 0; i < ShapeRenderer::getQuadSceneBatchCount(); i++) {
+					RenderBatchQuad& batch = *ShapeRenderer::getQuadSceneRenderBatches()[i];
+					ImGui::Text("Scene Batch: %i Geo Count: %i", i, batch.getGeometryCount());
+				}
+				for (uint32_t i = 0; i < ShapeRenderer::getQuadUiBatchCount(); i++) {
+					RenderBatchQuad& batch = *ShapeRenderer::getQuadUiRenderBatches()[i];
+					ImGui::Text("UI Batch: %i Geo Count: %i", i, batch.getGeometryCount());
 				}
 				ImGui::Text("Text Batches Geo Count: %i", TextRenderer::getDrawnQuadCount());
 				//TODO:: debug info when multiple texture arrays are supported
@@ -436,16 +439,20 @@ UPS displayed is the count of frames in the last full second interval)"
 				ImGui::Text(
 					"Texture Array: %i Texture Count: %i",
 					0,
-					ShapeRenderer::getQuadBatchTextureArray().getTextureSlots().size()
+					ShapeRenderer::getShapesTextureArray().getTextureSlots().size()
 				);
-				if (ImGui::Button("View Quad Batch Texture Array")) {
-					EditorGui::openTextureArrayViewerWindow("Quad Batch Texture Array", ShapeRenderer::getQuadBatchTextureArray());
+				if (ImGui::Button("View Shape Renderer Texture Array")) {
+					EditorGui::openTextureArrayViewerWindow("Shape Renderer Texture Array", ShapeRenderer::getShapesTextureArray());
 				}
 
 				if (ImGui::Button("Close All Empty Quad Batches")) {
 					ShapeRenderer::closeEmptyQuadBatches();
 				}
 				EditorGui::displayHelpTooltip("Close Empty Quad Batches. This can help clean-up when 1 or more batches have geo counts of 0. Does not include the TextQuad batch.");
+				if (ImGui::Button("Close All Empty Circle Batches")) {
+					ShapeRenderer::closeEmptyCircleBatches();
+				}
+				EditorGui::displayHelpTooltip("Close Empty Circle Batches. This can help clean-up when 1 or more batches have geo counts of 0.");
 			}
 
 			ImGui::SetNextItemOpen(mEditorSettings->InnerAppCollapseMenu);

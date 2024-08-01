@@ -284,6 +284,24 @@ namespace DOH::EDITOR {
 		//TODO:: Texture Coord edit?
 	}
 
+	void EditorGui::imGuiControlsCircleImpl(Circle& circle, const char* name) {
+		imGuiControlsAGeometryImpl(circle, name);
+
+		std::string colourLabel = "Colour##";
+		colourLabel.append(name);
+		ImGui::ColorEdit4(colourLabel.c_str(), glm::value_ptr(circle.Colour));
+		const char* text = (circle.hasTexture() ? circle.getTexture().getName().c_str() : "No Texture");
+		ImGui::Text("Texture: %s", text);
+		//TODO:: Texture Coord edit?
+
+		std::string thicknessLabel = "Thickness##";
+		thicknessLabel.append(name);
+		ImGui::DragFloat(thicknessLabel.c_str(), &circle.Decorations.x, 0.005f, 0.0f, 1.0f);
+		std::string fadeLabel = "Fade##";
+		fadeLabel.append(name);
+		ImGui::DragFloat(fadeLabel.c_str(), &circle.Decorations.y, 0.005f, 0.0001f, 1.0f);
+	}
+
 	void EditorGui::imGuiInfoAGeometryImpl(AGeometry& geo, const char* name) {
 		ImGui::Text("Pos: X: %f, Y: %f, Z: %f", geo.Position.x, geo.Position.y, geo.Position.z);
 		ImGui::Text("Size: W: %f, H: %f", geo.Size.x, geo.Size.y);
@@ -303,12 +321,30 @@ namespace DOH::EDITOR {
 		const char* text = (quad.hasTexture() ? quad.getTexture().getName().c_str() : "No Texture");
 		ImGui::Text("Texture: %s", text);
 		ImGui::TextWrapped(
-			"Texture Coords: %f, %f, %f, %f, %f, %f, %f, %f",
+			"Texture Coords: bl.x %f, bl.y %f, tr.x %f, tr.y %f",
 			quad.TextureCoords[0], quad.TextureCoords[1],
-			quad.TextureCoords[2], quad.TextureCoords[3],
-			quad.TextureCoords[4], quad.TextureCoords[5],
-			quad.TextureCoords[6], quad.TextureCoords[7]
+			quad.TextureCoords[2], quad.TextureCoords[3]
 		);
+	}
+
+	void EditorGui::imGuiInfoCircleImpl(Circle& circle, const char* name) {
+		imGuiInfoAGeometryImpl(circle, name);
+
+		float tempColour[4] = { circle.Colour.r, circle.Colour.g, circle.Colour.b, circle.Colour.a };
+		std::string colourLabel = "Colour##";
+		colourLabel.append(name);
+		ImGui::ColorEdit4(colourLabel.c_str(), tempColour);
+		EditorGui::displayHelpTooltip("ImGui doesn't have a non-edit colour picker, this doesn't change the actual colour value/");
+
+		const char* text = (circle.hasTexture() ? circle.getTexture().getName().c_str() : "No Texture");
+		ImGui::Text("Texture: %s", text);
+		ImGui::TextWrapped(
+			"Texture Coords: bl.x %f, bl.y %f, tr.x %f, tr.y %f",
+			circle.TextureCoords[0], circle.TextureCoords[1],
+			circle.TextureCoords[2], circle.TextureCoords[3]
+		);
+
+		//TODO:: Decorations
 	}
 
 	void EditorGui::imGuiJsonElementImpl(JsonElement& element, const char* name) {

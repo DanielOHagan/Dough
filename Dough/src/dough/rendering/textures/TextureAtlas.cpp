@@ -21,31 +21,23 @@ namespace DOH {
 		mNormalisedInnerTextureHeight(1.0f / mColCount)
 	{}
 
-	std::array<float, 8> MonoSpaceTextureAtlas::getInnerTextureCoords(const uint32_t row, const uint32_t col) const {
+	std::array<float, 4> MonoSpaceTextureAtlas::getInnerTextureCoords(const uint32_t row, const uint32_t col) const {
 		const glm::vec2 origin = getInnerTextureCoordsOrigin(row, col);
 
-		std::array<float, 8> arr = {
-			//Top Left
+		std::array<float, 4> arr = {
+			//Bottom Left
 			origin.x,
 			origin.y + mNormalisedInnerTextureHeight,
 
 			//Top Right
 			origin.x + mNormalisedInnerTextureWidth,
-			origin.y + mNormalisedInnerTextureHeight,
-
-			//Bottom Right
-			origin.x + mNormalisedInnerTextureWidth,
-			origin.y,
-
-			//Bottom Left
-			origin.x,
 			origin.y
 		};
 
 		return arr;
 	}
 
-	std::array<float, 8> MonoSpaceTextureAtlas::getInnerTextureCoords(
+	std::array<float, 4> MonoSpaceTextureAtlas::getInnerTextureCoords(
 		const uint32_t rowTop,
 		const uint32_t rowBot,
 		const uint32_t colLeft,
@@ -53,21 +45,13 @@ namespace DOH {
 	) const {
 		const glm::vec2 origin = getInnerTextureCoordsOrigin(rowTop, colLeft);
 
-		std::array<float, 8> arr = {
-			//Top Left
+		std::array<float, 4> arr = {
+			//Bottom Left
 			origin.x,
 			origin.y + (rowBot * mNormalisedInnerTextureHeight),
 
 			//Top Right
 			origin.x + (colRight * mNormalisedInnerTextureWidth),
-			origin.y + (rowBot * mNormalisedInnerTextureHeight),
-
-			//Bottom Right
-			origin.x + (colRight * mNormalisedInnerTextureWidth),
-			origin.y,
-
-			//Bottom Left
-			origin.x,
 			origin.y
 		};
 
