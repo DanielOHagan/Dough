@@ -199,7 +199,7 @@ namespace DOH::EDITOR {
 					#endif
 					ImGui::TextColored(tracyProfilingEnabled ? ImVec4(0, 1, 0, 1) : ImVec4(1, 0, 0, 1), tracyProfilingEnabled ? "ENABLED" : "NOT ENABLED");
 					if (!tracyProfilingEnabled) {
-						EditorGui::displayHelpTooltip("Tracy Profiling is only enabled in \"Production\" build config.");
+						EditorGui::displayHelpTooltip("Tracy Profiling is only enabled in \"TRACING\" build config.");
 					}
 				}
 				ImGui::Text("Current and Target FPS/UPS");

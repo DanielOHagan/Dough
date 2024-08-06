@@ -32,7 +32,7 @@ namespace DOH {
 
 			#if defined (_DEBUG)
 				config = 1;
-			#elif defined(_PRODUCTION)
+			#elif defined(_TRACING)
 				config = 2;
 			#elif defined (_RELEASE)
 				config = 3;
@@ -41,7 +41,7 @@ namespace DOH {
 			if (config == 1) {
 				LOGLN_CYAN("Config: DEBUG");
 			} else if (config == 2) {
-				LOGLN_CYAN("Config: PRODUCTION");
+				LOGLN_CYAN("Config: TRACING");
 			} else if (config == 3) {
 				LOGLN_CYAN("Config: RELEASE");
 			} else {

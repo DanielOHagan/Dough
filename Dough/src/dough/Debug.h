@@ -3,7 +3,7 @@
 #include "dough/Logging.h"
 
 //NOTE:: static members that alloc heap memory do not free it before DEBUG_MEM_DUMP is called in Main.cpp
-#if not defined DOH_DEBUG_DEFINES_EMPTY
+#ifndef DOH_DEBUG_DEFINES_EMPTY
 	#ifdef DOH_DEBUG_MEM_USE_CRT
 		#define _CRTDBG_MAP_ALLOC
 		#include <stdlib.h>

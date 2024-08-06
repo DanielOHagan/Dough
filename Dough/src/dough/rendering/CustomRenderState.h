@@ -10,7 +10,7 @@ namespace DOH {
 
 	/** 
 	* TODO::
-	*	Allow for an optimised version of this for production runtime. No map, only an array for enabled pipelines
+	*	Allow for an optimised version of this for release runtime. No map, only an array for enabled pipelines
 	*	(maybe a separate one for disabled ones).
 	*
 	*/

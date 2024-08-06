@@ -6,7 +6,7 @@
 #endif
 
 //TODO:: 
-// Should PRODUCTION use colours or not?
+// Should TRACING use colours or not?
 // 
 //	Make DOH_LOG_XXX for short term, for namespace clashing risks
 //	
@@ -23,8 +23,7 @@
 #define LNLOG(message)	std::cout << std::endl << message;
 #define LOG_ENDL		std::cout << std::endl;
 
-#if defined (_DEBUG)
-
+#ifdef _DEBUG
 	//Add colour prefixes & suffixes to log messages on windows terminals
 	#if defined (DOH_PLATFORM_WINDOWS_64)
 		
@@ -192,7 +191,7 @@
 namespace DOH {
 	static void displaySampleLogText() {
 
-		#if not defined (DOH_LOG_STYLED_ENABLED)
+		#ifndef DOH_LOG_STYLED_ENABLED
 			LOGLN("Styled logging not available");
 		#endif
 
@@ -240,7 +239,7 @@ namespace DOH {
 	}
 }
 
-#if defined (_DEBUG)
+#ifdef _DEBUG
 	#define DISPLAY_SAMPLE_LOG_TEXT DOH::displaySampleLogText();
 #else
 	#define DISPLAY_SAMPLE_LOG_TEXT ()
