@@ -11,10 +11,10 @@ namespace DOH {
 
 	std::unique_ptr<TextRenderer> TextRenderer::INSTANCE = nullptr;
 
-	const char* TextRenderer::SOFT_MASK_SHADER_PATH_VERT = "Dough/res/shaders/spv/TextSoftMask3d.vert.spv";
-	const char* TextRenderer::SOFT_MASK_SHADER_PATH_FRAG = "Dough/res/shaders/spv/TextSoftMask3d.frag.spv";
-	const char* TextRenderer::MSDF_SHADER_PATH_VERT = "Dough/res/shaders/spv/TextMsdf3d.vert.spv";
-	const char* TextRenderer::MSDF_SHADER_PATH_FRAG = "Dough/res/shaders/spv/TextMsdf3d.frag.spv";
+	const char* TextRenderer::SOFT_MASK_SHADER_PATH_VERT = "Dough/Dough/res/shaders/spv/TextSoftMask3d.vert.spv";
+	const char* TextRenderer::SOFT_MASK_SHADER_PATH_FRAG = "Dough/Dough/res/shaders/spv/TextSoftMask3d.frag.spv";
+	const char* TextRenderer::MSDF_SHADER_PATH_VERT = "Dough/Dough/res/shaders/spv/TextMsdf3d.vert.spv";
+	const char* TextRenderer::MSDF_SHADER_PATH_FRAG = "Dough/Dough/res/shaders/spv/TextMsdf3d.frag.spv";
 
 	TextRenderer::TextRenderer(RenderingContextVulkan& context)
 	:	mContext(context),
@@ -81,8 +81,8 @@ namespace DOH {
 		{ //Load fonts
 			bool createdDefaultFont = createFontBitmapImpl(
 				TextRenderer::ARIAL_SOFT_MASK_NAME,
-				"Dough/res/fonts/arial_latin_32px.fnt",
-				"Dough/res/fonts/",
+				"Dough/Dough/res/fonts/arial_latin_32px.fnt",
+				"Dough/Dough/res/fonts/",
 				ETextRenderMethod::SOFT_MASK
 			);
 
@@ -92,8 +92,8 @@ namespace DOH {
 
 			bool createdMsdfFont = createFontBitmapImpl(
 				TextRenderer::ARIAL_MSDF_NAME,
-				"Dough/res/fonts/arial_msdf_32px_meta.json",
-				"Dough/res/fonts/",
+				"Dough/Dough/res/fonts/arial_msdf_32px_meta.json",
+				"Dough/Dough/res/fonts/",
 				ETextRenderMethod::MSDF
 			);
 

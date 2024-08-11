@@ -9,10 +9,10 @@
 namespace DOH {
 
 	std::unique_ptr<ShapeRenderer> ShapeRenderer::INSTANCE = nullptr;
-	const char* ShapeRenderer::QUAD_SHADER_PATH_VERT = "Dough/res/shaders/spv/QuadBatch.vert.spv";
-	const char* ShapeRenderer::QUAD_SHADER_PATH_FRAG = "Dough/res/shaders/spv/QuadBatch.frag.spv";
-	const char* ShapeRenderer::CIRCLE_SHADER_PATH_VERT = "Dough/res/shaders/spv/CircleBatch.vert.spv";
-	const char* ShapeRenderer::CIRCLE_SHADER_PATH_FRAG = "Dough/res/shaders/spv/CircleBatch.frag.spv";
+	const char* ShapeRenderer::QUAD_SHADER_PATH_VERT = "Dough/Dough/res/shaders/spv/QuadBatch.vert.spv";
+	const char* ShapeRenderer::QUAD_SHADER_PATH_FRAG = "Dough/Dough/res/shaders/spv/QuadBatch.frag.spv";
+	const char* ShapeRenderer::CIRCLE_SHADER_PATH_VERT = "Dough/Dough/res/shaders/spv/CircleBatch.vert.spv";
+	const char* ShapeRenderer::CIRCLE_SHADER_PATH_FRAG = "Dough/Dough/res/shaders/spv/CircleBatch.frag.spv";
 
 	ShapeRenderer::ShapeRenderer(RenderingContextVulkan& context)
 	:	mContext(context),
@@ -36,13 +36,13 @@ namespace DOH {
 			mTextureArray->addNewTexture(*mContext.getResourceDefaults().WhiteTexture);
 
 			mTestMonoSpaceTextureAtlas = mContext.createMonoSpaceTextureAtlas(
-				"Dough/res/images/test textures/texturesAtlas.png",
+				"Dough/Dough/res/images/test textures/texturesAtlas.png",
 				5,
 				5
 			);
 			mTestIndexedTextureAtlas = mContext.createIndexedTextureAtlas(
-				"Dough/res/images/textureAtlasses/indexed_testAtlas.txt",
-				"Dough/res/images/textureAtlasses/"
+				"Dough/Dough/res/images/textureAtlasses/indexed_testAtlas.txt",
+				"Dough/Dough/res/images/textureAtlasses/"
 			);
 
 			mTextureArray->addNewTexture(*mTestMonoSpaceTextureAtlas);

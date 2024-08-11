@@ -44,8 +44,8 @@ namespace DOH::EDITOR {
 
 			PipelineRenderableConveyor TexturedConveyor;
 
-			const char* TestTexturePath = "Dough/res/images/testTexture.jpg";
-			const char* TestTexture2Path = "Dough/res/images/testTexture2.jpg";
+			const char* TestTexturePath = "Dough/Dough/res/images/testTexture.jpg";
+			const char* TestTexture2Path = "Dough/Dough/res/images/testTexture2.jpg";
 			std::shared_ptr<TextureVulkan> TestTexture1;
 			std::shared_ptr<TextureVulkan> TestTexture2;
 			VkDescriptorSet TestTexture1DescSet = VK_NULL_HANDLE;
@@ -71,15 +71,15 @@ namespace DOH::EDITOR {
 
 			//Models using EVertexType::VERTEX_3D
 			const std::array<const char*, 4> ObjModelFilePaths = {
-				"Dough/res/models/testCube.obj",
-				"Dough/res/models/spoon.obj",
-				"Dough/res/models/teacup.obj",
-				"Dough/res/models/teapot.obj"
+				"Dough/Dough/res/models/testCube.obj",
+				"Dough/Dough/res/models/spoon.obj",
+				"Dough/Dough/res/models/teacup.obj",
+				"Dough/Dough/res/models/teapot.obj"
 			};
 			const uint32_t DefaultObjFilePathIndex = 0;
 
-			const char* FlatColourShaderVertPath = "Dough/res/shaders/spv/FlatColour.vert.spv";
-			const char* FlatColourShaderFragPath = "Dough/res/shaders/spv/FlatColour.frag.spv";
+			const char* FlatColourShaderVertPath = "Dough/Dough/res/shaders/spv/FlatColour.vert.spv";
+			const char* FlatColourShaderFragPath = "Dough/Dough/res/shaders/spv/FlatColour.frag.spv";
 			const char* ScenePipelineName = "ObjScene";
 			const char* SceneWireframePipelineName = "ObjWireframe";
 			const StaticVertexInputLayout& ColouredVertexInputLayout = StaticVertexInputLayout::get(EVertexType::VERTEX_3D);
@@ -169,8 +169,8 @@ namespace DOH::EDITOR {
 				4, 5, 6, 6, 7, 4
 			};
 
-			const char* UiShaderVertPath = "Dough/res/shaders/spv/SimpleUi.vert.spv";
-			const char* UiShaderFragPath = "Dough/res/shaders/spv/SimpleUi.frag.spv";
+			const char* UiShaderVertPath = "Dough/Dough/res/shaders/spv/SimpleUi.vert.spv";
+			const char* UiShaderFragPath = "Dough/Dough/res/shaders/spv/SimpleUi.frag.spv";
 			const std::vector<Vertex2d> UiVertices = {
 				//	x		y			r		g		b		a
 				{{	-1.0f,	-0.90f},	{0.0f,	1.0f,	0.0f,	1.0f}},	//bot-left

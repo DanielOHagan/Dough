@@ -11,7 +11,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tinyobjloader/tiny_obj_loader.h>
 //Required for hash function
-#define GLM_ENABLE_EXPERIMENTAL
+//#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
 
 #include <tracy/public/tracy/Tracy.hpp>

@@ -11,10 +11,10 @@ namespace DOH {
 
 	std::unique_ptr<LineRenderer> LineRenderer::INSTANCE = nullptr;
 
-	const char* LineRenderer::SCENE_LINE_SHADER_PATH_VERT = "Dough/res/shaders/spv/LineRenderer3d.vert.spv";
-	const char* LineRenderer::SCENE_LINE_SHADER_PATH_FRAG = "Dough/res/shaders/spv/LineRenderer3d.frag.spv";
-	const char* LineRenderer::UI_LINE_SHADER_PATH_VERT = "Dough/res/shaders/spv/LineRenderer2d.vert.spv";
-	const char* LineRenderer::UI_LINE_SHADER_PATH_FRAG = "Dough/res/shaders/spv/LineRenderer2d.frag.spv";
+	const char* LineRenderer::SCENE_LINE_SHADER_PATH_VERT = "Dough/Dough/res/shaders/spv/LineRenderer3d.vert.spv";
+	const char* LineRenderer::SCENE_LINE_SHADER_PATH_FRAG = "Dough/Dough/res/shaders/spv/LineRenderer3d.frag.spv";
+	const char* LineRenderer::UI_LINE_SHADER_PATH_VERT = "Dough/Dough/res/shaders/spv/LineRenderer2d.vert.spv";
+	const char* LineRenderer::UI_LINE_SHADER_PATH_FRAG = "Dough/Dough/res/shaders/spv/LineRenderer2d.frag.spv";
 
 	LineRenderer::LineRenderer(RenderingContextVulkan& context)
 	:	mContext(context)
