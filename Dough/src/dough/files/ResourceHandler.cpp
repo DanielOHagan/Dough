@@ -6,12 +6,9 @@
 #include "dough/files/readers/JsonFileReader.h"
 #include "dough/files/readers/IndexedAtlasInfoFileReader.h"
 
-#define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
-#define TINYOBJLOADER_IMPLEMENTATION
 #include <tinyobjloader/tiny_obj_loader.h>
 //Required for hash function
-//#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
 
 #include <tracy/public/tracy/Tracy.hpp>
