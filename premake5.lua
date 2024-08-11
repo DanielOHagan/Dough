@@ -16,14 +16,11 @@ elseif _ACTION == "vs2022" then
 end
 
 if glfwTargetVcVersion == "null" then
-	print("VS versions 12, 13, 15, 17, 19, 22 are currently the only actions supported. Given action: " .._ACTION)
+	print("VS versions 12, 13, 15, 17, 19, 22 are currently the only actions supported. Given action: " .. _ACTION)
 	os.exit()
 end
 
-
-
 --Libs--
-
 --Static libs
 GLFW_LABEL = "GLFW"
 GLFW_DIR = "%{wks.location}/Dough/Dough/libs/glfw-3.3.8.bin.WIN64/"
