@@ -45,7 +45,7 @@ namespace DOH {
 		std::shared_ptr<DescriptorSetsInstanceVulkan> mShapesDescSetsInstance;
 
 		//TEMP:: Leftover from when rebinding descriptors was not available. Need to move this into demo code.
-		const char* testTexturesPath = "Dough/res/images/test textures/";
+		const char* testTexturesPath = "Dough/Dough/res/images/test textures/";
 		//std::vector<std::shared_ptr<TextureVulkan>> mTestTextures;
 		std::shared_ptr<MonoSpaceTextureAtlas> mTestMonoSpaceTextureAtlas;
 		std::shared_ptr<IndexedTextureAtlas> mTestIndexedTextureAtlas;

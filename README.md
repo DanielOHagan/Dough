@@ -19,6 +19,9 @@ I hope to include a much nicer automated version check and install script for sa
 - [Tracy Profiler](https://github.com/wolfpld/tracy)
 - [Premake](https://premake.github.io/) - Used to build workspace/solution files.
 
+## Getting Started
+This repository just includes the engine and is required components. To find out how to get started go to https://github.com/DanielOHagan/DoughTemplate.
+
 ## Preview Images
 Here are a few images showing some of the features currently available:
 ![Text preview](Dough/previewImages/text_preview.png "Soft Mask and MSDF text rendering.")

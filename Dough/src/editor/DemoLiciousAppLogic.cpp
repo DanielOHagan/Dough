@@ -12,8 +12,8 @@
 
 namespace DOH::EDITOR {
 
-	const char* DemoLiciousAppLogic::SharedDemoResources::TexturedShaderVertPath = "Dough/res/shaders/spv/Textured.vert.spv";
-	const char* DemoLiciousAppLogic::SharedDemoResources::TexturedShaderFragPath = "Dough/res/shaders/spv/Textured.frag.spv";
+	const char* DemoLiciousAppLogic::SharedDemoResources::TexturedShaderVertPath = "Dough/Dough/res/shaders/spv/Textured.vert.spv";
+	const char* DemoLiciousAppLogic::SharedDemoResources::TexturedShaderFragPath = "Dough/Dough/res/shaders/spv/Textured.frag.spv";
 
 	void DemoLiciousAppLogic::init(float aspectRatio) {
 		ZoneScoped;
@@ -620,7 +620,7 @@ namespace DOH::EDITOR {
 			*SceneWireframePipelineInfo
 		);
 
-		TexturedModel = ModelVulkan::createModel("Dough/res/models/textured_cube.obj", TexturedVertexInputLayout);
+		TexturedModel = ModelVulkan::createModel("Dough/Dough/res/models/textured_cube.obj", TexturedVertexInputLayout);
 		std::initializer_list<VkDescriptorSet> descSets = { VK_NULL_HANDLE, sharedResources.TestTexture1DescSet };
 		TexturedModelDescriptorSets = std::make_shared<DescriptorSetsInstanceVulkan>(descSets);
 		RenderableTexturedModel = std::make_shared<RenderableModelVulkan>("TexturedObjModel", TexturedModel, TexturedModelDescriptorSets);

@@ -1,8 +1,6 @@
 #pragma once
 
-#define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan_core.h>
-#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 
 #include <iostream>

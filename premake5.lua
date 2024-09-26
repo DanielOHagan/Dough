@@ -16,101 +16,111 @@ elseif _ACTION == "vs2022" then
 end
 
 if glfwTargetVcVersion == "null" then
-	print("VS versions 12, 13, 15, 17, 19, 22 are currently the only actions supported. Given action: " .._ACTION)
+	print("VS versions 12, 13, 15, 17, 19, 22 are currently the only actions supported. Given action: " .. _ACTION)
 	os.exit()
 end
 
-workspace("Dough")
+--Libs--
+--Static libs
+GLFW_LABEL = "GLFW"
+GLFW_DIR = "%{wks.location}/Dough/Dough/libs/glfw-3.3.8.bin.WIN64/"
 
-	--Libs--
+VULKAN_LABEL = "Vulkan"
+VULKAN_DIR = "%{wks.location}/Dough/Dough/libs/Vulkan/"
 
-	--Static libs
-	GLFW_LABEL = "GLFW"
-	GLFW_DIR = "Dough/libs/glfw-3.3.8.bin.WIN64/"
+--Build from source libs
+GLM_LABEL = "GLM"
+GLM_DIR = "%{wks.location}/Dough/Dough/libs/glm/"
 
-	VULKAN_LABEL = "Vulkan"
-	VULKAN_DIR = "Dough/libs/Vulkan/"
+STB_LABEL = "STB"
+STB_DIR = "%{wks.location}/Dough/Dough/libs/stb/"
 
-	--Build from source libs
-	GLM_LABEL = "GLM"
-	GLM_DIR = "Dough/libs/glm/"
+IMGUI_LABEL = "ImGUI"
+IMGUI_DIR = "%{wks.location}/Dough/Dough/libs/imgui/"
 
-	STB_LABEL = "STB"
-	STB_DIR = "Dough/libs/stb/"
+TINY_OBJ_LOADER_LABEL = "TinyObjLoader"
+TINY_OBJ_LOADER_DIR = "%{wks.location}/Dough/Dough/libs/tinyobjloader/"
 
-	IMGUI_LABEL = "ImGUI"
-	IMGUI_DIR = "Dough/libs/imgui/"
+TRACY_LABEL = "Tracy"
+TRACY_DIR = "%{wks.location}/Dough/Dough/libs/tracy/"
 
-	TINY_OBJ_LOADER_LABEL = "TinyObjLoader"
-	TINY_OBJ_LOADER_DIR = "Dough/libs/tinyobjloader/"
+libIncludeDirs = {
+	[GLFW_LABEL] = GLFW_DIR .. "include/",
+	[VULKAN_LABEL] = VULKAN_DIR .. "include/"
+}
 
-	TRACY_LABEL = "Tracy"
-	TRACY_DIR = "Dough/libs/tracy/"
+configurations { "DEBUG", "TRACING", "RELEASE" }
+architecture("x86_64")
 
-	libIncludeDirs = {
-		[GLFW_LABEL] = GLFW_DIR .. "include/",
-		[VULKAN_LABEL] = VULKAN_DIR .. "include/"
-		--[TRACY_LABEL] = TRACY_DIR .. "public/"
-	}
+defines {
+	--Windows
+	"NOMINMAX",
 
-	--Libs compiled from source are accessible from the Dough/libs file
+	--Vulkan
+	"VK_USE_PLATFORM_WIN32_KHR",
+
+	--GLFW
+	"GLFW_INCLUDE_VULKAN",
+
+	--GLM
+	"GLM_ENABLE_EXPERIMENTAL",
+	"GLM_FORCE_DEPTH_ZERO_TO_ONE",
+	"GLM_FORCE_USE_RIGHT_HANDED",
+	"GLM_FORCE_RADIANS",
+
+	--STB
+	"STB_IMAGE_IMPLEMENTATION",
+	
+	--Tiny Obj Loader
+	"TINYOBJLOADER_IMPLEMENTATION"
+}
+	
+ENGINE_PROJ_NAME = "DoughEngine"
+project(ENGINE_PROJ_NAME)
+	kind("StaticLib")
+	language("C++")
+	cppdialect("C++17")
+
 	includedirs { libIncludeDirs, "Dough/src/", "Dough/libs/" }
-
 	libdirs { GLFW_DIR .. glfwTargetVcVersion, VULKAN_DIR }
 	links { "glfw3", "vulkan-1" }
 
-	--TODO:: Rename PRODUCTION to TRACING
-	configurations { "DEBUG", "TRACING", "RELEASE" }
+	--NOTE:: Architecture is placed before config because only one architecture is used. This results in less folders being made.
+	outputDir = "%{cfg.architecture}/%{cfg.buildcfg}/"
+	targetdir(outputDir .. "final/")
+	objdir(outputDir .. "inter/")
 
-	architecture("x86_64")
+	files {
+		--Engine
+		"Dough/src/dough/**.h",
+		"Dough/src/dough/**.cpp",
+		"Dough/src/editor/**.h",
+		"Dough/src/editor/**.cpp",
 
-	ENGINE_PROJ_NAME = "DoughEngine"
-
-	startproject(ENGINE_PROJ_NAME)
-
-	project(ENGINE_PROJ_NAME)
-		kind("ConsoleApp")
-		language("C++")
-		cppdialect("C++17")
-
-		--NOTE:: Architecture is placed before config because only one architecture is used. This results in less folders being made.
-		outputDir = "%{cfg.architecture}/%{cfg.buildcfg}/"
-
-		targetdir(outputDir .. "final/")
-		objdir(outputDir .. "inter/")
-		--targetdir("bin/%{cfg.buildcfg}")
-
-		files {
-			--Engine
-			"Dough/src/dough/**.h",
-			"Dough/src/dough/**.cpp",
-			"Dough/src/editor/**.h",
-			"Dough/src/editor/**.cpp",
-
-			--Libs
-			STB_DIR .. "**.h",
-			GLM_DIR .. "**.hpp",
-			IMGUI_DIR .. "**.h",
-			IMGUI_DIR .. "**.cpp",
-			TINY_OBJ_LOADER_DIR .. "tinyobjloader.h"
-		}
+		--Libs
+		STB_DIR .. "**.h",
+		GLM_DIR .. "**.hpp",
+		IMGUI_DIR .. "**.h",
+		IMGUI_DIR .. "**.cpp",
+		TINY_OBJ_LOADER_DIR .. "tinyobjloader.h"
+	}
 
 		tracyFiles = {
-			TRACY_DIR .. "public/tracy/Tracy.hpp",
-			TRACY_DIR .. "public/TracyClient.cpp"
-		}
-		files (tracyFiles)
+		TRACY_DIR .. "public/tracy/Tracy.hpp",
+		TRACY_DIR .. "public/TracyClient.cpp"
+	}
+	files (tracyFiles)
 
-		filter("configurations:DEBUG")
-			defines { "DEBUG", "_DEBUG" }
-			symbols("On")
-			removefiles(tracyFiles)
+	filter("configurations:DEBUG")
+		defines { "DEBUG", "_DEBUG" }
+		symbols("On")
+		removefiles(tracyFiles)
 
-		filter("configurations:TRACING")
-			defines { "NDEBUG", "_NDEBUG", "_TRACING", "TRACY_ENABLE", "_CRT_SECURE_NO_WARNINGS" } --Tracy uses some functions that cause warnings
-			optimize("On")
+	filter("configurations:TRACING")
+		defines { "NDEBUG", "_NDEBUG", "_TRACING", "TRACY_ENABLE", "_CRT_SECURE_NO_WARNINGS" } --Tracy uses some functions that cause warnings
+		optimize("On")
 
-		filter("configurations:RELEASE")
-			defines { "NDEBUG", "_NDEBUG", "_RELEASE" }
-			optimize("On")
-			removefiles(tracyFiles)
+	filter("configurations:RELEASE")
+		defines { "NDEBUG", "_NDEBUG", "_RELEASE" }
+		optimize("On")
+		removefiles(tracyFiles)
