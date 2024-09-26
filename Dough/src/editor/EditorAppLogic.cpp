@@ -37,7 +37,8 @@ namespace DOH::EDITOR {
 
 		mInnerAppLogic->init(aspectRatio);
 
-		mInnerAppInputLayer = Input::getInputLayerPtr("DemoLicious");
+		//TODO:: have a member to store the innerApp inputLayer name or some way of getting all input layers "managed" by an inner app.
+		mInnerAppInputLayer.emplace(mEditorInputLayer);
 		if (mInnerAppInputLayer.has_value()) {
 			mOrthoCameraController = std::make_shared<EditorOrthoCameraController>(mInnerAppInputLayer.value(), aspectRatio);
 			mPerspectiveCameraController = std::make_shared<EditorPerspectiveCameraController>(mInnerAppInputLayer.value(), aspectRatio);

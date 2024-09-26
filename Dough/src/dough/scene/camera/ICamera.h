@@ -5,7 +5,6 @@
 namespace DOH {
 
 	class ICamera {
-
 	public:
 		ICamera() = default;
 		ICamera(const ICamera& copy) = delete;

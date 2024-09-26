@@ -1,4 +1,4 @@
---GLFW uses different statib libs depending on visual studio version.
+--GLFW uses different static libs depending on visual studio version.
 --Because of this the project only supports the currently included VS versions.
 glfwTargetVcVersion = "null"
 if _ACTION == "vs2012" then
@@ -56,22 +56,6 @@ workspace("Dough")
 	--Libs compiled from source are accessible from the Dough/libs file
 	includedirs { libIncludeDirs, "Dough/src/", "Dough/libs/" }
 
-	--GLFW uses different statib libs depending on 
-	glfwTargetVcVersion = "null"
-	if _ACTION == "vs2012" then
-		glfwTargetVcVersion = "lib-vc2012"
-	elseif _ACTION == "vs2013" then
-		glfwTargetVcVersion = "lib-vc2013"
-	elseif _ACTION == "vs2015" then
-		glfwTargetVcVersion = "lib-vc2015"
-	elseif _ACTION == "vs2017" then
-		glfwTargetVcVersion = "lib-vc2017"
-	elseif _ACTION == "vs2019" then
-		glfwTargetVcVersion = "lib-vc2019"
-	elseif _ACTION == "vs2022" then
-		glfwTargetVcVersion = "lib-vc2022"
-	end
-
 	libdirs { GLFW_DIR .. glfwTargetVcVersion, VULKAN_DIR }
 	links { "glfw3", "vulkan-1" }
 
@@ -81,7 +65,6 @@ workspace("Dough")
 	architecture("x86_64")
 
 	ENGINE_PROJ_NAME = "DoughEngine"
-	--TEST_GAME_PROJ_NAME = "TestGame"
 
 	startproject(ENGINE_PROJ_NAME)
 

@@ -32,8 +32,8 @@ namespace DOH {
 			const float colourA,
 			const float texCoordU,
 			const float texCoordV,
-			const float centreX,
-			const float centreY,
+			const float quadBoundX,
+			const float quadBoundY,
 			const float thickness,
 			const float fade,
 			const float texIndex
