@@ -11,6 +11,7 @@
 #include "dough/rendering/pipeline/GraphicsPipelineVulkan.h"
 #include "dough/time/PausableTimer.h"
 #include "dough/input/Input.h"
+#include "dough/input/DeviceInput.h"
 #include "dough/input/AInputLayer.h"
 
 #include "editor/EditorOrthoCameraController.h"
@@ -31,16 +32,24 @@ namespace DOH::EDITOR {
 	};
 
 	class EditorInputLayer : public AInputLayer {
+	private:
+		static std::array<int, 14> EDITOR_DEFAULT_KEY_CODES;
+		static std::array<int, 1> EDITOR_DEFAULT_MOUSE_CODES;
+
+		std::shared_ptr<DeviceInputKeyboardMouse> mKeyboardMouseInput;
+
 	public:
 		constexpr static const char* EDITOR_INPUT_LAYER_NAME = "DOH Editor";
 
-		EditorInputLayer()
-		:	AInputLayer(EditorInputLayer::EDITOR_INPUT_LAYER_NAME)
-		{}
+		EditorInputLayer();
 
 		//EditorInputLayer isn't manually handling events so all functions are empty, return false, or return 
-		virtual bool handleKeyPressed(int keyCode, bool pressed) override { return EditorGui::isGuiHandlingKeyboardInput(); }
-		virtual bool handleMouseButtonPressed(int button, bool pressed) override { return EditorGui::isGuiHandlingMouseInput(); }
+		virtual bool handleKeyPressed(int keyCode, bool pressed) override {
+			return mKeyboardMouseInput->setKeyPressed(keyCode, pressed) || EditorGui::isGuiHandlingKeyboardInput();
+		}
+		virtual bool handleMouseButtonPressed(int button, bool pressed) override {
+			return mKeyboardMouseInput->setMouseButtonPressed(button, pressed) || EditorGui::isGuiHandlingMouseInput();
+		}
 		virtual bool handleMouseMoved(float x, float y) override {
 			//return EditorGui::isGuiHandlingMouseInput();
 			return false;
@@ -49,18 +58,37 @@ namespace DOH::EDITOR {
 		virtual void resetCycleData() override {}
 		virtual void reset() override {}
 
-		//NOTE:: Device Input is handled by EditorUI, no need to handle it manually so no need to override original function
 		//virtual inline bool hasDeviceInput() const override { return false; }
 
-		virtual bool isKeyPressed(int keyCode) const override { return false; }
-		virtual bool isMouseButtonPressed(int button) const override { return false; }
+		virtual bool isKeyPressed(int keyCode) const override { return !EditorGui::isGuiFocused() && mKeyboardMouseInput->isKeyPressed(keyCode); }
+		virtual bool isMouseButtonPressed(int button) const override { return !EditorGui::isGuiFocused() && mKeyboardMouseInput->isMouseButtonPressed(button); }
 		virtual inline bool isMouseScrollingUp() const override { return false; }
 		virtual inline bool isMouseScrollingDown() const override { return false; }
 		virtual inline const glm::vec2 getCursorPos() const override { return { 0.0f, 0.0f }; }
+
+		void enableCameraInput();
+		void disableCameraInput();
 	};
 
 	class EditorAppLogic : public IApplicationLogic {
 	private:
+		static constexpr std::array<const char*, 4> EEditorCameraStrings = {
+			"NONE",
+			"EDITOR_PERSPECTIVE",
+			"EDITOR_ORTHOGRAPHIC",
+			"INNER_APP_CHOSEN"
+		};
+
+		enum class EEditorCamera {
+			NONE,
+
+			EDITOR_PERSPECTIVE,
+			EDITOR_ORTHOGRAPHIC,
+
+			//The currently chosen camera for the Inner App
+			INNER_APP_CHOSEN
+		};
+
 		struct EditorSettings {
 			//ImGui window rendering controls
 			bool RenderDebugWindow = true;
@@ -82,7 +110,8 @@ namespace DOH::EDITOR {
 			ETimeUnit RenderingTimeUnit = ETimeUnit::MILLISECOND;
 
 			//-----Editor Camera(s)-----
-			bool UseOrthographicCamera = true;
+			//Current camera in which the scene/UI is to be viewed
+			EEditorCamera mCurrentCamera = EEditorCamera::EDITOR_ORTHOGRAPHIC;
 
 			//-----Close App Functionality-----
 			const float QuitHoldTimeRequired = 1.5f;
@@ -92,7 +121,7 @@ namespace DOH::EDITOR {
 		std::shared_ptr<IApplicationLogic> mInnerAppLogic;
 
 		std::shared_ptr<EditorInputLayer> mEditorInputLayer;
-		std::optional<std::shared_ptr<AInputLayer>> mInnerAppInputLayer;
+		//std::optional<std::shared_ptr<AInputLayer>> mInnerAppInputLayer;
 
 		//Editor Cameras
 		std::shared_ptr<EditorOrthoCameraController> mOrthoCameraController;

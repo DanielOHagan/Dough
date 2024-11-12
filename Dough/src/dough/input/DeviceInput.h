@@ -5,10 +5,22 @@
 
 namespace DOH {
 
+	static constexpr std::array<const char*, 3> EPressedStateStrings = {
+		"PRESSED",
+		"NOT_PRESSED",
+		"DISABLED"
+	};
+
+	enum class EPressedState {
+		PRESSED,
+		NOT_PRESSED,
+		DISABLED
+	};
+
 	//Keyboard & Mouse input
 	struct DeviceInputKeyboardMouse {
-		std::unordered_map<int, bool> PressedKeysMap;
-		std::unordered_map<int, bool> PressedMouseButtonsMap;
+		std::unordered_map<int, EPressedState> PressedKeysMap;
+		std::unordered_map<int, EPressedState> PressedMouseButtonsMap;
 
 		glm::vec2 MouseScreenPos;
 		glm::vec2 MouseScrollOffset;
@@ -42,13 +54,16 @@ namespace DOH {
 		}
 
 		void setPossibleKeyInputs(const std::vector<int>& keyCodes);
-		inline void setPossibleKeyInputs(const std::unordered_map<int, bool>& keysMap) { PressedKeysMap = keysMap; }
+		inline void setPossibleKeyInputs(const std::unordered_map<int, EPressedState>& keysMap) { PressedKeysMap = keysMap; }
 		void setPossibleMouseInputs(const std::vector<int>& mouseButtons);
-		inline void setPossibleMouseInputs(const std::unordered_map<int, bool>& mouseButtonsMap) { PressedMouseButtonsMap = mouseButtonsMap; }
+		inline void setPossibleMouseInputs(const std::unordered_map<int, EPressedState>& mouseButtonsMap) { PressedMouseButtonsMap = mouseButtonsMap; }
 
 		inline const glm::vec2& getCursorPos() const { return MouseScreenPos; }
 		inline const glm::vec2& getScrollOffset() const { return MouseScrollOffset; }
 
 		void reset();
+
+		void setKeyCode(int keyCode, EPressedState state);
+		void setMouseButton(int button, EPressedState state);
 	};
 }

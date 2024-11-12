@@ -64,8 +64,8 @@ namespace DOH {
 
 		mAppLoop = std::make_unique<ApplicationLoop>(
 			*this,
-			initSettings.TargetForgroundFps,
-			initSettings.TargetForgroundUps,
+			initSettings.TargetForegroundFps,
+			initSettings.TargetForegroundUps,
 			initSettings.RunInBackground,
 			initSettings.TargetBackgroundFps,
 			initSettings.TargetBackgroundUps

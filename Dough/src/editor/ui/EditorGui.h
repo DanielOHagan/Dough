@@ -58,6 +58,8 @@ namespace DOH::EDITOR {
 		void imGuiJsonObjectImpl(JsonElement& object, const char* name);
 		void imGuiJsonArrayImpl(JsonElement& array, const char* name);
 
+		bool imGuiIsGuiFocusedImpl();
+
 		//-----GUI Implementation Agnostic Functions-----
 		void openTextureViewerWindowImpl(const TextureVulkan& texture);
 		void openMonoSpaceTextureAtlasViewerWindowImpl(const MonoSpaceTextureAtlas& textureAtlas);
@@ -335,6 +337,15 @@ namespace DOH::EDITOR {
 		* @param name Unique name for JsonArray to display.
 		*/
 		static inline void jsonArray(JsonElement& array, const char* name) { INSTANCE->imGuiJsonArrayImpl(array, name); }
+
+		//-----UI State-----
+		/**
+		* Whether part of the editor gui is focused.
+		* NOTE:: Includes if the UI is hovered with a mouse.
+		* 
+		* @returns True is part of the editor is focused. False if not.
+		*/
+		static inline bool isGuiFocused() { return INSTANCE->imGuiIsGuiFocusedImpl(); }
 
 		//IMPORTANT:: Calling this function outside of the table start/end is undefined behaviour.
 		//TODO:: Some kind of way of creating custom tables easily in the GUI

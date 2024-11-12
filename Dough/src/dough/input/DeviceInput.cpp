@@ -43,7 +43,7 @@ namespace DOH {
 		if (keyCodesCount > 0) {
 			PressedKeysMap.reserve(keyCodesCount);
 			for (int keyCode : keyCodes) {
-				PressedKeysMap.emplace(keyCode, false);
+				PressedKeysMap.emplace(keyCode, EPressedState::NOT_PRESSED);
 			}
 		}
 	}
@@ -55,15 +55,15 @@ namespace DOH {
 		if (mouseButtonsCount > 0) {
 			PressedMouseButtonsMap.reserve(mouseButtonsCount);
 			for (int mouseButton : mouseButtons) {
-				PressedMouseButtonsMap.emplace(mouseButton, false);
+				PressedMouseButtonsMap.emplace(mouseButton, EPressedState::NOT_PRESSED);
 			}
 		}
 	}
 
 	bool DeviceInputKeyboardMouse::setKeyPressed(int keyCode, bool pressed) {
 		auto itr = PressedKeysMap.find(keyCode);
-		if (itr != PressedKeysMap.end()) {
-			itr->second = pressed;
+		if (itr != PressedKeysMap.end() && itr->second != EPressedState::DISABLED) {
+			itr->second = pressed ? EPressedState::PRESSED : EPressedState::NOT_PRESSED;
 			return true;
 		} else {
 			return false;
@@ -72,8 +72,8 @@ namespace DOH {
 
 	bool DeviceInputKeyboardMouse::setMouseButtonPressed(int button, bool pressed) {
 		const auto& itr = PressedMouseButtonsMap.find(button);
-		if (itr != PressedMouseButtonsMap.end()) {
-			itr->second = pressed;
+		if (itr != PressedMouseButtonsMap.end() && itr->second != EPressedState::DISABLED) {
+			itr->second = pressed ? EPressedState::PRESSED : EPressedState::NOT_PRESSED;
 			return true;
 		} else {
 			return false;
@@ -83,7 +83,7 @@ namespace DOH {
 	bool DeviceInputKeyboardMouse::isKeyPressed(int keyCode) const {
 		const auto& itr = PressedKeysMap.find(keyCode);
 		if (itr != PressedKeysMap.end()) {
-			return itr->second;
+			return itr->second == EPressedState::PRESSED;
 		} else {
 			LOG_WARN("Key not in current key map: " << keyCode);
 			return false;
@@ -93,7 +93,7 @@ namespace DOH {
 	bool DeviceInputKeyboardMouse::isMouseButtonPressed(int button) const {
 		const auto& itr = PressedMouseButtonsMap.find(button);
 		if (itr != PressedMouseButtonsMap.end()) {
-			return itr->second;
+			return itr->second == EPressedState::PRESSED;
 		} else {
 			LOG_WARN("Mouse button not in current mouse button map: " << button);
 			return false;
@@ -102,13 +102,27 @@ namespace DOH {
 
 	void DeviceInputKeyboardMouse::reset() {
 		for (auto& key : PressedKeysMap) {
-			key.second = false;
+			key.second = EPressedState::NOT_PRESSED;
 		}
 
 		for (auto& button : PressedMouseButtonsMap) {
-			button.second = false;
+			button.second = EPressedState::NOT_PRESSED;
 		}
 
 		resetCycleData();
+	}
+
+	void DeviceInputKeyboardMouse::setKeyCode(int keyCode, EPressedState state) {
+		const auto& itr = PressedKeysMap.find(keyCode);
+		if (itr != PressedKeysMap.end()) {
+			itr->second = state;
+		}
+	}
+
+	void DeviceInputKeyboardMouse::setMouseButton(int button, EPressedState state) {
+		const auto& itr = PressedMouseButtonsMap.find(button);
+		if (itr != PressedMouseButtonsMap.end()) {
+			itr->second = state;
+		}
 	}
 }

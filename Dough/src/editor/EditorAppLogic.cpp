@@ -13,6 +13,80 @@
 
 namespace DOH::EDITOR {
 
+	std::array<int, 14> EditorInputLayer::EDITOR_DEFAULT_KEY_CODES = {
+		//Camera controls
+		DOH_KEY_LEFT_SHIFT,
+		DOH_KEY_X, DOH_KEY_Z,
+		DOH_KEY_W, DOH_KEY_A, DOH_KEY_S, DOH_KEY_D,
+		DOH_KEY_SPACE, DOH_KEY_C,
+		DOH_KEY_UP, DOH_KEY_DOWN, DOH_KEY_LEFT, DOH_KEY_RIGHT,
+
+		//Functions
+		DOH_KEY_F1
+	};
+
+	std::array<int, 1> EditorInputLayer::EDITOR_DEFAULT_MOUSE_CODES = {
+		//Camera controls
+		DOH_MOUSE_BUTTON_RIGHT
+	};
+
+	EditorInputLayer::EditorInputLayer()
+	:	AInputLayer(EditorInputLayer::EDITOR_INPUT_LAYER_NAME),
+		mKeyboardMouseInput(nullptr)
+	{
+		std::vector<int> keyCodes(EditorInputLayer::EDITOR_DEFAULT_KEY_CODES.size());
+		std::vector<int> mouseButtons(EditorInputLayer::EDITOR_DEFAULT_MOUSE_CODES.size());
+
+		for (int keyCode : EditorInputLayer::EDITOR_DEFAULT_KEY_CODES) {
+			keyCodes.emplace_back(keyCode);
+		}
+		for (int button : EditorInputLayer::EDITOR_DEFAULT_MOUSE_CODES) {
+			mouseButtons.emplace_back(button);
+		}
+
+		mKeyboardMouseInput = std::make_shared<DeviceInputKeyboardMouse>(keyCodes, mouseButtons);
+	}
+
+	void EditorInputLayer::enableCameraInput() {
+		//IMPORTANT:: These are the default key codes/mouse buttons, if they change in the future they MUST be changed here.
+		static constexpr std::array<int, 13> cameraInputKeyCodes = {
+			DOH_KEY_LEFT_SHIFT,
+			DOH_KEY_X, DOH_KEY_Z,
+			DOH_KEY_W, DOH_KEY_A, DOH_KEY_S, DOH_KEY_D,
+			DOH_KEY_SPACE, DOH_KEY_C,
+			DOH_KEY_UP, DOH_KEY_DOWN, DOH_KEY_LEFT, DOH_KEY_RIGHT
+		};
+		static constexpr std::array<int, 1> cameraInputMouseButtons = {
+			DOH_MOUSE_BUTTON_RIGHT
+		};
+		for (int keyCode : cameraInputKeyCodes) {
+			mKeyboardMouseInput->setKeyCode(keyCode, EPressedState::NOT_PRESSED);
+		}
+		for (int button : cameraInputMouseButtons) {
+			mKeyboardMouseInput->setMouseButton(button, EPressedState::NOT_PRESSED);
+		}
+	}
+
+	void EditorInputLayer::disableCameraInput() {
+		//IMPORTANT:: These are the default key codes/mouse buttons, if they change in the future they MUST be changed here.
+		static constexpr std::array<int, 13> cameraInputKeyCodes = {
+			DOH_KEY_LEFT_SHIFT,
+			DOH_KEY_X, DOH_KEY_Z,
+			DOH_KEY_W, DOH_KEY_A, DOH_KEY_S, DOH_KEY_D,
+			DOH_KEY_SPACE, DOH_KEY_C,
+			DOH_KEY_UP, DOH_KEY_DOWN, DOH_KEY_LEFT, DOH_KEY_RIGHT
+		};
+		static constexpr std::array<int, 1> cameraInputMouseButtons = {
+			DOH_MOUSE_BUTTON_RIGHT
+		};
+		for (int keyCode : cameraInputKeyCodes) {
+			mKeyboardMouseInput->setKeyCode(keyCode, EPressedState::DISABLED);
+		}
+		for (int button : cameraInputMouseButtons) {
+			mKeyboardMouseInput->setMouseButton(button, EPressedState::DISABLED);
+		}
+	}
+
 	EditorAppLogic::EditorAppLogic(std::shared_ptr<IApplicationLogic> innerAppLogic)
 	:	IApplicationLogic(),
 		mInnerAppLogic(innerAppLogic),
@@ -30,24 +104,16 @@ namespace DOH::EDITOR {
 		mInnerAppTimer = std::make_unique<PausableTimer>();
 		mEditorSettings = std::make_unique<EditorSettings>();
 
-		mEditorSettings->UseOrthographicCamera = false;
-
 		mEditorInputLayer = std::make_shared<EditorInputLayer>();
 		Input::addInputLayer(mEditorInputLayer);
 
 		mInnerAppLogic->init(aspectRatio);
 
 		//TODO:: have a member to store the innerApp inputLayer name or some way of getting all input layers "managed" by an inner app.
-		mInnerAppInputLayer.emplace(mEditorInputLayer);
-		if (mInnerAppInputLayer.has_value()) {
-			mOrthoCameraController = std::make_shared<EditorOrthoCameraController>(mInnerAppInputLayer.value(), aspectRatio);
-			mPerspectiveCameraController = std::make_shared<EditorPerspectiveCameraController>(mInnerAppInputLayer.value(), aspectRatio);
-		} else {
-			LOG_WARN("Failed to get inner app input layer");
-
-			mOrthoCameraController = std::make_shared<EditorOrthoCameraController>(mEditorInputLayer, aspectRatio);
-			mPerspectiveCameraController = std::make_shared<EditorPerspectiveCameraController>(mEditorInputLayer, aspectRatio);
-		}
+		//mInnerAppInputLayer.emplace(mEditorInputLayer);
+		
+		mOrthoCameraController = std::make_shared<EditorOrthoCameraController>(mEditorInputLayer, aspectRatio);
+		mPerspectiveCameraController = std::make_shared<EditorPerspectiveCameraController>(mEditorInputLayer, aspectRatio);
 
 		mPerspectiveCameraController->setPosition({ 0.0f, 0.0f, 5.0f });
 
@@ -57,34 +123,23 @@ namespace DOH::EDITOR {
 	void EditorAppLogic::update(float delta) {
 		ZoneScoped;
 
-		const bool innerAppInputLayerExists = mInnerAppInputLayer.has_value();
-
-		if (innerAppInputLayerExists) {
-			if (mInnerAppInputLayer.value()->isKeyPressed(DOH_KEY_F1)) {
-				mEditorSettings->RenderDebugWindow = true;
-				auto editorInputLayer = Input::getInputLayer(EditorInputLayer::EDITOR_INPUT_LAYER_NAME);
-				if (editorInputLayer.has_value()) {
-					editorInputLayer->get().setEnabled(true);
-				}
+		if (mEditorInputLayer->isKeyPressed(DOH_KEY_F1)) {
+			mEditorSettings->RenderDebugWindow = true;
+			auto editorInputLayer = Input::getInputLayer(EditorInputLayer::EDITOR_INPUT_LAYER_NAME);
+			if (editorInputLayer.has_value()) {
+				editorInputLayer->get().setEnabled(true);
 			}
 		}
 
-		//When focus switches from inner app to EditorGUI reset inner app input
-		//NOTE:: This still results in a reset being called each focusing of the GUI even if the inner app didn't get "focus".
-		bool editorGuiFocused =
-			ImGui::IsAnyItemActive() ||
-			ImGui::IsAnyItemFocused() ||
-			(ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow) && ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow));
+		mEditorGuiFocused = EditorGui::isGuiFocused();
 
-		if (mEditorGuiFocused && !editorGuiFocused && innerAppInputLayerExists) {
-			mInnerAppInputLayer.value()->reset();
-		}
-		mEditorGuiFocused = editorGuiFocused;
-
-		if (mEditorSettings->UseOrthographicCamera) {
-			mOrthoCameraController->onUpdate(delta);
-		} else {
-			mPerspectiveCameraController->onUpdate(delta);
+		//NOTE:: If mEditorSettings->mCurrentCamera is NONE then update perspective
+		if (mEditorSettings->mCurrentCamera != EEditorCamera::INNER_APP_CHOSEN) {
+			if (mEditorSettings->mCurrentCamera == EEditorCamera::EDITOR_ORTHOGRAPHIC) {
+				mOrthoCameraController->onUpdate(delta);
+			} else {
+				mPerspectiveCameraController->onUpdate(delta);
+			}
 		}
 
 		//IMPORTANT NOTE:: Prevent updating anything after Editor specific parts are updated
@@ -105,10 +160,18 @@ namespace DOH::EDITOR {
 		// 
 		//TODO:: When there is a substantial demo that has its own camera do:
 		//	IF using editor camera THEN beginScene(editorCamera) ELSE do nothing and assume inner app will beginScene(innerAppCamera)
-		renderer.beginScene(
-			mEditorSettings->UseOrthographicCamera ?
+		//renderer.beginScene(
+		//	mEditorSettings->UseOrthographicCamera ?
+		//		mOrthoCameraController->getCamera() : mPerspectiveCameraController->getCamera()
+		//);
+
+		//NOTE:: If mEditorSettings->mCurrentCamera is NONE then set to perspective
+		if (mEditorSettings->mCurrentCamera != EEditorCamera::INNER_APP_CHOSEN) {
+			renderer.beginScene(
+				mEditorSettings->mCurrentCamera == EEditorCamera::EDITOR_ORTHOGRAPHIC ?
 				mOrthoCameraController->getCamera() : mPerspectiveCameraController->getCamera()
-		);
+			);
+		}
 
 		mInnerAppLogic->render();
 	}
@@ -243,11 +306,10 @@ UPS displayed is the count of frames in the last full second interval)"
 				}
 
 				{
-					const glm::vec2& cursorPos = mInnerAppInputLayer.value()->getCursorPos();
 					ImGui::Text(
 						"Cursor Position: X: %i, Y: %i",
-						static_cast<int>(cursorPos.x),
-						static_cast<int>(cursorPos.y)
+						static_cast<int>(Input::getMousePosX()),
+						static_cast<int>(Input::getMousePosY())
 					);
 				}
 
@@ -519,52 +581,85 @@ UPS displayed is the count of frames in the last full second interval)"
 			//TODO:: Use different formats, currently looks bad
 			ImGui::SetNextItemOpen(mEditorSettings->CameraCollapseMenuOpen);
 			if (mEditorSettings->CameraCollapseMenuOpen = ImGui::CollapsingHeader("Camera")) {
-				const bool orthoCameraActive = mEditorSettings->UseOrthographicCamera;
-				const bool perspectiveCameraActive = !orthoCameraActive;
-				if (ImGui::RadioButton("Orthographic Camera", orthoCameraActive)) {
-					mEditorSettings->UseOrthographicCamera = true;
+				const bool orthoCameraActive = mEditorSettings->mCurrentCamera == EEditorCamera::EDITOR_ORTHOGRAPHIC;
+				const bool perspectiveCameraActive = mEditorSettings->mCurrentCamera == EEditorCamera::EDITOR_PERSPECTIVE;
+				const bool inAppCameraActive = mEditorSettings->mCurrentCamera == EEditorCamera::INNER_APP_CHOSEN;
+				const EEditorCamera lastCamera = mEditorSettings->mCurrentCamera;
+				if (ImGui::RadioButton(EEditorCameraStrings[static_cast<uint32_t>(EEditorCamera::EDITOR_ORTHOGRAPHIC)], orthoCameraActive)) {
+					mEditorSettings->mCurrentCamera = EEditorCamera::EDITOR_ORTHOGRAPHIC;
+					if (lastCamera == EEditorCamera::INNER_APP_CHOSEN) {
+						mEditorInputLayer->enableCameraInput();
+					}
 				}
 				ImGui::SameLine();
-				if (ImGui::RadioButton("Perspective Camera", perspectiveCameraActive)) {
-					mEditorSettings->UseOrthographicCamera = false;
+				if (ImGui::RadioButton(EEditorCameraStrings[static_cast<uint32_t>(EEditorCamera::EDITOR_PERSPECTIVE)], perspectiveCameraActive)) {
+					mEditorSettings->mCurrentCamera = EEditorCamera::EDITOR_PERSPECTIVE;
+					if (lastCamera == EEditorCamera::INNER_APP_CHOSEN) {
+						mEditorInputLayer->enableCameraInput();
+					}
+				}
+				if (ImGui::RadioButton(EEditorCameraStrings[static_cast<uint32_t>(EEditorCamera::INNER_APP_CHOSEN)], inAppCameraActive)) {
+					mEditorSettings->mCurrentCamera = EEditorCamera::INNER_APP_CHOSEN;
+					if (lastCamera != EEditorCamera::INNER_APP_CHOSEN) {
+						mEditorInputLayer->disableCameraInput();
+					}
 				}
 				ImGui::Text("Current Camera: ");
 				ImGui::SameLine();
-				ImGui::Text(mEditorSettings->UseOrthographicCamera ? "Orthographic" : "Perspective");
-				if (mEditorSettings->UseOrthographicCamera) {
-					ImGui::Text("Orthographic Camera Controls");
-					ImGui::BulletText("W, A, S, D: Move Camera");
-					ImGui::BulletText("Hold Left Shift: Increase move speed");
-					ImGui::BulletText("Z, X: Zoom Camera In & Out");
-					EditorGui::displayHelpTooltip("NOTE:: Changes top/bottom & left/right orthographic perspective, does not change the Z clipping range");
-					ImGui::BulletText("Right Click Drag Camera");
-					EditorGui::displayHelpTooltip("NOTE:: Drag doesn't work properly at all update rates");
-					
-					ImGui::Text("Camera Position");
-					const auto& pos = mOrthoCameraController->getPosition();
-					float tempPos[3] = { pos.x, pos.y, pos.z };
-					if (ImGui::DragFloat3("Pos", tempPos)) {
-						mOrthoCameraController->setPosition({ tempPos[0], tempPos[1], tempPos[2] });
+				ImGui::Text(EEditorCameraStrings[static_cast<uint32_t>(mEditorSettings->mCurrentCamera)]);
+
+				switch (mEditorSettings->mCurrentCamera) {
+					case EEditorCamera::EDITOR_ORTHOGRAPHIC: {
+						ImGui::Text("Orthographic Camera Controls");
+						ImGui::BulletText("W, A, S, D: Move Camera");
+						ImGui::BulletText("Hold Left Shift: Increase move speed");
+						ImGui::BulletText("Z, X: Zoom Camera In & Out");
+						EditorGui::displayHelpTooltip("NOTE:: Changes top/bottom & left/right orthographic perspective, does not change the Z clipping range");
+						ImGui::BulletText("Right Click Drag Camera");
+						EditorGui::displayHelpTooltip("NOTE:: Drag doesn't work properly at all update rates");
+
+						ImGui::Text("Camera Position");
+						const auto& pos = mOrthoCameraController->getPosition();
+						float tempPos[3] = { pos.x, pos.y, pos.z };
+						if (ImGui::DragFloat3("Pos", tempPos)) {
+							mOrthoCameraController->setPosition({ tempPos[0], tempPos[1], tempPos[2] });
+						}
+						ImGui::Text("Zoom: %f", mOrthoCameraController->getZoomLevel());
+						EditorGui::displayHelpTooltip("Higher is more \"zoomed out\" and lower is more \"zoomed in\"");
+						break;
+					};
+
+					case EEditorCamera::EDITOR_PERSPECTIVE: {
+						ImGui::Text("Perspective Camera Controls");
+						EditorGui::bulletTextWrapped("W, A, S, D, C, Space Bar: Move Camera");
+						EditorGui::bulletTextWrapped("Arrow Left, Arrow Right, Arrow Up, Arrow Down, Z, X, Mouse Right Click & Drag: Change camera looking direction");
+						EditorGui::bulletTextWrapped("Hold Left Shift: Increase translation speed");
+
+						const auto pos = mPerspectiveCameraController->getPosition();
+						const auto dir = mPerspectiveCameraController->getDirection();
+						float tempPos[3] = { pos.x, pos.y, pos.z };
+						if (ImGui::DragFloat3("Position", tempPos)) {
+							mPerspectiveCameraController->setPosition({ tempPos[0], tempPos[1], tempPos[2] });
+						}
+						float tempDir[3] = { dir.x, dir.y, dir.z };
+						if (ImGui::DragFloat3("Direction", tempDir)) {
+							mPerspectiveCameraController->setDirection({ tempDir[0], tempDir[1], tempDir[2] });
+						}
+						break;
 					}
-					ImGui::Text("Zoom: %f", mOrthoCameraController->getZoomLevel());
-					EditorGui::displayHelpTooltip("Higher is more \"zoomed out\" and lower is more \"zoomed in\"");
-				} else {
-					ImGui::Text("Perspective Camera Controls");
-					EditorGui::bulletTextWrapped("W, A, S, D, C, Space Bar: Move Camera");
-					EditorGui::bulletTextWrapped("Arrow Left, Arrow Right, Arrow Up, Arrow Down, Z, X, Mouse Right Click & Drag: Change camera looking direction");
-					EditorGui::bulletTextWrapped("Hold Left Shift: Increase translation speed");
-					
-					const auto pos = mPerspectiveCameraController->getPosition();
-					const auto dir = mPerspectiveCameraController->getDirection();
-					float tempPos[3] = { pos.x, pos.y, pos.z };
-					if (ImGui::DragFloat3("Position", tempPos)) {
-						mPerspectiveCameraController->setPosition({ tempPos[0], tempPos[1], tempPos[2] });
+
+					case EEditorCamera::INNER_APP_CHOSEN: {
+						ImGui::TextWrapped("Using Inner App camera, controls and information should be available in the Inner App.");
+						break;
 					}
-					float tempDir[3] = { dir.x, dir.y, dir.z };
-					if (ImGui::DragFloat3("Direction", tempDir)) {
-						mPerspectiveCameraController->setDirection({ tempDir[0], tempDir[1], tempDir[2] });
-					}
+
+					default:
+						ImGui::Text("No camera selected, this shouldn't happen.");
+						LOG_ERR("Editor current camera set to NONE or undefined.");
+						break;
 				}
+
+
 				if (ImGui::Button("Reset Orthographic Camera")) {
 					mOrthoCameraController->setPosition({ 0.0f, 0.0f, 1.0f });
 					mOrthoCameraController->setZoomLevel(1.0f);

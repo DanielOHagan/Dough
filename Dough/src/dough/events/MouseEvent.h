@@ -5,10 +5,6 @@
 namespace DOH {
 
 	class MouseEvent : public AEvent {
-
-	private:
-
-
 	public:
 		MouseEvent(EEventType type)
 		:	AEvent(type, EEventCategory::MOUSE)
@@ -16,7 +12,6 @@ namespace DOH {
 	};
 
 	class MouseButtonEvent : public MouseEvent {
-
 	protected:
 		int mButton;
 
@@ -30,7 +25,6 @@ namespace DOH {
 	};
 
 	class MouseButtonDownEvent : public MouseButtonEvent {
-
 	public:
 		MouseButtonDownEvent(int button)
 		:	MouseButtonEvent(EEventType::MOUSE_BUTTON_DOWN, button)
@@ -38,7 +32,6 @@ namespace DOH {
 	};
 
 	class MouseButtonUpEvent : public MouseButtonEvent {
-	
 	public:
 		MouseButtonUpEvent(int button)
 		:	MouseButtonEvent(EEventType::MOUSE_BUTTON_UP, button)
@@ -46,7 +39,6 @@ namespace DOH {
 	};
 
 	class MouseScrollEvent : public MouseEvent {
-
 	private:
 		float mOffsetX;
 		float mOffsetY;
@@ -63,7 +55,6 @@ namespace DOH {
 	};
 
 	class MouseMoveEvent : public MouseEvent {
-	
 	private:
 		float mPosX;
 		float mPosY;

@@ -7,6 +7,11 @@ namespace DOH {
 		mKeyboardMouseInput(std::make_shared<DeviceInputKeyboardMouse>())
 	{}
 
+	DefaultInputLayer::DefaultInputLayer(const char* name, std::shared_ptr<DeviceInputKeyboardMouse> keyboardMouseInput)
+	:	AInputLayer(name),
+		mKeyboardMouseInput(keyboardMouseInput)
+	{}
+
 	bool DefaultInputLayer::handleKeyPressed(int keyCode, bool pressed) {
 		return mKeyboardMouseInput->setKeyPressed(keyCode, pressed);
 	}

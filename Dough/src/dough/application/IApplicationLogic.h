@@ -3,7 +3,6 @@
 namespace DOH {
 
 	class IApplicationLogic {
-
 	private:
 		IApplicationLogic(const IApplicationLogic& copy) = delete;
 		IApplicationLogic operator=(const IApplicationLogic& assignment) = delete;

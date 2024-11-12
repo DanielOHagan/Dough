@@ -15,6 +15,8 @@ namespace DOH {
 		//TODO:: Make this into a queue or something in-which there is a clearly defined priority for event handling
 		//	(e.g. inputLayer[0] has the highest priority and inputLayer[inputLayer.size() - 1] has the least.
 		std::vector<std::shared_ptr<AInputLayer>> mInputLayers;
+		float mMousePosX;
+		float mMousePosY;
 
 		Input(const Input& copy) = delete;
 		Input operator=(const Input& assignment) = delete;
@@ -35,7 +37,7 @@ namespace DOH {
 		static const std::array<int, 53> DEFAULT_KEY_CODES;
 		static const std::array<int, 3> DEFAULT_MOUSE_BUTTON_CODES;
 
-		Input() = default;
+		Input();
 
 		inline bool hasInput() const { return mInputLayers.size() > 0; }
 
@@ -44,5 +46,7 @@ namespace DOH {
 		static std::vector<std::shared_ptr<AInputLayer>>& getInputLayers();
 		static std::optional<std::reference_wrapper<AInputLayer>> getInputLayer(const char* name);
 		static std::optional<std::shared_ptr<AInputLayer>> getInputLayerPtr(const char* name);
+		static float getMousePosX() { return INSTANCE->mMousePosX; }
+		static float getMousePosY() { return INSTANCE->mMousePosY; }
 	};
 }

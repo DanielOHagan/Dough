@@ -12,6 +12,7 @@ namespace DOH {
 
 	public:
 		DefaultInputLayer(const char* name);
+		DefaultInputLayer(const char* name, std::shared_ptr<DeviceInputKeyboardMouse> keyboardMouseInput);
 
 		virtual bool handleKeyPressed(int keyCode, bool pressed) override;
 		virtual bool handleMouseButtonPressed(int button, bool pressed) override;

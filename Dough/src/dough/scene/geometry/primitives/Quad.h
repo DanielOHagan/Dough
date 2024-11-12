@@ -46,7 +46,8 @@ namespace DOH {
 			}
 		}
 
-		inline void setColour(glm::vec4 colour) { Colour = colour; }
+		//inline void setColour(glm::vec4 colour) { Colour = colour; }
+		inline void setColour(const glm::vec4& colour) { Colour = colour; }
 		inline void setColourRGB(float r, float g, float b) { Colour = { r, g, b, Colour.z }; }
 		inline void setColourRGBA(float r, float g, float b, float a) { Colour = { r, g, b, a }; }
 		inline bool hasTexture() const { return Texture.has_value(); }

@@ -414,6 +414,12 @@ namespace DOH::EDITOR {
 		}
 	}
 
+	bool EditorGui::imGuiIsGuiFocusedImpl() {
+		return ImGui::IsAnyItemActive() ||
+			ImGui::IsAnyItemFocused() ||
+			(ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow) && ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow));
+	}
+
 	void EditorGui::imGuiPrintMat4x4Impl(const glm::mat4x4& mat, const char* name) {
 		ImGui::Text(name);
 

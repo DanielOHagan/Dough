@@ -23,12 +23,16 @@ namespace DOH {
 		DOH_KEY_ESCAPE, DOH_KEY_SPACE, DOH_KEY_ENTER, DOH_KEY_LEFT_SHIFT,
 		DOH_KEY_RIGHT, DOH_KEY_LEFT, DOH_KEY_UP, DOH_KEY_DOWN,
 		DOH_KEY_F1, DOH_KEY_F2, DOH_KEY_F3, DOH_KEY_F4, DOH_KEY_F5
-
 	};
 
 	const std::array<int, 3> Input::DEFAULT_MOUSE_BUTTON_CODES = {
 		DOH_MOUSE_BUTTON_LEFT, DOH_MOUSE_BUTTON_MIDDLE, DOH_MOUSE_BUTTON_RIGHT
 	};
+
+	Input::Input()
+	:	mMousePosX(0.0f),
+		mMousePosY(0.0f)
+	{}
 
 	void Input::init() {
 		INSTANCE = std::make_unique<Input>();
@@ -59,6 +63,8 @@ namespace DOH {
 	}
 
 	void Input::onMouseMoveEvent(float x, float y) {
+		mMousePosX = x;
+		mMousePosY = y;
 		for (auto& inputLayer : mInputLayers) {
 			if (inputLayer->isEnabled() && inputLayer->handleMouseMoved(x, y)) {
 				return;

@@ -66,6 +66,7 @@ namespace DOH {
 		}
 	}
 
+	//IMPORTANT:: Only works if bounding box and geo are in the same space.
 	bool BoundingBox2d::encloses(AGeometry& geo) {
 		//Check if top right and bottom left points are inside this bounding box.
 		if (!isVec2InsideXY(
