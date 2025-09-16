@@ -13,6 +13,7 @@ namespace DOH {
 	class RenderingContextVulkan;
 	class Quad;
 	class SwapChainVulkan;
+	class CameraGpuData;
 
 	class LineRenderer {
 
@@ -50,6 +51,9 @@ namespace DOH {
 
 		std::unique_ptr<DescriptorSetsInstanceVulkan> mLineShadersDescriptorsInstance;
 
+		std::shared_ptr<CameraGpuData> mSceneCameraData;
+		std::shared_ptr<CameraGpuData> mUiCameraData;
+
 	private:
 		void initImpl();
 		void closeImpl();
@@ -76,7 +80,7 @@ namespace DOH {
 
 		static inline void drawLineScene(const glm::vec3& start, const glm::vec3& end, const glm::vec4& colour) { INSTANCE->drawLineSceneImpl(start, end, colour); }
 		static inline void drawLineUi(const glm::vec2 & start, const glm::vec2 & end, const glm::vec4 & colour) { INSTANCE->drawLineUiImpl(start, end, colour); }
-
+		
 		static inline void drawQuadScene(const Quad& quad, const glm::vec4& colour) { INSTANCE->drawQuadSceneImpl(quad, colour); }
 		static inline void drawQuadUi(const Quad& quad, const glm::vec4& colour) { INSTANCE->drawQuadUiImpl(quad, colour); }
 
@@ -84,5 +88,8 @@ namespace DOH {
 		static inline uint32_t getSceneMaxLineCount() { return INSTANCE->mSceneLineBatch->getMaxLineCount(); }
 		static inline uint32_t getUiLineCount() { return INSTANCE->mUiLineBatch->getLineCount(); }
 		static inline uint32_t getUiMaxLineCount() { return INSTANCE->mUiLineBatch->getMaxLineCount(); }
+
+		static inline void setSceneCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->mSceneCameraData = cameraData; }
+		static inline void setUiCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->mUiCameraData = cameraData; }
 	};
 }

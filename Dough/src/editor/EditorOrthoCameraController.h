@@ -14,6 +14,7 @@ namespace DOH::EDITOR {
 		std::unique_ptr<OrthographicCamera> mCamera;
 		glm::vec3 mPosition;
 		glm::vec2 mCursorLastPosUpdate;
+		bool mClickAndDragEnabled;
 		bool mClickAndDragActive;
 		float mAspectRatio;
 		float mRotation;
@@ -46,8 +47,19 @@ namespace DOH::EDITOR {
 		inline void translateXY(float x, float y) { mPosition.x += x; mPosition.y += y; };
 		inline void setTranslationSpeed(float speed) { mTranslationSpeed = speed; };
 		inline float getTranslationSpeed() const { return mTranslationSpeed; };
-		inline void setPosition(glm::vec3 pos) { mPosition = pos; }
+		inline void setPosition(glm::vec3& pos) { mPosition = pos; }
+		inline void setPositionXYZ(float x, float y, float z) { mPosition.x = x; mPosition.y = y; mPosition.z = z; }
 		inline const glm::vec3& getPosition() const { return mPosition; };
+		inline void setCursorLastPos(glm::vec2& cursorLastPos) { mCursorLastPosUpdate = cursorLastPos; }
+		inline void setCursorLastPosXY(float x, float y) { mCursorLastPosUpdate.x = x;  mCursorLastPosUpdate.y = y; }
+		inline const glm::vec2& getCursorLastPos() const { return mCursorLastPosUpdate; }
+		inline float getAspectRatio() const { return mAspectRatio; }
+		inline void setAspectRatio(float aspectRatio) { mAspectRatio = aspectRatio; }
+		inline bool isClickAndDragEnabled() const { return mClickAndDragEnabled; }
+		inline void setClickAndDragEnabled(bool enabled) { mClickAndDragEnabled = enabled; }
+		inline bool isClickAndDragActive() const { return mClickAndDragActive; }
+		inline float getRotation() const { return mRotation; }
+		inline void setRotation(float rotation) { mRotation = rotation; }
 
 		void zoom(float zoomAmount);
 		inline float getZoomLevel() const { return mZoomLevel; }

@@ -9,7 +9,6 @@
 #include "dough/rendering/renderables/SimpleRenderable.h"
 #include "dough/rendering/textures/TextureArray.h"
 #include "dough/rendering/textures/TextureAtlas.h"
-#include "dough/rendering/SwapChainVulkan.h"
 #include "dough/rendering/ShapeRenderingObjects.h"
 
 #include <vulkan/vulkan_core.h>
@@ -38,11 +37,16 @@ namespace DOH {
 		ShapeRenderingObjects<RenderBatchCircle> mCircleScene;
 		ShapeRenderingObjects<RenderBatchCircle> mCircleUi;
 
+		std::shared_ptr<CameraGpuData> mSceneCameraData;
+		std::shared_ptr<CameraGpuData> mUiCameraData;
+
 		std::shared_ptr<IndexBufferVulkan> mQuadSharedIndexBuffer;
 		std::unique_ptr<TextureArray> mTextureArray;
 		VkDescriptorSet mTextureArrayDescSet;
 		std::shared_ptr<ShaderDescriptorSetLayoutsVulkan> mShapeDescSetLayouts;
-		std::shared_ptr<DescriptorSetsInstanceVulkan> mShapesDescSetsInstance;
+		//std::shared_ptr<DescriptorSetsInstanceVulkan> mShapesDescSetsInstance;
+		std::shared_ptr<DescriptorSetsInstanceVulkan> mShapesDescSetsInstanceScene;
+		std::shared_ptr<DescriptorSetsInstanceVulkan> mShapesDescSetsInstanceUi;
 
 		//TEMP:: Leftover from when rebinding descriptors was not available. Need to move this into demo code.
 		const char* testTexturesPath = "Dough/Dough/res/images/test textures/";
@@ -150,5 +154,8 @@ namespace DOH {
 		static inline const std::vector<std::shared_ptr<RenderBatchCircle>>& getCircleSceneBatches() { return INSTANCE->mCircleScene.GeoBatches; }
 		static inline const std::vector<std::shared_ptr<RenderBatchCircle>>& getCircleUiBatches() { return INSTANCE->mCircleUi.GeoBatches; }
 		static inline uint32_t getCircleUiBatchCount() { return INSTANCE->mCircleUi.getBatchCount(); }
+
+		static inline void setSceneCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->mSceneCameraData = cameraData; }
+		static inline void setUiCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->mUiCameraData = cameraData; }
 	};
 }

@@ -69,7 +69,8 @@ namespace DOH {
 		DescriptorApiVulkan::updateDescriptorSet(mContext.getLogicDevice(), texArrUpdate);
 
 		std::initializer_list<VkDescriptorSet> descSets = { VK_NULL_HANDLE, mTextureArrayDescSet };
-		mShapesDescSetsInstance = std::make_shared<DescriptorSetsInstanceVulkan>(descSets);
+		mShapesDescSetsInstanceScene = std::make_shared<DescriptorSetsInstanceVulkan>(descSets);
+		mShapesDescSetsInstanceUi = std::make_shared<DescriptorSetsInstanceVulkan>(descSets);
 
 		initQuad();
 		initCircle();
@@ -106,6 +107,7 @@ namespace DOH {
 				VK_BLEND_FACTOR_SRC_ALPHA,
 				VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
 			);
+			optionalFields.ClearRenderablesAfterDraw = false;
 
 			mQuadScene.Pipeline = mContext.createGraphicsPipeline(*mQuadScene.PipelineInstanceInfo);
 			mQuadScene.Pipeline->init(
@@ -113,8 +115,7 @@ namespace DOH {
 				mContext.getSwapChain().getExtent(),
 				mContext.getRenderPass(ERenderPass::APP_SCENE).get()
 			);
-
-			mQuadScene.DescriptorSetsInstance = mShapesDescSetsInstance;
+			mQuadScene.DescriptorSetsInstance = mShapesDescSetsInstanceScene;
 		}
 
 		{ //UI
@@ -143,14 +144,15 @@ namespace DOH {
 				VK_BLEND_FACTOR_SRC_ALPHA,
 				VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
 			);
+			optionalFieldsUi.ClearRenderablesAfterDraw = false;
+
 			mQuadUi.Pipeline = mContext.createGraphicsPipeline(*mQuadUi.PipelineInstanceInfo);
 			mQuadUi.Pipeline->init(
 				mContext.getLogicDevice(),
 				mContext.getSwapChain().getExtent(),
 				mContext.getRenderPass(ERenderPass::APP_UI).get()
 			);
-
-			mQuadUi.DescriptorSetsInstance = mShapesDescSetsInstance;
+			mQuadUi.DescriptorSetsInstance = mShapesDescSetsInstanceUi;
 		}
 
 		//Quad Index Buffer
@@ -200,13 +202,15 @@ namespace DOH {
 				VK_BLEND_FACTOR_SRC_ALPHA,
 				VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
 			);
+			optionalFieldsScene.ClearRenderablesAfterDraw = false;
+
 			mCircleScene.Pipeline = mContext.createGraphicsPipeline(*mCircleScene.PipelineInstanceInfo);
 			mCircleScene.Pipeline->init(
 				mContext.getLogicDevice(),
 				mContext.getSwapChain().getExtent(),
 				mContext.getRenderPassScene().get()
 			);
-			mCircleScene.DescriptorSetsInstance = mShapesDescSetsInstance;
+			mCircleScene.DescriptorSetsInstance = mShapesDescSetsInstanceScene;
 		}
 
 		{ //UI
@@ -233,13 +237,14 @@ namespace DOH {
 				VK_BLEND_FACTOR_SRC_ALPHA,
 				VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
 			);
+			optionalFieldsUi.ClearRenderablesAfterDraw = false;
 			mCircleUi.Pipeline = mContext.createGraphicsPipeline(*mCircleUi.PipelineInstanceInfo);
 			mCircleUi.Pipeline->init(
 				mContext.getLogicDevice(),
 				mContext.getSwapChain().getExtent(),
 				mContext.getRenderPassUi().get()
 			);
-			mCircleUi.DescriptorSetsInstance = mShapesDescSetsInstance;
+			mCircleUi.DescriptorSetsInstance = mShapesDescSetsInstanceUi;
 		}
 	}
 
@@ -808,6 +813,13 @@ namespace DOH {
 	void ShapeRenderer::drawSceneImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
 		ZoneScoped;
 
+		if (mSceneCameraData == nullptr) {
+			//TODO:: This doesn't account for if the variable is intentionally left null because no Scene is meant to be drawn.
+			//if (mWarnOnNullSceneCameraData)
+				LOG_WARN("ShapeRenderer::drawSceneImpl mSceneCameraData is null");
+			return;
+		}
+
 		VkDevice logicDevice = mContext.getLogicDevice();
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 
@@ -817,10 +829,12 @@ namespace DOH {
 			for (uint32_t i = 0; i < mQuadScene.getBatchCount(); i++) {
 				RenderBatchQuad& batch = *mQuadScene.GeoBatches[i];
 				const uint32_t quadCount = static_cast<uint32_t>(batch.getGeometryCount());
-
+				
 				if (quadCount > 0) {
-					const auto& renderableBatch = mQuadScene.Renderables[i];
-					VertexArrayVulkan& vao = renderableBatch->getVao();
+					SimpleRenderable& batchRenderable = *mQuadScene.Renderables[i];
+					VertexArrayVulkan& vao = batchRenderable.getVao();
+					static constexpr uint32_t uboSlot = 0;
+					batchRenderable.getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mSceneCameraData->DescriptorSets[imageIndex];
 
 					vao.getVertexBuffers()[0]->setDataMapped(
 						logicDevice,
@@ -829,51 +843,38 @@ namespace DOH {
 					);
 					vao.setDrawCount(quadCount * EBatchSizeLimits::QUAD_INDEX_COUNT);
 
-					mQuadScene.Pipeline->addRenderableToDraw(renderableBatch);
+					if (mQuadScene.Pipeline->get() != currentBindings.Pipeline) {
+						mQuadScene.Pipeline->bind(cmd);
+						currentBindings.Pipeline = mQuadScene.Pipeline->get();
+						debugInfo.PipelineBinds++;
+					}
+
+					if (mQuadSharedIndexBuffer->getBuffer() != currentBindings.IndexBuffer) {
+						mQuadSharedIndexBuffer->bind(cmd);
+						currentBindings.IndexBuffer = mQuadSharedIndexBuffer->getBuffer();
+						debugInfo.IndexBufferBinds++;
+					}
+
+					mQuadScene.Pipeline->recordDrawCommand_new(cmd, batchRenderable, currentBindings, 0);
 					debugInfo.SceneDrawCalls++;
 
 					batch.reset();
-
-					hasQuadToDraw = true;
 				}
-			}
-
-			if (hasQuadToDraw) {
-				if (mQuadScene.Pipeline->get() != currentBindings.Pipeline) {
-					mQuadScene.Pipeline->bind(cmd);
-					currentBindings.Pipeline = mQuadScene.Pipeline->get();
-					debugInfo.PipelineBinds++;
-				}
-
-				if (mQuadSharedIndexBuffer->getBuffer() != currentBindings.IndexBuffer) {
-					mQuadSharedIndexBuffer->bind(cmd);
-					currentBindings.IndexBuffer = mQuadSharedIndexBuffer->getBuffer();
-					debugInfo.IndexBufferBinds++;
-				}
-
-				mContext.bindSceneUboToPipeline(
-					cmd,
-					*mQuadScene.Pipeline,
-					imageIndex,
-					currentBindings,
-					debugInfo
-				);
-
-				mQuadScene.Pipeline->recordDrawCommands(cmd, currentBindings, 1);
 			}
 		}
 
 		{ //Draw Circles
-			bool hasGeoToDraw = false;
-
 			for (uint32_t i = 0; i < mCircleScene.getBatchCount(); i++) {
 				RenderBatchCircle& batch = *mCircleScene.GeoBatches[i];
 				const uint32_t geoCount = static_cast<uint32_t>(batch.getGeometryCount());
-
+				
 				if (geoCount > 0) {
-					const auto& renderableBatch = mCircleScene.Renderables[i];
-					VertexArrayVulkan& vao = renderableBatch->getVao();
-
+					SimpleRenderable& batchRenderable = *mCircleScene.Renderables[i];
+					VertexArrayVulkan& vao = batchRenderable.getVao();
+					//Update desc set instance to point camera slot to current frame's desc set
+					static constexpr uint32_t uboSlot = 0;
+					batchRenderable.getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mSceneCameraData->DescriptorSets[imageIndex];
+		
 					vao.getVertexBuffers()[0]->setDataMapped(
 						logicDevice,
 						batch.getData().data(),
@@ -881,37 +882,23 @@ namespace DOH {
 					);
 					vao.setDrawCount(geoCount * EBatchSizeLimits::CIRCLE_INDEX_COUNT);
 
-					mCircleScene.Pipeline->addRenderableToDraw(renderableBatch);
+					if (mCircleScene.Pipeline->get() != currentBindings.Pipeline) {
+						mCircleScene.Pipeline->bind(cmd);
+						currentBindings.Pipeline = mCircleScene.Pipeline->get();
+						debugInfo.PipelineBinds++;
+					}
+
+					if (mQuadSharedIndexBuffer->getBuffer() != currentBindings.IndexBuffer) {
+						mQuadSharedIndexBuffer->bind(cmd);
+						currentBindings.IndexBuffer = mQuadSharedIndexBuffer->getBuffer();
+						debugInfo.IndexBufferBinds++;
+					}
+		
+					mCircleScene.Pipeline->recordDrawCommand_new(cmd, batchRenderable, currentBindings, 0);
 					debugInfo.SceneDrawCalls++;
-
+		
 					batch.reset();
-
-					hasGeoToDraw = true;
 				}
-			}
-
-			if (hasGeoToDraw) {
-				if (mCircleScene.Pipeline->get() != currentBindings.Pipeline) {
-					mCircleScene.Pipeline->bind(cmd);
-					currentBindings.Pipeline = mCircleScene.Pipeline->get();
-					debugInfo.PipelineBinds++;
-				}
-
-				if (mQuadSharedIndexBuffer->getBuffer() != currentBindings.IndexBuffer) {
-					mQuadSharedIndexBuffer->bind(cmd);
-					currentBindings.IndexBuffer = mQuadSharedIndexBuffer->getBuffer();
-					debugInfo.IndexBufferBinds++;
-				}
-
-				mContext.bindSceneUboToPipeline(
-					cmd,
-					*mCircleScene.Pipeline,
-					imageIndex,
-					currentBindings,
-					debugInfo
-				);
-
-				mCircleScene.Pipeline->recordDrawCommands(cmd, currentBindings, 1);
 			}
 		}
 	}
@@ -922,16 +909,24 @@ namespace DOH {
 		VkDevice logicDevice = mContext.getLogicDevice();
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 
-		{ //Draw Quads
-			bool hasQuadToDraw = false;
+		if (mUiCameraData == nullptr) {
+			//TODO:: This doesn't account for if the variable is intentionally left null because no UI is meant to be drawn.
+			//if (mWarnOnNullUiCameraData)
+				LOG_WARN("ShapeRenderer::drawUiImpl mUiCameraData is null");
+			return;
+		}
 
+		{ //Draw Quads
 			for (uint32_t i = 0; i < mQuadUi.getBatchCount(); i++) {
 				RenderBatchQuad& batch = *mQuadUi.GeoBatches[i];
 				const uint32_t quadCount = static_cast<uint32_t>(batch.getGeometryCount());
 
 				if (quadCount > 0) {
-					const auto& renderableBatch = mQuadUi.Renderables[i];
-					VertexArrayVulkan& vao = renderableBatch->getVao();
+					SimpleRenderable& batchRenderable = *mQuadUi.Renderables[i];
+					VertexArrayVulkan& vao = batchRenderable.getVao();
+					//Update desc set instance to point camera slot to current frame's desc set
+					static constexpr uint32_t uboSlot = 0;
+					batchRenderable.getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mUiCameraData->DescriptorSets[imageIndex];
 
 					vao.getVertexBuffers()[0]->setDataMapped(
 						logicDevice,
@@ -940,50 +935,38 @@ namespace DOH {
 					);
 					vao.setDrawCount(quadCount * EBatchSizeLimits::QUAD_INDEX_COUNT);
 
-					mQuadUi.Pipeline->addRenderableToDraw(renderableBatch);
-					debugInfo.SceneDrawCalls++;
+					if (mQuadUi.Pipeline->get() != currentBindings.Pipeline) {
+						mQuadUi.Pipeline->bind(cmd);
+						currentBindings.Pipeline = mQuadUi.Pipeline->get();
+						debugInfo.PipelineBinds++;
+					}
+
+					//TODO:: Renderable stores shared_ptr to index buffer and there's a check & bind for IB in recordDrawCommand, is this needed here?
+					if (mQuadSharedIndexBuffer->getBuffer() != currentBindings.IndexBuffer) {
+						mQuadSharedIndexBuffer->bind(cmd);
+						currentBindings.IndexBuffer = mQuadSharedIndexBuffer->getBuffer();
+						debugInfo.IndexBufferBinds++;
+					}
+
+					mQuadUi.Pipeline->recordDrawCommand_new(cmd, batchRenderable, currentBindings, 0);
+					debugInfo.UiDrawCalls++;
 
 					batch.reset();
-
-					hasQuadToDraw = true;
 				}
-			}
-
-			if (hasQuadToDraw) {
-				if (mQuadUi.Pipeline->get() != currentBindings.Pipeline) {
-					mQuadUi.Pipeline->bind(cmd);
-					currentBindings.Pipeline = mQuadUi.Pipeline->get();
-					debugInfo.PipelineBinds++;
-				}
-
-				if (mQuadSharedIndexBuffer->getBuffer() != currentBindings.IndexBuffer) {
-					mQuadSharedIndexBuffer->bind(cmd);
-					currentBindings.IndexBuffer = mQuadSharedIndexBuffer->getBuffer();
-					debugInfo.IndexBufferBinds++;
-				}
-
-				mContext.bindUiUboToPipeline(
-					cmd,
-					*mQuadUi.Pipeline,
-					imageIndex,
-					currentBindings,
-					debugInfo
-				);
-
-				mQuadUi.Pipeline->recordDrawCommands(cmd, currentBindings, 1);
 			}
 		}
 
 		{ //Draw Circles
-			bool hasGeoToDraw = false;
-			
 			for (uint32_t i = 0; i < mCircleUi.getBatchCount(); i++) {
 				RenderBatchCircle& batch = *mCircleUi.GeoBatches[i];
 				const uint32_t geoCount = static_cast<uint32_t>(batch.getGeometryCount());
 			
 				if (geoCount > 0) {
-					const auto& renderableBatch = mCircleUi.Renderables[i];
-					VertexArrayVulkan& vao = renderableBatch->getVao();
+					SimpleRenderable& batchRenderable = *mCircleUi.Renderables[i];
+					VertexArrayVulkan& vao = batchRenderable.getVao();
+					//Update desc set instance to point camera slot to current frame's desc set
+					static constexpr uint32_t uboSlot = 0;
+					batchRenderable.getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mUiCameraData->DescriptorSets[imageIndex];
 			
 					vao.getVertexBuffers()[0]->setDataMapped(
 						logicDevice,
@@ -991,38 +974,24 @@ namespace DOH {
 						geoCount * Circle::BYTE_SIZE
 					);
 					vao.setDrawCount(geoCount * EBatchSizeLimits::CIRCLE_INDEX_COUNT);
+
+					if (mCircleUi.Pipeline->get() != currentBindings.Pipeline) {
+						mCircleUi.Pipeline->bind(cmd);
+						currentBindings.Pipeline = mCircleUi.Pipeline->get();
+						debugInfo.PipelineBinds++;
+					}
+
+					if (mQuadSharedIndexBuffer->getBuffer() != currentBindings.IndexBuffer) {
+						mQuadSharedIndexBuffer->bind(cmd);
+						currentBindings.IndexBuffer = mQuadSharedIndexBuffer->getBuffer();
+						debugInfo.IndexBufferBinds++;
+					}
 			
-					mCircleUi.Pipeline->addRenderableToDraw(renderableBatch);
-					debugInfo.SceneDrawCalls++;
+					mCircleUi.Pipeline->recordDrawCommand_new(cmd, batchRenderable, currentBindings, 0);
+					debugInfo.UiDrawCalls++;
 			
 					batch.reset();
-			
-					hasGeoToDraw = true;
 				}
-			}
-			
-			if (hasGeoToDraw) {
-				if (mCircleUi.Pipeline->get() != currentBindings.Pipeline) {
-					mCircleUi.Pipeline->bind(cmd);
-					currentBindings.Pipeline = mCircleUi.Pipeline->get();
-					debugInfo.PipelineBinds++;
-				}
-			
-				if (mQuadSharedIndexBuffer->getBuffer() != currentBindings.IndexBuffer) {
-					mQuadSharedIndexBuffer->bind(cmd);
-					currentBindings.IndexBuffer = mQuadSharedIndexBuffer->getBuffer();
-					debugInfo.IndexBufferBinds++;
-				}
-			
-				mContext.bindUiUboToPipeline(
-					cmd,
-					*mCircleUi.Pipeline,
-					imageIndex,
-					currentBindings,
-					debugInfo
-				);
-			
-				mCircleUi.Pipeline->recordDrawCommands(cmd, currentBindings, 1);
 			}
 		}
 	}
@@ -1234,7 +1203,7 @@ namespace DOH {
 		descTypeInfos.push_back({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2u }); //Test textures
 		descTypeInfos.push_back({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8u }); //Texture Array
 		return descTypeInfos;
-
+	
 		//NOTE:: Currently there are no Descriptors owned by the ShapeRenderer::INSTANCE so this function is empty.
 		//return { };
 	}

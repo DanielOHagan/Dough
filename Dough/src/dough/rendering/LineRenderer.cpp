@@ -150,11 +150,19 @@ namespace DOH {
 	) {
 		ZoneScoped;
 
-		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
+		if (mSceneCameraData == nullptr) {
+			//TODO:: This doesn't account for if the variable is intentionally left null because no Scene is meant to be drawn.
+			//if (mWarnOnNullSceneCameraData)
+			LOG_WARN("ShapeRenderer::drawSceneImpl mSceneCameraData is null");
+			return;
+		}
 
-		if (mSceneLineBatch->getLineCount() > 0) {
-			const uint32_t uboSlot = 0;
-			mSceneLineRenderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = Application::get().getRenderer().getContext().getSceneCameraData().DescriptorSets[imageIndex];
+		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
+		constexpr uint32_t uboSlot = 0;
+		const uint32_t lineCount = mSceneLineBatch->getLineCount();
+
+		if (lineCount > 0) {
+			mUiLineRenderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mUiCameraData->DescriptorSets[imageIndex];
 			if (currentBindings.Pipeline != mSceneLineGraphicsPipeline->get()) {
 				mSceneLineGraphicsPipeline->bind(cmd);
 				debugInfo.PipelineBinds++;
@@ -162,24 +170,14 @@ namespace DOH {
 			}
 
 			mSceneLineRenderable->getVao().setDrawCount(mSceneLineBatch->getVertexCount());
-
-			Application::get().getRenderer().getContext().bindSceneUboToPipeline(
-				cmd,
-				*mUiLineGraphicsPipeline,
-				imageIndex,
-				currentBindings,
-				debugInfo
-			);
-
-			//Offset by 1 because UBO already bound to this pipeline
-			mSceneLineGraphicsPipeline->recordDrawCommands(cmd, currentBindings, 1);
-			debugInfo.SceneDrawCalls += mSceneLineGraphicsPipeline->getVaoDrawCount();
-
 			mSceneLineRenderable->getVao().getVertexBuffers()[0]->setDataMapped(
 				mContext.getLogicDevice(),
 				mSceneLineBatch->getData().data(),
-				mSceneLineBatch->getLineCount() * RenderBatchLineList::LINE_3D_SIZE
+				lineCount * RenderBatchLineList::LINE_3D_SIZE
 			);
+
+			mSceneLineGraphicsPipeline->recordDrawCommand_new(cmd, *mSceneLineRenderable, currentBindings, 0);
+			debugInfo.SceneDrawCalls++;
 		}
 
 		mSceneLineBatch->reset();
@@ -192,11 +190,19 @@ namespace DOH {
 	) {
 		ZoneScoped;
 
-		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
+		if (mUiCameraData == nullptr) {
+			//TODO:: This doesn't account for if the variable is intentionally left null because no UI is meant to be drawn.
+			//if (mWarnOnNullUiCameraData)
+			LOG_WARN("LineRenderer::drawUiImpl mUiCameraData is null");
+			return;
+		}
 
-		if (mUiLineBatch->getLineCount() > 0) {
-			const uint32_t uboSlot = 0;
-			mSceneLineRenderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = Application::get().getRenderer().getContext().getSceneCameraData().DescriptorSets[imageIndex];
+		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
+		constexpr uint32_t uboSlot = 0;
+		const uint32_t lineCount = mUiLineBatch->getLineCount();
+
+		if (lineCount > 0) {
+			mUiLineRenderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mUiCameraData->DescriptorSets[imageIndex];
 			if (currentBindings.Pipeline != mUiLineGraphicsPipeline->get()) {
 				mUiLineGraphicsPipeline->bind(cmd);
 				debugInfo.PipelineBinds++;
@@ -205,23 +211,14 @@ namespace DOH {
 
 			mUiLineRenderable->getVao().setDrawCount(mUiLineBatch->getVertexCount());
 
-			Application::get().getRenderer().getContext().bindUiUboToPipeline(
-				cmd,
-				*mUiLineGraphicsPipeline,
-				imageIndex,
-				currentBindings,
-				debugInfo
-			);
-
-			//Offset by 1 because UBO already bound to this pipeline
-			mUiLineGraphicsPipeline->recordDrawCommands(cmd, currentBindings, 1);
-			debugInfo.UiDrawCalls += mUiLineGraphicsPipeline->getVaoDrawCount();
-
 			mUiLineRenderable->getVao().getVertexBuffers()[0]->setDataMapped(
 				mContext.getLogicDevice(),
 				mUiLineBatch->getData().data(),
-				mUiLineBatch->getLineCount() * RenderBatchLineList::LINE_2D_SIZE
+				lineCount * RenderBatchLineList::LINE_2D_SIZE
 			);
+
+			mUiLineGraphicsPipeline->recordDrawCommand_new(cmd, *mUiLineRenderable, currentBindings, 0);
+			debugInfo.UiDrawCalls++;
 		}
 
 		mUiLineBatch->reset();

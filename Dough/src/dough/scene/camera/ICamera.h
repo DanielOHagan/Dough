@@ -2,7 +2,11 @@
 
 #include "dough/Maths.h"
 
+#include <memory>
+
 namespace DOH {
+
+	class CameraGpuData;
 
 	class ICamera {
 	public:
@@ -15,5 +19,9 @@ namespace DOH {
 		inline virtual glm::mat4x4& getViewMatrix() = 0;
 		inline virtual glm::mat4x4& getProjectionMatrix() = 0;
 		inline virtual glm::mat4x4& getProjectionViewMatrix() = 0;
+
+		inline virtual std::shared_ptr<CameraGpuData> getGpuData() { return nullptr; };
+		inline virtual void setGpuData(std::shared_ptr<CameraGpuData> gpuData) = 0;
+		inline bool hasGpuData() { return getGpuData() != nullptr; }
 	};
 }

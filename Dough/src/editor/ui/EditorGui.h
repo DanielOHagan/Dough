@@ -12,6 +12,9 @@
 
 namespace DOH::EDITOR {
 
+	class EditorPerspectiveCameraController;
+	class EditorOrthoCameraController;
+
 	class EditorGui {
 	private:
 		static std::unique_ptr<EditorGui> INSTANCE;
@@ -31,6 +34,7 @@ namespace DOH::EDITOR {
 		void imGuiRemoveHiddenTextureViewerWindowsImpl();
 
 		void imGuiDisplayHelpTooltipImpl(const char* message);
+		void imGuiDisplayWarningTooltipImpl(const char* message);
 		void imGuiBulletTextWrappedImpl(const char* message);
 
 		void imGuiPrintMat4x4Impl(const glm::mat4x4& mat, const char* name);
@@ -53,6 +57,12 @@ namespace DOH::EDITOR {
 		void imGuiInfoAGeometryImpl(AGeometry& geo, const char* name);
 		void imGuiInfoQuadImpl(Quad& quad, const char* name);
 		void imGuiInfoCircleImpl(Circle& circle, const char* name);
+
+		void imGuiControlsEditorPerspectiveCameraControllerImpl(EditorPerspectiveCameraController& cameraController, const char* name);
+		void imGuiControlsEditorOrthoCameraControllerImpl(EditorOrthoCameraController& cameraController, const char* name);
+
+		void imGuiInfoEditorPerspectiveCameraControllerImpl(EditorPerspectiveCameraController& cameraController, const char* name);
+		void imGuiInfoEditorOrthoCameraControllerImpl(EditorOrthoCameraController& cameraController, const char* name);
 
 		void imGuiJsonElementImpl(JsonElement& element, const char* name);
 		void imGuiJsonObjectImpl(JsonElement& object, const char* name);
@@ -199,6 +209,13 @@ namespace DOH::EDITOR {
 		*/
 		static inline void displayHelpTooltip(const char* message) { INSTANCE->imGuiDisplayHelpTooltipImpl(message); }
 		/**
+		* Display a hoverable warning that displays the given message.
+		* Tooltip icon: (!)
+		*
+		* @param message The given message that is to be displayed when hovering over the tooltip icon.
+		*/
+		static inline void displayWarningTooltip(const char* message) { INSTANCE->imGuiDisplayWarningTooltipImpl(message); }
+		/**
 		* Display a bullet pointed wrapped text of given message.
 		*
 		* @param message The given message tat is to be displayed starting with a bullet point and wraps depending on container dimensions.
@@ -314,6 +331,38 @@ namespace DOH::EDITOR {
 		*/
 		static inline void infoCircle(Circle& circle, const char* name) { INSTANCE->imGuiInfoCircleImpl(circle, name); }
 		static inline void infoCircle(const Circle& circle, const char* name) { INSTANCE->imGuiInfoCircleImpl((Circle&) circle, name); }
+
+		//-----Camera Controls-----
+		/**
+		 * Display controls for the EditorPerspectiveCameraController.
+		 * 
+		 * @param cameraController The EditorPerspectiveCameraController instance to display a set of controls of.
+		 * @param name Unique name for EditorPerspectiveCameraController to display.
+		 */
+		static inline void controlsEditorPerspectiveCameraController(EditorPerspectiveCameraController& cameraController, const char* name) { INSTANCE->imGuiControlsEditorPerspectiveCameraControllerImpl(cameraController, name); };
+		/**
+		 * Display controls for the EditorOrthoCameraController.
+		 * 
+		 * @param cameraController The EditorOrthoCameraController instance to display a set of controls of.
+		 * @param name Unique name for EditorOrthoCameraController to display.
+		 */
+		static inline void controlsEditorOrthoCameraController(EditorOrthoCameraController& cameraController, const char* name) { INSTANCE->imGuiControlsEditorOrthoCameraControllerImpl(cameraController, name); };
+		
+		//-----Camera Information-----
+		/**
+		 * Display information for the EditorPerspectiveCameraController.
+		 * 
+		 * @param cameraController The EditorPerspectiveCameraController instance to display information of.
+		 * @param name Unique name for EditorPerspectiveCameraController to display.
+		 */
+		static inline void infoEditorPerspectiveCameraController(EditorPerspectiveCameraController& cameraController, const char* name) { INSTANCE->imGuiInfoEditorPerspectiveCameraControllerImpl(cameraController, name); }
+		/**
+		 * Display information for the EditorOrthoCameraController.
+		 * 
+		 * @param cameraController The EditorOrthoCameraController instance to display information of.
+		 * @param name Unique name for EditorOrthoCameraController to display.
+		 */
+		static inline void infoEditorOrthoCameraController(EditorOrthoCameraController& cameraController, const char* name) { INSTANCE->imGuiInfoEditorOrthoCameraControllerImpl(cameraController, name); }
 
 		//-----File Data Viewers-----
 		/**

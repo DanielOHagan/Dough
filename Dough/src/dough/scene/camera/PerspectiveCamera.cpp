@@ -4,8 +4,8 @@
 
 namespace DOH {
 
-	PerspectiveCamera::PerspectiveCamera(float aspectRatio, float fov, float nearZ, float farZ)
-	:	mProjectionMatrix(glm::perspective(glm::radians(fov), aspectRatio, nearZ, farZ)),
+	PerspectiveCamera::PerspectiveCamera(float aspectRatio, float fovDegrees, float nearZ, float farZ)
+	:	mProjectionMatrix(glm::perspective(glm::radians(fovDegrees), aspectRatio, nearZ, farZ)),
 		mViewMatrix(1.0f),
 		mProjectionViewMatrix(1.0f)
 	{
@@ -17,7 +17,7 @@ namespace DOH {
 		mProjectionViewMatrix = mProjectionViewMatrix * mViewMatrix;
 	}
 
-	void PerspectiveCamera::setView(const glm::vec3 pos, const glm::vec3 direction, const glm::vec3 up) {
+	void PerspectiveCamera::setView(const glm::vec3& pos, const glm::vec3& direction, const glm::vec3& up) {
 		mViewMatrix = glm::lookAt(pos, direction, up);
 	}
 

@@ -29,6 +29,14 @@ namespace DOH {
 		Model3dCreationData(const AVertexInputLayout& vertexInputLayout)
 		:	VertexInputLayout(vertexInputLayout)
 		{};
+		Model3dCreationData(
+			const AVertexInputLayout& vertexInputLayout,
+			const std::vector<float>& vertices,
+			const std::vector<uint32_t>& indices
+		) : VertexInputLayout(vertexInputLayout),
+			Vertices(vertices),
+			Indices(indices)
+		{}
 
 		std::vector<float> Vertices;
 		std::vector<uint32_t> Indices;

@@ -4,6 +4,8 @@
 
 namespace DOH {
 
+	class ICamera;
+
 	static constexpr uint32_t LINE_BATCH_MAX_LINE_COUNT = 10000;
 
 	//For definition of Line List: https://registry.khronos.org/vulkan/specs/1.3-extensions/html/vkspec.html#drawing-line-lists

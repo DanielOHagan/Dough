@@ -18,6 +18,7 @@ namespace DOH::EDITOR {
 		)),
 		mPosition(0.0f, 0.0f, 1.0f),
 		mCursorLastPosUpdate(0.0f, 0.0f),
+		mClickAndDragEnabled(false),
 		mClickAndDragActive(false),
 		mAspectRatio(aspectRatio),
 		mRotation(0.0f),
@@ -87,14 +88,12 @@ namespace DOH::EDITOR {
 		//Click and Drag
 		//TODO:: separate mClickAndDragTranslationSpeed ?
 		//	Change cursor appearence when dragging?
-		if (mInputLayer->isMouseButtonPressed(DOH_MOUSE_BUTTON_RIGHT)) {
-			if (!mClickAndDragActive) {
-				mClickAndDragActive = true;
-			}
+		if (mClickAndDragEnabled && mInputLayer->isMouseButtonPressed(DOH_MOUSE_BUTTON_RIGHT)) {
+			mClickAndDragActive = true;
 
 			//TODO:: fix differing speeds on differing UPS rates
 			//Invert axes for a "drag" effect
-			const glm::vec2 currentMousePos = mInputLayer->getCursorPos();
+			const glm::vec2& currentMousePos = mInputLayer->getCursorPos();
 
 			translateXY(
 				(mCursorLastPosUpdate.x - currentMousePos.x) * translationDelta,

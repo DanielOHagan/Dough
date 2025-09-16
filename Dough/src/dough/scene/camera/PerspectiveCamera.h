@@ -2,6 +2,8 @@
 
 #include "dough/scene/camera/ICamera.h"
 
+#include <memory>
+
 namespace DOH {
 
 	class PerspectiveCamera : public ICamera {
@@ -9,9 +11,10 @@ namespace DOH {
 		glm::mat4x4 mProjectionMatrix;
 		glm::mat4x4 mViewMatrix;
 		glm::mat4x4 mProjectionViewMatrix;
+		std::shared_ptr<CameraGpuData> mGpuData;
 
 	public:
-		PerspectiveCamera(float aspectRatio, float fov = 60.0f, float nearZ = 0.01f, float farZ = 100.0f);
+		PerspectiveCamera(float aspectRatio, float fovDegrees = 60.0f, float nearZ = 0.01f, float farZ = 100.0f);
 		PerspectiveCamera(const PerspectiveCamera& copy) = delete;
 		PerspectiveCamera operator=(const PerspectiveCamera& assignment) = delete;
 
@@ -21,7 +24,10 @@ namespace DOH {
 		inline virtual glm::mat4x4& getProjectionMatrix() override { return mProjectionMatrix; }
 		inline virtual glm::mat4x4& getProjectionViewMatrix() override { return mProjectionViewMatrix; }
 
-		void setView(const glm::vec3 pos, const glm::vec3 direction, const glm::vec3 up);
+		virtual std::shared_ptr<CameraGpuData> getGpuData() override { return mGpuData; }
+		inline virtual void setGpuData(std::shared_ptr<CameraGpuData> gpuData) override { mGpuData = gpuData; }
+
+		void setView(const glm::vec3& pos, const glm::vec3& direction, const glm::vec3& up);
 		void setProjection(float fovDegrees, float aspectRatio, float nearZ = 0.01f, float farZ = 100.0f);
 	};
 }

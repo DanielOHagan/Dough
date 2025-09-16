@@ -184,24 +184,21 @@ namespace DOH {
 
 		const StaticVertexInputLayout& staticVertexInputLayout = (const StaticVertexInputLayout&) vertexInputLayout;
 		switch (staticVertexInputLayout.getVertexType()) {
-			case EVertexType::VERTEX_3D:
-			{
+			case EVertexType::VERTEX_3D: {
 				const auto& verticesAndIndices = extractObjFileDataAsVertex3d(attrib, shapes, materials);
 				fileData->Vertices = verticesAndIndices.first;
 				fileData->Indices = verticesAndIndices.second;
 				break;
 			}
 
-			case EVertexType::VERTEX_3D_TEXTURED:
-			{
+			case EVertexType::VERTEX_3D_TEXTURED: {
 				const auto& verticesAndIndices = extractObjFileDataAsVertex3dTextured(attrib, shapes, materials);
 				fileData->Vertices = verticesAndIndices.first;
 				fileData->Indices = verticesAndIndices.second;
 				break;
 			}
 
-			case EVertexType::VERTEX_3D_LIT_TEXTURED:
-			{
+			case EVertexType::VERTEX_3D_LIT_TEXTURED: {
 				const auto& verticesAndIndices = extractObjFileDataAsVertex3dTextured(attrib, shapes, materials);
 				fileData->Vertices = verticesAndIndices.first;
 				fileData->Indices = verticesAndIndices.second;
@@ -246,12 +243,12 @@ namespace DOH {
 	}
 
 	const size_t ResourceHandler::getLengthTillNextTargetChar(
-		//ZoneScoped;
-
 		const std::vector<char>& chars,
 		const char targetChar,
 		const size_t startIndex
 	) {
+		//ZoneScoped;
+
 		if (startIndex >= chars.size()) {
 			LOG_WARN("getLengthTillNextTargetChar() startIndex greater than chars.size()");
 			return 0;
@@ -417,7 +414,7 @@ namespace DOH {
 		return { verticesAsFloats, indices };
 	}
 
-	std::pair<std::vector<float>, std::vector<uint32_t>> extractObjFileDataAsVertex3dLitTextured(
+	std::pair<std::vector<float>, std::vector<uint32_t>> ResourceHandler::extractObjFileDataAsVertex3dLitTextured(
 		const tinyobj::attrib_t& attrib,
 		const std::vector<tinyobj::shape_t>& shapes,
 		const std::vector<tinyobj::material_t>& materials

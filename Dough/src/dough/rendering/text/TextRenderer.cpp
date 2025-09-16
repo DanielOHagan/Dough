@@ -32,8 +32,8 @@ namespace DOH {
 		);
 
 		mFontBitmaps = {};
-		mSoftMaskRendering = {};
-		mMsdfRendering = {};
+		mSoftMaskRendering = std::make_unique<TextRenderingObjects>();
+		mMsdfRendering = std::make_unique<TextRenderingObjects>();
 
 		mQuadIndexBuffer = ShapeRenderer::getQuadSharedIndexBufferPtr();
 		if (mQuadIndexBuffer == nullptr) {
@@ -111,16 +111,16 @@ namespace DOH {
 		DescriptorApiVulkan::updateDescriptorSet(mContext.getLogicDevice(), texArrUpdate);
 
 		{ //Soft Mask
-			mSoftMaskRendering.SceneVertexShader = mContext.createShader(EShaderStage::VERTEX, TextRenderer::SOFT_MASK_SHADER_PATH_VERT);
-			mSoftMaskRendering.SceneFragmentShader = mContext.createShader(EShaderStage::FRAGMENT, TextRenderer::SOFT_MASK_SHADER_PATH_FRAG);
-			mSoftMaskRendering.SceneShaderProgram = mContext.createShaderProgram(
-				mSoftMaskRendering.SceneVertexShader,
-				mSoftMaskRendering.SceneFragmentShader,
+			mSoftMaskRendering->SceneVertexShader = mContext.createShader(EShaderStage::VERTEX, TextRenderer::SOFT_MASK_SHADER_PATH_VERT);
+			mSoftMaskRendering->SceneFragmentShader = mContext.createShader(EShaderStage::FRAGMENT, TextRenderer::SOFT_MASK_SHADER_PATH_FRAG);
+			mSoftMaskRendering->SceneShaderProgram = mContext.createShaderProgram(
+				mSoftMaskRendering->SceneVertexShader,
+				mSoftMaskRendering->SceneFragmentShader,
 				textDescSetLayouts
 			);
 
 			//Scene
-			mSoftMaskRendering.SceneBatch = std::make_unique<RenderBatchQuad>(
+			mSoftMaskRendering->SceneBatch = std::make_unique<RenderBatchQuad>(
 				EBatchSizeLimits::QUAD_BATCH_MAX_GEO_COUNT,
 				EBatchSizeLimits::BATCH_MAX_COUNT_TEXTURE
 			);
@@ -136,14 +136,14 @@ namespace DOH {
 			vao->setIndexBuffer(mQuadIndexBuffer, true);
 			vao->getVertexBuffers()[0]->map(mContext.getLogicDevice(), batchSizeBytes);
 
-			mSoftMaskRendering.SceneRenderableBatch = std::make_shared<SimpleRenderable>(vao, mFontRenderingDescSetsInstanceScene);
+			mSoftMaskRendering->SceneRenderableBatch = std::make_shared<SimpleRenderable>(vao, mFontRenderingDescSetsInstanceScene);
 
-			mSoftMaskRendering.ScenePipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
+			mSoftMaskRendering->ScenePipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 				textVertexLayout,
-				*mSoftMaskRendering.SceneShaderProgram,
+				*mSoftMaskRendering->SceneShaderProgram,
 				ERenderPass::APP_SCENE
 			);
-			auto& optionalFields = mSoftMaskRendering.ScenePipelineInstanceInfo->enableOptionalFields();
+			auto& optionalFields = mSoftMaskRendering->ScenePipelineInstanceInfo->enableOptionalFields();
 			//Text isn't culled by default for viewing from behind.
 			//Text depth testing in scene so it doesn't overlap, however, this causes z-fighting during kerning as each glyph is a rendered quad.
 			optionalFields.CullMode = VK_CULL_MODE_NONE;
@@ -157,16 +157,18 @@ namespace DOH {
 				VK_BLEND_FACTOR_SRC_ALPHA,
 				VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
 			);
+			optionalFields.ClearRenderablesAfterDraw = false;
 
-			mSoftMaskRendering.ScenePipeline = mContext.createGraphicsPipeline(*mSoftMaskRendering.ScenePipelineInstanceInfo);
-			mSoftMaskRendering.ScenePipeline->init(
+			mSoftMaskRendering->ScenePipeline = mContext.createGraphicsPipeline(*mSoftMaskRendering->ScenePipelineInstanceInfo);
+			mSoftMaskRendering->ScenePipeline->init(
 				mContext.getLogicDevice(),
 				mContext.getSwapChain().getExtent(),
 				mContext.getRenderPass(ERenderPass::APP_SCENE).get()
 			);
+			mSoftMaskRendering->ScenePipeline->addRenderableToDraw(mSoftMaskRendering->SceneRenderableBatch);
 
 			//UI
-			mSoftMaskRendering.UiBatch = std::make_unique<RenderBatchQuad>(
+			mSoftMaskRendering->UiBatch = std::make_unique<RenderBatchQuad>(
 				EBatchSizeLimits::QUAD_BATCH_MAX_GEO_COUNT,
 				EBatchSizeLimits::BATCH_MAX_COUNT_TEXTURE
 			);
@@ -182,14 +184,14 @@ namespace DOH {
 			uiVao->setIndexBuffer(mQuadIndexBuffer, true);
 			uiVao->getVertexBuffers()[0]->map(mContext.getLogicDevice(), batchSizeBytes);
 			
-			mSoftMaskRendering.UiRenderableBatch = std::make_shared<SimpleRenderable>(uiVao, mFontRenderingDescSetsInstanceUi);
+			mSoftMaskRendering->UiRenderableBatch = std::make_shared<SimpleRenderable>(uiVao, mFontRenderingDescSetsInstanceUi);
 
-			mSoftMaskRendering.UiPipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
+			mSoftMaskRendering->UiPipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 				textVertexLayout,
-				*mSoftMaskRendering.SceneShaderProgram,
+				*mSoftMaskRendering->SceneShaderProgram,
 				ERenderPass::APP_UI
 			);
-			auto& uiOptionalFields = mSoftMaskRendering.UiPipelineInstanceInfo->enableOptionalFields();
+			auto& uiOptionalFields = mSoftMaskRendering->UiPipelineInstanceInfo->enableOptionalFields();
 			//Text isn't culled by default for viewing from behind.
 			//Text depth testing in scene so it doesn't overlap, however, this causes z-fighting during kerning as each glyph is a rendered quad.
 			uiOptionalFields.CullMode = VK_CULL_MODE_NONE;
@@ -203,36 +205,38 @@ namespace DOH {
 				VK_BLEND_FACTOR_SRC_ALPHA,
 				VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
 			);
+			uiOptionalFields.ClearRenderablesAfterDraw = false;
 
-			mSoftMaskRendering.UiPipeline = mContext.createGraphicsPipeline(*mSoftMaskRendering.UiPipelineInstanceInfo);
-			mSoftMaskRendering.UiPipeline->init(
+			mSoftMaskRendering->UiPipeline = mContext.createGraphicsPipeline(*mSoftMaskRendering->UiPipelineInstanceInfo);
+			mSoftMaskRendering->UiPipeline->init(
 				mContext.getLogicDevice(),
 				mContext.getSwapChain().getExtent(),
 				mContext.getRenderPass(ERenderPass::APP_UI).get()
 			);
+			mSoftMaskRendering->UiPipeline->addRenderableToDraw(mSoftMaskRendering->UiRenderableBatch);
 		}
 
 		{ //MSDF
-			mMsdfRendering.SceneVertexShader = mContext.createShader(EShaderStage::VERTEX, TextRenderer::MSDF_SHADER_PATH_VERT);
-			mMsdfRendering.SceneFragmentShader = mContext.createShader(EShaderStage::FRAGMENT, TextRenderer::MSDF_SHADER_PATH_FRAG);
-			mMsdfRendering.SceneShaderProgram = mContext.createShaderProgram(
-				mMsdfRendering.SceneVertexShader,
-				mMsdfRendering.SceneFragmentShader,
+			mMsdfRendering->SceneVertexShader = mContext.createShader(EShaderStage::VERTEX, TextRenderer::MSDF_SHADER_PATH_VERT);
+			mMsdfRendering->SceneFragmentShader = mContext.createShader(EShaderStage::FRAGMENT, TextRenderer::MSDF_SHADER_PATH_FRAG);
+			mMsdfRendering->SceneShaderProgram = mContext.createShaderProgram(
+				mMsdfRendering->SceneVertexShader,
+				mMsdfRendering->SceneFragmentShader,
 				textDescSetLayouts
 			);
 
 			//Scene
-			mMsdfRendering.SceneBatch = std::make_unique<RenderBatchQuad>(
+			mMsdfRendering->SceneBatch = std::make_unique<RenderBatchQuad>(
 				EBatchSizeLimits::QUAD_BATCH_MAX_GEO_COUNT,
 				EBatchSizeLimits::BATCH_MAX_COUNT_TEXTURE
 			);
 
-			mMsdfRendering.ScenePipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
+			mMsdfRendering->ScenePipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 				StaticVertexInputLayout::get(QUAD_VERTEX_INPUT_TYPE),
-				*mMsdfRendering.SceneShaderProgram,
+				*mMsdfRendering->SceneShaderProgram,
 				ERenderPass::APP_SCENE
 			);
-			auto& optionalFields = mMsdfRendering.ScenePipelineInstanceInfo->enableOptionalFields();
+			auto& optionalFields = mMsdfRendering->ScenePipelineInstanceInfo->enableOptionalFields();
 			//Text isn't culled by default for viewing from behind.
 			//Text depth testing in scene so it doesn't overlap, however, this causes z-fighting during kerning as each glyph is a rendered quad.
 			optionalFields.CullMode = VK_CULL_MODE_NONE;
@@ -246,6 +250,7 @@ namespace DOH {
 				VK_BLEND_FACTOR_SRC_ALPHA,
 				VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
 			);
+			optionalFields.ClearRenderablesAfterDraw = false;
 
 			std::shared_ptr<VertexArrayVulkan> vao = mContext.createVertexArray();
 			std::shared_ptr<VertexBufferVulkan> vbo = mContext.createVertexBuffer(
@@ -258,27 +263,28 @@ namespace DOH {
 			vao->setIndexBuffer(mQuadIndexBuffer, true);
 			vao->getVertexBuffers()[0]->map(mContext.getLogicDevice(), batchSizeBytes);
 
-			mMsdfRendering.SceneRenderableBatch = std::make_shared<SimpleRenderable>(vao, mFontRenderingDescSetsInstanceScene);
+			mMsdfRendering->SceneRenderableBatch = std::make_shared<SimpleRenderable>(vao, mFontRenderingDescSetsInstanceScene);
 
-			mMsdfRendering.ScenePipeline = mContext.createGraphicsPipeline(*mMsdfRendering.ScenePipelineInstanceInfo);
-			mMsdfRendering.ScenePipeline->init(
+			mMsdfRendering->ScenePipeline = mContext.createGraphicsPipeline(*mMsdfRendering->ScenePipelineInstanceInfo);
+			mMsdfRendering->ScenePipeline->init(
 				mContext.getLogicDevice(),
 				mContext.getSwapChain().getExtent(),
 				mContext.getRenderPass(ERenderPass::APP_SCENE).get()
 			);
+			mMsdfRendering->ScenePipeline->addRenderableToDraw(mMsdfRendering->SceneRenderableBatch);
 
 			//Ui
-			mMsdfRendering.UiBatch = std::make_unique<RenderBatchQuad>(
+			mMsdfRendering->UiBatch = std::make_unique<RenderBatchQuad>(
 				EBatchSizeLimits::QUAD_BATCH_MAX_GEO_COUNT,
 				EBatchSizeLimits::BATCH_MAX_COUNT_TEXTURE
 			);
 
-			mMsdfRendering.UiPipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
+			mMsdfRendering->UiPipelineInstanceInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 				textVertexLayout,
-				*mMsdfRendering.SceneShaderProgram,
+				*mMsdfRendering->SceneShaderProgram,
 				ERenderPass::APP_UI
 			);
-			auto& uiOptionalFields = mMsdfRendering.UiPipelineInstanceInfo->enableOptionalFields();
+			auto& uiOptionalFields = mMsdfRendering->UiPipelineInstanceInfo->enableOptionalFields();
 			//Text isn't culled by default for viewing from behind.
 			//Text depth testing in scene so it doesn't overlap, however, this causes z-fighting during kerning as each glyph is a rendered quad.
 			uiOptionalFields.CullMode = VK_CULL_MODE_NONE;
@@ -292,6 +298,7 @@ namespace DOH {
 				VK_BLEND_FACTOR_SRC_ALPHA,
 				VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA
 			);
+			uiOptionalFields.ClearRenderablesAfterDraw = false;
 
 			std::shared_ptr<VertexArrayVulkan> uiVao = mContext.createVertexArray();
 			std::shared_ptr<VertexBufferVulkan> uiVbo = mContext.createVertexBuffer(
@@ -304,38 +311,39 @@ namespace DOH {
 			uiVao->setIndexBuffer(mQuadIndexBuffer, true);
 			uiVao->getVertexBuffers()[0]->map(mContext.getLogicDevice(), batchSizeBytes);
 
-			mMsdfRendering.UiRenderableBatch = std::make_shared<SimpleRenderable>(uiVao, mFontRenderingDescSetsInstanceUi);
+			mMsdfRendering->UiRenderableBatch = std::make_shared<SimpleRenderable>(uiVao, mFontRenderingDescSetsInstanceUi);
 
-			mMsdfRendering.UiPipeline = mContext.createGraphicsPipeline(*mMsdfRendering.UiPipelineInstanceInfo);
-			mMsdfRendering.UiPipeline->init(
+			mMsdfRendering->UiPipeline = mContext.createGraphicsPipeline(*mMsdfRendering->UiPipelineInstanceInfo);
+			mMsdfRendering->UiPipeline->init(
 				mContext.getLogicDevice(),
 				mContext.getSwapChain().getExtent(),
 				mContext.getRenderPass(ERenderPass::APP_UI).get()
 			);
+			mMsdfRendering->UiPipeline->addRenderableToDraw(mMsdfRendering->UiRenderableBatch);
 		}
 	}
 
 	void TextRenderer::closeImpl() {
 		ZoneScoped;
 
-		mContext.addGpuResourceToClose(mSoftMaskRendering.SceneVertexShader);
-		mContext.addGpuResourceToClose(mSoftMaskRendering.SceneFragmentShader);
-		mContext.addGpuResourceToClose(mSoftMaskRendering.ScenePipeline);
-		mContext.addGpuResourceToClose(mSoftMaskRendering.UiPipeline);
-		mContext.addGpuResourceToClose(mSoftMaskRendering.SceneRenderableBatch->getVaoPtr());
-		mContext.addGpuResourceToClose(mSoftMaskRendering.UiRenderableBatch->getVaoPtr());
+		mContext.addGpuResourceToClose(mSoftMaskRendering->SceneVertexShader);
+		mContext.addGpuResourceToClose(mSoftMaskRendering->SceneFragmentShader);
+		mContext.addGpuResourceToClose(mSoftMaskRendering->ScenePipeline);
+		mContext.addGpuResourceToClose(mSoftMaskRendering->UiPipeline);
+		mContext.addGpuResourceToClose(mSoftMaskRendering->SceneRenderableBatch->getVaoPtr());
+		mContext.addGpuResourceToClose(mSoftMaskRendering->UiRenderableBatch->getVaoPtr());
 
-		mContext.addGpuResourceToClose(mMsdfRendering.SceneVertexShader);
-		mContext.addGpuResourceToClose(mMsdfRendering.SceneFragmentShader);
-		mContext.addGpuResourceToClose(mMsdfRendering.ScenePipeline);
-		mContext.addGpuResourceToClose(mMsdfRendering.UiPipeline);
-		mContext.addGpuResourceToClose(mMsdfRendering.SceneRenderableBatch->getVaoPtr());
-		mContext.addGpuResourceToClose(mMsdfRendering.UiRenderableBatch->getVaoPtr());
+		mContext.addGpuResourceToClose(mMsdfRendering->SceneVertexShader);
+		mContext.addGpuResourceToClose(mMsdfRendering->SceneFragmentShader);
+		mContext.addGpuResourceToClose(mMsdfRendering->ScenePipeline);
+		mContext.addGpuResourceToClose(mMsdfRendering->UiPipeline);
+		mContext.addGpuResourceToClose(mMsdfRendering->SceneRenderableBatch->getVaoPtr());
+		mContext.addGpuResourceToClose(mMsdfRendering->UiRenderableBatch->getVaoPtr());
 
-		mSoftMaskRendering.SceneBatch.release();
-		mSoftMaskRendering.UiBatch.release();
-		mMsdfRendering.SceneBatch.release();
-		mMsdfRendering.UiBatch.release();
+		mSoftMaskRendering->SceneBatch.release();
+		mSoftMaskRendering->UiBatch.release();
+		mMsdfRendering->SceneBatch.release();
+		mMsdfRendering->UiBatch.release();
 
 		if (!mQuadIndexBufferShared) {
 			mContext.addGpuResourceToClose(mQuadIndexBuffer);
@@ -352,12 +360,12 @@ namespace DOH {
 		ZoneScoped;
 
 		VkDevice logicDevice = mContext.getLogicDevice();
-		mSoftMaskRendering.ScenePipeline->resize(
+		mSoftMaskRendering->ScenePipeline->resize(
 			logicDevice,
 			swapChain.getExtent(),
 			mContext.getRenderPass(ERenderPass::APP_SCENE).get()
 		);
-		mMsdfRendering.ScenePipeline->resize(
+		mMsdfRendering->ScenePipeline->resize(
 			logicDevice,
 			swapChain.getExtent(),
 			mContext.getRenderPass(ERenderPass::APP_SCENE).get()
@@ -397,57 +405,35 @@ namespace DOH {
 	void TextRenderer::drawSceneImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
 		ZoneScoped;
 
+		if (mSceneCameraData == nullptr) {
+			//TODO:: This doesn't account for if the variable is intentionally left null because no Scene is meant to be drawn.
+			//if (mWarnOnNullSceneCameraData)
+				LOG_WARN("TextRenderer::drawSceneImpl mSceneCameraData is null");
+			return;
+		}
+
 		VkDevice logicDevice = mContext.getLogicDevice();
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
-		const size_t softMaskQuadCount = mSoftMaskRendering.SceneBatch->getGeometryCount();
-		const size_t textMsdfQuadCount = mMsdfRendering.SceneBatch->getGeometryCount();
+		const size_t softMaskQuadCount = mSoftMaskRendering->SceneBatch->getGeometryCount();
+		const size_t textMsdfQuadCount = mMsdfRendering->SceneBatch->getGeometryCount();
 		const StaticVertexInputLayout& textVertexLayout = StaticVertexInputLayout::get(EVertexType::VERTEX_3D_TEXTURED_INDEXED);
+		constexpr const uint32_t uboSlot = 0;
 
 		if (softMaskQuadCount > 0) {
-			if (currentBindings.Pipeline != mSoftMaskRendering.ScenePipeline->get()) {
-				mSoftMaskRendering.ScenePipeline->bind(cmd);
-				debugInfo.PipelineBinds++;
-				currentBindings.Pipeline = mSoftMaskRendering.ScenePipeline->get();
-			}
-
-			if (mQuadIndexBuffer->getBuffer() != currentBindings.IndexBuffer) {
-				//NOTE:: Text is currently rendered as a Quad so it can share the Quad batch index buffer
-				mQuadIndexBuffer->bind(cmd);
-				currentBindings.IndexBuffer = mQuadIndexBuffer->getBuffer();
-				debugInfo.IndexBufferBinds++;
-			}
-
-			VertexArrayVulkan& vao = mSoftMaskRendering.SceneRenderableBatch->getVao();
+			//TODO:: clean this up?
+			mSoftMaskRendering->SceneRenderableBatch->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mSceneCameraData->DescriptorSets[imageIndex];
+			VertexArrayVulkan& vao = mSoftMaskRendering->SceneRenderableBatch->getVao();
 			vao.getVertexBuffers()[0]->setDataMapped(
 				logicDevice,
-				mSoftMaskRendering.SceneBatch->getData().data(),
+				mSoftMaskRendering->SceneBatch->getData().data(),
 				softMaskQuadCount * Quad::BYTE_SIZE
 			);
 			vao.setDrawCount(static_cast<uint32_t>(softMaskQuadCount * EBatchSizeLimits::QUAD_INDEX_COUNT));
 
-			mSoftMaskRendering.ScenePipeline->addRenderableToDraw(mSoftMaskRendering.SceneRenderableBatch);
-
-			mContext.bindSceneUboToPipeline(
-				cmd,
-				*mSoftMaskRendering.ScenePipeline,
-				imageIndex,
-				currentBindings,
-				debugInfo
-			);
-
-			const uint32_t drawCount = mSoftMaskRendering.ScenePipeline->getVaoDrawCount();
-			mSoftMaskRendering.ScenePipeline->recordDrawCommands(cmd, currentBindings, 1);
-			debugInfo.SceneDrawCalls += drawCount;
-
-			mSoftMaskRendering.SceneBatch->reset();
-		}
-
-		//MSDF
-		if (textMsdfQuadCount > 0) {
-			if (currentBindings.Pipeline != mMsdfRendering.ScenePipeline->get()) {
-				mMsdfRendering.ScenePipeline->bind(cmd);
+			if (currentBindings.Pipeline != mSoftMaskRendering->ScenePipeline->get()) {
+				mSoftMaskRendering->ScenePipeline->bind(cmd);
 				debugInfo.PipelineBinds++;
-				currentBindings.Pipeline = mMsdfRendering.ScenePipeline->get();
+				currentBindings.Pipeline = mSoftMaskRendering->ScenePipeline->get();
 			}
 
 			if (mQuadIndexBuffer->getBuffer() != currentBindings.IndexBuffer) {
@@ -457,29 +443,50 @@ namespace DOH {
 				debugInfo.IndexBufferBinds++;
 			}
 
-			VertexArrayVulkan& vao = mMsdfRendering.SceneRenderableBatch->getVao();
+			mSoftMaskRendering->ScenePipeline->recordDrawCommand_new(
+				cmd,
+				*mSoftMaskRendering->SceneRenderableBatch,
+				currentBindings,
+				0
+			);
+			debugInfo.SceneDrawCalls++;
+
+			mSoftMaskRendering->SceneBatch->reset();
+		}
+
+		//MSDF
+		if (textMsdfQuadCount > 0) {
+			//TODO:: clean this up?
+			mMsdfRendering->SceneRenderableBatch->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mSceneCameraData->DescriptorSets[imageIndex];
+			VertexArrayVulkan& vao = mMsdfRendering->SceneRenderableBatch->getVao();
 			vao.getVertexBuffers()[0]->setDataMapped(
 				logicDevice,
-				mMsdfRendering.SceneBatch->getData().data(),
+				mMsdfRendering->SceneBatch->getData().data(),
 				textMsdfQuadCount * Quad::BYTE_SIZE
 			);
 			vao.setDrawCount(static_cast<uint32_t>(textMsdfQuadCount * EBatchSizeLimits::QUAD_INDEX_COUNT));
 
-			mMsdfRendering.ScenePipeline->addRenderableToDraw(mMsdfRendering.SceneRenderableBatch);
+			if (currentBindings.Pipeline != mMsdfRendering->ScenePipeline->get()) {
+				mMsdfRendering->ScenePipeline->bind(cmd);
+				debugInfo.PipelineBinds++;
+				currentBindings.Pipeline = mMsdfRendering->ScenePipeline->get();
+			}
 
-			mContext.bindSceneUboToPipeline(
+			if (mQuadIndexBuffer->getBuffer() != currentBindings.IndexBuffer) {
+				//NOTE:: Text is currently rendered as a Quad so it can share the Quad batch index buffer
+				mQuadIndexBuffer->bind(cmd);
+				currentBindings.IndexBuffer = mQuadIndexBuffer->getBuffer();
+				debugInfo.IndexBufferBinds++;
+			}
+
+			mMsdfRendering->ScenePipeline->recordDrawCommand_new(
 				cmd,
-				*mMsdfRendering.ScenePipeline,
-				imageIndex,
+				*mMsdfRendering->SceneRenderableBatch,
 				currentBindings,
-				debugInfo
+				0
 			);
-
-			const uint32_t drawCount = mMsdfRendering.ScenePipeline->getVaoDrawCount();
-			mMsdfRendering.ScenePipeline->recordDrawCommands(cmd, currentBindings, 1);
-			debugInfo.SceneDrawCalls += drawCount;
-
-			mMsdfRendering.SceneBatch->reset();
+			debugInfo.SceneDrawCalls++;
+			mMsdfRendering->SceneBatch->reset();
 		}
 
 		//TODO:: some kind of function to reduce duplicate code?
@@ -488,57 +495,35 @@ namespace DOH {
 	void TextRenderer::drawUiImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
 		ZoneScoped;
 
+		if (mUiCameraData == nullptr) {
+			//TODO:: This doesn't account for if the variable is intentionally left null because no Ui is meant to be drawn.
+			//if (mWarnOnNullUiCameraData)
+				LOG_WARN("TextRenderer::drawUiImpl mUiCameraData is null");
+			return;
+		}
+
 		VkDevice logicDevice = mContext.getLogicDevice();
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
-		const size_t softMaskQuadCount = mSoftMaskRendering.UiBatch->getGeometryCount();
-		const size_t textMsdfQuadCount = mMsdfRendering.UiBatch->getGeometryCount();
+		const size_t softMaskQuadCount = mSoftMaskRendering->UiBatch->getGeometryCount();
+		const size_t textMsdfQuadCount = mMsdfRendering->UiBatch->getGeometryCount();
 		const StaticVertexInputLayout& textVertexLayout = StaticVertexInputLayout::get(EVertexType::VERTEX_3D_TEXTURED_INDEXED);
+		constexpr uint32_t uboSlot = 0;
 
 		if (softMaskQuadCount > 0) {
-			if (currentBindings.Pipeline != mSoftMaskRendering.UiPipeline->get()) {
-				mSoftMaskRendering.UiPipeline->bind(cmd);
-				debugInfo.PipelineBinds++;
-				currentBindings.Pipeline = mSoftMaskRendering.UiPipeline->get();
-			}
-
-			if (mQuadIndexBuffer->getBuffer() != currentBindings.IndexBuffer) {
-				//NOTE:: Text is currently rendered as a Quad so it can share the Quad batch index buffer
-				mQuadIndexBuffer->bind(cmd);
-				currentBindings.IndexBuffer = mQuadIndexBuffer->getBuffer();
-				debugInfo.IndexBufferBinds++;
-			}
-
-			VertexArrayVulkan& vao = mSoftMaskRendering.UiRenderableBatch->getVao();
+			//TODO:: clean this up?
+			mSoftMaskRendering->UiRenderableBatch->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mUiCameraData->DescriptorSets[imageIndex];
+			VertexArrayVulkan& vao = mSoftMaskRendering->UiRenderableBatch->getVao();
 			vao.getVertexBuffers()[0]->setDataMapped(
 				logicDevice,
-				mSoftMaskRendering.UiBatch->getData().data(),
+				mSoftMaskRendering->UiBatch->getData().data(),
 				softMaskQuadCount * Quad::BYTE_SIZE
 			);
 			vao.setDrawCount(static_cast<uint32_t>(softMaskQuadCount * EBatchSizeLimits::QUAD_INDEX_COUNT));
 
-			mSoftMaskRendering.UiPipeline->addRenderableToDraw(mSoftMaskRendering.UiRenderableBatch);
-
-			mContext.bindUiUboToPipeline(
-				cmd,
-				*mSoftMaskRendering.UiPipeline,
-				imageIndex,
-				currentBindings,
-				debugInfo
-			);
-
-			const uint32_t drawCount = mSoftMaskRendering.UiPipeline->getVaoDrawCount();
-			mSoftMaskRendering.UiPipeline->recordDrawCommands(cmd, currentBindings, 1);
-			debugInfo.UiDrawCalls += drawCount;
-
-			mSoftMaskRendering.UiBatch->reset();
-		}
-
-		//MSDF
-		if (textMsdfQuadCount > 0) {
-			if (currentBindings.Pipeline != mMsdfRendering.UiPipeline->get()) {
-				mMsdfRendering.UiPipeline->bind(cmd);
+			if (currentBindings.Pipeline != mSoftMaskRendering->UiPipeline->get()) {
+				mSoftMaskRendering->UiPipeline->bind(cmd);
 				debugInfo.PipelineBinds++;
-				currentBindings.Pipeline = mMsdfRendering.UiPipeline->get();
+				currentBindings.Pipeline = mSoftMaskRendering->UiPipeline->get();
 			}
 
 			if (mQuadIndexBuffer->getBuffer() != currentBindings.IndexBuffer) {
@@ -548,29 +533,47 @@ namespace DOH {
 				debugInfo.IndexBufferBinds++;
 			}
 
-			VertexArrayVulkan& vao = mMsdfRendering.UiRenderableBatch->getVao();
+			const uint32_t drawCount = mSoftMaskRendering->UiPipeline->getVaoDrawCount();
+			mSoftMaskRendering->UiPipeline->recordDrawCommand_new(
+				cmd,
+				*mSoftMaskRendering->UiRenderableBatch,
+				currentBindings,
+				0
+			);
+			debugInfo.UiDrawCalls++;
+
+			mSoftMaskRendering->UiBatch->reset();
+		}
+
+		//MSDF
+		if (textMsdfQuadCount > 0) {
+			//TODO:: clean this up?
+			mMsdfRendering->UiRenderableBatch->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mUiCameraData->DescriptorSets[imageIndex];
+			VertexArrayVulkan& vao = mMsdfRendering->UiRenderableBatch->getVao();
 			vao.getVertexBuffers()[0]->setDataMapped(
 				logicDevice,
-				mMsdfRendering.UiBatch->getData().data(),
+				mMsdfRendering->UiBatch->getData().data(),
 				textMsdfQuadCount * Quad::BYTE_SIZE
 			);
 			vao.setDrawCount(static_cast<uint32_t>(textMsdfQuadCount * EBatchSizeLimits::QUAD_INDEX_COUNT));
 
-			mMsdfRendering.UiPipeline->addRenderableToDraw(mMsdfRendering.UiRenderableBatch);
+			if (currentBindings.Pipeline != mMsdfRendering->UiPipeline->get()) {
+				mMsdfRendering->UiPipeline->bind(cmd);
+				debugInfo.PipelineBinds++;
+				currentBindings.Pipeline = mMsdfRendering->UiPipeline->get();
+			}
 
-			mContext.bindUiUboToPipeline(
-				cmd,
-				*mMsdfRendering.UiPipeline,
-				imageIndex,
-				currentBindings,
-				debugInfo
-			);
+			if (mQuadIndexBuffer->getBuffer() != currentBindings.IndexBuffer) {
+				//NOTE:: Text is currently rendered as a Quad so it can share the Quad batch index buffer
+				mQuadIndexBuffer->bind(cmd);
+				currentBindings.IndexBuffer = mQuadIndexBuffer->getBuffer();
+				debugInfo.IndexBufferBinds++;
+			}
 
-			const uint32_t drawCount = mMsdfRendering.UiPipeline->getVaoDrawCount();
-			mMsdfRendering.UiPipeline->recordDrawCommands(cmd, currentBindings, 1);
-			debugInfo.UiDrawCalls += drawCount;
+			mMsdfRendering->UiPipeline->recordDrawCommand_new(cmd, *mMsdfRendering->UiRenderableBatch, currentBindings, 0);
+			debugInfo.UiDrawCalls++;
 
-			mMsdfRendering.UiBatch->reset();
+			mMsdfRendering->UiBatch->reset();
 		}
 
 		//TODO:: some kind of function to reduce duplicate code?
@@ -641,12 +644,12 @@ namespace DOH {
 		}
 	}
 
-	RenderBatchQuad& TextRenderer::getSuitableTextBatchScene(const FontBitmap& bitmap) {
-		return bitmap.getTextRenderMethod() == ETextRenderMethod::SOFT_MASK ? *mSoftMaskRendering.SceneBatch : *mMsdfRendering.SceneBatch;
+	RenderBatchQuad& TextRenderer::getSuitableTextBatchSceneImpl(const FontBitmap& bitmap) {
+		return bitmap.getTextRenderMethod() == ETextRenderMethod::SOFT_MASK ? *mSoftMaskRendering->SceneBatch : *mMsdfRendering->SceneBatch;
 	}
-
-	RenderBatchQuad& TextRenderer::getSuitableTextBatchUi(const FontBitmap& bitmap) {
-		return bitmap.getTextRenderMethod() == ETextRenderMethod::SOFT_MASK ? *mSoftMaskRendering.UiBatch : *mMsdfRendering.UiBatch;
+	
+	RenderBatchQuad& TextRenderer::getSuitableTextBatchUiImpl(const FontBitmap& bitmap) {
+		return bitmap.getTextRenderMethod() == ETextRenderMethod::SOFT_MASK ? *mSoftMaskRendering->UiBatch : *mMsdfRendering->UiBatch;
 	}
 
 	void TextRenderer::init(RenderingContextVulkan& context) {
@@ -690,7 +693,7 @@ namespace DOH {
 		} else {
 			LOG_ERR("hasFont called when text renderer is NOT initialised.");
 		}
-
+	
 		return false;
 	}
 

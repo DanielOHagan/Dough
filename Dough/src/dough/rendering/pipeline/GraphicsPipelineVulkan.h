@@ -108,16 +108,17 @@ namespace DOH {
 
 		void init(VkDevice logicDevice, VkExtent2D extent, VkRenderPass renderPass);
 		void resize(VkDevice logicDevice, VkExtent2D extent, VkRenderPass renderPass);
-		void recordDrawCommands(VkCommandBuffer cmd, CurrentBindingsState& currentBindings, uint32_t descSetOffset);
+		void recordDrawCommand_new(VkCommandBuffer cmd, IRenderable& renderable, CurrentBindingsState& currentBindings, uint32_t descSetOffset);
 		inline void addRenderableToDraw(std::shared_ptr<IRenderable> renderable) { mRenderableDrawList.emplace_back(renderable); }
 		inline void clearRenderableToDraw() { mRenderableDrawList.clear(); }
 		inline void bind(VkCommandBuffer cmd) const { vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline); }
 
 		inline ShaderProgram& getShaderProgram() const { return mInstanceInfo.getShaderProgram(); }
-		//Only for updating CurrentBindings instance
 		inline VkPipeline get() const { return mGraphicsPipeline; }
 		inline uint32_t getVaoDrawCount() const { return static_cast<uint32_t>(mRenderableDrawList.size()); }
+		inline std::vector<std::shared_ptr<IRenderable>>& getRenderableDrawList() { return mRenderableDrawList; }
 		inline VkPipelineLayout getGraphicsPipelineLayout() const { return mGraphicsPipelineLayout; }
+		inline GraphicsPipelineInstanceInfo& getInstanceInfo() const { return mInstanceInfo; }
 
 	private:
 		void createPipelineLayout(VkDevice logicDevice);

@@ -1,6 +1,8 @@
 #include "editor/ui/EditorGui.h"
 
 #include "dough/application/Application.h"
+#include "editor/EditorPerspectiveCameraController.h"
+#include "editor/EditorOrthoCameraController.h"
 
 #include <tracy/public/tracy/Tracy.hpp>
 
@@ -196,6 +198,18 @@ namespace DOH::EDITOR {
 		}
 	}
 
+	void EditorGui::imGuiDisplayWarningTooltipImpl(const char* message) {
+		ImGui::SameLine();
+		ImGui::Text("(!)");
+		if (ImGui::IsItemHovered()) {
+			ImGui::BeginTooltip();
+			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+			ImGui::TextUnformatted(message);
+			ImGui::PopTextWrapPos();
+			ImGui::EndTooltip();
+		}
+	}
+
 	void EditorGui::imGuiBulletTextWrappedImpl(const char* message) {
 		ImGui::Bullet();
 		ImGui::SameLine();
@@ -345,6 +359,199 @@ namespace DOH::EDITOR {
 		);
 
 		//TODO:: Decorations
+	}
+
+	void EditorGui::imGuiControlsEditorPerspectiveCameraControllerImpl(EditorPerspectiveCameraController& cameraController, const char* name) {
+		std::string uniqueSuffix = std::string("##").append(name);
+		float tempPos[3] = {};
+		{
+			const glm::vec3 pos = cameraController.getPosition();
+			tempPos[0] = pos.x;
+			tempPos[1] = pos.y;
+			tempPos[2] = pos.z;
+		}
+		if (ImGui::DragFloat3(std::string("Position").append(uniqueSuffix).c_str(), tempPos)) {
+			cameraController.setPositionXYZ(tempPos[0], tempPos[1], tempPos[2]);
+		}
+		float tempDir[3] = {};
+		{
+			const glm::vec3 dir = cameraController.getDirection();
+			tempDir[0] = dir.x;
+			tempDir[1] = dir.y;
+			tempDir[2] = dir.z;
+		}
+		if (ImGui::DragFloat3(std::string("Direction").append(uniqueSuffix).c_str(), tempDir)) {
+			cameraController.setDirectionXYZ(tempDir[0], tempDir[1], tempDir[2]);
+		}
+		EditorGui::displayHelpTooltip("This is a point in 3D space where the camera is looking at.");
+
+		//If pos and dir are in the same place the camera is "looking into itself". 
+		if (tempPos[2] == tempDir[2]) {
+			EditorGui::displayWarningTooltip("Position and Direction depth should NOT be equal. It causes the camera to \"look into itself\".");
+		}
+
+		float tempCursorPos[2] = {};
+		{
+			const glm::vec2 cursorPos = cameraController.getCursorLastPos();
+			tempCursorPos[0] = cursorPos.x;
+			tempCursorPos[1] = cursorPos.y;
+		}
+		if (ImGui::DragFloat2(std::string("CursorPos").append(uniqueSuffix).c_str(), tempCursorPos)) {
+			cameraController.setCursorLastPos(tempCursorPos[0], tempCursorPos[1]);
+		}
+		float tempAspectRatio = cameraController.getAspectRatio();
+		if (ImGui::DragFloat(std::string("Aspect Ratio").append(uniqueSuffix).c_str(), &tempAspectRatio)) {
+			cameraController.setAspectRatio(tempAspectRatio);
+		}
+		float tempFov = cameraController.getFov();
+		if (ImGui::DragFloat(std::string("FOV").append(uniqueSuffix).c_str(), &tempFov, 1.0f, 30.0f, 180.0f)) {
+			cameraController.setFov(tempFov);
+		}
+		float tempTranslationSpeed = cameraController.getTranslationSpeed();
+		if (ImGui::DragFloat(std::string("Translation Speed").append(uniqueSuffix).c_str(), &tempTranslationSpeed)) {
+			cameraController.setTranslationSpeed(tempTranslationSpeed);
+		}
+		bool tempClickAndDragEnabled = cameraController.isClickAndDragEnabled();
+		if (ImGui::Checkbox(std::string("Click & Drag").append(uniqueSuffix).c_str(), &tempClickAndDragEnabled)) {
+			cameraController.setClickAndDragEnabled(tempClickAndDragEnabled);
+		}
+		if (tempClickAndDragEnabled) {
+			ImGui::SameLine();
+			ImGui::Text("Click & Drag Active: ");
+			ImGui::SameLine();
+			ImGui::Text(cameraController.isClickAndDragActive() ? "Active" : "Inactive");
+		}
+
+
+		//TODO:: How to show Camera ?
+		//TODO:: How to show InputLayer ?
+	}
+	
+	void EditorGui::imGuiControlsEditorOrthoCameraControllerImpl(EditorOrthoCameraController& cameraController, const char* name) {
+		std::string uniqueSuffix = std::string("##").append(name);
+		float tempPos[3] = {};
+		{
+			const glm::vec3 pos = cameraController.getPosition();
+			tempPos[0] = pos.x;
+			tempPos[1] = pos.y;
+			tempPos[2] = pos.z;
+		}
+		if (ImGui::DragFloat3(std::string("Position").append(uniqueSuffix).c_str(), tempPos)) {
+			cameraController.setPositionXYZ(tempPos[0], tempPos[1], tempPos[2]);
+		}
+		float tempCursorLastPos[2] = {};
+		{
+			const glm::vec2 cursorLastPos = cameraController.getCursorLastPos();
+			tempCursorLastPos[0] = cursorLastPos.x;
+			tempCursorLastPos[1] = cursorLastPos.y;
+		}
+		if (ImGui::DragFloat2(std::string("Cursor Pos").append(uniqueSuffix).c_str(), tempCursorLastPos)) {
+			cameraController.setCursorLastPosXY(tempCursorLastPos[0], tempCursorLastPos[1]);
+		}
+		float tempAspectRatio = cameraController.getAspectRatio();
+		if (ImGui::DragFloat(std::string("Aspect Ratio").append(uniqueSuffix).c_str(), &tempAspectRatio)) {
+			cameraController.setAspectRatio(tempAspectRatio);
+		}
+		float tempTranslationSpeed = cameraController.getTranslationSpeed();
+		if (ImGui::DragFloat(std::string("Translation Speed").append(uniqueSuffix).c_str(), &tempTranslationSpeed)) {
+			cameraController.setTranslationSpeed(tempTranslationSpeed);
+		}
+		bool tempClickAndDragEnabled = cameraController.isClickAndDragEnabled();
+		if (ImGui::Checkbox(std::string("Enable Click & Drag").append(uniqueSuffix).c_str(), &tempClickAndDragEnabled)) {
+			cameraController.setClickAndDragEnabled(tempClickAndDragEnabled);
+		}
+		if (tempClickAndDragEnabled) {
+			ImGui::SameLine();
+			ImGui::Text("Click & Drag Active: ");
+			ImGui::SameLine();
+			ImGui::Text(cameraController.isClickAndDragActive() ? "Active" : "Inactive");
+		}
+		float tempZoomMin = cameraController.getZoomMin();
+		if (ImGui::DragFloat(std::string("Zoom Min").append(uniqueSuffix).c_str(), &tempZoomMin)) {
+			cameraController.setZoomMin(tempZoomMin);
+		}
+		float tempZoomMax = cameraController.getZoomMax();
+		if (ImGui::DragFloat(std::string("Zoom Max").append(uniqueSuffix).c_str(), &tempZoomMax)) {
+			cameraController.setZoomMax(tempZoomMax);
+		}
+		float tempZoomLevel = cameraController.getZoomLevel();
+		if (ImGui::DragFloat(std::string("Zoom Level").append(uniqueSuffix).c_str(), &tempZoomLevel, 1.0f, tempZoomMin, tempZoomMax)) {
+			cameraController.setZoomLevel(tempZoomLevel);
+		}
+		float tempZoomSpeed = cameraController.getZoomSpeed();
+		if (ImGui::DragFloat(std::string("Zoom Speed").append(uniqueSuffix).c_str(), &tempZoomSpeed)) {
+			cameraController.setZoomSpeed(tempZoomSpeed);
+		}
+
+		//TODO:: How to show Camera ?
+		//TODO:: How to show InputLayer ?
+	}
+
+	void EditorGui::imGuiInfoEditorPerspectiveCameraControllerImpl(EditorPerspectiveCameraController& cameraController, const char* name) {
+		const glm::vec3& pos = cameraController.getPosition();
+		const glm::vec3& dir = cameraController.getDirection();
+		const glm::vec2& cursorPos = cameraController.getCursorLastPos();
+
+		ImGui::Text("Position X: %f, Y: %f, Z: %f", pos.x, pos.y, pos.z);
+		ImGui::Text("Direction X: %f, Y: %f, Z: %f", dir.x, dir.y, dir.z);
+		EditorGui::displayHelpTooltip("This is a point in 3D space where the camera is looking at.");
+		//If pos and dir are in the same place the camera is "looking into itself".
+		if (pos.z == dir.z) {
+			EditorGui::displayWarningTooltip("Position and Direction depth should NOT be equal. It causes the camera to \"look into itself\".");
+		}
+		ImGui::Text("Cursor Position X: %f, Y: %f", cursorPos.x, cursorPos.y);
+		ImGui::Text("Aspect Ratio: %f", cameraController.getAspectRatio());
+		ImGui::Text("FOV: %f", cameraController.getFov());
+		ImGui::Text("Translation Speed: %f", cameraController.getTranslationSpeed());
+		ImGui::Text("Click & Drag Enabled: ");
+		ImGui::SameLine();
+		ImGui::Text(cameraController.isClickAndDragEnabled() ? "Enabled" : "Disabled");
+		ImGui::SameLine();
+		ImGui::Text("Click & Drag Active: ");
+		ImGui::SameLine();
+		const bool clickAndDragEnabled = cameraController.isClickAndDragEnabled();
+		if (clickAndDragEnabled) {
+			ImGui::Text("Enabled");
+			ImGui::SameLine();
+			ImGui::Text("Click & Drag Active: ");
+			ImGui::SameLine();
+			ImGui::Text(cameraController.isClickAndDragActive() ? "Active" : "Inactive");
+		} else {
+			ImGui::Text("Disabled");
+		}
+
+		//TODO:: How to show Camera ?
+		//TODO:: How to show InputLayer ?
+	}
+	
+	void EditorGui::imGuiInfoEditorOrthoCameraControllerImpl(EditorOrthoCameraController& cameraController, const char* name) {
+		const glm::vec3& pos = cameraController.getPosition();
+		const glm::vec2& cursorLastPos = cameraController.getCursorLastPos();
+
+		ImGui::Text("Position X: %f, Y: %f, Z: %f", pos.x, pos.y, pos.z);
+		ImGui::Text("Cursor Position X: %f, Y: %f", cursorLastPos.x, cursorLastPos.y);
+		ImGui::Text("Aspect Ratio: %f", cameraController.getAspectRatio());
+		ImGui::Text("Translation Speed: %f", cameraController.getTranslationSpeed());
+		ImGui::Text("Click & Drag Enabled: ");
+		ImGui::SameLine();
+		const bool clickAndDragEnabled = cameraController.isClickAndDragEnabled();
+		if (clickAndDragEnabled) {
+			ImGui::Text("Enabled");
+			ImGui::SameLine();
+			ImGui::Text("Click & Drag Active: ");
+			ImGui::SameLine();
+			ImGui::Text(cameraController.isClickAndDragActive() ? "Active" : "Inactive");
+		} else {
+			ImGui::Text("Disabled");
+		}
+		
+		ImGui::Text("Zoom Min: %f", cameraController.getZoomMin());
+		ImGui::Text("Zoom Max: %f", cameraController.getZoomMax());
+		ImGui::Text("Zoom Level: %f", cameraController.getZoomLevel());
+		ImGui::Text("Zoom Speed: %f", cameraController.getZoomSpeed());
+
+		//TODO:: How to show Camera ?
+		//TODO:: How to show InputLayer ?
 	}
 
 	void EditorGui::imGuiJsonElementImpl(JsonElement& element, const char* name) {

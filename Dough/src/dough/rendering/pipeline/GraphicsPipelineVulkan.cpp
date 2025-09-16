@@ -66,89 +66,90 @@ namespace DOH {
 		createPipeline(logicDevice, extent, renderPass);
 	}
 
-	void GraphicsPipelineVulkan::recordDrawCommands(VkCommandBuffer cmd, CurrentBindingsState& currentBindings, uint32_t descSetOffset) {
+	void GraphicsPipelineVulkan::recordDrawCommand_new(VkCommandBuffer cmd, IRenderable& renderable, CurrentBindingsState& currentBindings, uint32_t descSetOffset) {
 		ZoneScoped;
 
-		for (auto& renderable : mRenderableDrawList) {
-			//Bind descriptor sets
-			if (renderable->hasDescriptorSetsInstance()) {
-				DescriptorSetsInstanceVulkan& shaderResourceData = *renderable->getDescriptorSetsInstance();
-				const uint32_t descSetCount = static_cast<uint32_t>(shaderResourceData.getDescriptorSets().size());
-				for (uint32_t i = descSetOffset; i < descSetCount; i++) {
-					VkDescriptorSet descSet = shaderResourceData.getDescriptorSets()[i];
-					if (currentBindings.DescriptorSets[i] != descSet) {
-						vkCmdBindDescriptorSets(
-							cmd,
-							VK_PIPELINE_BIND_POINT_GRAPHICS,
-							mGraphicsPipelineLayout,
-							i,
-							1,
-							&descSet,
-							0,
-							nullptr
-						);
-						currentBindings.DescriptorSets[i] = descSet;
-						//debugInfo.DescriptorSetBinds++;
+		if (renderable.hasDescriptorSetsInstance()) {
+			DescriptorSetsInstanceVulkan& shaderResourceData = *renderable.getDescriptorSetsInstance();
+			const uint32_t descSetCount = static_cast<uint32_t>(shaderResourceData.getDescriptorSets().size());
+			//Vulkan doesn't guarantee higher sets will stay bound higher sets must be rebound after a lower one.
+			bool lowerSetRebound = false;
+			for (uint32_t i = descSetOffset; i < descSetCount; i++) {
 
-						//TODO:: This should make profiling easier, save passing round a debugInfo reference
-						//DescriptorApiVulkan::bind(
-						//	cmd,
-						//	VK_PIPELINE_BIND_POINT_GRAPHICS,
-						//	mGraphicsPipelineLayout,
-						//	i,
-						//	1,
-						//	&descSet,
-						//	0,
-						//	nullptr
-						//);
-					}
+				//TODO:: Bind correct descSet for slots that use a descriptor for different frames (i.e. cameras)
+				//	Need a way of pointing to the correct descSet if that slot is using imageIndex
+
+				VkDescriptorSet descSet = shaderResourceData.getDescriptorSets()[i];
+				if (lowerSetRebound || currentBindings.DescriptorSets[i] != descSet) {
+					vkCmdBindDescriptorSets(
+						cmd,
+						VK_PIPELINE_BIND_POINT_GRAPHICS,
+						mGraphicsPipelineLayout,
+						i,
+						1,
+						&descSet,
+						0,
+						nullptr
+					);
+					currentBindings.DescriptorSets[i] = descSet;
+					lowerSetRebound = true;
+					//debugInfo.DescriptorSetBinds++;
+
+					//TODO:: This should make profiling easier, save passing round a debugInfo reference
+					//DescriptorApiVulkan::bind(
+					//	cmd,
+					//	VK_PIPELINE_BIND_POINT_GRAPHICS,
+					//	mGraphicsPipelineLayout,
+					//	i,
+					//	1,
+					//	&descSet,
+					//	0,
+					//	nullptr
+					//);
+					//Or a full RenderApiVulkan which holds all current binding info, probably better for multithreaded (which is definitely coming)
 				}
-			}
-
-			//TODO:: Currently binding a vao (through vao.bind()) binds both vb and ib, removing that link in vao.bind() this code should look something more like this:
-			// Not using vao.bind() because that also calls ib.bind(). Currently trying to "un-link" that
-			// AND this only works for single VAOs with a single vb
-			const VkBuffer vb = renderable->getVao().getVertexBuffers()[0]->getBuffer();
-			if (currentBindings.VertexBuffer != vb) {
-				VkDeviceSize offset = 0;
-				vkCmdBindVertexBuffers(cmd, 0, 1, &vb, &offset);
-				currentBindings.VertexBuffer = vb;
-			}
-
-			for (const VkPushConstantRange& pushConstant : mInstanceInfo.getShaderProgram().getDescriptorSetLayouts().getPushConstants()) {
-				vkCmdPushConstants(
-					cmd,
-					mGraphicsPipelineLayout,
-					pushConstant.stageFlags,
-					pushConstant.offset,
-					pushConstant.size,
-					renderable->getPushConstantPtr()
-				);
-			}
-
-			//TODO:: better way of calling the intended draw cmd. e.g. virtual renderable->draw(cmd) or switch(renderable->getDrawCmdType())
-			if (renderable->isIndexed()) {
-				IndexBufferVulkan& ib = renderable->getVao().getIndexBuffer();
-				if (currentBindings.IndexBuffer != ib.getBuffer()) {
-					ib.bind(cmd);
-					currentBindings.IndexBuffer = ib.getBuffer();
-				}
-
-				vkCmdDrawIndexed(
-					cmd,
-					renderable->getVao().getDrawCount(),
-					1,
-					0,
-					0,
-					0
-				);
-			} else {
-				vkCmdDraw(cmd, renderable->getVao().getDrawCount(), 1, 0, 0);
 			}
 		}
 
-		if (mInstanceInfo.hasOptionalFields() && mInstanceInfo.getOptionalFields().ClearRenderablesAfterDraw) {
-			mRenderableDrawList.clear();
+		//TODO:: Currently binding a vao (through vao.bind()) binds both vb and ib, removing that link in vao.bind() this code should look something more like this:
+		// Not using vao.bind() because that also calls ib.bind(). Currently trying to "un-link" that
+		// AND this only works for single VAOs with a single vb
+		const VkBuffer vb = renderable.getVao().getVertexBuffers()[0]->getBuffer();
+		if (currentBindings.VertexBuffer != vb) {
+			VkDeviceSize offset = 0;
+			vkCmdBindVertexBuffers(cmd, 0, 1, &vb, &offset);
+			currentBindings.VertexBuffer = vb;
+		}
+
+		for (const VkPushConstantRange& pushConstant : mInstanceInfo.getShaderProgram().getDescriptorSetLayouts().getPushConstants()) {
+			vkCmdPushConstants(
+				cmd,
+				mGraphicsPipelineLayout,
+				pushConstant.stageFlags,
+				pushConstant.offset,
+				pushConstant.size,
+				renderable.getPushConstantPtr()
+			);
+		}
+
+		//TODO:: better way of calling the intended draw cmd. e.g. virtual renderable->draw(cmd) or switch(renderable->getDrawCmdType())
+		if (renderable.isIndexed()) {
+			IndexBufferVulkan& ib = renderable.getVao().getIndexBuffer();
+			if (currentBindings.IndexBuffer != ib.getBuffer()) {
+				ib.bind(cmd);
+				currentBindings.IndexBuffer = ib.getBuffer();
+			}
+
+			vkCmdDrawIndexed(
+				cmd,
+				renderable.getVao().getDrawCount(),
+				1,
+				0,
+				0,
+				0
+			);
+		} else {
+			vkCmdDraw(cmd, renderable.getVao().getDrawCount(), 1, 0, 0);
 		}
 	}
 

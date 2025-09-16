@@ -7,12 +7,12 @@
 #include "dough/rendering/SwapChainVulkan.h"
 #include "dough/rendering/batches/RenderBatchQuad.h"
 #include "dough/rendering/renderables/SimpleRenderable.h"
-#include "dough/rendering/text/FontBitmap.h"
 #include "dough/scene/geometry/collections/TextString.h"
 
 namespace DOH {
 
 	class RenderingContextVulkan;
+	class CameraGpuData;
 
 	class TextRenderer {
 
@@ -53,10 +53,11 @@ namespace DOH {
 			std::shared_ptr<SimpleRenderable> UiRenderableBatch;
 		};
 
-		//std::unique_ptr<TextRenderingObjects> mSoftMaskRendering;
-		//std::unique_ptr<TextRenderingObjects> mMsdfRendering;
-		TextRenderingObjects mSoftMaskRendering;
-		TextRenderingObjects mMsdfRendering;
+		std::unique_ptr<TextRenderingObjects> mSoftMaskRendering;
+		std::unique_ptr<TextRenderingObjects> mMsdfRendering;
+
+		std::shared_ptr<CameraGpuData> mSceneCameraData;
+		std::shared_ptr<CameraGpuData> mUiCameraData;
 
 		//Local Debug Info
 		//Includes both Scene & UI Quads
@@ -75,10 +76,10 @@ namespace DOH {
 		void drawTextSameTextureFromQuadsImpl(const std::vector<Quad>& quadArr, const FontBitmap& bitmap, RenderBatchQuad& renderBatch);
 		void drawTextStringImpl(TextString& string, RenderBatchQuad& renderBatch);
 
-		RenderBatchQuad& getSuitableTextBatchScene(const FontBitmap& bitmap);
-		RenderBatchQuad& getSuitableTextBatchUi(const FontBitmap& bitmap);
-		static inline RenderBatchQuad& getSuitableTextBatchScene(TextString& string) { return INSTANCE->getSuitableTextBatchScene(string.getCurrentFontBitmap()); }
-		static inline RenderBatchQuad& getSuitableTextBatchUi(TextString& string) { return INSTANCE->getSuitableTextBatchUi(string.getCurrentFontBitmap()); }
+		RenderBatchQuad& getSuitableTextBatchSceneImpl(const FontBitmap& bitmap);
+		RenderBatchQuad& getSuitableTextBatchUiImpl(const FontBitmap& bitmap);
+		static inline RenderBatchQuad& getSuitableTextBatchScene(TextString& string) { return INSTANCE->getSuitableTextBatchSceneImpl(string.getCurrentFontBitmap()); }
+		static inline RenderBatchQuad& getSuitableTextBatchUi(TextString& string) { return INSTANCE->getSuitableTextBatchUiImpl(string.getCurrentFontBitmap()); }
 
 	public:
 
@@ -104,16 +105,17 @@ namespace DOH {
 		static FontBitmap& getFontBitmap(const char* fontName);
 		static std::vector<DescriptorTypeInfo> getEngineDescriptorTypeInfos();
 
-
 		//-----Primitives-----
-		static inline void drawTextFromQuadsScene(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) { INSTANCE->drawTextFromQuadsImpl(quadArr, bitmap, INSTANCE->getSuitableTextBatchScene(bitmap));
-		}
-		static inline void drawTextSameTextureFromQuadsScene(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) { INSTANCE->drawTextSameTextureFromQuadsImpl(quadArr, bitmap, INSTANCE->getSuitableTextBatchScene(bitmap)); }
-		static inline void drawTextFromQuadsUi(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) { INSTANCE->drawTextFromQuadsImpl(quadArr, bitmap, INSTANCE->getSuitableTextBatchUi(bitmap)); }
-		static inline void drawTextSameTextureFromQuadsUi(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) { INSTANCE->drawTextSameTextureFromQuadsImpl(quadArr, bitmap, INSTANCE->getSuitableTextBatchUi(bitmap)); }
+		static inline void drawTextFromQuadsScene(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) { INSTANCE->drawTextFromQuadsImpl(quadArr, bitmap, INSTANCE->getSuitableTextBatchSceneImpl(bitmap)); }
+		static inline void drawTextSameTextureFromQuadsScene(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) { INSTANCE->drawTextSameTextureFromQuadsImpl(quadArr, bitmap, INSTANCE->getSuitableTextBatchSceneImpl(bitmap)); }
+		static inline void drawTextFromQuadsUi(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) { INSTANCE->drawTextFromQuadsImpl(quadArr, bitmap, INSTANCE->getSuitableTextBatchUiImpl(bitmap)); }
+		static inline void drawTextSameTextureFromQuadsUi(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) { INSTANCE->drawTextSameTextureFromQuadsImpl(quadArr, bitmap, INSTANCE->getSuitableTextBatchUiImpl(bitmap)); }
 
 		//-----Collection Objects-----
-		static inline void drawTextStringScene(TextString& string) { INSTANCE->drawTextStringImpl(string, INSTANCE->getSuitableTextBatchScene(string.getCurrentFontBitmap())); }
-		static inline void drawTextStringUi(TextString& string) { INSTANCE->drawTextStringImpl(string, INSTANCE->getSuitableTextBatchUi(string.getCurrentFontBitmap())); }
+		static inline void drawTextStringScene(TextString& string) { INSTANCE->drawTextStringImpl(string, INSTANCE->getSuitableTextBatchSceneImpl(string.getCurrentFontBitmap())); }
+		static inline void drawTextStringUi(TextString& string) { INSTANCE->drawTextStringImpl(string, INSTANCE->getSuitableTextBatchUiImpl(string.getCurrentFontBitmap())); }
+
+		static inline void setSceneCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->mSceneCameraData = cameraData; }
+		static inline void setUiCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->mUiCameraData = cameraData; }
 	};
 }

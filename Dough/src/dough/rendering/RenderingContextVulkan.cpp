@@ -20,6 +20,12 @@
 
 namespace DOH {
 
+	void CameraGpuData::addOwnedResourcesToClose(RenderingContextVulkan& context) {
+		for (auto& buffer : ValueBuffers) {
+			context.addGpuResourceToClose(buffer);
+		}
+	}
+
 	RenderingContextVulkan::RenderingContextVulkan(VkDevice logicDevice, VkPhysicalDevice physicalDevice)
 	:	mLogicDevice(logicDevice),
 		mPhysicalDevice(physicalDevice),
@@ -100,29 +106,7 @@ namespace DOH {
 		);
 		mResourceDefaults.EmptyTextureArray = std::make_unique<TextureArray>(8, *mResourceDefaults.WhiteTexture);
 
-		mSceneCameraGpu = std::make_unique<CameraGpuData>();
-		mSceneCameraGpu->CpuData.ProjView = glm::mat4x4(1.0f);
-		mUiCameraGpu = std::make_unique<CameraGpuData>();
-		mUiCameraGpu->CpuData.ProjView = glm::mat4x4(1.0f);
-
 		const uint32_t imageCount = mSwapChain->getImageCount();
-		mSceneCameraGpu->ValueBuffers.resize(imageCount);
-		mUiCameraGpu->ValueBuffers.resize(imageCount);
-		for (uint32_t i = 0; i < imageCount; i++) {
-			mSceneCameraGpu->ValueBuffers[i] = createBuffer(
-				sizeof(UniformBufferObject),
-				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-			);
-			mSceneCameraGpu->ValueBuffers[i]->map(mLogicDevice, sizeof(UniformBufferObject));
-
-			mUiCameraGpu->ValueBuffers[i] = createBuffer(
-				sizeof(UniformBufferObject),
-				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-			);
-			mUiCameraGpu->ValueBuffers[i]->map(mLogicDevice, sizeof(UniformBufferObject));
-		}
 
 		createEngineDescriptorLayouts();
 		createEngineDescriptorPool();
@@ -180,13 +164,6 @@ namespace DOH {
 			static_cast<uint32_t>(mCommandBuffers.size()),
 			mCommandBuffers.data()
 		);
-
-		for (auto& buffer : mSceneCameraGpu->ValueBuffers) {
-			buffer->close(mLogicDevice);
-		}
-		for (auto& buffer : mUiCameraGpu->ValueBuffers) {
-			buffer->close(mLogicDevice);
-		}
 
 		TextRenderer::close();
 		ShapeRenderer::close();
@@ -320,10 +297,15 @@ namespace DOH {
 
 		ShapeRenderer::resetLocalDebugInfo();
 		TextRenderer::resetLocalDebugInfo();
+		//TODO:: LineRenderer::resetLocalDebugInfo();
 
-		//Set camera data
-		mSceneCameraGpu->ValueBuffers[imageIndex]->setDataMapped(mLogicDevice, &mSceneCameraGpu->CpuData.ProjView, sizeof(UniformBufferObject));
-		mUiCameraGpu->ValueBuffers[imageIndex]->setDataMapped(mLogicDevice, &mUiCameraGpu->CpuData.ProjView, sizeof(UniformBufferObject));
+		for (std::pair<const char*, std::reference_wrapper<ICamera>>& camera : mCamerasToUpdate) {
+			camera.second.get().getGpuData()->updateGpuData(
+				mLogicDevice,
+				imageIndex,
+				camera.second.get().getProjectionViewMatrix()
+			);
+		}
 
 		VkCommandBuffer cmd = mCommandBuffers[imageIndex];
 		beginCommandBuffer(cmd);
@@ -361,22 +343,39 @@ namespace DOH {
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 
 		mAppSceneRenderPass->begin(mAppSceneFrameBuffers[imageIndex], mSwapChain->getExtent(), cmd);
-		auto scenePipelines = mCurrentRenderState->getRenderPassGraphicsPipelineGroup(ERenderPass::APP_SCENE);
-		if (scenePipelines.has_value()) {
-			for (auto& pipeline : scenePipelines->get()) {
-				if (pipeline.second->getVaoDrawCount() > 0) {
-					if (currentBindings.Pipeline != pipeline.second->get()) {
-						pipeline.second->bind(cmd);
+
+		std::optional<std::reference_wrapper<GraphicsPipelineMap>> scenePipelinesOptional = mCurrentRenderState->getRenderPassGraphicsPipelineGroup(ERenderPass::APP_SCENE);
+		if (scenePipelinesOptional.has_value()) {
+			GraphicsPipelineMap& scenePipelines = scenePipelinesOptional->get();
+			for (std::pair<const std::string, std::shared_ptr<GraphicsPipelineVulkan>>& pipelineEntry : scenePipelines) {
+				GraphicsPipelineVulkan& pipeline = *pipelineEntry.second;
+				if (pipeline.getVaoDrawCount() > 0) {
+					if (currentBindings.Pipeline != pipeline.get()) {
+						pipeline.bind(cmd);
 						debugInfo.PipelineBinds++;
-						currentBindings.Pipeline = pipeline.second->get();
+						currentBindings.Pipeline = pipeline.get();
 					}
-					bindSceneUboToPipeline(cmd, *pipeline.second, imageIndex, currentBindings, debugInfo);
-					pipeline.second->recordDrawCommands(cmd, currentBindings, 1);
-					debugInfo.SceneDrawCalls += pipeline.second->getVaoDrawCount();
+
+					for (std::shared_ptr<IRenderable> renderable : pipeline.getRenderableDrawList()) {
+						pipeline.recordDrawCommand_new(cmd, *renderable, currentBindings, 0);
+					}
+
+					debugInfo.SceneDrawCalls += pipeline.getVaoDrawCount();
+				}
+
+				if (pipeline.getInstanceInfo().hasOptionalFields()) {
+					if (pipeline.getInstanceInfo().getOptionalFields().ClearRenderablesAfterDraw) {
+						pipeline.clearRenderableToDraw();
+					}
+				} else {
+					pipeline.clearRenderableToDraw();
 				}
 			}
 		}
 
+		//IMPORTANT:: TODO:: Render order is important as not everthing uses a depth buffer.
+		//	Maybe an std::array<std::reference_wrapper<IRenderer>, 4>> for ordering?
+		//	This includes a "CustomRenderer" for custom pipelines.
 		ShapeRenderer::drawScene(imageIndex, cmd, currentBindings);
 		TextRenderer::drawScene(imageIndex, cmd, currentBindings);
 		LineRenderer::drawScene(imageIndex, cmd, currentBindings);
@@ -391,30 +390,37 @@ namespace DOH {
 
 		mAppUiRenderPass->begin(mAppUiFrameBuffers[imageIndex], mSwapChain->getExtent(), cmd);
 
-		auto uiPipelines = mCurrentRenderState->getRenderPassGraphicsPipelineGroup(ERenderPass::APP_UI);
-		if (uiPipelines.has_value()) {
-			for (auto& pipeline : uiPipelines->get()) {
-				if (pipeline.second->getVaoDrawCount() > 0) {
-					if (currentBindings.Pipeline != pipeline.second->get()) {
-						pipeline.second->bind(cmd);
+		std::optional<std::reference_wrapper<GraphicsPipelineMap>> uiPipelinesOptional = mCurrentRenderState->getRenderPassGraphicsPipelineGroup(ERenderPass::APP_UI);
+		if (uiPipelinesOptional.has_value()) {
+			GraphicsPipelineMap& uiPipelines = uiPipelinesOptional->get();
+			for (auto& pipelineEntry : uiPipelines) {
+				GraphicsPipelineVulkan& pipeline = *pipelineEntry.second;
+				if (pipeline.getVaoDrawCount() > 0) {
+					if (currentBindings.Pipeline != pipeline.get()) {
+						pipeline.bind(cmd);
 						debugInfo.PipelineBinds++;
-						currentBindings.Pipeline = pipeline.second->get();
+						currentBindings.Pipeline = pipeline.get();
 					}
 
-					bindUiUboToPipeline(
-						cmd,
-						*pipeline.second,
-						imageIndex,
-						currentBindings,
-						debugInfo
-					);
+					for (auto& renderable : pipeline.getRenderableDrawList()) {
+						pipeline.recordDrawCommand_new(cmd, *renderable, currentBindings, 0);
+					}
 
-					pipeline.second->recordDrawCommands(cmd, currentBindings, 1);
-					debugInfo.UiDrawCalls += pipeline.second->getVaoDrawCount();
+					debugInfo.UiDrawCalls += pipeline.getVaoDrawCount();
+				}
+
+				if (pipeline.getInstanceInfo().hasOptionalFields()) {
+					if (pipeline.getInstanceInfo().getOptionalFields().ClearRenderablesAfterDraw) {
+						pipeline.clearRenderableToDraw();
+					}
+				} else {
+					pipeline.clearRenderableToDraw();
 				}
 			}
 		}
 
+		//IMPORTANT:: TODO:: Render order is important as not everthing uses a depth buffer.
+		//	Maybe an std::array<std::reference_wrapper<IRenderer>, 3>> for ordering?
 		ShapeRenderer::drawUi(imageIndex, cmd, currentBindings);
 		TextRenderer::drawUi(imageIndex, cmd, currentBindings);
 		LineRenderer::drawUi(imageIndex,cmd, currentBindings);
@@ -468,40 +474,16 @@ namespace DOH {
 		//);
 	}
 
-	void RenderingContextVulkan::bindSceneUboToPipeline(
+	void RenderingContextVulkan::bindCameraToPipeline(
 		VkCommandBuffer cmd,
+		CameraGpuData& cameraData,
 		GraphicsPipelineVulkan& pipeline,
 		uint32_t imageIndex,
 		CurrentBindingsState& currentBindings,
 		AppDebugInfo& debugInfo
 	) {
-		//Bind scene ubo since GraphicsPipeline class doesn't have access to desc set object
 		const uint32_t uboSlot = 0;
-		VkDescriptorSet currentUboDescSet = mSceneCameraGpu->DescriptorSets[imageIndex];
-		vkCmdBindDescriptorSets(
-			cmd,
-			VK_PIPELINE_BIND_POINT_GRAPHICS,
-			pipeline.getGraphicsPipelineLayout(),
-			uboSlot,
-			1,
-			&currentUboDescSet,
-			0,
-			nullptr
-		);
-		currentBindings.DescriptorSets[uboSlot] = currentUboDescSet;
-		debugInfo.DescriptorSetBinds++;
-	}
-
-	void RenderingContextVulkan::bindUiUboToPipeline(
-		VkCommandBuffer cmd,
-		GraphicsPipelineVulkan& pipeline,
-		uint32_t imageIndex,
-		CurrentBindingsState& currentBindings,
-		AppDebugInfo& debugInfo
-	) {
-		//Bind scene ubo since GraphicsPipeline class doesn't have access to desc set object
-		const uint32_t uboSlot = 0;
-		VkDescriptorSet currentUboDescSet = mUiCameraGpu->DescriptorSets[imageIndex];
+		VkDescriptorSet currentUboDescSet = cameraData.DescriptorSets[imageIndex];
 		vkCmdBindDescriptorSets(
 			cmd,
 			VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -927,20 +909,6 @@ namespace DOH {
 		DescriptorSetLayoutVulkan& textureSetLayout = mCommonDescriptorSetLayouts->SingleTexture;
 		DescriptorSetLayoutVulkan& texArrSetLayout = mCommonDescriptorSetLayouts->SingleTextureArray8;
 
-		//Uniform Buffers
-		mSceneCameraGpu->DescriptorSets = DescriptorApiVulkan::allocateDescriptorSetsFromLayout(
-			mLogicDevice,
-			mEngineDescriptorPool,
-			uboSetLayout,
-			imageCount
-		);
-		mUiCameraGpu->DescriptorSets = DescriptorApiVulkan::allocateDescriptorSetsFromLayout(
-			mLogicDevice,
-			mEngineDescriptorPool,
-			uboSetLayout,
-			imageCount
-		);
-
 		//Textures
 		mResourceDefaults.WhiteTextureDescriptorSet = DescriptorApiVulkan::allocateDescriptorSetFromLayout(
 			mLogicDevice,
@@ -954,25 +922,6 @@ namespace DOH {
 			mEngineDescriptorPool,
 			texArrSetLayout
 		);
-
-		//Update descriptor sets
-		//Cameras
-		const uint32_t projViewBinding = 0;
-		for (uint32_t i = 0; i < imageCount; i++) {
-			//Scene camera
-			DescriptorSetUpdate sceneCameraUpdate = {
-				{{ uboSetLayout.getDescriptors()[projViewBinding], *mSceneCameraGpu->ValueBuffers[i] }},
-				mSceneCameraGpu->DescriptorSets[i]
-			};
-			DescriptorApiVulkan::updateDescriptorSet(mLogicDevice, sceneCameraUpdate);
-
-			//UI camera
-			DescriptorSetUpdate uiCameraUpdate = {
-				{{ uboSetLayout.getDescriptors()[projViewBinding], *mUiCameraGpu->ValueBuffers[i] }},
-				mUiCameraGpu->DescriptorSets[i]
-			};
-			DescriptorApiVulkan::updateDescriptorSet(mLogicDevice, uiCameraUpdate);
-		}
 
 		//Textures
 		const uint32_t textureSamplerBinding = 0;
@@ -1222,6 +1171,17 @@ namespace DOH {
 		return sampler;
 	}
 
+	void RenderingContextVulkan::addCameraToUpdateList(const char* name, ICamera& camera) {
+		for (const auto& camera : mCamerasToUpdate) {
+			if (camera.first == name) {
+				LOG_WARN("Attempting to add camera when already in update list: " << name);
+				break;
+			}
+		}
+
+		mCamerasToUpdate.push_back({ name, camera });
+	}
+
 	void RenderingContextVulkan::setPhysicalDevice(VkPhysicalDevice physicalDevice) {
 		ZoneScoped;
 
@@ -1251,6 +1211,41 @@ namespace DOH {
 		if (closeLayout && !set.empty()) {
 			addGpuResourceToClose(set.mapped());
 		}
+	}
+
+	std::shared_ptr<CameraGpuData> RenderingContextVulkan::createCameraGpuData(ICamera& camera) const {
+		ZoneScoped;
+		
+		const uint32_t imageCount = mSwapChain->getImageCount();
+		const uint32_t projViewBinding = 0;
+		DescriptorSetLayoutVulkan& uboSetLayout = mCommonDescriptorSetLayouts->Ubo;
+		std::shared_ptr<CameraGpuData> cameraGpuData = std::make_shared<CameraGpuData>();
+		cameraGpuData->ValueBuffers.resize(imageCount);
+		
+		cameraGpuData->DescriptorSets = DescriptorApiVulkan::allocateDescriptorSetsFromLayout(
+			mLogicDevice,
+			mCustomDescriptorPool,
+			uboSetLayout,
+			imageCount
+		);
+
+		for (uint32_t i = 0; i < imageCount; i++) {
+			cameraGpuData->ValueBuffers[i] = createBuffer(
+				sizeof(UniformBufferObject),
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+			);
+			cameraGpuData->ValueBuffers[i]->map(mLogicDevice, sizeof(UniformBufferObject));
+			cameraGpuData->ValueBuffers[i]->setDataMapped(mLogicDevice, &camera.getProjectionViewMatrix(), sizeof(glm::mat4x4));
+
+			DescriptorSetUpdate cameraUpdate = {
+				{{ uboSetLayout.getDescriptors()[projViewBinding], *cameraGpuData->ValueBuffers[i] }},
+				cameraGpuData->DescriptorSets[i]
+			};
+			DescriptorApiVulkan::updateDescriptorSet(mLogicDevice, cameraUpdate);
+		}
+
+		return cameraGpuData;
 	}
 
 	std::shared_ptr<DescriptorSetLayoutVulkan> RenderingContextVulkan::createDescriptorSetLayout(

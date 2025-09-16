@@ -101,6 +101,8 @@ namespace DOH::EDITOR {
 	void EditorAppLogic::init(float aspectRatio) {
 		ZoneScoped;
 
+		auto& context = GET_RENDERER.getContext();
+
 		mInnerAppTimer = std::make_unique<PausableTimer>();
 		mEditorSettings = std::make_unique<EditorSettings>();
 
@@ -113,9 +115,11 @@ namespace DOH::EDITOR {
 		//mInnerAppInputLayer.emplace(mEditorInputLayer);
 		
 		mOrthoCameraController = std::make_shared<EditorOrthoCameraController>(mEditorInputLayer, aspectRatio);
+		mOrthoCameraController->getCamera().setGpuData(context.createCameraGpuData(mOrthoCameraController->getCamera()));
 		mPerspectiveCameraController = std::make_shared<EditorPerspectiveCameraController>(mEditorInputLayer, aspectRatio);
+		mPerspectiveCameraController->getCamera().setGpuData(context.createCameraGpuData(mPerspectiveCameraController->getCamera()));
 
-		mPerspectiveCameraController->setPosition({ 0.0f, 0.0f, 5.0f });
+		mPerspectiveCameraController->setPositionXYZ(0.0f, 0.0f, 5.0f);
 
 		EditorGui::init();
 	}
@@ -153,7 +157,7 @@ namespace DOH::EDITOR {
 	void EditorAppLogic::render() {
 		ZoneScoped;
 
-		RendererVulkan& renderer = GET_RENDERER;
+		auto& renderer = GET_RENDERER;
 
 		//Begin scene sets the primary camera that is to be used to render the scene.
 		// If one isn't set in the inner app then one of the Editor's cameras is used.
@@ -431,33 +435,64 @@ UPS displayed is the count of frames in the last full second interval)"
 				ImGui::TableSetupColumn("Render Pass");
 				ImGui::TableHeadersRow();
 				ImGui::TableSetColumnIndex(0);
+				
+				{ //Table of Scene Pipelines
 
-				for (
-					const auto& [renderPass, pipelines] :
-					renderer.getContext().getCurrentRenderState().getRenderPassGraphicsPipelineMap()
-				) {
-					const char* renderPassString = ERenderPassStrings[static_cast<uint32_t>(renderPass)];
-					for (const auto& [name, pipeline] : pipelines) {
-						EditorGui::printDrawCallTableColumn(
-							name.c_str(),
-							pipeline->getVaoDrawCount(),
-							renderPassString
-						);
+					//TODO:: With recordDrawCommand() changing how pipelines hold draw commands, how does this change thsi stat tracking?
+
+					//Engine pipelines
+					//TODO:: shapes
+					//TODO:: lines
+
+					//Custom Render State
+					const auto& scenePipelines = renderer.getContext().getCurrentRenderState().getRenderPassGraphicsPipelineGroup(ERenderPass::APP_SCENE);
+					if (scenePipelines.has_value()) {
+						const char* renderPassString = ERenderPassStrings[static_cast<uint32_t>(ERenderPass::APP_SCENE)];
+						auto& value = scenePipelines.value();
+						for (const auto& [name, pipeline] : value.get()) {
+							EditorGui::printDrawCallTableColumn(
+								name.c_str(),
+								pipeline->getVaoDrawCount(),
+								renderPassString
+							);
+						}
 					}
+					//Total scene pipeline draw calls
+					EditorGui::printDrawCallTableColumn(
+						"Total Scene",
+						debugInfo.SceneDrawCalls,
+						ERenderPassStrings[static_cast<uint32_t>(ERenderPass::APP_SCENE)]
+					);
+					ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImColor::ImColor(125, 125, 125, 90));
 				}
-				//Total scene pipeline draw calls
-				EditorGui::printDrawCallTableColumn("Total Scene",
-					debugInfo.SceneDrawCalls,
-					ERenderPassStrings[static_cast<uint32_t>(ERenderPass::APP_SCENE)]
-				);
-				ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImColor::ImColor(125, 125, 125, 90));
-				//Total UI pipeline draw calls
-				EditorGui::printDrawCallTableColumn(
-					"Total UI",
-					debugInfo.UiDrawCalls,
-					ERenderPassStrings[static_cast<uint32_t>(ERenderPass::APP_UI)]
-				);
-				ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImColor::ImColor(125, 125, 125, 90));
+				{ //Table of UI Pipelines
+
+					//Engine pipelines
+					//TODO:: shapes
+					//TODO:: lines
+
+
+					//Custom Render State
+					const auto& uiPipelines = renderer.getContext().getCurrentRenderState().getRenderPassGraphicsPipelineGroup(ERenderPass::APP_UI);
+					if (uiPipelines.has_value()) {
+						const char* renderPassString = ERenderPassStrings[static_cast<uint32_t>(ERenderPass::APP_UI)];
+						auto& value = uiPipelines.value();
+						for (const auto& [name, pipeline] : value.get()) {
+							EditorGui::printDrawCallTableColumn(
+								name.c_str(),
+								pipeline->getVaoDrawCount(),
+								renderPassString
+							);
+						}
+					}
+					//Total scene pipeline draw calls
+					EditorGui::printDrawCallTableColumn(
+						"Total UI",
+						debugInfo.SceneDrawCalls,
+						ERenderPassStrings[static_cast<uint32_t>(ERenderPass::APP_UI)]
+					);
+					ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImColor::ImColor(125, 125, 125, 90));
+				}
 				EditorGui::printDrawCallTableColumn("Total", debugInfo.TotalDrawCalls, "All");
 				ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, ImColor::ImColor(128, 128, 255, 100));
 
@@ -472,50 +507,6 @@ UPS displayed is the count of frames in the last full second interval)"
 				ImGui::Text("VertexBuffer Binds: %i", debugInfo.VertexBufferBinds);
 				ImGui::Text("IndexBuffer Binds: %i", debugInfo.IndexBufferBinds);
 				ImGui::Text("DescriptorSet Binds: %i", debugInfo.DescriptorSetBinds);
-
-				//Batch renderer info
-				ImGui::NewLine();
-				ImGui::Text("Batch Renderer Info:");
-				ImGui::Text("Quads Drawn: %i", ShapeRenderer::getDrawnQuadCount());
-				ImGui::Text("Quads Truncated: %i", ShapeRenderer::getTruncatedQuadCount());
-				ImGui::Text("Quad Batch Max Size: %i", EBatchSizeLimits::QUAD_BATCH_MAX_GEO_COUNT);
-				ImGui::Text(
-					"Quad Batch Count: %i of Max %i",
-					ShapeRenderer::getQuadBatchCount(),
-					EBatchSizeLimits::QUAD_MAX_BATCH_COUNT
-				);
-				for (uint32_t i = 0; i < ShapeRenderer::getQuadSceneBatchCount(); i++) {
-					RenderBatchQuad& batch = *ShapeRenderer::getQuadSceneRenderBatches()[i];
-					ImGui::Text("Scene Batch: %i Geo Count: %i", i, batch.getGeometryCount());
-				}
-				for (uint32_t i = 0; i < ShapeRenderer::getQuadUiBatchCount(); i++) {
-					RenderBatchQuad& batch = *ShapeRenderer::getQuadUiRenderBatches()[i];
-					ImGui::Text("UI Batch: %i Geo Count: %i", i, batch.getGeometryCount());
-				}
-				ImGui::Text("Text Batches Geo Count: %i", TextRenderer::getDrawnQuadCount());
-				//TODO:: debug info when multiple texture arrays are supported
-				//uint32_t texArrIndex = 0;
-				//for (TextureArray& texArr : renderer.getContext().getRenderer2d().getStorage().getTextureArrays()) {
-				//	ImGui::Text("Texture Array: %i Texture Count: %i", texArrIndex, texArr.getTextureSlots().size());
-				//	texArrIndex++;
-				//}
-				ImGui::Text(
-					"Texture Array: %i Texture Count: %i",
-					0,
-					ShapeRenderer::getShapesTextureArray().getTextureSlots().size()
-				);
-				if (ImGui::Button("View Shape Renderer Texture Array")) {
-					EditorGui::openTextureArrayViewerWindow("Shape Renderer Texture Array", ShapeRenderer::getShapesTextureArray());
-				}
-
-				if (ImGui::Button("Close All Empty Quad Batches")) {
-					ShapeRenderer::closeEmptyQuadBatches();
-				}
-				EditorGui::displayHelpTooltip("Close Empty Quad Batches. This can help clean-up when 1 or more batches have geo counts of 0. Does not include the TextQuad batch.");
-				if (ImGui::Button("Close All Empty Circle Batches")) {
-					ShapeRenderer::closeEmptyCircleBatches();
-				}
-				EditorGui::displayHelpTooltip("Close Empty Circle Batches. This can help clean-up when 1 or more batches have geo counts of 0.");
 			}
 
 			ImGui::SetNextItemOpen(mEditorSettings->InnerAppCollapseMenu);
@@ -622,7 +613,7 @@ UPS displayed is the count of frames in the last full second interval)"
 						const auto& pos = mOrthoCameraController->getPosition();
 						float tempPos[3] = { pos.x, pos.y, pos.z };
 						if (ImGui::DragFloat3("Pos", tempPos)) {
-							mOrthoCameraController->setPosition({ tempPos[0], tempPos[1], tempPos[2] });
+							mOrthoCameraController->setPositionXYZ(tempPos[0], tempPos[1], tempPos[2]);
 						}
 						ImGui::Text("Zoom: %f", mOrthoCameraController->getZoomLevel());
 						EditorGui::displayHelpTooltip("Higher is more \"zoomed out\" and lower is more \"zoomed in\"");
@@ -639,11 +630,11 @@ UPS displayed is the count of frames in the last full second interval)"
 						const auto dir = mPerspectiveCameraController->getDirection();
 						float tempPos[3] = { pos.x, pos.y, pos.z };
 						if (ImGui::DragFloat3("Position", tempPos)) {
-							mPerspectiveCameraController->setPosition({ tempPos[0], tempPos[1], tempPos[2] });
+							mPerspectiveCameraController->setPositionXYZ(tempPos[0], tempPos[1], tempPos[2]);
 						}
 						float tempDir[3] = { dir.x, dir.y, dir.z };
 						if (ImGui::DragFloat3("Direction", tempDir)) {
-							mPerspectiveCameraController->setDirection({ tempDir[0], tempDir[1], tempDir[2] });
+							mPerspectiveCameraController->setDirectionXYZ(tempDir[0], tempDir[1], tempDir[2]);
 						}
 						break;
 					}
@@ -661,13 +652,13 @@ UPS displayed is the count of frames in the last full second interval)"
 
 
 				if (ImGui::Button("Reset Orthographic Camera")) {
-					mOrthoCameraController->setPosition({ 0.0f, 0.0f, 1.0f });
+					mOrthoCameraController->setPositionXYZ(0.0f, 0.0f, 1.0f);
 					mOrthoCameraController->setZoomLevel(1.0f);
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("Reset Perspective Camera")) {
-					mPerspectiveCameraController->setPosition({ 0.0f, 0.0f, 5.0f });
-					mPerspectiveCameraController->setDirection({ 0.0f, 0.0f, 0.0f });
+					mPerspectiveCameraController->setPositionXYZ(0.0f, 0.0f, 5.0f);
+					mPerspectiveCameraController->setDirectionXYZ(0.0f, 0.0f, 0.0f);
 				}
 			}
 
@@ -765,6 +756,9 @@ UPS displayed is the count of frames in the last full second interval)"
 
 	void EditorAppLogic::close() {
 		ZoneScoped;
+
+		Application::get().getRenderer().closeGpuResourceOwner(mPerspectiveCameraController->getCamera().getGpuData());
+		Application::get().getRenderer().closeGpuResourceOwner(mOrthoCameraController->getCamera().getGpuData());
 
 		mInnerAppLogic->close();
 		EditorGui::close();

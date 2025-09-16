@@ -11,6 +11,8 @@
 #include "dough/physics/BoundingBox2d.h"
 #include "dough/scene/geometry/collections/TileMap.h"
 #include "dough/scene/geometry/primitives/Circle.h"
+#include "editor/EditorPerspectiveCameraController.h"
+#include "editor/EditorOrthoCameraController.h"
 
 #define BOUNCING_QUAD_COUNT
 #if defined (_DEBUG)
@@ -36,6 +38,14 @@ namespace DOH::EDITOR {
 			static const char* TexturedShaderVertPath;
 			static const char* TexturedShaderFragPath;
 
+			static const char* PERSP_SCENE_CAM_NAME;
+			static const char* ORTHO_UI_CAM_NAME;
+			//Using editor camera controllers to save making a new class
+			std::unique_ptr<EDITOR::EditorPerspectiveCameraController> PerspectiveSceneCameraController;
+			std::unique_ptr<EDITOR::EditorOrthoCameraController> OrthoUiCameraController;
+
+			std::shared_ptr<DefaultInputLayer> InputLayer;
+
 			constexpr static const char* TexturedPipelineName = "Textured";
 			std::unique_ptr<GraphicsPipelineInstanceInfo> TexturedPipelineInfo;
 			std::shared_ptr<ShaderProgram> TexturedShaderProgram;
@@ -51,19 +61,28 @@ namespace DOH::EDITOR {
 			VkDescriptorSet TestTexture1DescSet = VK_NULL_HANDLE;
 			VkDescriptorSet TestTexture2DescSet = VK_NULL_HANDLE;
 
+			float AspectRatio = 1.0f;
+
 			bool GpuResourcesLoaded = false;
 		};
 
-		class IDemo {
+		class ADemo {
+		protected:
+			SharedDemoResources& SharedResources;
 		public:
-			virtual void init(SharedDemoResources& sharedResources) = 0;
+			ADemo(SharedDemoResources& sharedResources)
+			:	SharedResources(sharedResources)
+			{}
+			virtual void init() = 0;
 			virtual void close() = 0;
+			virtual void update(float delta) = 0;
+			virtual void render() = 0;
 			virtual void renderImGuiMainTab() = 0;
 			virtual void renderImGuiExtras() = 0;
 			virtual const char* getName() = 0;
 		};
 
-		class ObjModelsDemo : public IDemo {
+		class ObjModelsDemo : public ADemo {
 		public:
 			struct UniformBufferObject {
 				glm::mat4x4 ProjView;
@@ -112,8 +131,13 @@ namespace DOH::EDITOR {
 
 			bool GpuResourcesLoaded = false;
 
-			virtual void init(SharedDemoResources& sharedResources) override;
+			ObjModelsDemo(SharedDemoResources& sharedResources)
+			:	ADemo(sharedResources)
+			{}
+			virtual void init() override;
 			virtual void close() override;
+			virtual void update(float delta) override;
+			virtual void render() override;
 			virtual void renderImGuiMainTab() override;
 			virtual void renderImGuiExtras() override;
 			virtual const char* getName() override { return "ObjModels"; }
@@ -146,7 +170,7 @@ namespace DOH::EDITOR {
 			void imGuiDrawObjDemoItem(DOH::RenderableModelVulkan& model, const std::string& uniqueImGuiId);
 		};
 
-		class CustomDemo : public IDemo {
+		class CustomDemo : public ADemo {
 		public:
 			struct UniformBufferObject {
 				glm::mat4 ProjView;
@@ -182,7 +206,7 @@ namespace DOH::EDITOR {
 				0, 1, 2, 2, 3, 0
 			};
 
-			glm::mat4x4 UiProjMat = glm::mat4x4(1.0f);
+			//glm::mat4x4 UiProjMat = glm::mat4x4(1.0f);
 
 			std::unique_ptr<GraphicsPipelineInstanceInfo> UiPipelineInfo;
 			std::shared_ptr<ShaderProgram> UiShaderProgram;
@@ -206,16 +230,21 @@ namespace DOH::EDITOR {
 			bool RenderUi = false;
 			bool GpuResourcesLoaded = false;
 
-			virtual void init(SharedDemoResources& sharedResources) override;
+			CustomDemo(SharedDemoResources& sharedResources)
+			:	ADemo(sharedResources)
+			{}
+			virtual void init() override;
 			virtual void close() override;
+			virtual void update(float delta) override;
+			virtual void render() override;
 			virtual void renderImGuiMainTab() override;
 			virtual void renderImGuiExtras() override;
 			virtual const char* getName() override { return "Custom"; }
 		};
 		
-		class ShapesDemo : public IDemo {
+		class ShapesDemo : public ADemo {
 		private:
-			class GridDemo : public IDemo {
+			class GridDemo : public ADemo {
 			public:
 				std::vector<std::vector<Quad>> TexturedTestGrid;
 				glm::vec4 QuadColour = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -234,14 +263,19 @@ namespace DOH::EDITOR {
 
 				void populateTestGrid(uint32_t width, uint32_t height);
 
-				virtual void init(SharedDemoResources& sharedResources) override;
+				GridDemo(SharedDemoResources& sharedResources)
+				:	ADemo(sharedResources)
+				{}
+				virtual void init() override;
 				virtual void close() override;
+				virtual void update(float delta) override;
+				virtual void render() override;
 				virtual void renderImGuiMainTab() override;
 				virtual void renderImGuiExtras() override;
 				virtual const char* getName() override { return "Shapes::Grid"; }
 			};
 
-			class BouncingQuadDemo : public IDemo {
+			class BouncingQuadDemo : public ADemo {
 			public:
 				std::vector<Quad> BouncingQuads;
 				std::vector<glm::vec2> BouncingQuadVelocities;
@@ -255,8 +289,13 @@ namespace DOH::EDITOR {
 				bool Update = false;
 				bool Render = false;
 
-				virtual void init(SharedDemoResources& sharedResources) override;
+				BouncingQuadDemo(SharedDemoResources& sharedResources)
+				:	ADemo(sharedResources)
+				{}
+				virtual void init() override;
 				virtual void close() override;
+				virtual void update(float delta) override;
+				virtual void render() override;
 				virtual void renderImGuiMainTab() override;
 				virtual void renderImGuiExtras() override;
 				virtual const char* getName() override { return "Shapes::BouncingQuad"; }
@@ -265,7 +304,7 @@ namespace DOH::EDITOR {
 				void popQuads(size_t count);
 			};
 
-			class CircleDemo : public IDemo {
+			class CircleDemo : public ADemo {
 			public:
 				#if defined (_DEBUG)
 				static const uint32_t MaxCirclesCount = 40000;
@@ -284,8 +323,13 @@ namespace DOH::EDITOR {
 				int AddNewCount = 0;
 				int PopCount = 0;
 
-				virtual void init(SharedDemoResources& sharedResources) override;
+				CircleDemo(SharedDemoResources& sharedResources)
+				:	ADemo(sharedResources)
+				{}
+				virtual void init() override;
 				virtual void close() override;
+				virtual void update(float delta) override;
+				virtual void render() override;
 				virtual void renderImGuiMainTab() override;
 				virtual void renderImGuiExtras() override;
 				virtual const char* getName() override { return "Shapes::Circle"; }
@@ -298,14 +342,19 @@ namespace DOH::EDITOR {
 			std::unique_ptr<BouncingQuadDemo> mBouncingQuadDemo;
 			std::unique_ptr<CircleDemo> mCircleDemo;
 
-			virtual void init(SharedDemoResources& sharedResources) override;
+			ShapesDemo(SharedDemoResources& sharedResources)
+			:	ADemo(sharedResources)
+			{}
+			virtual void init() override;
 			virtual void close() override;
+			virtual void update(float delta) override;
+			virtual void render() override;
 			virtual void renderImGuiMainTab() override;
 			virtual void renderImGuiExtras() override;
 			virtual const char* getName() override { return "Shapes"; }
 		};
 
-		class TextDemo : public IDemo {
+		class TextDemo : public ADemo {
 		public:
 			static constexpr size_t StringLengthLimit = 1000; //Arbitrary limit
 		
@@ -322,19 +371,25 @@ namespace DOH::EDITOR {
 			bool Update = false;
 			bool Render = false;
 
-			virtual void init(SharedDemoResources& sharedResources) override;
+			TextDemo(SharedDemoResources& sharedResources)
+			:	ADemo(sharedResources)
+			{}
+			virtual void init() override;
 			virtual void close() override;
+			virtual void update(float delta) override;
+			virtual void render() override;
 			virtual void renderImGuiMainTab() override;
 			virtual void renderImGuiExtras() override;
 			virtual const char* getName() override { return "Text"; }
 		};
 
-		class LineDemo : public IDemo {
+		class LineDemo : public ADemo {
 		public:
 			static constexpr uint32_t LINE_2D_INPUT_COMPONENT_COUNT = 8;
 			static constexpr uint32_t LINE_3D_INPUT_COMPONENT_COUNT = 10; //3 for start, 3 for end, 4 for colour
 			std::vector<float> LineData2d;
 			std::vector<float> LineData3d;
+			std::reference_wrapper<TextDemo> TextDemoRef;
 			Quad UiQuadTest = { {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, { 0.0f, 1.0f, 0.0f, 1.0f } };
 			float LineDataInput[LINE_3D_INPUT_COMPONENT_COUNT] = {};
 			uint32_t LineCount2d = 0;
@@ -349,8 +404,14 @@ namespace DOH::EDITOR {
 			bool RenderTextDemoOutlines = false;
 			bool RenderUiQuad = false;
 
-			virtual void init(SharedDemoResources& sharedResources) override;
+			LineDemo(SharedDemoResources& sharedResources, TextDemo& textDemo)
+			:	ADemo(sharedResources),
+				TextDemoRef(textDemo)
+			{}
+			virtual void init() override;
 			virtual void close() override;
+			virtual void update(float delta) override;
+			virtual void render() override;
 			virtual void renderImGuiMainTab() override;
 			virtual void renderImGuiExtras() override;
 			virtual const char* getName() override { return "Line"; }
@@ -399,7 +460,7 @@ namespace DOH::EDITOR {
 			}
 		};
 
-		class BoundingBoxDemo : public IDemo {
+		class BoundingBoxDemo : public ADemo {
 		public:
 			std::vector<Quad> Quads;
 			std::unique_ptr<BoundingBox2d> BoundingBox;
@@ -409,14 +470,19 @@ namespace DOH::EDITOR {
 			bool Update = false;
 			bool Render = false;
 
-			virtual void init(SharedDemoResources& sharedResources) override;
+			BoundingBoxDemo(SharedDemoResources& sharedResources)
+			:	ADemo(sharedResources)
+			{}
+			virtual void init() override;
 			virtual void close() override;
+			virtual void update(float delta) override;
+			virtual void render() override;
 			virtual void renderImGuiMainTab() override;
 			virtual void renderImGuiExtras() override;
 			virtual const char* getName() override { return "BoundingBox"; }
 		};
 
-		class TileMapDemo : public IDemo {
+		class TileMapDemo : public ADemo {
 		public:
 			std::unique_ptr<TileMap> SceneTileMap;
 			std::unique_ptr<TextureAtlasAnimationController> PreviewAnimationController;
@@ -428,11 +494,65 @@ namespace DOH::EDITOR {
 			bool Render = false;
 			bool RenderPreviewQuad = false;
 
-			virtual void init(SharedDemoResources& sharedResources) override;
+			TileMapDemo(SharedDemoResources& sharedResources)
+			:	ADemo(sharedResources)
+			{}
+			virtual void init() override;
 			virtual void close() override;
+			virtual void update(float delta) override;
+			virtual void render() override;
 			virtual void renderImGuiMainTab() override;
 			virtual void renderImGuiExtras() override;
 			virtual const char* getName() override { return "TileMap"; }
+		};
+
+		//To show the use of multiple cameras used in the same render pass
+		class MultiCameraPassDemo : public ADemo {
+		public:
+			//Some cameras and textured shaders are owned by mSharedDemoResources
+
+			static const char* ORTHO_SCENE_CAM_NAME;
+			static const char* PERSP_UI_CAM_NAME;
+
+			//Ui3D Pipeline
+			const char* FlatColourShaderVertPath = "Dough/Dough/res/shaders/spv/FlatColour.vert.spv";
+			const char* FlatColourShaderFragPath = "Dough/Dough/res/shaders/spv/FlatColour.frag.spv";
+			const char* Ui3dPipelineName = "MultiCamera_3dUi";
+			const StaticVertexInputLayout& ColouredVertexInputLayout = StaticVertexInputLayout::get(EVertexType::VERTEX_3D);
+			std::shared_ptr<ShaderProgram> Ui3dShaderProgram;
+			std::shared_ptr<ShaderVulkan> Ui3dVertexShader;
+			std::shared_ptr<ShaderVulkan> Ui3dFragmentShader;
+			std::shared_ptr<DescriptorSetsInstanceVulkan> Ui3dDescSetsInstance;
+			std::unique_ptr<GraphicsPipelineInstanceInfo> Ui3dPipelineInfo;
+			PipelineRenderableConveyor Ui3dPipelineConveyor;
+
+			std::unique_ptr<EDITOR::EditorOrthoCameraController> OrthoSceneCameraController;
+			std::unique_ptr<EDITOR::EditorPerspectiveCameraController> PerspectiveUiCameraController;
+
+			//Basic quad to show normal 2d UI
+			Quad UiQuad;
+
+			//3d Model rendered in the UI
+			std::string UiCubeModelName;
+			std::shared_ptr<TransformationData> CubeUiTransformation;
+			std::shared_ptr<ModelVulkan> Ui3dModel; //Copied model from Obj demo but is it's own instance so ownership is kept here
+			std::shared_ptr<RenderableModelVulkan> Ui3dModelInstance;
+
+			bool Update = false;
+			bool Render = false;
+			bool RenderUiQuad = false;
+			bool RenderUiModel = false;
+
+			MultiCameraPassDemo(SharedDemoResources& sharedResources)
+			:	ADemo(sharedResources)
+			{}
+			virtual void init() override;
+			virtual void close() override;
+			virtual void update(float delta) override;
+			virtual void render() override;
+			virtual void renderImGuiMainTab() override;
+			virtual void renderImGuiExtras() override;
+			virtual const char* getName() override { return "MultiCameraPass"; }
 		};
 
 		struct ImGuiSettings {
@@ -441,7 +561,6 @@ namespace DOH::EDITOR {
 		};
 
 		//Demos
-		std::unique_ptr<SharedDemoResources> mSharedDemoResources;
 		std::unique_ptr<ObjModelsDemo> mObjModelsDemo;
 		std::unique_ptr<CustomDemo> mCustomDemo;
 		std::unique_ptr<ShapesDemo> mShapesDemo;
@@ -449,14 +568,15 @@ namespace DOH::EDITOR {
 		std::unique_ptr<LineDemo> mLineDemo;
 		std::unique_ptr<BoundingBoxDemo> mBoundingBoxDemo;
 		std::unique_ptr<TileMapDemo> mTileMapDemo;
+		std::unique_ptr<MultiCameraPassDemo> mMultiCameraPassDemo;
 		//References to usable demos (mShapesDemo is just a wrapper of "inner" demos so it's not needed here).
 		// This is primarily used for convenience for Editor GUI. 
 		// IMPORTANT:: NOT TO BE USED FOR OBJECT LIFETIME!
-		std::vector<std::reference_wrapper<IDemo>> mDemos;
+		std::vector<std::reference_wrapper<ADemo>> mDemos;
 		uint32_t mSelectedDemoIndex = UINT32_MAX;
 
+		std::unique_ptr<SharedDemoResources> mSharedDemoResources;
 		std::unique_ptr<ImGuiSettings> mImGuiSettings;
-		std::shared_ptr<DefaultInputLayer> mInputLayer;
 
 		//TODO:: allow for apps to pass in textures to batch renderer so their lifetime is controlled by the app and not the engine
 		//const char* testTexturesPath = "Dough/res/images/test textures/";
@@ -472,14 +592,10 @@ namespace DOH::EDITOR {
 		virtual void onResize(float aspectRatio) override;
 
 	private:
-		inline void setUiProjection(float aspectRatio) {
-			mCustomDemo->UiProjMat = glm::ortho(-aspectRatio, aspectRatio, -1.0f, 1.0f, -1.0f, 1.0f);
-			mCustomDemo->UiProjMat[1][1] *= -1;
-		}
-
-		void initDemos();
+		void initDemos(float aspectRatio);
 		void closeDemos();
-		void initSharedResources();
+		void initSharedResources(float aspectRatio);
 		void closeSharedResources();
+		void updateCamerasAspectRatio(float aspectRatio);
 	};
 }

@@ -55,5 +55,6 @@ namespace DOH {
 
 		//IMPORTANT:: Renderables count should match this
 		inline uint32_t getBatchCount() const { return static_cast<uint32_t>(GeoBatches.size()); }
+		inline ERenderPass getRenderPass() const { return PipelineInstanceInfo->getRenderPass(); }
 	};
 }

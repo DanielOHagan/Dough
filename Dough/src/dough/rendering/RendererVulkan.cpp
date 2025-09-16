@@ -312,7 +312,7 @@ namespace DOH {
 		QueueFamilyIndices indices = queryQueueFamilies(mPhysicalDevice);
 
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-		std::set<uint32_t> uniqueQueueFamilies = {indices.GraphicsFamily.value(), indices.PresentFamily.value()};
+		std::set<uint32_t> uniqueQueueFamilies = { indices.GraphicsFamily.value(), indices.PresentFamily.value() };
 
 		float queuePriority = 1.0f;
 		for (uint32_t queueFamily : uniqueQueueFamilies) {
@@ -351,27 +351,26 @@ namespace DOH {
 	}
 
 	void RendererVulkan::beginScene(ICamera& camera) {
-		ZoneScoped;
+		//ZoneScoped;
 
-		mRenderingContext->setAppSceneCameraData(camera);
+		
 	}
 
 	void RendererVulkan::endScene() {
 		//ZoneScoped;
 
-		//TODO:: For the batch renderer
-		// When one batch is full, it can be considered ready and a uploaded as soon as possible
+		//TODO:: Could this be used to signal that the scene is ready to be rendered. e.g. when multi-threaded is added then a job could be created for scene rendering.
 	}
 
-	void RendererVulkan::beginUi(glm::mat4x4& proj) {
-		ZoneScoped;
+	void RendererVulkan::beginUi(ICamera& camera) {
+		//ZoneScoped;
 
-		mRenderingContext->setAppUiCameraData(proj);
 	}
 
 	void RendererVulkan::endUi() {
 		//ZoneScoped;
 
+		//TODO:: Could this be used to signal that the scene is ready to be rendered. e.g. when multi-threaded is added then a job could be created for ui rendering.
 	}
 
 	uint32_t RendererVulkan::findPhysicalDeviceMemoryType(
@@ -431,7 +430,11 @@ namespace DOH {
 		const VkDebugUtilsMessengerCallbackDataEXT* callbackDataPtr,
 		void* userDataPtr
 	) {
+		static uint32_t errCount = 0;
+		LOG_RED("|" << errCount << "| ");
 		LOG_ERR("Validation layer: " << callbackDataPtr->pMessage);
+		LOG_ENDL;
+		errCount++;
 		int breakableStatement = 0;
 		return VK_FALSE;
 	}

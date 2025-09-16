@@ -49,6 +49,7 @@ namespace DOH {
 		void init(Window& window);
 		void close();
 		inline void closeGpuResource(std::shared_ptr<IGPUResourceVulkan> res) { if (res != nullptr) mRenderingContext->addGpuResourceToClose(res); }
+		inline void closeGpuResourceOwner(std::shared_ptr<IGPUResourceOwnerVulkan> resOwner) { if ( resOwner != nullptr) resOwner->addOwnedResourcesToClose(*mRenderingContext); }
 
 		bool isReady() const;
 		inline bool isClosed() const { return mInstance == VK_NULL_HANDLE; }
@@ -58,7 +59,7 @@ namespace DOH {
 		void drawFrame();
 		void beginScene(ICamera& camera);
 		void endScene();
-		void beginUi(glm::mat4x4& proj);
+		void beginUi(ICamera& camera);
 		void endUi();
 		inline void deviceWaitIdle(const char* msg) {
 			LOG_INFO(msg);

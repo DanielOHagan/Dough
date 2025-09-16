@@ -28,6 +28,28 @@ namespace DOH {
 		APP_UI = 1
 	};
 
+	struct UniformBufferObject {
+		glm::mat4x4 ProjView;
+	};
+
+	//TODO:: Make some easier way of closing this. Same with ShaderProgram.
+	class CameraGpuData : public IGPUResourceOwnerVulkan {
+	public:
+		//UniformBufferObject CpuData;
+		std::vector<std::shared_ptr<BufferVulkan>> ValueBuffers;
+		std::vector<VkDescriptorSet> DescriptorSets;
+
+		virtual void addOwnedResourcesToClose(RenderingContextVulkan& context) override;
+
+		//TODO:: Decide on which input to prefer.
+		inline void updateGpuData(VkDevice logicDevice, uint32_t imageIndex, UniformBufferObject& ubo) {
+			ValueBuffers[imageIndex]->setDataMapped(logicDevice, &ubo, sizeof(UniformBufferObject));
+		}
+		inline void updateGpuData(VkDevice logicDevice, uint32_t imageIndex, glm::mat4x4& mat4x4) {
+			ValueBuffers[imageIndex]->setDataMapped(logicDevice, &mat4x4, sizeof(glm::mat4x4));
+		}
+	};
+
 	struct CurrentBindingsState {
 		VkPipeline Pipeline = VK_NULL_HANDLE;
 		//NOTE:: Assumes only one VertexBuffer is bound at a time
@@ -54,10 +76,6 @@ namespace DOH {
 		static constexpr size_t MAX_FRAMES_IN_FLIGHT = 2;
 		static constexpr size_t GPU_RESOURCE_CLOSE_DELAY_FRAMES = 1;
 		static constexpr size_t GPU_RESOURCE_CLOSE_FRAME_INDEX_COUNT = MAX_FRAMES_IN_FLIGHT + GPU_RESOURCE_CLOSE_DELAY_FRAMES;
-
-		struct UniformBufferObject {
-			glm::mat4x4 ProjView;
-		};
 
 		struct RenderingDeviceInfo {
 			const std::string ApiVersion;
@@ -97,21 +115,6 @@ namespace DOH {
 			{}
 		};
 		std::unique_ptr<CommonDescriptorSetLayouts> mCommonDescriptorSetLayouts;
-
-		//TODO:: Make some easier way of closing this. Same with ShaderProgram.
-		class CameraGpuData {
-		public:
-			UniformBufferObject CpuData;
-			std::vector<std::shared_ptr<BufferVulkan>> ValueBuffers;
-			std::vector<VkDescriptorSet> DescriptorSets;
-
-			CameraGpuData()
-			:	CpuData({})
-			{}
-		};
-
-		std::unique_ptr<CameraGpuData> mSceneCameraGpu;
-		std::unique_ptr<CameraGpuData> mUiCameraGpu;
 
 		//Shared device handles for convenience
 		VkDevice mLogicDevice;
@@ -162,6 +165,9 @@ namespace DOH {
 
 		std::unordered_map<std::string, std::shared_ptr<DescriptorSetLayoutVulkan>> mAllDescriptorSetLayouts;
 
+		//List of cameras to update each frame.
+		std::vector<std::pair<const char*,std::reference_wrapper<ICamera>>> mCamerasToUpdate;
+
 	public:
 		RenderingContextVulkan(VkDevice logicDevice, VkPhysicalDevice physicalDevice);
 
@@ -204,19 +210,12 @@ namespace DOH {
 		};
 
 		void drawFrame();
-		inline void setAppSceneCameraData(ICamera& camera) { mSceneCameraGpu->CpuData.ProjView = camera.getProjectionViewMatrix(); }
-		inline void setAppUiCameraData(glm::mat4x4& proj) { mUiCameraGpu->CpuData.ProjView = proj; }
-		void bindSceneUboToPipeline(
+
+		void bindCameraToPipeline(
 			VkCommandBuffer cmd,
+			CameraGpuData& cameraData,
 			GraphicsPipelineVulkan& pipeline,
-			uint32_t imageindex,
-			CurrentBindingsState& currentBindings,
-			AppDebugInfo& debugInfo
-		);
-		void bindUiUboToPipeline(
-			VkCommandBuffer cmd,
-			GraphicsPipelineVulkan& pipeline,
-			uint32_t imageindex,
+			uint32_t imageIndex,
 			CurrentBindingsState& currentBindings,
 			AppDebugInfo& debugInfo
 		);
@@ -280,6 +279,8 @@ namespace DOH {
 		};
 		VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) const;
 		VkSampler createSampler();
+		//Tell the renderer to update the camera's GPU-side data before the frame is rendered
+		void addCameraToUpdateList(const char* name, ICamera& camera);
 
 		inline uint32_t getAppFrameBufferCount() const { return static_cast<uint32_t>(mAppSceneFrameBuffers.size() + mAppUiFrameBuffers.size()); }
 		inline ImGuiWrapper& getImGuiWrapper() const { return *mImGuiWrapper; }
@@ -290,8 +291,6 @@ namespace DOH {
 		inline size_t getCurrentFrame() const { return mCurrentFrame; }
 		inline VkDescriptorPool getEngineDescriptorPool() const { return mEngineDescriptorPool; }
 		inline VkDescriptorPool getCustomDescriptorPool() const { return mCustomDescriptorPool; }
-		inline CameraGpuData& getSceneCameraData() { return *mSceneCameraGpu; }
-		inline CameraGpuData& getUiCameraData() { return *mUiCameraGpu; }
 
 		//-----Resource Defaults-----
 		inline const ResourceDefaults& getResourceDefaults() const { return mResourceDefaults; }
@@ -320,6 +319,11 @@ namespace DOH {
 
 		static VkPushConstantRange pushConstantInfo(VkShaderStageFlagBits stage, uint32_t size, uint32_t offset);
 
+		//-----Resource Handlers (classes that group resources)-----
+		//-----Camera-----
+		std::shared_ptr<CameraGpuData> createCameraGpuData(ICamera& camera) const;
+
+		//-----Single Resources-----
 		//-----Pipeline-----
 		inline std::shared_ptr<GraphicsPipelineVulkan> createGraphicsPipeline(GraphicsPipelineInstanceInfo& instanceInfo) const { return std::make_shared<GraphicsPipelineVulkan>(instanceInfo); }
 
@@ -347,11 +351,7 @@ namespace DOH {
 		//-----Texture-----
 		inline std::shared_ptr<TextureVulkan> createTexture(const std::string& filePath) const { return std::make_shared<TextureVulkan>(mLogicDevice, mPhysicalDevice, filePath); }
 		inline std::shared_ptr<TextureVulkan> createTexture(float r, float g, float b, float a, bool colourRgbaNormalised = false, const char* name = "Un-named Texture") const { return std::make_shared<TextureVulkan>(mLogicDevice, mPhysicalDevice, r, g, b, a, colourRgbaNormalised, name); }
-		inline std::shared_ptr<MonoSpaceTextureAtlas> createMonoSpaceTextureAtlas(
-			const std::string& filePath,
-			const uint32_t rowCount,
-			const uint32_t columnCount
-		) const { return std::make_shared<MonoSpaceTextureAtlas>(mLogicDevice, mPhysicalDevice, filePath, rowCount, columnCount); }
+		inline std::shared_ptr<MonoSpaceTextureAtlas> createMonoSpaceTextureAtlas(const std::string& filePath, const uint32_t rowCount, const uint32_t columnCount) const { return std::make_shared<MonoSpaceTextureAtlas>(mLogicDevice, mPhysicalDevice, filePath, rowCount, columnCount); }
 		inline std::shared_ptr<IndexedTextureAtlas> createIndexedTextureAtlas(const char* atlasInfoFilePath, const char* atlasTextureDir) { return std::make_shared<IndexedTextureAtlas>(mLogicDevice, mPhysicalDevice, atlasInfoFilePath, atlasTextureDir); }
 
 		//-----Font-----

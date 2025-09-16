@@ -7,7 +7,6 @@
 namespace DOH {
 
 	void ShaderProgram::addOwnedResourcesToClose(RenderingContextVulkan& context) {
-		
 		if (mVertexShader->isModuleLoaded()) {
 			context.addGpuResourceToClose(mVertexShader);
 		}

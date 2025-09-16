@@ -10,8 +10,9 @@ namespace DOH::EDITOR {
 	EditorPerspectiveCameraController::EditorPerspectiveCameraController(std::shared_ptr<AInputLayer> inputLayer, float aspectRatio, float fov)
 	:	mCamera(std::make_unique<PerspectiveCamera>(aspectRatio, fov)),
 		mPosition(0.0f, 0.0f, 0.0f),
-		mDirectionFacing(0.0f, 0.0f, 0.0f),
+		mDirectionFacing(0.0f, 0.0f, 0.001f),
 		mCursorLastPosUpdate(0.0f, 0.0f),
+		mClickAndDragEnabled(false),
 		mClickAndDragActive(false),
 		mAspectRatio(aspectRatio),
 		mFov(fov),
@@ -74,9 +75,10 @@ namespace DOH::EDITOR {
 		//Click and Drag
 		//TODO:: separate mClickAndDragTranslationSpeed ?
 		//	Change cursor appearence when dragging?
-		glm::vec3 rotation{ 0.0f, 0.0f, 0.0f };
-		if (mInputLayer->isMouseButtonPressed(DOH_MOUSE_BUTTON_RIGHT)) {
-			const glm::vec2 currentMousePos = mInputLayer->getCursorPos();
+		if (mClickAndDragEnabled && mInputLayer->isMouseButtonPressed(DOH_MOUSE_BUTTON_RIGHT)) {
+			glm::vec3 rotation = { 0.0f, 0.0f, 0.0f };
+			const glm::vec2& currentMousePos = mInputLayer->getCursorPos();
+			mClickAndDragActive = true;
 
 			rotation.x += (mCursorLastPosUpdate.x - currentMousePos.x) * delta;
 			rotation.y += (currentMousePos.y - mCursorLastPosUpdate.y) * delta;
@@ -84,6 +86,8 @@ namespace DOH::EDITOR {
 			if (glm::dot(rotation, rotation) > std::numeric_limits<float>::epsilon()) {
 				mDirectionFacing += glm::normalize(rotation) * delta;
 			}
+		} else {
+			mClickAndDragActive = false;
 		}
 
 		mCursorLastPosUpdate = mInputLayer->getCursorPos();
