@@ -106,6 +106,7 @@ namespace DOH::EDITOR {
 			std::shared_ptr<ShaderProgram> SceneShaderProgram;
 			std::shared_ptr<ShaderVulkan> SceneVertexShader;
 			std::shared_ptr<ShaderVulkan> SceneFragmentShader;
+			std::shared_ptr<DescriptorSetsInstanceVulkan> SceneDescSetsInstance;
 
 			std::unique_ptr<GraphicsPipelineInstanceInfo> ScenePipelineInfo;
 			std::unique_ptr<GraphicsPipelineInstanceInfo> SceneWireframePipelineInfo;
@@ -202,11 +203,7 @@ namespace DOH::EDITOR {
 				{{	-0.75f,	-0.65f},	{0.0f,	0.0f,	1.0f,	1.0f}},	//top-right
 				{{	-1.0f,	-0.65f},	{0.0f,	0.5f,	0.5f,	1.0f}}	//top-left
 			};
-			const std::vector<uint32_t> UiIndices = {
-				0, 1, 2, 2, 3, 0
-			};
-
-			//glm::mat4x4 UiProjMat = glm::mat4x4(1.0f);
+			const std::vector<uint32_t> UiIndices = { 0, 1, 2, 2, 3, 0 };
 
 			std::unique_ptr<GraphicsPipelineInstanceInfo> UiPipelineInfo;
 			std::shared_ptr<ShaderProgram> UiShaderProgram;

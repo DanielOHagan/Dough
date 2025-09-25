@@ -272,11 +272,7 @@ namespace DOH {
 			for (auto& pipelineGroup : mCurrentRenderState->getRenderPassGraphicsPipelineMap()) {
 				const VkRenderPass rp = getRenderPass(pipelineGroup.first).get();
 				for (auto& pipeline : pipelineGroup.second) {
-					pipeline.second->resize(
-						mLogicDevice,
-						extent,
-						rp
-					);
+					pipeline.second->resize(mLogicDevice, extent, rp);
 				}
 			}
 		}
@@ -357,18 +353,18 @@ namespace DOH {
 					}
 
 					for (std::shared_ptr<IRenderable> renderable : pipeline.getRenderableDrawList()) {
-						pipeline.recordDrawCommand_new(cmd, *renderable, currentBindings, 0);
+						pipeline.recordDrawCommand(cmd, *renderable, currentBindings, 0);
 					}
 
 					debugInfo.SceneDrawCalls += pipeline.getVaoDrawCount();
-				}
 
-				if (pipeline.getInstanceInfo().hasOptionalFields()) {
-					if (pipeline.getInstanceInfo().getOptionalFields().ClearRenderablesAfterDraw) {
+					if (pipeline.getInstanceInfo().hasOptionalFields()) {
+						if (pipeline.getInstanceInfo().getOptionalFields().ClearRenderablesAfterDraw) {
+							pipeline.clearRenderableToDraw();
+						}
+					} else {
 						pipeline.clearRenderableToDraw();
 					}
-				} else {
-					pipeline.clearRenderableToDraw();
 				}
 			}
 		}
@@ -403,18 +399,18 @@ namespace DOH {
 					}
 
 					for (auto& renderable : pipeline.getRenderableDrawList()) {
-						pipeline.recordDrawCommand_new(cmd, *renderable, currentBindings, 0);
+						pipeline.recordDrawCommand(cmd, *renderable, currentBindings, 0);
 					}
 
 					debugInfo.UiDrawCalls += pipeline.getVaoDrawCount();
-				}
 
-				if (pipeline.getInstanceInfo().hasOptionalFields()) {
-					if (pipeline.getInstanceInfo().getOptionalFields().ClearRenderablesAfterDraw) {
+					if (pipeline.getInstanceInfo().hasOptionalFields()) {
+						if (pipeline.getInstanceInfo().getOptionalFields().ClearRenderablesAfterDraw) {
+							pipeline.clearRenderableToDraw();
+						}
+					} else {
 						pipeline.clearRenderableToDraw();
 					}
-				} else {
-					pipeline.clearRenderableToDraw();
 				}
 			}
 		}

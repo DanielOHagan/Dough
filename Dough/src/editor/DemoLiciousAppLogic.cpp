@@ -16,8 +16,8 @@ namespace DOH::EDITOR {
 	const char* DemoLiciousAppLogic::SharedDemoResources::TexturedShaderFragPath = "Dough/Dough/res/shaders/spv/Textured.frag.spv";
 	const char* DemoLiciousAppLogic::SharedDemoResources::PERSP_SCENE_CAM_NAME = "SharedCam_PerspScene";
 	const char* DemoLiciousAppLogic::SharedDemoResources::ORTHO_UI_CAM_NAME = "SharedCam_OrthoUi";
-	const char* DemoLiciousAppLogic::MultiCameraPassDemo::ORTHO_SCENE_CAM_NAME = "SharedCam_OrthoScene";
-	const char* DemoLiciousAppLogic::MultiCameraPassDemo::PERSP_UI_CAM_NAME = "SharedCam_PerspUi";
+	const char* DemoLiciousAppLogic::MultiCameraPassDemo::ORTHO_SCENE_CAM_NAME = "MultiCam_OrthoScene";
+	const char* DemoLiciousAppLogic::MultiCameraPassDemo::PERSP_UI_CAM_NAME = "MultiCam_PerspUi";
 
 	void DemoLiciousAppLogic::init(float aspectRatio) {
 		ZoneScoped;
@@ -46,67 +46,14 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::render() {
 		ZoneScoped;
 
-		RendererVulkan& renderer = GET_RENDERER;
-		RenderingContextVulkan& context = renderer.getContext();
-
-		//TODO:: FIX CustomDemo & ObjModelsDemo as they crash when rendering!!!
-
 		mShapesDemo->render();
-		//mCustomDemo->render();
-		//mObjModelsDemo->render();
+		mCustomDemo->render();
+		mObjModelsDemo->render();
 		mTextDemo->render();
 		mLineDemo->render();
 		mBoundingBoxDemo->render();
 		mTileMapDemo->render();
 		mMultiCameraPassDemo->render();
-
-		if (mBoundingBoxDemo->Render) {
-			if (mBoundingBoxDemo->Quads.size() > 0) {
-				ShapeRenderer::drawQuadArrayScene(mBoundingBoxDemo->Quads);
-				LineRenderer::drawQuadScene(mBoundingBoxDemo->BoundingBox->getQuad(), { 0.0f, 1.0f, 0.0f, 1.0f });
-			}
-		}
-
-		if (mTileMapDemo->Render) {
-			if (mTileMapDemo->RenderPreviewQuad) {
-				ShapeRenderer::drawQuadTexturedScene(mTileMapDemo->PreviewQuad);
-				ShapeRenderer::drawQuadTexturedScene(mTileMapDemo->AnimatedQuad);
-			}
-		}
-		renderer.endScene();
-
-		renderer.beginUi(mSharedDemoResources->OrthoUiCameraController->getCamera());
-		if (mCustomDemo->RenderUi) {
-			mCustomDemo->CustomUiConveyor.safeAddRenderable(mCustomDemo->UiRenderable);
-		}
-
-		if (mLineDemo->Render) {
-			if (mLineDemo->RenderUiQuad) {
-				LineRenderer::drawQuadUi(mLineDemo->UiQuadTest, mLineDemo->UiQuadTest.Colour);
-			}
-		
-			const uint32_t spaceRemaining = LineRenderer::getUiMaxLineCount() - LineRenderer::getUiLineCount();
-		
-			for (uint32_t i = 0; i < mLineDemo->LineCount2d && i < spaceRemaining; i++) {
-				const size_t lineStartIndex = static_cast<size_t>(i) * LineDemo::LINE_2D_INPUT_COMPONENT_COUNT;
-				LineRenderer::drawLineUi(
-					{ mLineDemo->LineData2d[lineStartIndex + 0], mLineDemo->LineData2d[lineStartIndex + 1] },
-					{ mLineDemo->LineData2d[lineStartIndex + 2], mLineDemo->LineData2d[lineStartIndex + 3] },
-					{
-						mLineDemo->LineData2d[lineStartIndex + 4],
-						mLineDemo->LineData2d[lineStartIndex + 5],
-						mLineDemo->LineData2d[lineStartIndex + 6],
-						mLineDemo->LineData2d[lineStartIndex + 7]
-					}
-				);
-		
-				if (spaceRemaining < mLineDemo->LineCount2d) {
-					LOG_WARN("LineDemo 2D lines truncated: " << mLineDemo->LineCount2d - spaceRemaining);
-				}
-			}
-		}
-
-		renderer.endUi();
 	}
 
 	void DemoLiciousAppLogic::imGuiRender(float delta) {
@@ -324,7 +271,7 @@ namespace DOH::EDITOR {
 						x + TestTexturesRowOffset,
 						y + TestTexturesColumnOffset
 					)
-					});
+				});
 				index++;
 			}
 		}
@@ -452,9 +399,14 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::ObjModelsDemo::init() {
 		ZoneScoped;
 
+		RenderingContextVulkan& context = GET_RENDERER.getContext();
+
 		for (const auto& filePath : ObjModelFilePaths) {
 			LoadedModels.emplace_back(ModelVulkan::createModel(filePath, ColouredVertexInputLayout));
 		}
+
+		std::initializer_list<VkDescriptorSet> sceneDescSetsInstance = { VK_NULL_HANDLE };
+		SceneDescSetsInstance = std::make_shared<DescriptorSetsInstanceVulkan>(sceneDescSetsInstance);
 	
 		//Spwan objects on incrementing x/y values of a grid with random z value
 		constexpr float padding = 0.5f;
@@ -480,7 +432,8 @@ namespace DOH::EDITOR {
 				RenderableObjects.emplace_back(std::make_shared<RenderableModelVulkan>(
 					ObjModelFilePaths[modelIndex],
 					LoadedModels[modelIndex],
-					transform
+					transform,
+					SceneDescSetsInstance
 				));
 			}
 		}
@@ -488,11 +441,8 @@ namespace DOH::EDITOR {
 		//for (uint32_t i = 0; i < 100; i++) {
 		//	objModelsDemoAddRandomisedObject();
 		//}
-
-		RenderingContextVulkan& context = Application::get().getRenderer().getContext();
 	
-		DescriptorSetLayoutVulkan& cameraUbo = context.getCommonDescriptorSetLayouts().Ubo;
-		std::vector<std::reference_wrapper<DescriptorSetLayoutVulkan>> sceneDescSets = { cameraUbo };
+		std::vector<std::reference_wrapper<DescriptorSetLayoutVulkan>> sceneDescSets = { context.getCommonDescriptorSetLayouts().Ubo };
 		VkPushConstantRange pushConstant = context.pushConstantInfo(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::mat4x4), 0);
 		std::vector<VkPushConstantRange> pushConstants = { pushConstant };
 		std::shared_ptr<ShaderDescriptorSetLayoutsVulkan> sceneDescSetLayouts = std::make_shared<ShaderDescriptorSetLayoutsVulkan>(pushConstants, sceneDescSets);
@@ -524,10 +474,7 @@ namespace DOH::EDITOR {
 		wireframeOptionalFields.PolygonMode = VK_POLYGON_MODE_LINE;
 	
 		ScenePipelineConveyor = context.createPipelineInCurrentRenderState(ScenePipelineName, *ScenePipelineInfo);
-		WireframePipelineConveyor = context.createPipelineInCurrentRenderState(
-			SceneWireframePipelineName,
-			*SceneWireframePipelineInfo
-		);
+		WireframePipelineConveyor = context.createPipelineInCurrentRenderState(SceneWireframePipelineName, *SceneWireframePipelineInfo);
 
 		TexturedModel = ModelVulkan::createModel("Dough/Dough/res/models/textured_cube.obj", TexturedVertexInputLayout);
 		std::initializer_list<VkDescriptorSet> descSets = { VK_NULL_HANDLE, SharedResources.TestTexture1DescSet };
@@ -570,10 +517,7 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::ObjModelsDemo::render() {
-		//TEMP:: This is here to indicate which camera should be used to render renderable
-		//NEED to instantiate the renderable's DescriptorSetsInstanceVulkan and set [0] to the desired camera
-		//renderer.beginScene(mCurrentPriamrySceneCamera);
-		//renderer.beginScene(mSharedDemoResources->mPerspectiveSceneCameraController->getCamera());
+		constexpr uint32_t uboSlot = 0;
 
 		if (GpuResourcesLoaded && Render) {
 			if (ScenePipelineConveyor.isValid() && WireframePipelineConveyor.isValid()) {
@@ -581,6 +525,8 @@ namespace DOH::EDITOR {
 				const bool renderAllWireframe = RenderAllWireframe;
 		
 				for (auto& obj : RenderableObjects) {
+					obj->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] =
+						SharedResources.PerspectiveSceneCameraController->getCamera().getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
 					if (renderAllStandard || obj->Render) {
 						ScenePipelineConveyor.addRenderable(obj);
 					}
@@ -591,6 +537,8 @@ namespace DOH::EDITOR {
 			}
 		
 			if (SharedResources.TexturedConveyor.isValid() && RenderableTexturedModel->Render) {
+				RenderableTexturedModel->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] =
+					SharedResources.PerspectiveSceneCameraController->getCamera().getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
 				SharedResources.TexturedConveyor.addRenderable(RenderableTexturedModel);
 			}
 		}
@@ -725,7 +673,8 @@ namespace DOH::EDITOR {
 		RenderableObjects.emplace_back(std::make_shared<RenderableModelVulkan>(
 			ObjModelFilePaths[modelIndex],
 			LoadedModels[modelIndex],
-			transform
+			transform,
+			SceneDescSetsInstance
 		));
 	}
 
@@ -804,12 +753,8 @@ namespace DOH::EDITOR {
 		}
 
 		if (ImGui::Button(("Reset Object" + uniqueImGuiId).c_str())) {
-			transformation.Rotation[0] = 0.0f;
-			transformation.Rotation[1] = 0.0f;
-			transformation.Rotation[2] = 0.0f;
-			transformation.Position[0] = 0.0f;
-			transformation.Position[1] = 0.0f;
-			transformation.Position[2] = 0.0f;
+			transformation.Rotation[0] = 0.0f; transformation.Rotation[1] = 0.0f; transformation.Rotation[2] = 0.0f;
+			transformation.Position[0] = 0.0f; transformation.Position[1] = 0.0f; transformation.Position[2] = 0.0f;
 			transformation.Scale = 1.0f;
 
 			transformed = true;
@@ -876,7 +821,9 @@ namespace DOH::EDITOR {
 		);
 		UiVao->setDrawCount(static_cast<uint32_t>(UiIndices.size()));
 		UiVao->setIndexBuffer(appUiIb);
-		UiRenderable = std::make_shared<SimpleRenderable>(UiVao);
+		std::initializer_list<VkDescriptorSet> uiDescSets = { VK_NULL_HANDLE };
+		std::shared_ptr<DescriptorSetsInstanceVulkan> uiDescSetsInstance = std::make_shared<DescriptorSetsInstanceVulkan>(uiDescSets);
+		UiRenderable = std::make_shared<SimpleRenderable>(UiVao, uiDescSetsInstance);
 	
 		UiPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 			UiVertexInputLayout,
@@ -913,16 +860,14 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::CustomDemo::render() {
-		//TEMP:: This is here to indicate which camera should be used to render renderable
-		//NEED to instantiate the renderable's DescriptorSetsInstanceVulkan and set [0] to the desired camera
-		//renderer.beginScene(mCurrentPriamrySceneCamera);
-		//renderer.beginScene(mSharedDemoResources->mPerspectiveSceneCameraController->getCamera());
-
+		const uint32_t uboSlot = 0;
 		if (RenderScene) {
-			//context.addRenderableToSceneDrawList(mCustomDemo->ScenePipelineName, mCustomDemo->SceneRenderable);
-			
-			//mCustomDemo->CustomSceneConveyor.safeAddRenderable(mCustomDemo->SceneRenderable);
+			SceneRenderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = SharedResources.PerspectiveSceneCameraController->getCamera().getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
 			SharedResources.TexturedConveyor.safeAddRenderable(SceneRenderable);
+		}
+		if (RenderUi) {
+			UiRenderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = SharedResources.OrthoUiCameraController->getCamera().getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
+			CustomUiConveyor.safeAddRenderable(UiRenderable);
 		}
 	}
 
@@ -1622,7 +1567,7 @@ namespace DOH::EDITOR {
 
 	void DemoLiciousAppLogic::LineDemo::render() {
 		if (Render) {
-			const uint32_t spaceRemaining = LineRenderer::getSceneMaxLineCount() - LineRenderer::getSceneLineCount();
+			const uint32_t spaceRemaining3d = LineRenderer::getSceneMaxLineCount() - LineRenderer::getSceneLineCount();
 		
 			if (RenderTextDemoOutlines) {
 				TextDemo& textDemo = TextDemoRef.get();
@@ -1643,7 +1588,7 @@ namespace DOH::EDITOR {
 				}
 			}
 		
-			for (uint32_t i = 0; i < LineCount3d && i < spaceRemaining; i++) {
+			for (uint32_t i = 0; i < LineCount3d && i < spaceRemaining3d; i++) {
 				const size_t lineStartIndex = static_cast<size_t>(i) * LineDemo::LINE_3D_INPUT_COMPONENT_COUNT;
 				LineRenderer::drawLineScene(
 					{
@@ -1665,8 +1610,30 @@ namespace DOH::EDITOR {
 				);
 			}
 		
-			if (spaceRemaining < LineCount3d) {
-				LOG_WARN("LineDemo 3D lines truncated: " << LineCount3d - spaceRemaining);
+			if (spaceRemaining3d < LineCount3d) {
+				LOG_WARN("LineDemo 3D lines truncated: " << LineCount3d - spaceRemaining3d);
+			}
+		}
+
+		if (RenderUiQuad) {
+			LineRenderer::drawQuadUi(UiQuadTest, UiQuadTest.Colour);
+
+			const uint32_t spaceRemaining = LineRenderer::getUiMaxLineCount() - LineRenderer::getUiLineCount();
+
+			for (uint32_t i = 0; i < LineCount2d && i < spaceRemaining; i++) {
+				const size_t lineStartIndex = static_cast<size_t>(i) * LineDemo::LINE_2D_INPUT_COMPONENT_COUNT;
+				LineRenderer::drawLineUi(
+					{ LineData2d[lineStartIndex + 0], LineData2d[lineStartIndex + 1] },
+					{ LineData2d[lineStartIndex + 2], LineData2d[lineStartIndex + 3] },
+					{
+						LineData2d[lineStartIndex + 4], LineData2d[lineStartIndex + 5],
+						LineData2d[lineStartIndex + 6], LineData2d[lineStartIndex + 7]
+					}
+				);
+
+				if (spaceRemaining < LineCount2d) {
+					LOG_WARN("LineDemo 2D lines truncated: " << LineCount2d - spaceRemaining);
+				}
 			}
 		}
 	}
@@ -1792,7 +1759,12 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::BoundingBoxDemo::render() {
-
+		if (Render) {
+			if (Quads.size() > 0) {
+				ShapeRenderer::drawQuadArrayScene(Quads);
+				LineRenderer::drawQuadScene(BoundingBox->getQuad(), { 0.0f, 1.0f, 0.0f, 1.0f });
+			}
+		}
 	}
 
 	void DemoLiciousAppLogic::BoundingBoxDemo::renderImGuiMainTab() {
@@ -1881,7 +1853,12 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::TileMapDemo::render() {
-
+		if (Render) {
+			if (RenderPreviewQuad) {
+				ShapeRenderer::drawQuadTexturedScene(PreviewQuad);
+				ShapeRenderer::drawQuadTexturedScene(AnimatedQuad);
+			}
+		}
 	}
 
 	void DemoLiciousAppLogic::TileMapDemo::renderImGuiMainTab() {

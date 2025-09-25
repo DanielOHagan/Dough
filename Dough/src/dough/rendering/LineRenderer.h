@@ -54,6 +54,9 @@ namespace DOH {
 		std::shared_ptr<CameraGpuData> mSceneCameraData;
 		std::shared_ptr<CameraGpuData> mUiCameraData;
 
+		//bool mWarnOnNullSceneCameraData;
+		//bool mWarnOnNullUiCameraData;
+
 	private:
 		void initImpl();
 		void closeImpl();
@@ -91,5 +94,9 @@ namespace DOH {
 
 		static inline void setSceneCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->mSceneCameraData = cameraData; }
 		static inline void setUiCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->mUiCameraData = cameraData; }
+		//Set to true if you want warnings to display each frame the scene camera data is null.
+		//static inline void setWarnOnNullSceneCameraData(bool enabled) { INSTANCE->mWarnOnNullSceneCameraData = enabled; }
+		//Set to true if you want warnings to display each frame the ui camera data is null.
+		//static inline void setWarnOnNullUiCameraData(bool enabled) { INSTANCE->mWarnOnNullUiCameraData = enabled; }
 	};
 }

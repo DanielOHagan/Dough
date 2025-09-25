@@ -443,7 +443,7 @@ namespace DOH {
 				debugInfo.IndexBufferBinds++;
 			}
 
-			mSoftMaskRendering->ScenePipeline->recordDrawCommand_new(
+			mSoftMaskRendering->ScenePipeline->recordDrawCommand(
 				cmd,
 				*mSoftMaskRendering->SceneRenderableBatch,
 				currentBindings,
@@ -479,7 +479,7 @@ namespace DOH {
 				debugInfo.IndexBufferBinds++;
 			}
 
-			mMsdfRendering->ScenePipeline->recordDrawCommand_new(
+			mMsdfRendering->ScenePipeline->recordDrawCommand(
 				cmd,
 				*mMsdfRendering->SceneRenderableBatch,
 				currentBindings,
@@ -534,7 +534,7 @@ namespace DOH {
 			}
 
 			const uint32_t drawCount = mSoftMaskRendering->UiPipeline->getVaoDrawCount();
-			mSoftMaskRendering->UiPipeline->recordDrawCommand_new(
+			mSoftMaskRendering->UiPipeline->recordDrawCommand(
 				cmd,
 				*mSoftMaskRendering->UiRenderableBatch,
 				currentBindings,
@@ -570,7 +570,7 @@ namespace DOH {
 				debugInfo.IndexBufferBinds++;
 			}
 
-			mMsdfRendering->UiPipeline->recordDrawCommand_new(cmd, *mMsdfRendering->UiRenderableBatch, currentBindings, 0);
+			mMsdfRendering->UiPipeline->recordDrawCommand(cmd, *mMsdfRendering->UiRenderableBatch, currentBindings, 0);
 			debugInfo.UiDrawCalls++;
 
 			mMsdfRendering->UiBatch->reset();

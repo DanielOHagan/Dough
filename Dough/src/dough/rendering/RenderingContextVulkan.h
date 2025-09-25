@@ -52,6 +52,7 @@ namespace DOH {
 
 	struct CurrentBindingsState {
 		VkPipeline Pipeline = VK_NULL_HANDLE;
+		VkPipelineLayout PipelineLayout = VK_NULL_HANDLE;
 		//NOTE:: Assumes only one VertexBuffer is bound at a time
 		VkBuffer VertexBuffer = VK_NULL_HANDLE;
 		VkBuffer IndexBuffer = VK_NULL_HANDLE;
@@ -60,10 +61,7 @@ namespace DOH {
 		std::array<VkDescriptorSet, 16> DescriptorSets;
 
 		CurrentBindingsState()
-		:	Pipeline(VK_NULL_HANDLE),
-			VertexBuffer(VK_NULL_HANDLE),
-			IndexBuffer(VK_NULL_HANDLE),
-			DescriptorSets()
+		:	DescriptorSets()
 		{
 			for (size_t i = 0; i < DescriptorSets.size(); i++) {
 				DescriptorSets[i] = VK_NULL_HANDLE;

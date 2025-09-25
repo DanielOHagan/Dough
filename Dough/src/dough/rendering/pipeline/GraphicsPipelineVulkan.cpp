@@ -66,21 +66,23 @@ namespace DOH {
 		createPipeline(logicDevice, extent, renderPass);
 	}
 
-	void GraphicsPipelineVulkan::recordDrawCommand_new(VkCommandBuffer cmd, IRenderable& renderable, CurrentBindingsState& currentBindings, uint32_t descSetOffset) {
+	void GraphicsPipelineVulkan::recordDrawCommand(VkCommandBuffer cmd, IRenderable& renderable, CurrentBindingsState& currentBindings, uint32_t descSetOffset) {
 		ZoneScoped;
 
 		if (renderable.hasDescriptorSetsInstance()) {
+			//TODO:: Multiple desc set binds at once from an array? How does that mix with PipelineLayout?
+			// Should probably design around PipelineLayouts instead of Pipelines, should lower descriptor set binding and help create BindGroups.
+
 			DescriptorSetsInstanceVulkan& shaderResourceData = *renderable.getDescriptorSetsInstance();
 			const uint32_t descSetCount = static_cast<uint32_t>(shaderResourceData.getDescriptorSets().size());
-			//Vulkan doesn't guarantee higher sets will stay bound higher sets must be rebound after a lower one.
-			bool lowerSetRebound = false;
+			bool differentLayout = mGraphicsPipelineLayout != currentBindings.PipelineLayout; //NOTE:: Doesn't check if the layout is compatible, only if it's a different instance.
 			for (uint32_t i = descSetOffset; i < descSetCount; i++) {
 
 				//TODO:: Bind correct descSet for slots that use a descriptor for different frames (i.e. cameras)
 				//	Need a way of pointing to the correct descSet if that slot is using imageIndex
 
 				VkDescriptorSet descSet = shaderResourceData.getDescriptorSets()[i];
-				if (lowerSetRebound || currentBindings.DescriptorSets[i] != descSet) {
+				if (differentLayout || currentBindings.DescriptorSets[i] != descSet) {
 					vkCmdBindDescriptorSets(
 						cmd,
 						VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -92,7 +94,8 @@ namespace DOH {
 						nullptr
 					);
 					currentBindings.DescriptorSets[i] = descSet;
-					lowerSetRebound = true;
+					currentBindings.PipelineLayout = mGraphicsPipelineLayout;
+					//TODO:: currentBindings.LastBindIndex = i; To show when debugging that any bindings above are useless.
 					//debugInfo.DescriptorSetBinds++;
 
 					//TODO:: This should make profiling easier, save passing round a debugInfo reference

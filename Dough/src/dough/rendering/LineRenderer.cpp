@@ -18,6 +18,8 @@ namespace DOH {
 
 	LineRenderer::LineRenderer(RenderingContextVulkan& context)
 	:	mContext(context)
+		//mWarnOnNullSceneCameraData(true),
+		//mWarnOnNullUiCameraData(true)
 	{}
 
 	void LineRenderer::initImpl() {
@@ -151,9 +153,7 @@ namespace DOH {
 		ZoneScoped;
 
 		if (mSceneCameraData == nullptr) {
-			//TODO:: This doesn't account for if the variable is intentionally left null because no Scene is meant to be drawn.
-			//if (mWarnOnNullSceneCameraData)
-			LOG_WARN("ShapeRenderer::drawSceneImpl mSceneCameraData is null");
+			//if (mWarnOnNullSceneCameraData) LOG_WARN("ShapeRenderer::drawSceneImpl mSceneCameraData is null");
 			return;
 		}
 
@@ -167,6 +167,7 @@ namespace DOH {
 				mSceneLineGraphicsPipeline->bind(cmd);
 				debugInfo.PipelineBinds++;
 				currentBindings.Pipeline = mSceneLineGraphicsPipeline->get();
+				currentBindings.PipelineLayout = mSceneLineGraphicsPipeline->getGraphicsPipelineLayout();
 			}
 
 			mSceneLineRenderable->getVao().setDrawCount(mSceneLineBatch->getVertexCount());
@@ -176,7 +177,7 @@ namespace DOH {
 				lineCount * RenderBatchLineList::LINE_3D_SIZE
 			);
 
-			mSceneLineGraphicsPipeline->recordDrawCommand_new(cmd, *mSceneLineRenderable, currentBindings, 0);
+			mSceneLineGraphicsPipeline->recordDrawCommand(cmd, *mSceneLineRenderable, currentBindings, 0);
 			debugInfo.SceneDrawCalls++;
 		}
 
@@ -191,9 +192,7 @@ namespace DOH {
 		ZoneScoped;
 
 		if (mUiCameraData == nullptr) {
-			//TODO:: This doesn't account for if the variable is intentionally left null because no UI is meant to be drawn.
-			//if (mWarnOnNullUiCameraData)
-			LOG_WARN("LineRenderer::drawUiImpl mUiCameraData is null");
+			//if (mWarnOnNullUiCameraData) LOG_WARN("LineRenderer::drawUiImpl mUiCameraData is null");
 			return;
 		}
 
@@ -207,6 +206,7 @@ namespace DOH {
 				mUiLineGraphicsPipeline->bind(cmd);
 				debugInfo.PipelineBinds++;
 				currentBindings.Pipeline = mUiLineGraphicsPipeline->get();
+				currentBindings.PipelineLayout = mUiLineGraphicsPipeline->getGraphicsPipelineLayout();
 			}
 
 			mUiLineRenderable->getVao().setDrawCount(mUiLineBatch->getVertexCount());
@@ -217,7 +217,7 @@ namespace DOH {
 				lineCount * RenderBatchLineList::LINE_2D_SIZE
 			);
 
-			mUiLineGraphicsPipeline->recordDrawCommand_new(cmd, *mUiLineRenderable, currentBindings, 0);
+			mUiLineGraphicsPipeline->recordDrawCommand(cmd, *mUiLineRenderable, currentBindings, 0);
 			debugInfo.UiDrawCalls++;
 		}
 

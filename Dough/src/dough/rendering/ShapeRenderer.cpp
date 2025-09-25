@@ -855,7 +855,7 @@ namespace DOH {
 						debugInfo.IndexBufferBinds++;
 					}
 
-					mQuadScene.Pipeline->recordDrawCommand_new(cmd, batchRenderable, currentBindings, 0);
+					mQuadScene.Pipeline->recordDrawCommand(cmd, batchRenderable, currentBindings, 0);
 					debugInfo.SceneDrawCalls++;
 
 					batch.reset();
@@ -894,7 +894,7 @@ namespace DOH {
 						debugInfo.IndexBufferBinds++;
 					}
 		
-					mCircleScene.Pipeline->recordDrawCommand_new(cmd, batchRenderable, currentBindings, 0);
+					mCircleScene.Pipeline->recordDrawCommand(cmd, batchRenderable, currentBindings, 0);
 					debugInfo.SceneDrawCalls++;
 		
 					batch.reset();
@@ -948,7 +948,7 @@ namespace DOH {
 						debugInfo.IndexBufferBinds++;
 					}
 
-					mQuadUi.Pipeline->recordDrawCommand_new(cmd, batchRenderable, currentBindings, 0);
+					mQuadUi.Pipeline->recordDrawCommand(cmd, batchRenderable, currentBindings, 0);
 					debugInfo.UiDrawCalls++;
 
 					batch.reset();
@@ -987,7 +987,7 @@ namespace DOH {
 						debugInfo.IndexBufferBinds++;
 					}
 			
-					mCircleUi.Pipeline->recordDrawCommand_new(cmd, batchRenderable, currentBindings, 0);
+					mCircleUi.Pipeline->recordDrawCommand(cmd, batchRenderable, currentBindings, 0);
 					debugInfo.UiDrawCalls++;
 			
 					batch.reset();

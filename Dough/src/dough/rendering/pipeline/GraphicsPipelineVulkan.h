@@ -108,7 +108,7 @@ namespace DOH {
 
 		void init(VkDevice logicDevice, VkExtent2D extent, VkRenderPass renderPass);
 		void resize(VkDevice logicDevice, VkExtent2D extent, VkRenderPass renderPass);
-		void recordDrawCommand_new(VkCommandBuffer cmd, IRenderable& renderable, CurrentBindingsState& currentBindings, uint32_t descSetOffset);
+		void recordDrawCommand(VkCommandBuffer cmd, IRenderable& renderable, CurrentBindingsState& currentBindings, uint32_t descSetOffset);
 		inline void addRenderableToDraw(std::shared_ptr<IRenderable> renderable) { mRenderableDrawList.emplace_back(renderable); }
 		inline void clearRenderableToDraw() { mRenderableDrawList.clear(); }
 		inline void bind(VkCommandBuffer cmd) const { vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline); }

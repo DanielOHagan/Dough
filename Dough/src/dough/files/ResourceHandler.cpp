@@ -182,6 +182,8 @@ namespace DOH {
 
 		std::shared_ptr<Model3dCreationData> fileData = std::make_shared<Model3dCreationData>(vertexInputLayout);
 
+		//TODO:: Custom vertex input layouts for file reading.
+		// Though, either the read function would have to be file-type specific OR I create a custom format that is created from a pre-existing file.
 		const StaticVertexInputLayout& staticVertexInputLayout = (const StaticVertexInputLayout&) vertexInputLayout;
 		switch (staticVertexInputLayout.getVertexType()) {
 			case EVertexType::VERTEX_3D: {
