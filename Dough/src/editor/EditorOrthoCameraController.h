@@ -11,7 +11,7 @@ namespace DOH::EDITOR {
 
 	class EditorOrthoCameraController : public ICameraController {
 	private:
-		std::unique_ptr<OrthographicCamera> mCamera;
+		std::reference_wrapper<OrthographicCamera> mCamera;
 		glm::vec3 mPosition;
 		glm::vec2 mCursorLastPosUpdate;
 		bool mClickAndDragEnabled;
@@ -28,13 +28,13 @@ namespace DOH::EDITOR {
 		std::shared_ptr<AInputLayer> mInputLayer;
 
 	public:
-		EditorOrthoCameraController(std::shared_ptr<AInputLayer> inputLayer, float aspectRatio);
+		EditorOrthoCameraController::EditorOrthoCameraController(OrthographicCamera& camera, std::shared_ptr<AInputLayer> inputLayer, float aspectRatio);
 		EditorOrthoCameraController(const EditorOrthoCameraController& copy) = delete;
 		EditorOrthoCameraController operator=(const EditorOrthoCameraController& assignment) = delete;
 
 		virtual void onUpdate(float delta) override;
 		virtual void onViewportResize(float aspectRatio) override;
-		inline virtual ICamera& getCamera() const override { return *mCamera; }
+		inline virtual ICamera& getCamera() const override { return mCamera; }
 
 		inline void setInputLayer(std::shared_ptr<AInputLayer> inputLayer) { mInputLayer = inputLayer; }
 		inline AInputLayer& getInputLayer() const { return *mInputLayer; }
@@ -74,7 +74,7 @@ namespace DOH::EDITOR {
 	private:
 		//Convenience functions
 		inline void updateProjectionMatrix() {
-			mCamera->setProjection(
+			mCamera.get().setProjection(
 				-mAspectRatio * mZoomLevel,
 				mAspectRatio * mZoomLevel,
 				-mZoomLevel,

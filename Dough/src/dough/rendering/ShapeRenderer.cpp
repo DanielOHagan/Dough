@@ -20,7 +20,9 @@ namespace DOH {
 		mTruncatedQuadCount(0u),
 		mDrawnCircleCount(0u),
 		mTruncatedCircleCount(0u),
-		mTextureArrayDescSet(VK_NULL_HANDLE)
+		mTextureArrayDescSet(VK_NULL_HANDLE),
+		mWarnOnNullSceneCameraData(true),
+		mWarnOnNullUiCameraData(true)
 	{}
 
 	void ShapeRenderer::initImpl() {
@@ -814,9 +816,9 @@ namespace DOH {
 		ZoneScoped;
 
 		if (mSceneCameraData == nullptr) {
-			//TODO:: This doesn't account for if the variable is intentionally left null because no Scene is meant to be drawn.
-			//if (mWarnOnNullSceneCameraData)
+			if (mWarnOnNullSceneCameraData) {
 				LOG_WARN("ShapeRenderer::drawSceneImpl mSceneCameraData is null");
+			}
 			return;
 		}
 
@@ -910,9 +912,9 @@ namespace DOH {
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 
 		if (mUiCameraData == nullptr) {
-			//TODO:: This doesn't account for if the variable is intentionally left null because no UI is meant to be drawn.
-			//if (mWarnOnNullUiCameraData)
+			if (mWarnOnNullUiCameraData) {
 				LOG_WARN("ShapeRenderer::drawUiImpl mUiCameraData is null");
+			}
 			return;
 		}
 

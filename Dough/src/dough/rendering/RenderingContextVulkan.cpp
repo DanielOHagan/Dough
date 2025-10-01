@@ -339,6 +339,7 @@ namespace DOH {
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 
 		mAppSceneRenderPass->begin(mAppSceneFrameBuffers[imageIndex], mSwapChain->getExtent(), cmd);
+		currentBindings.RenderPass = mAppSceneRenderPass->get();
 
 		std::optional<std::reference_wrapper<GraphicsPipelineMap>> scenePipelinesOptional = mCurrentRenderState->getRenderPassGraphicsPipelineGroup(ERenderPass::APP_SCENE);
 		if (scenePipelinesOptional.has_value()) {
@@ -355,7 +356,6 @@ namespace DOH {
 					for (std::shared_ptr<IRenderable> renderable : pipeline.getRenderableDrawList()) {
 						pipeline.recordDrawCommand(cmd, *renderable, currentBindings, 0);
 					}
-
 					debugInfo.SceneDrawCalls += pipeline.getVaoDrawCount();
 
 					if (pipeline.getInstanceInfo().hasOptionalFields()) {
@@ -377,6 +377,7 @@ namespace DOH {
 		LineRenderer::drawScene(imageIndex, cmd, currentBindings);
 
 		RenderPassVulkan::endRenderPass(cmd);
+		currentBindings.RenderPass = VK_NULL_HANDLE;
 	}
 
 	void RenderingContextVulkan::drawUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
@@ -385,6 +386,7 @@ namespace DOH {
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 
 		mAppUiRenderPass->begin(mAppUiFrameBuffers[imageIndex], mSwapChain->getExtent(), cmd);
+		currentBindings.RenderPass = mAppUiRenderPass->get();
 
 		std::optional<std::reference_wrapper<GraphicsPipelineMap>> uiPipelinesOptional = mCurrentRenderState->getRenderPassGraphicsPipelineGroup(ERenderPass::APP_UI);
 		if (uiPipelinesOptional.has_value()) {
@@ -422,6 +424,7 @@ namespace DOH {
 		LineRenderer::drawUi(imageIndex,cmd, currentBindings);
 
 		RenderPassVulkan::endRenderPass(cmd);
+		currentBindings.RenderPass = VK_NULL_HANDLE;
 	}
 
 	void RenderingContextVulkan::present(uint32_t imageIndex, VkCommandBuffer cmd) {
@@ -1209,7 +1212,7 @@ namespace DOH {
 		}
 	}
 
-	std::shared_ptr<CameraGpuData> RenderingContextVulkan::createCameraGpuData(ICamera& camera) const {
+	void RenderingContextVulkan::createCameraGpuData(ICamera& camera) const {
 		ZoneScoped;
 		
 		const uint32_t imageCount = mSwapChain->getImageCount();
@@ -1241,7 +1244,7 @@ namespace DOH {
 			DescriptorApiVulkan::updateDescriptorSet(mLogicDevice, cameraUpdate);
 		}
 
-		return cameraGpuData;
+		camera.setGpuData(cameraGpuData);
 	}
 
 	std::shared_ptr<DescriptorSetLayoutVulkan> RenderingContextVulkan::createDescriptorSetLayout(

@@ -59,6 +59,14 @@ namespace DOH {
 		std::shared_ptr<CameraGpuData> mSceneCameraData;
 		std::shared_ptr<CameraGpuData> mUiCameraData;
 
+		//TODO:: A better way of doing no rendering with TextRenderer would be to "unload" and "load" when needed,
+		// including just removing it from the "render order" as needed.
+		// 
+		//When drawScene/Ui is called, if their respective camera data is null then the function is ended.
+		//By default this prints a warning but by setting these values to false that warning is prevented.
+		bool mWarnOnNullSceneCameraData;
+		bool mWarnOnNullUiCameraData;
+
 		//Local Debug Info
 		//Includes both Scene & UI Quads
 		uint32_t mDrawnQuadCount;
@@ -117,5 +125,7 @@ namespace DOH {
 
 		static inline void setSceneCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->mSceneCameraData = cameraData; }
 		static inline void setUiCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->mUiCameraData = cameraData; }
+		static inline void setWarnOnNullSceneCameraData(bool enabled) { INSTANCE->mWarnOnNullSceneCameraData = enabled; }
+		static inline void setWarnOnNullUiCameraData(bool enabled) { INSTANCE->mWarnOnNullUiCameraData = enabled; }
 	};
 }

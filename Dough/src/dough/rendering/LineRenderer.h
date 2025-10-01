@@ -14,6 +14,20 @@ namespace DOH {
 	class Quad;
 	class SwapChainVulkan;
 	class CameraGpuData;
+	
+	//NOTE:: Currently only allows for one batch per LineRenderingObjects instance.
+	class LineRenderingObjects : public IGPUResourceOwnerVulkan {
+	public:
+		std::shared_ptr<ShaderProgram> ShaderProgram;
+		std::shared_ptr<ShaderVulkan> VertexShader;
+		std::shared_ptr<ShaderVulkan> FragmentShader;
+		std::shared_ptr<GraphicsPipelineVulkan> GraphicsPipeline;
+		std::shared_ptr<SimpleRenderable> Renderable;
+		std::unique_ptr<GraphicsPipelineInstanceInfo> GraphicsPipelineInfo;
+		std::unique_ptr<RenderBatchLineList> Batch; //TODO:: Allow for RenderBatchLineStrip
+
+		virtual void addOwnedResourcesToClose(RenderingContextVulkan& context) override;
+	};
 
 	class LineRenderer {
 
@@ -24,38 +38,27 @@ namespace DOH {
 
 		RenderingContextVulkan& mContext;
 
-		//App Scene
 		static constexpr const EVertexType SCENE_LINE_VERTEX_TYPE = EVertexType::VERTEX_3D;
-		std::unique_ptr<RenderBatchLineList> mSceneLineBatch;
-		//std::unique_ptr<RenderBatchLineStrip> mSceneLineBatch;
-		std::shared_ptr<ShaderProgram> mSceneLineShaderProgram;
-		std::shared_ptr<ShaderVulkan> mSceneLineVertexShader;
-		std::shared_ptr<ShaderVulkan> mSceneLineFragmentShader;
-		std::unique_ptr<GraphicsPipelineInstanceInfo> mSceneLineGraphicsPipelineInfo;
-		std::shared_ptr<GraphicsPipelineVulkan> mSceneLineGraphicsPipeline;
-		std::shared_ptr<SimpleRenderable> mSceneLineRenderable;
+		static constexpr const EVertexType UI_LINE_VERTEX_TYPE = EVertexType::VERTEX_2D;
 		static const char* SCENE_LINE_SHADER_PATH_VERT;
 		static const char* SCENE_LINE_SHADER_PATH_FRAG;
-		//App UI
-		static constexpr const EVertexType UI_LINE_VERTEX_TYPE = EVertexType::VERTEX_2D;
-		std::unique_ptr<RenderBatchLineList> mUiLineBatch;
-		//std::unique_ptr<RenderBatchLineStrip> mUiLineBatch;
-		std::shared_ptr<ShaderProgram> mUiLineShaderProgram;
-		std::shared_ptr<ShaderVulkan> mUiLineVertexShader;
-		std::shared_ptr<ShaderVulkan> mUiLineFragmentShader;
-		std::unique_ptr<GraphicsPipelineInstanceInfo> mUiLineGraphicsPipelineInfo;
-		std::shared_ptr<GraphicsPipelineVulkan> mUiLineGraphicsPipeline;
-		std::shared_ptr<SimpleRenderable> mUiLineRenderable;
 		static const char* UI_LINE_SHADER_PATH_VERT;
 		static const char* UI_LINE_SHADER_PATH_FRAG;
 
+		std::unique_ptr<LineRenderingObjects> mSceneLineList;
+		std::unique_ptr<LineRenderingObjects> mUiLineList;
 		std::unique_ptr<DescriptorSetsInstanceVulkan> mLineShadersDescriptorsInstance;
 
 		std::shared_ptr<CameraGpuData> mSceneCameraData;
 		std::shared_ptr<CameraGpuData> mUiCameraData;
 
-		//bool mWarnOnNullSceneCameraData;
-		//bool mWarnOnNullUiCameraData;
+		//TODO:: A better way of doing no rendering with LineRenderer would be to "unload" and "load" when needed,
+		// including just removing it from the "render order" as needed.
+		// 
+		//When drawScene/Ui is called, if their respective camera data is null then the function is ended.
+		//By default this prints a warning but by setting these values to false that warning is prevented.
+		bool mWarnOnNullSceneCameraData;
+		bool mWarnOnNullUiCameraData;
 
 	private:
 		void initImpl();
@@ -87,16 +90,16 @@ namespace DOH {
 		static inline void drawQuadScene(const Quad& quad, const glm::vec4& colour) { INSTANCE->drawQuadSceneImpl(quad, colour); }
 		static inline void drawQuadUi(const Quad& quad, const glm::vec4& colour) { INSTANCE->drawQuadUiImpl(quad, colour); }
 
-		static inline uint32_t getSceneLineCount() { return INSTANCE->mSceneLineBatch->getLineCount(); }
-		static inline uint32_t getSceneMaxLineCount() { return INSTANCE->mSceneLineBatch->getMaxLineCount(); }
-		static inline uint32_t getUiLineCount() { return INSTANCE->mUiLineBatch->getLineCount(); }
-		static inline uint32_t getUiMaxLineCount() { return INSTANCE->mUiLineBatch->getMaxLineCount(); }
+		static inline uint32_t getSceneLineCount() { return INSTANCE->mSceneLineList->Batch->getLineCount(); }
+		static inline uint32_t getSceneMaxLineCount() { return INSTANCE->mSceneLineList->Batch->getMaxLineCount(); }
+		static inline uint32_t getUiLineCount() { return INSTANCE->mUiLineList->Batch->getLineCount(); }
+		static inline uint32_t getUiMaxLineCount() { return INSTANCE->mUiLineList->Batch->getMaxLineCount(); }
 
 		static inline void setSceneCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->mSceneCameraData = cameraData; }
 		static inline void setUiCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->mUiCameraData = cameraData; }
 		//Set to true if you want warnings to display each frame the scene camera data is null.
-		//static inline void setWarnOnNullSceneCameraData(bool enabled) { INSTANCE->mWarnOnNullSceneCameraData = enabled; }
+		static inline void setWarnOnNullSceneCameraData(bool enabled) { INSTANCE->mWarnOnNullSceneCameraData = enabled; }
 		//Set to true if you want warnings to display each frame the ui camera data is null.
-		//static inline void setWarnOnNullUiCameraData(bool enabled) { INSTANCE->mWarnOnNullUiCameraData = enabled; }
+		static inline void setWarnOnNullUiCameraData(bool enabled) { INSTANCE->mWarnOnNullUiCameraData = enabled; }
 	};
 }

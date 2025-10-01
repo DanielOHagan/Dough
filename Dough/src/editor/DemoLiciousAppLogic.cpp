@@ -292,15 +292,31 @@ namespace DOH::EDITOR {
 		Input::addInputLayer(mSharedDemoResources->InputLayer);
 
 		//Shared Cameras
-		mSharedDemoResources->PerspectiveSceneCameraController = std::make_unique<EDITOR::EditorPerspectiveCameraController>(mSharedDemoResources->InputLayer, aspectRatio);
-		mSharedDemoResources->PerspectiveSceneCameraController->getCamera().setGpuData(context.createCameraGpuData(mSharedDemoResources->PerspectiveSceneCameraController->getCamera()));
-		mSharedDemoResources->OrthoUiCameraController = std::make_unique<EDITOR::EditorOrthoCameraController>(mSharedDemoResources->InputLayer, aspectRatio);
-		mSharedDemoResources->OrthoUiCameraController->getCamera().setGpuData(context.createCameraGpuData(mSharedDemoResources->OrthoUiCameraController->getCamera()));
+		mSharedDemoResources->PerspectiveSceneCamera = std::make_unique<DOH::PerspectiveCamera>(mSharedDemoResources->AspectRatio);
+		context.createCameraGpuData(*mSharedDemoResources->PerspectiveSceneCamera);
+		mSharedDemoResources->OrthoUiCamera = std::make_unique<DOH::OrthographicCamera>(
+			-mSharedDemoResources->AspectRatio,
+			mSharedDemoResources->AspectRatio,
+			-1.0f,
+			1.0f
+		);
+		context.createCameraGpuData(*mSharedDemoResources->OrthoUiCamera);
+
+		mSharedDemoResources->PerspectiveSceneCameraController = std::make_unique<EDITOR::EditorPerspectiveCameraController>(
+			*mSharedDemoResources->PerspectiveSceneCamera,
+			mSharedDemoResources->InputLayer,
+			aspectRatio
+		);
+		mSharedDemoResources->OrthoUiCameraController = std::make_unique<EDITOR::EditorOrthoCameraController>(
+			*mSharedDemoResources->OrthoUiCamera,
+			mSharedDemoResources->InputLayer,
+			aspectRatio
+		);
 
 		mSharedDemoResources->PerspectiveSceneCameraController->setPositionXYZ(0.0f, 0.0f, 5.0f);
 		
-		context.addCameraToUpdateList(SharedDemoResources::PERSP_SCENE_CAM_NAME, mSharedDemoResources->PerspectiveSceneCameraController->getCamera());
-		context.addCameraToUpdateList(SharedDemoResources::ORTHO_UI_CAM_NAME, mSharedDemoResources->OrthoUiCameraController->getCamera());
+		context.addCameraToUpdateList(SharedDemoResources::PERSP_SCENE_CAM_NAME, *mSharedDemoResources->PerspectiveSceneCamera);
+		context.addCameraToUpdateList(SharedDemoResources::ORTHO_UI_CAM_NAME, *mSharedDemoResources->OrthoUiCamera);
 
 		mSharedDemoResources->TestTexture1 = context.createTexture(mSharedDemoResources->TestTexturePath);
 		mSharedDemoResources->TestTexture2 = context.createTexture(mSharedDemoResources->TestTexture2Path);
@@ -1914,12 +1930,23 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::MultiCameraPassDemo::init() {
 		RenderingContextVulkan& context = Application::get().getRenderer().getContext();
 
-		OrthoSceneCameraController = std::make_unique<EDITOR::EditorOrthoCameraController>(SharedResources.InputLayer, SharedResources.AspectRatio);
-		OrthoSceneCameraController->getCamera().setGpuData(context.createCameraGpuData(OrthoSceneCameraController->getCamera()));
-		PerspectiveUiCameraController = std::make_unique<EDITOR::EditorPerspectiveCameraController>(SharedResources.InputLayer, SharedResources.AspectRatio);
-		PerspectiveUiCameraController->getCamera().setGpuData(context.createCameraGpuData(PerspectiveUiCameraController->getCamera()));
-		context.addCameraToUpdateList(MultiCameraPassDemo::ORTHO_SCENE_CAM_NAME, OrthoSceneCameraController->getCamera());
-		context.addCameraToUpdateList(MultiCameraPassDemo::PERSP_UI_CAM_NAME, PerspectiveUiCameraController->getCamera());
+		OrthoSceneCamera = std::make_unique<DOH::OrthographicCamera>(-SharedResources.AspectRatio, SharedResources.AspectRatio, -1.0f, 1.0f);
+		context.createCameraGpuData(*OrthoSceneCamera);
+		context.addCameraToUpdateList(MultiCameraPassDemo::ORTHO_SCENE_CAM_NAME, *OrthoSceneCamera);
+		OrthoSceneCameraController = std::make_unique<EDITOR::EditorOrthoCameraController>(
+			*OrthoSceneCamera,
+			SharedResources.InputLayer,
+			SharedResources.AspectRatio
+		);
+
+		PerspectiveUiCamera = std::make_unique<DOH::PerspectiveCamera>(SharedResources.AspectRatio);
+		PerspectiveUiCameraController = std::make_unique<EDITOR::EditorPerspectiveCameraController>(
+			*PerspectiveUiCamera,
+			SharedResources.InputLayer,
+			SharedResources.AspectRatio
+		);
+		context.createCameraGpuData(*PerspectiveUiCamera);
+		context.addCameraToUpdateList(MultiCameraPassDemo::PERSP_UI_CAM_NAME, *PerspectiveUiCamera);
 
 		//TODO:: Not sure if the UI persp cam is in the right coord space, should be consistent with other persp cams in the engine.
 

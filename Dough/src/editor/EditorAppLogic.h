@@ -124,6 +124,8 @@ namespace DOH::EDITOR {
 		//std::optional<std::shared_ptr<AInputLayer>> mInnerAppInputLayer;
 
 		//Editor Cameras
+		std::unique_ptr<DOH::OrthographicCamera> mOrthoCamera;
+		std::unique_ptr<DOH::PerspectiveCamera> mPerspectiveCamera;
 		std::shared_ptr<EditorOrthoCameraController> mOrthoCameraController;
 		std::shared_ptr<EditorPerspectiveCameraController> mPerspectiveCameraController;
 

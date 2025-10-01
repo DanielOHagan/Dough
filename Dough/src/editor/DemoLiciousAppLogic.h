@@ -40,6 +40,8 @@ namespace DOH::EDITOR {
 
 			static const char* PERSP_SCENE_CAM_NAME;
 			static const char* ORTHO_UI_CAM_NAME;
+			std::unique_ptr<DOH::PerspectiveCamera> PerspectiveSceneCamera;
+			std::unique_ptr<DOH::OrthographicCamera> OrthoUiCamera;
 			//Using editor camera controllers to save making a new class
 			std::unique_ptr<EDITOR::EditorPerspectiveCameraController> PerspectiveSceneCameraController;
 			std::unique_ptr<EDITOR::EditorOrthoCameraController> OrthoUiCameraController;
@@ -510,6 +512,10 @@ namespace DOH::EDITOR {
 
 			static const char* ORTHO_SCENE_CAM_NAME;
 			static const char* PERSP_UI_CAM_NAME;
+			std::unique_ptr<DOH::OrthographicCamera> OrthoSceneCamera;
+			std::unique_ptr<DOH::PerspectiveCamera> PerspectiveUiCamera;
+			std::unique_ptr<EDITOR::EditorOrthoCameraController> OrthoSceneCameraController;
+			std::unique_ptr<EDITOR::EditorPerspectiveCameraController> PerspectiveUiCameraController;
 
 			//Ui3D Pipeline
 			const char* FlatColourShaderVertPath = "Dough/Dough/res/shaders/spv/FlatColour.vert.spv";
@@ -522,9 +528,6 @@ namespace DOH::EDITOR {
 			std::shared_ptr<DescriptorSetsInstanceVulkan> Ui3dDescSetsInstance;
 			std::unique_ptr<GraphicsPipelineInstanceInfo> Ui3dPipelineInfo;
 			PipelineRenderableConveyor Ui3dPipelineConveyor;
-
-			std::unique_ptr<EDITOR::EditorOrthoCameraController> OrthoSceneCameraController;
-			std::unique_ptr<EDITOR::EditorPerspectiveCameraController> PerspectiveUiCameraController;
 
 			//Basic quad to show normal 2d UI
 			Quad UiQuad;

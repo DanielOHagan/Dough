@@ -54,6 +54,14 @@ namespace DOH {
 		std::shared_ptr<MonoSpaceTextureAtlas> mTestMonoSpaceTextureAtlas;
 		std::shared_ptr<IndexedTextureAtlas> mTestIndexedTextureAtlas;
 
+		//TODO:: A better way of doing no rendering with ShapeRenderer would be to "unload" and "load" when needed,
+		// including just removing it from the "render order" as needed.
+		// 
+		//When drawScene/Ui is called, if their respective camera data is null then the function is ended.
+		//By default this prints a warning but by setting these values to false that warning is prevented.
+		bool mWarnOnNullSceneCameraData;
+		bool mWarnOnNullUiCameraData;
+
 		//-----Debug information-----
 		uint32_t mDrawnQuadCount;
 		uint32_t mTruncatedQuadCount;
@@ -157,5 +165,7 @@ namespace DOH {
 
 		static inline void setSceneCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->mSceneCameraData = cameraData; }
 		static inline void setUiCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->mUiCameraData = cameraData; }
+		static inline void setWarnOnNullSceneCameraData(bool enabled) { INSTANCE->mWarnOnNullSceneCameraData = enabled; }
+		static inline void setWarnOnNullUiCameraData(bool enabled) { INSTANCE->mWarnOnNullUiCameraData = enabled; }
 	};
 }

@@ -7,8 +7,25 @@ using namespace DOH;
 
 namespace DOH::EDITOR {
 
-	EditorPerspectiveCameraController::EditorPerspectiveCameraController(std::shared_ptr<AInputLayer> inputLayer, float aspectRatio, float fov)
-	:	mCamera(std::make_unique<PerspectiveCamera>(aspectRatio, fov)),
+	//EditorPerspectiveCameraController::EditorPerspectiveCameraController(std::shared_ptr<AInputLayer> inputLayer, float aspectRatio, float fov)
+	//:	mCamera(std::make_unique<PerspectiveCamera>(aspectRatio, fov)),
+	//	mPosition(0.0f, 0.0f, 0.0f),
+	//	mDirectionFacing(0.0f, 0.0f, 0.001f),
+	//	mCursorLastPosUpdate(0.0f, 0.0f),
+	//	mClickAndDragEnabled(false),
+	//	mClickAndDragActive(false),
+	//	mAspectRatio(aspectRatio),
+	//	mFov(fov),
+	//	mTranslationSpeed(0.3f),
+	//	mInputLayer(inputLayer)
+	//{}
+
+	EditorPerspectiveCameraController::EditorPerspectiveCameraController(
+		PerspectiveCamera& camera,
+		std::shared_ptr<AInputLayer> inputLayer,
+		float aspectRatio,
+		float fov
+	) :	mCamera(camera),
 		mPosition(0.0f, 0.0f, 0.0f),
 		mDirectionFacing(0.0f, 0.0f, 0.001f),
 		mCursorLastPosUpdate(0.0f, 0.0f),
@@ -27,7 +44,7 @@ namespace DOH::EDITOR {
 
 	void EditorPerspectiveCameraController::onViewportResize(float aspectRatio) {
 		mAspectRatio = aspectRatio;
-		mCamera->setProjection(mFov, mAspectRatio);
+		mCamera.get().setProjection(mFov, mAspectRatio);
 		updateViewMatrices();
 	}
 
@@ -94,7 +111,8 @@ namespace DOH::EDITOR {
 	}
 
 	void EditorPerspectiveCameraController::updateViewMatrices() {
-		mCamera->setView(mPosition, mDirectionFacing, { 0.0f, 1.0f, 0.0f });
-		mCamera->updateProjectionViewMatrix();
+		PerspectiveCamera& camera = mCamera;
+		camera.setView(mPosition, mDirectionFacing, { 0.0f, 1.0f, 0.0f });
+		camera.updateProjectionViewMatrix();
 	}
 }

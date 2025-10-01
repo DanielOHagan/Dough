@@ -11,7 +11,7 @@ namespace DOH::EDITOR {
 
 	class EditorPerspectiveCameraController : public ICameraController {
 	private:
-		std::unique_ptr<PerspectiveCamera> mCamera;
+		std::reference_wrapper<PerspectiveCamera> mCamera;
 		glm::vec3 mPosition;
 		glm::vec3 mDirectionFacing;
 		glm::vec2 mCursorLastPosUpdate;
@@ -25,7 +25,7 @@ namespace DOH::EDITOR {
 		std::shared_ptr<AInputLayer> mInputLayer;
 
 	public:
-		EditorPerspectiveCameraController(std::shared_ptr<AInputLayer> inputLayer, float aspectRatio, float fov = 60.0f);
+		EditorPerspectiveCameraController(PerspectiveCamera& camera, std::shared_ptr<AInputLayer> inputLayer, float aspectRatio, float fov = 60.0f);
 		EditorPerspectiveCameraController(const EditorPerspectiveCameraController& copy) = delete;
 		EditorPerspectiveCameraController operator=(const EditorPerspectiveCameraController& assignment) = delete;
 
@@ -34,7 +34,7 @@ namespace DOH::EDITOR {
 
 		virtual void onUpdate(float delta) override;
 		virtual void onViewportResize(float aspectRatio) override;
-		inline virtual ICamera& getCamera() const override { return *mCamera; }
+		inline virtual ICamera& getCamera() const override { return mCamera; }
 
 		inline const glm::vec3& getPosition() const { return mPosition; }
 		inline void setPosition(glm::vec3& pos) { mPosition = pos; }

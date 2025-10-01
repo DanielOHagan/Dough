@@ -114,10 +114,12 @@ namespace DOH::EDITOR {
 		//TODO:: have a member to store the innerApp inputLayer name or some way of getting all input layers "managed" by an inner app.
 		//mInnerAppInputLayer.emplace(mEditorInputLayer);
 		
-		mOrthoCameraController = std::make_shared<EditorOrthoCameraController>(mEditorInputLayer, aspectRatio);
-		mOrthoCameraController->getCamera().setGpuData(context.createCameraGpuData(mOrthoCameraController->getCamera()));
-		mPerspectiveCameraController = std::make_shared<EditorPerspectiveCameraController>(mEditorInputLayer, aspectRatio);
-		mPerspectiveCameraController->getCamera().setGpuData(context.createCameraGpuData(mPerspectiveCameraController->getCamera()));
+		mOrthoCamera = std::make_unique<DOH::OrthographicCamera>(-aspectRatio, aspectRatio, -1.0f, 1.0f);
+		context.createCameraGpuData(*mOrthoCamera);
+		mOrthoCameraController = std::make_shared<EditorOrthoCameraController>(*mOrthoCamera, mEditorInputLayer, aspectRatio);
+		mPerspectiveCamera = std::make_unique<DOH::PerspectiveCamera>(aspectRatio);
+		context.createCameraGpuData(*mPerspectiveCamera);
+		mPerspectiveCameraController = std::make_shared<EditorPerspectiveCameraController>(*mPerspectiveCamera, mEditorInputLayer, aspectRatio);
 
 		mPerspectiveCameraController->setPositionXYZ(0.0f, 0.0f, 5.0f);
 
@@ -156,26 +158,6 @@ namespace DOH::EDITOR {
 
 	void EditorAppLogic::render() {
 		ZoneScoped;
-
-		auto& renderer = GET_RENDERER;
-
-		//Begin scene sets the primary camera that is to be used to render the scene.
-		// If one isn't set in the inner app then one of the Editor's cameras is used.
-		// 
-		//TODO:: When there is a substantial demo that has its own camera do:
-		//	IF using editor camera THEN beginScene(editorCamera) ELSE do nothing and assume inner app will beginScene(innerAppCamera)
-		//renderer.beginScene(
-		//	mEditorSettings->UseOrthographicCamera ?
-		//		mOrthoCameraController->getCamera() : mPerspectiveCameraController->getCamera()
-		//);
-
-		//NOTE:: If mEditorSettings->mCurrentCamera is NONE then set to perspective
-		if (mEditorSettings->mCurrentCamera != EEditorCamera::INNER_APP_CHOSEN) {
-			renderer.beginScene(
-				mEditorSettings->mCurrentCamera == EEditorCamera::EDITOR_ORTHOGRAPHIC ?
-				mOrthoCameraController->getCamera() : mPerspectiveCameraController->getCamera()
-			);
-		}
 
 		mInnerAppLogic->render();
 	}

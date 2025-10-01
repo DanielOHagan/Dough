@@ -57,10 +57,6 @@ namespace DOH {
 		void onResize(int width, int height);
 
 		void drawFrame();
-		void beginScene(ICamera& camera);
-		void endScene();
-		void beginUi(ICamera& camera);
-		void endUi();
 		inline void deviceWaitIdle(const char* msg) {
 			LOG_INFO(msg);
 			VK_TRY(vkDeviceWaitIdle(mLogicDevice), "Device failed to wait idle");

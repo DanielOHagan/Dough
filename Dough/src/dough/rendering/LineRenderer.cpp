@@ -16,10 +16,18 @@ namespace DOH {
 	const char* LineRenderer::UI_LINE_SHADER_PATH_VERT = "Dough/Dough/res/shaders/spv/LineRenderer2d.vert.spv";
 	const char* LineRenderer::UI_LINE_SHADER_PATH_FRAG = "Dough/Dough/res/shaders/spv/LineRenderer2d.frag.spv";
 
+	void LineRenderingObjects::addOwnedResourcesToClose(RenderingContextVulkan& context) {
+		ShaderProgram->addOwnedResourcesToClose(context);
+		context.addGpuResourceToClose(VertexShader);
+		context.addGpuResourceToClose(FragmentShader);
+		context.addGpuResourceToClose(GraphicsPipeline);
+		context.addGpuResourceToClose(Renderable->getVaoPtr());
+	}
+
 	LineRenderer::LineRenderer(RenderingContextVulkan& context)
 	:	mContext(context)
-		//mWarnOnNullSceneCameraData(true),
-		//mWarnOnNullUiCameraData(true)
+		mWarnOnNullSceneCameraData(true),
+		mWarnOnNullUiCameraData(true)
 	{}
 
 	void LineRenderer::initImpl() {
@@ -46,22 +54,24 @@ namespace DOH {
 
 			//TODO:: Index buffer usage?
 
-			mSceneLineRenderable = std::make_shared<SimpleRenderable>(vao, descSetInstance, false);
+			mSceneLineList = std::make_unique<LineRenderingObjects>();
 
-			mSceneLineVertexShader = mContext.createShader(EShaderStage::VERTEX, SCENE_LINE_SHADER_PATH_VERT);
-			mSceneLineFragmentShader = mContext.createShader(EShaderStage::FRAGMENT, SCENE_LINE_SHADER_PATH_FRAG);
-			mSceneLineShaderProgram = mContext.createShaderProgram(
-				mSceneLineVertexShader,
-				mSceneLineFragmentShader,
+			mSceneLineList->Renderable = std::make_shared<SimpleRenderable>(vao, descSetInstance, false);
+
+			mSceneLineList->VertexShader = mContext.createShader(EShaderStage::VERTEX, SCENE_LINE_SHADER_PATH_VERT);
+			mSceneLineList->FragmentShader = mContext.createShader(EShaderStage::FRAGMENT, SCENE_LINE_SHADER_PATH_FRAG);
+			mSceneLineList->ShaderProgram = mContext.createShaderProgram(
+				mSceneLineList->VertexShader,
+				mSceneLineList->FragmentShader,
 				lineShadersDescSetLayouts
 			);
 
-			mSceneLineGraphicsPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
+			mSceneLineList->GraphicsPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 				sceneVertexLayout,
-				*mSceneLineShaderProgram,
+				*mSceneLineList->ShaderProgram,
 				ERenderPass::APP_SCENE
 			);
-			auto& optionalFields = mSceneLineGraphicsPipelineInfo->enableOptionalFields();
+			auto& optionalFields = mSceneLineList->GraphicsPipelineInfo->enableOptionalFields();
 			optionalFields.PolygonMode = VK_POLYGON_MODE_LINE;
 			optionalFields.CullMode = VK_CULL_MODE_NONE;
 			optionalFields.Topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
@@ -71,14 +81,14 @@ namespace DOH {
 			//TODO:: Allow depth testing for line rendering?
 			//optionalFields.setDepthTesting(true, VK_COMPARE_OP_LESS_OR_EQUAL);
 
-			mSceneLineGraphicsPipeline = mContext.createGraphicsPipeline(*mSceneLineGraphicsPipelineInfo);
-			mSceneLineGraphicsPipeline->init(
+			mSceneLineList->GraphicsPipeline = mContext.createGraphicsPipeline(*mSceneLineList->GraphicsPipelineInfo);
+			mSceneLineList->GraphicsPipeline->init(
 				mContext.getLogicDevice(),
 				mContext.getSwapChain().getExtent(),
 				mContext.getRenderPass(ERenderPass::APP_SCENE).get()
 			);
-			mSceneLineBatch = std::make_unique<RenderBatchLineList>(SCENE_LINE_VERTEX_TYPE, LINE_BATCH_MAX_LINE_COUNT);
-			mSceneLineGraphicsPipeline->addRenderableToDraw(mSceneLineRenderable);
+			mSceneLineList->Batch = std::make_unique<RenderBatchLineList>(SCENE_LINE_VERTEX_TYPE, LINE_BATCH_MAX_LINE_COUNT);
+			mSceneLineList->GraphicsPipeline->addRenderableToDraw(mSceneLineList->Renderable);
 		}
 
 		{
@@ -97,21 +107,23 @@ namespace DOH {
 
 			//TODO:: Index buffer usage
 
-			mUiLineRenderable = std::make_shared<SimpleRenderable>(vao, descSetInstance, false);
-			mUiLineVertexShader = mContext.createShader(EShaderStage::VERTEX, UI_LINE_SHADER_PATH_VERT);
-			mUiLineFragmentShader = mContext.createShader(EShaderStage::FRAGMENT, UI_LINE_SHADER_PATH_FRAG);
-			mUiLineShaderProgram = mContext.createShaderProgram(
-				mUiLineVertexShader,
-				mUiLineFragmentShader,
+			mUiLineList = std::make_unique<LineRenderingObjects>();
+
+			mUiLineList->Renderable = std::make_shared<SimpleRenderable>(vao, descSetInstance, false);
+			mUiLineList->VertexShader = mContext.createShader(EShaderStage::VERTEX, UI_LINE_SHADER_PATH_VERT);
+			mUiLineList->FragmentShader = mContext.createShader(EShaderStage::FRAGMENT, UI_LINE_SHADER_PATH_FRAG);
+			mUiLineList->ShaderProgram = mContext.createShaderProgram(
+				mUiLineList->VertexShader,
+				mUiLineList->FragmentShader,
 				lineShadersDescSetLayouts
 			);
 
-			mUiLineGraphicsPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
+			mUiLineList->GraphicsPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 				uiVertexLayout,
-				*mUiLineShaderProgram,
+				*mUiLineList->ShaderProgram,
 				ERenderPass::APP_UI
 			);
-			auto& optionalFields = mUiLineGraphicsPipelineInfo->enableOptionalFields();
+			auto& optionalFields = mUiLineList->GraphicsPipelineInfo->enableOptionalFields();
 			optionalFields.PolygonMode = VK_POLYGON_MODE_LINE;
 			optionalFields.CullMode = VK_CULL_MODE_NONE;
 			optionalFields.Topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
@@ -120,29 +132,32 @@ namespace DOH {
 			//TODO:: Allow depth testing for line rendering?
 			//mUiLineGraphicsPipelineInfo->getOptionalFields().setDepthTesting(true, VK_COMPARE_OP_LESS_OR_EQUAL);
 
-			mUiLineGraphicsPipeline = mContext.createGraphicsPipeline(*mUiLineGraphicsPipelineInfo);
-			mUiLineGraphicsPipeline->init(
+			mUiLineList->GraphicsPipeline = mContext.createGraphicsPipeline(*mUiLineList->GraphicsPipelineInfo);
+			mUiLineList->GraphicsPipeline->init(
 				mContext.getLogicDevice(),
 				mContext.getSwapChain().getExtent(),
 				mContext.getRenderPass(ERenderPass::APP_UI).get()
 			);
-			mUiLineBatch = std::make_unique<RenderBatchLineList>(UI_LINE_VERTEX_TYPE, LINE_BATCH_MAX_LINE_COUNT);
-			mUiLineGraphicsPipeline->addRenderableToDraw(mUiLineRenderable);
+			mUiLineList->Batch = std::make_unique<RenderBatchLineList>(UI_LINE_VERTEX_TYPE, LINE_BATCH_MAX_LINE_COUNT);
+			mUiLineList->GraphicsPipeline->addRenderableToDraw(mUiLineList->Renderable);
 		}
 	}
 
 	void LineRenderer::closeImpl() {
 		ZoneScoped;
 
-		mContext.addGpuResourceToClose(mSceneLineRenderable->getVaoPtr());
-		mContext.addGpuResourceToClose(mSceneLineVertexShader);
-		mContext.addGpuResourceToClose(mSceneLineFragmentShader);
-		mContext.addGpuResourceToClose(mSceneLineGraphicsPipeline);
+		mSceneLineList->addOwnedResourcesToClose(mContext);
+		mUiLineList->addOwnedResourcesToClose(mContext);
 
-		mContext.addGpuResourceToClose(mUiLineRenderable->getVaoPtr());
-		mContext.addGpuResourceToClose(mUiLineVertexShader);
-		mContext.addGpuResourceToClose(mUiLineFragmentShader);
-		mContext.addGpuResourceToClose(mUiLineGraphicsPipeline);
+		//mContext.addGpuResourceToClose(mSceneLineRenderable->getVaoPtr());
+		//mContext.addGpuResourceToClose(mSceneLineVertexShader);
+		//mContext.addGpuResourceToClose(mSceneLineFragmentShader);
+		//mContext.addGpuResourceToClose(mSceneLineGraphicsPipeline);
+		//
+		//mContext.addGpuResourceToClose(mUiLineRenderable->getVaoPtr());
+		//mContext.addGpuResourceToClose(mUiLineVertexShader);
+		//mContext.addGpuResourceToClose(mUiLineFragmentShader);
+		//mContext.addGpuResourceToClose(mUiLineGraphicsPipeline);
 	}
 
 	void LineRenderer::drawSceneImpl(
@@ -159,29 +174,28 @@ namespace DOH {
 
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 		constexpr uint32_t uboSlot = 0;
-		const uint32_t lineCount = mSceneLineBatch->getLineCount();
+		const uint32_t lineCount = mSceneLineList->Batch->getLineCount();
 
 		if (lineCount > 0) {
-			mUiLineRenderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mUiCameraData->DescriptorSets[imageIndex];
-			if (currentBindings.Pipeline != mSceneLineGraphicsPipeline->get()) {
-				mSceneLineGraphicsPipeline->bind(cmd);
+			mSceneLineList->Renderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mSceneCameraData->DescriptorSets[imageIndex];
+			if (currentBindings.Pipeline != mSceneLineList->GraphicsPipeline->get()) {
+				mSceneLineList->GraphicsPipeline->bind(cmd);
 				debugInfo.PipelineBinds++;
-				currentBindings.Pipeline = mSceneLineGraphicsPipeline->get();
-				currentBindings.PipelineLayout = mSceneLineGraphicsPipeline->getGraphicsPipelineLayout();
+				currentBindings.Pipeline = mSceneLineList->GraphicsPipeline->get();
 			}
 
-			mSceneLineRenderable->getVao().setDrawCount(mSceneLineBatch->getVertexCount());
-			mSceneLineRenderable->getVao().getVertexBuffers()[0]->setDataMapped(
+			mSceneLineList->Renderable->getVao().setDrawCount(mSceneLineList->Batch->getVertexCount());
+			mSceneLineList->Renderable->getVao().getVertexBuffers()[0]->setDataMapped(
 				mContext.getLogicDevice(),
-				mSceneLineBatch->getData().data(),
+				mSceneLineList->Batch->getData().data(),
 				lineCount * RenderBatchLineList::LINE_3D_SIZE
 			);
 
-			mSceneLineGraphicsPipeline->recordDrawCommand(cmd, *mSceneLineRenderable, currentBindings, 0);
+			mSceneLineList->GraphicsPipeline->recordDrawCommand(cmd, *mSceneLineList->Renderable, currentBindings, 0);
 			debugInfo.SceneDrawCalls++;
 		}
 
-		mSceneLineBatch->reset();
+		mSceneLineList->Batch->reset();
 	}
 
 	void LineRenderer::drawUiImpl(
@@ -198,41 +212,40 @@ namespace DOH {
 
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
 		constexpr uint32_t uboSlot = 0;
-		const uint32_t lineCount = mUiLineBatch->getLineCount();
+		const uint32_t lineCount = mUiLineList->Batch->getLineCount();
 
 		if (lineCount > 0) {
-			mUiLineRenderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mUiCameraData->DescriptorSets[imageIndex];
-			if (currentBindings.Pipeline != mUiLineGraphicsPipeline->get()) {
-				mUiLineGraphicsPipeline->bind(cmd);
+			mUiLineList->Renderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mUiCameraData->DescriptorSets[imageIndex];
+			if (currentBindings.Pipeline != mUiLineList->GraphicsPipeline->get()) {
+				mUiLineList->GraphicsPipeline->bind(cmd);
 				debugInfo.PipelineBinds++;
-				currentBindings.Pipeline = mUiLineGraphicsPipeline->get();
-				currentBindings.PipelineLayout = mUiLineGraphicsPipeline->getGraphicsPipelineLayout();
+				currentBindings.Pipeline = mUiLineList->GraphicsPipeline->get();
 			}
 
-			mUiLineRenderable->getVao().setDrawCount(mUiLineBatch->getVertexCount());
+			mUiLineList->Renderable->getVao().setDrawCount(mUiLineList->Batch->getVertexCount());
 
-			mUiLineRenderable->getVao().getVertexBuffers()[0]->setDataMapped(
+			mUiLineList->Renderable->getVao().getVertexBuffers()[0]->setDataMapped(
 				mContext.getLogicDevice(),
-				mUiLineBatch->getData().data(),
+				mUiLineList->Batch->getData().data(),
 				lineCount * RenderBatchLineList::LINE_2D_SIZE
 			);
 
-			mUiLineGraphicsPipeline->recordDrawCommand(cmd, *mUiLineRenderable, currentBindings, 0);
+			mUiLineList->GraphicsPipeline->recordDrawCommand(cmd, *mUiLineList->Renderable, currentBindings, 0);
 			debugInfo.UiDrawCalls++;
 		}
 
-		mUiLineBatch->reset();
+		mUiLineList->Batch->reset();
 	}
 
 	void LineRenderer::onSwapChainResizeImpl(SwapChainVulkan& swapChain) {
 		ZoneScoped;
 
-		mSceneLineGraphicsPipeline->resize(
+		mSceneLineList->GraphicsPipeline->resize(
 			mContext.getLogicDevice(),
 			swapChain.getExtent(),
 			mContext.getRenderPass(ERenderPass::APP_SCENE).get()
 		);
-		mUiLineGraphicsPipeline->resize(
+		mUiLineList->GraphicsPipeline->resize(
 			mContext.getLogicDevice(),
 			swapChain.getExtent(),
 			mContext.getRenderPass(ERenderPass::APP_UI).get()
@@ -242,36 +255,36 @@ namespace DOH {
 	void LineRenderer::drawLineSceneImpl(const glm::vec3& start, const glm::vec3& end, const glm::vec4& colour) {
 		ZoneScoped;
 
-		if (mSceneLineBatch->hasSpace()) {
-			mSceneLineBatch->add3d(start, end, colour);
+		if (mSceneLineList->Batch->hasSpace()) {
+			mSceneLineList->Batch->add3d(start, end, colour);
 		} else {
-			LOG_WARN("Scene line batch max line count reached: " << mSceneLineBatch->getMaxLineCount());
+			LOG_WARN("Scene line batch max line count reached: " << mSceneLineList->Batch->getMaxLineCount());
 		}
 	}
 
 	void LineRenderer::drawLineUiImpl(const glm::vec2& start, const glm::vec2& end, const glm::vec4& colour) {
 		ZoneScoped;
 
-		if (mUiLineBatch->hasSpace()) {
-			mUiLineBatch->add2d(start, end, colour);
+		if (mUiLineList->Batch->hasSpace()) {
+			mUiLineList->Batch->add2d(start, end, colour);
 		} else {
-			LOG_WARN("UI line batch max line count reached: " << mUiLineBatch->getMaxLineCount());
+			LOG_WARN("UI line batch max line count reached: " << mUiLineList->Batch->getMaxLineCount());
 		}
 	}
 
 	void LineRenderer::drawQuadSceneImpl(const Quad& quad, const glm::vec4& colour) {
 		ZoneScoped;
 
-		if (mSceneLineBatch->hasSpace(4)) {
+		if (mSceneLineList->Batch->hasSpace(4)) {
 			glm::vec3 botLeft = { quad.Position.x, quad.Position.y, quad.Position.z };
 			glm::vec3 botRight = { quad.Position.x + quad.Size.x, quad.Position.y, quad.Position.z };
 			glm::vec3 topLeft = { quad.Position.x, quad.Position.y + quad.Size.y, quad.Position.z };
 			glm::vec3 topRight = { quad.Position.x + quad.Size.x, quad.Position.y + quad.Size.y, quad.Position.z };
 
-			mSceneLineBatch->add3d(botLeft, topLeft, colour);
-			mSceneLineBatch->add3d(topLeft, topRight, colour);
-			mSceneLineBatch->add3d(topRight, botRight, colour);
-			mSceneLineBatch->add3d(botRight, botLeft, colour);
+			mSceneLineList->Batch->add3d(botLeft, topLeft, colour);
+			mSceneLineList->Batch->add3d(topLeft, topRight, colour);
+			mSceneLineList->Batch->add3d(topRight, botRight, colour);
+			mSceneLineList->Batch->add3d(botRight, botLeft, colour);
 		} else {
 			LOG_WARN("Scene line batch does not have space for " << 4 << " more lines.");
 		}
@@ -280,16 +293,16 @@ namespace DOH {
 	void LineRenderer::drawQuadUiImpl(const Quad& quad, const glm::vec4& colour) {
 		ZoneScoped;
 
-		if (mUiLineBatch->hasSpace(4)) {
+		if (mUiLineList->Batch->hasSpace(4)) {
 			glm::vec3 botLeft = { quad.Position.x, quad.Position.y, quad.Position.z };
 			glm::vec3 botRight = { quad.Position.x + quad.Size.x, quad.Position.y, quad.Position.z };
 			glm::vec3 topLeft = { quad.Position.x, quad.Position.y + quad.Size.y, quad.Position.z };
 			glm::vec3 topRight = { quad.Position.x + quad.Size.x, quad.Position.y + quad.Size.y, quad.Position.z };
 
-			mUiLineBatch->add2d(botLeft, topLeft, colour);
-			mUiLineBatch->add2d(topLeft, topRight, colour);
-			mUiLineBatch->add2d(topRight, botRight, colour);
-			mUiLineBatch->add2d(botRight, botLeft, colour);
+			mUiLineList->Batch->add2d(botLeft, topLeft, colour);
+			mUiLineList->Batch->add2d(topLeft, topRight, colour);
+			mUiLineList->Batch->add2d(topRight, botRight, colour);
+			mUiLineList->Batch->add2d(botRight, botLeft, colour);
 		} else {
 			LOG_WARN("Ui line batch does not have space for " << 4 << " more lines.");
 		}

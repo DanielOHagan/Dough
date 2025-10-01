@@ -350,29 +350,6 @@ namespace DOH {
 		);
 	}
 
-	void RendererVulkan::beginScene(ICamera& camera) {
-		//ZoneScoped;
-
-		
-	}
-
-	void RendererVulkan::endScene() {
-		//ZoneScoped;
-
-		//TODO:: Could this be used to signal that the scene is ready to be rendered. e.g. when multi-threaded is added then a job could be created for scene rendering.
-	}
-
-	void RendererVulkan::beginUi(ICamera& camera) {
-		//ZoneScoped;
-
-	}
-
-	void RendererVulkan::endUi() {
-		//ZoneScoped;
-
-		//TODO:: Could this be used to signal that the scene is ready to be rendered. e.g. when multi-threaded is added then a job could be created for ui rendering.
-	}
-
 	uint32_t RendererVulkan::findPhysicalDeviceMemoryType(
 		VkPhysicalDevice physicalDevice,
 		uint32_t typeFilter,

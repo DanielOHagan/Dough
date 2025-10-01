@@ -20,7 +20,9 @@ namespace DOH {
 	:	mContext(context),
 		mFontBitmapPagesDescSet(VK_NULL_HANDLE),
 		mQuadIndexBufferShared(false),
-		mDrawnQuadCount(0)
+		mDrawnQuadCount(0),
+		mWarnOnNullSceneCameraData(true),
+		mWarnOnNullUiCameraData(true)
 	{}
 
 	void TextRenderer::initImpl() {
@@ -406,9 +408,9 @@ namespace DOH {
 		ZoneScoped;
 
 		if (mSceneCameraData == nullptr) {
-			//TODO:: This doesn't account for if the variable is intentionally left null because no Scene is meant to be drawn.
-			//if (mWarnOnNullSceneCameraData)
-				LOG_WARN("TextRenderer::drawSceneImpl mSceneCameraData is null");
+			if (mWarnOnNullSceneCameraData) {
+				LOG_ERR("TextRenderer::drawSceneImpl mSceneCameraData is null");
+			}
 			return;
 		}
 
@@ -496,9 +498,9 @@ namespace DOH {
 		ZoneScoped;
 
 		if (mUiCameraData == nullptr) {
-			//TODO:: This doesn't account for if the variable is intentionally left null because no Ui is meant to be drawn.
-			//if (mWarnOnNullUiCameraData)
-				LOG_WARN("TextRenderer::drawUiImpl mUiCameraData is null");
+			if (mWarnOnNullUiCameraData) {
+				LOG_ERR("TextRenderer::drawUiImpl mUiCameraData is null");
+			}
 			return;
 		}
 

@@ -56,6 +56,7 @@ namespace DOH {
 		//NOTE:: Assumes only one VertexBuffer is bound at a time
 		VkBuffer VertexBuffer = VK_NULL_HANDLE;
 		VkBuffer IndexBuffer = VK_NULL_HANDLE;
+		VkRenderPass RenderPass = VK_NULL_HANDLE;
 
 		//NOTE:: Most desktop devices support 32 Descriptor Sets at one time but I don't think I'll use that many.
 		std::array<VkDescriptorSet, 16> DescriptorSets;
@@ -319,7 +320,7 @@ namespace DOH {
 
 		//-----Resource Handlers (classes that group resources)-----
 		//-----Camera-----
-		std::shared_ptr<CameraGpuData> createCameraGpuData(ICamera& camera) const;
+		void createCameraGpuData(ICamera& camera) const;
 
 		//-----Single Resources-----
 		//-----Pipeline-----
