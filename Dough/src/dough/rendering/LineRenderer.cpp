@@ -25,7 +25,7 @@ namespace DOH {
 	}
 
 	LineRenderer::LineRenderer(RenderingContextVulkan& context)
-	:	mContext(context)
+	:	mContext(context),
 		mWarnOnNullSceneCameraData(true),
 		mWarnOnNullUiCameraData(true)
 	{}
@@ -148,16 +148,6 @@ namespace DOH {
 
 		mSceneLineList->addOwnedResourcesToClose(mContext);
 		mUiLineList->addOwnedResourcesToClose(mContext);
-
-		//mContext.addGpuResourceToClose(mSceneLineRenderable->getVaoPtr());
-		//mContext.addGpuResourceToClose(mSceneLineVertexShader);
-		//mContext.addGpuResourceToClose(mSceneLineFragmentShader);
-		//mContext.addGpuResourceToClose(mSceneLineGraphicsPipeline);
-		//
-		//mContext.addGpuResourceToClose(mUiLineRenderable->getVaoPtr());
-		//mContext.addGpuResourceToClose(mUiLineVertexShader);
-		//mContext.addGpuResourceToClose(mUiLineFragmentShader);
-		//mContext.addGpuResourceToClose(mUiLineGraphicsPipeline);
 	}
 
 	void LineRenderer::drawSceneImpl(
@@ -168,7 +158,9 @@ namespace DOH {
 		ZoneScoped;
 
 		if (mSceneCameraData == nullptr) {
-			//if (mWarnOnNullSceneCameraData) LOG_WARN("ShapeRenderer::drawSceneImpl mSceneCameraData is null");
+			if (mWarnOnNullSceneCameraData) {
+				LOG_WARN("ShapeRenderer::drawSceneImpl mSceneCameraData is null");
+			}
 			return;
 		}
 
@@ -206,7 +198,9 @@ namespace DOH {
 		ZoneScoped;
 
 		if (mUiCameraData == nullptr) {
-			//if (mWarnOnNullUiCameraData) LOG_WARN("LineRenderer::drawUiImpl mUiCameraData is null");
+			if (mWarnOnNullUiCameraData) {
+				LOG_WARN("LineRenderer::drawUiImpl mUiCameraData is null");
+			}
 			return;
 		}
 

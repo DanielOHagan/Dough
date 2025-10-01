@@ -371,12 +371,12 @@ namespace DOH::EDITOR {
 
 		mSharedDemoResources->GpuResourcesLoaded = true;
 
-		ShapeRenderer::setSceneCameraData(mSharedDemoResources->PerspectiveSceneCameraController->getCamera().getGpuData());
-		ShapeRenderer::setUiCameraData(mSharedDemoResources->OrthoUiCameraController->getCamera().getGpuData());
-		TextRenderer::setSceneCameraData(mSharedDemoResources->PerspectiveSceneCameraController->getCamera().getGpuData());
-		TextRenderer::setUiCameraData(mSharedDemoResources->OrthoUiCameraController->getCamera().getGpuData());
-		LineRenderer::setSceneCameraData(mSharedDemoResources->PerspectiveSceneCameraController->getCamera().getGpuData());
-		LineRenderer::setUiCameraData(mSharedDemoResources->OrthoUiCameraController->getCamera().getGpuData());
+		ShapeRenderer::setSceneCameraData(mSharedDemoResources->PerspectiveSceneCamera->getGpuData());
+		ShapeRenderer::setUiCameraData(mSharedDemoResources->OrthoUiCamera->getGpuData());
+		TextRenderer::setSceneCameraData(mSharedDemoResources->PerspectiveSceneCamera->getGpuData());
+		TextRenderer::setUiCameraData(mSharedDemoResources->OrthoUiCamera->getGpuData());
+		LineRenderer::setSceneCameraData(mSharedDemoResources->PerspectiveSceneCamera->getGpuData());
+		LineRenderer::setUiCameraData(mSharedDemoResources->OrthoUiCamera->getGpuData());
 	}
 
 	void DemoLiciousAppLogic::closeSharedResources() {
@@ -395,8 +395,8 @@ namespace DOH::EDITOR {
 			renderer.closeGpuResource(mSharedDemoResources->TestTexture1);
 			renderer.closeGpuResource(mSharedDemoResources->TestTexture2);
 
-			renderer.closeGpuResourceOwner(mSharedDemoResources->PerspectiveSceneCameraController->getCamera().getGpuData());
-			renderer.closeGpuResourceOwner(mSharedDemoResources->OrthoUiCameraController->getCamera().getGpuData());
+			renderer.closeGpuResourceOwner(mSharedDemoResources->PerspectiveSceneCamera->getGpuData());
+			renderer.closeGpuResourceOwner(mSharedDemoResources->OrthoUiCamera->getGpuData());
 
 			mSharedDemoResources->GpuResourcesLoaded = false;
 		}
@@ -542,7 +542,7 @@ namespace DOH::EDITOR {
 		
 				for (auto& obj : RenderableObjects) {
 					obj->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] =
-						SharedResources.PerspectiveSceneCameraController->getCamera().getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
+						SharedResources.PerspectiveSceneCamera->getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
 					if (renderAllStandard || obj->Render) {
 						ScenePipelineConveyor.addRenderable(obj);
 					}
@@ -554,7 +554,7 @@ namespace DOH::EDITOR {
 		
 			if (SharedResources.TexturedConveyor.isValid() && RenderableTexturedModel->Render) {
 				RenderableTexturedModel->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] =
-					SharedResources.PerspectiveSceneCameraController->getCamera().getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
+					SharedResources.PerspectiveSceneCamera->getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
 				SharedResources.TexturedConveyor.addRenderable(RenderableTexturedModel);
 			}
 		}
@@ -878,11 +878,11 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::CustomDemo::render() {
 		const uint32_t uboSlot = 0;
 		if (RenderScene) {
-			SceneRenderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = SharedResources.PerspectiveSceneCameraController->getCamera().getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
+			SceneRenderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = SharedResources.PerspectiveSceneCamera->getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
 			SharedResources.TexturedConveyor.safeAddRenderable(SceneRenderable);
 		}
 		if (RenderUi) {
-			UiRenderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = SharedResources.OrthoUiCameraController->getCamera().getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
+			UiRenderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = SharedResources.OrthoUiCamera->getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
 			CustomUiConveyor.safeAddRenderable(UiRenderable);
 		}
 	}
@@ -1445,8 +1445,8 @@ namespace DOH::EDITOR {
 			TextRenderer::getFontBitmap(TextRenderer::ARIAL_MSDF_NAME)
 		);
 
-		TextRenderer::setSceneCameraData(SharedResources.PerspectiveSceneCameraController->getCamera().getGpuData());
-		TextRenderer::setUiCameraData(SharedResources.OrthoUiCameraController->getCamera().getGpuData());
+		TextRenderer::setSceneCameraData(SharedResources.PerspectiveSceneCamera->getGpuData());
+		TextRenderer::setUiCameraData(SharedResources.OrthoUiCamera->getGpuData());
 	}
 
 	void DemoLiciousAppLogic::TextDemo::close() {
@@ -1966,8 +1966,8 @@ namespace DOH::EDITOR {
 		//TODO:: This is not needed as it won't point to the correct imageIndex and, right now, should be updated during demo::render
 		std::initializer_list<VkDescriptorSet> ui3dDescSetsInstance = {
 			//Maybe have cameras' descSetInstance do a getCurrentImageIndex each frame, however, the RenderingContext::ImageIndex is changed at the start of drawFrame so it might not work/be a frame behind
-			PerspectiveUiCameraController->getCamera().getGpuData()->DescriptorSets[context.getCurrentFrame()]
-			//SharedResources.mOrthoUiCameraController->getCamera().getGpuData()->DescriptorSets[context.getCurrentFrame()]
+			PerspectiveUiCamera->getGpuData()->DescriptorSets[context.getCurrentFrame()]
+			//SharedResources.mOrthoUiCamera->getGpuData()->DescriptorSets[context.getCurrentFrame()]
 		};
 		Ui3dDescSetsInstance = std::make_shared<DescriptorSetsInstanceVulkan>(ui3dDescSetsInstance);
 
@@ -2004,8 +2004,8 @@ namespace DOH::EDITOR {
 		renderer.closeGpuResource(Ui3dModel);
 		renderer.closeGpuResourceOwner(Ui3dShaderProgram);
 
-		renderer.closeGpuResourceOwner(OrthoSceneCameraController->getCamera().getGpuData());
-		renderer.closeGpuResourceOwner(PerspectiveUiCameraController->getCamera().getGpuData());
+		renderer.closeGpuResourceOwner(OrthoSceneCamera->getGpuData());
+		renderer.closeGpuResourceOwner(PerspectiveUiCamera->getGpuData());
 
 		//TODO:: Some way of telling the CurrentRenderState to close specific pipelines.
 		//e.g. renderer.closePipelineInCurrentRenderState(ERenderPass::___, pipelineName);
@@ -2025,7 +2025,7 @@ namespace DOH::EDITOR {
 			//TODO:: A much better way than this!!
 			//	This points to the WRONG imageIndex as this is done before the swap chain retrieves the next image. This WILL be fixed.
 			const uint32_t uboSlot = 0;
-			Ui3dModelInstance->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = PerspectiveUiCameraController->getCamera().getGpuData()->DescriptorSets[context.getCurrentFrame()];
+			Ui3dModelInstance->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = PerspectiveUiCamera->getGpuData()->DescriptorSets[context.getCurrentFrame()];
 			Ui3dPipelineConveyor.addRenderable(Ui3dModelInstance);
 		}
 	}

@@ -739,8 +739,8 @@ UPS displayed is the count of frames in the last full second interval)"
 	void EditorAppLogic::close() {
 		ZoneScoped;
 
-		Application::get().getRenderer().closeGpuResourceOwner(mPerspectiveCameraController->getCamera().getGpuData());
-		Application::get().getRenderer().closeGpuResourceOwner(mOrthoCameraController->getCamera().getGpuData());
+		Application::get().getRenderer().closeGpuResourceOwner(mPerspectiveCamera->getGpuData());
+		Application::get().getRenderer().closeGpuResourceOwner(mOrthoCamera->getGpuData());
 
 		mInnerAppLogic->close();
 		EditorGui::close();
