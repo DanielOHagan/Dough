@@ -66,7 +66,7 @@ namespace DOH {
 		createPipeline(logicDevice, extent, renderPass);
 	}
 
-	void GraphicsPipelineVulkan::recordDrawCommand(VkCommandBuffer cmd, IRenderable& renderable, CurrentBindingsState& currentBindings, uint32_t descSetOffset) {
+	void GraphicsPipelineVulkan::recordDrawCommand(uint32_t imageIndex, VkCommandBuffer cmd, IRenderable& renderable, CurrentBindingsState& currentBindings, uint32_t descSetOffset) {
 		ZoneScoped;
 
 		if (renderable.hasDescriptorSetsInstance()) {
@@ -74,14 +74,10 @@ namespace DOH {
 			// Should probably design around PipelineLayouts instead of Pipelines, should lower descriptor set binding and help create BindGroups.
 
 			DescriptorSetsInstanceVulkan& shaderResourceData = *renderable.getDescriptorSetsInstance();
-			const uint32_t descSetCount = static_cast<uint32_t>(shaderResourceData.getDescriptorSets().size());
+			const uint32_t descSetCount = shaderResourceData.getDescriptorSetSlotCount();
 			bool differentLayout = mGraphicsPipelineLayout != currentBindings.PipelineLayout; //NOTE:: Doesn't check if the layout is compatible, only if it's a different instance.
 			for (uint32_t i = descSetOffset; i < descSetCount; i++) {
-
-				//TODO:: Bind correct descSet for slots that use a descriptor for different frames (i.e. cameras)
-				//	Need a way of pointing to the correct descSet if that slot is using imageIndex
-
-				VkDescriptorSet descSet = shaderResourceData.getDescriptorSets()[i];
+				VkDescriptorSet descSet = shaderResourceData.getDescriptorSet(i, imageIndex);
 				if (differentLayout || currentBindings.DescriptorSets[i] != descSet) {
 					vkCmdBindDescriptorSets(
 						cmd,

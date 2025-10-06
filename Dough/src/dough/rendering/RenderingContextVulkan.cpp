@@ -354,7 +354,7 @@ namespace DOH {
 					}
 
 					for (std::shared_ptr<IRenderable> renderable : pipeline.getRenderableDrawList()) {
-						pipeline.recordDrawCommand(cmd, *renderable, currentBindings, 0);
+						pipeline.recordDrawCommand(imageIndex, cmd, *renderable, currentBindings, 0);
 					}
 					debugInfo.SceneDrawCalls += pipeline.getVaoDrawCount();
 
@@ -401,7 +401,7 @@ namespace DOH {
 					}
 
 					for (auto& renderable : pipeline.getRenderableDrawList()) {
-						pipeline.recordDrawCommand(cmd, *renderable, currentBindings, 0);
+						pipeline.recordDrawCommand(imageIndex, cmd, *renderable, currentBindings, 0);
 					}
 
 					debugInfo.UiDrawCalls += pipeline.getVaoDrawCount();

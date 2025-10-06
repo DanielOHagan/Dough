@@ -5,10 +5,14 @@
 #include "dough/rendering/pipeline/DescriptorApiVulkan.h"
 #include "dough/rendering/pipeline/AShaderDescriptor.h"
 
+#include <variant>
+
 namespace DOH {
 	
 	//NOTE:: The term "Uniform" is used interchangably with "Descriptor".
 	//Uniform used to be used throughout the engine I will be switching to Descriptor to keep it closer to Vulkan terminology.
+
+	static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
 
 	/**
 	* Class describing one descriptor set layout and it's contained descriptors.
@@ -95,13 +99,43 @@ namespace DOH {
 	*/
 	class DescriptorSetsInstanceVulkan {
 	private:
-		std::vector<VkDescriptorSet> mDescriptorSets;
+		std::vector<std::variant<
+			std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT>, //This an a descSet for slots that change descSet each frame (i.e. camera ubo's)
+			VkDescriptorSet
+		>> mDescriptorSets;
 	
 	public:
-		DescriptorSetsInstanceVulkan(std::initializer_list<VkDescriptorSet> descSets)
-		:	mDescriptorSets(descSets)
+		DescriptorSetsInstanceVulkan(size_t slotCount)
+		:	mDescriptorSets(slotCount)
 		{}
-	
-		inline std::vector<VkDescriptorSet>& getDescriptorSets() { return mDescriptorSets; }
+
+		
+		/**
+		* Get a descriptor set from the slot, and if necessary the given index.
+		* 
+		* @param slot The slot of the desired descriptor set.
+		* @param index The index of the array storing per-frame descriptor sets (e.g. camera ubo's).
+		* 
+		* @returns The desired descriptor set handle or VK_NULL_HANDLE if given slot is empty.
+		*/
+		VkDescriptorSet getDescriptorSet(uint32_t slot, uint32_t index = 0u) {
+			if (std::holds_alternative<VkDescriptorSet>(mDescriptorSets[slot])) {
+				return std::get<VkDescriptorSet>(mDescriptorSets[slot]);
+			} else if (std::holds_alternative<std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT>>(mDescriptorSets[slot])) {
+				return std::get<std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT>>(mDescriptorSets[slot])[index];
+			} else {
+				return VK_NULL_HANDLE;
+			}
+		}
+
+		void setDescriptorSetSingle(uint32_t slot, VkDescriptorSet descSet) {
+			mDescriptorSets[slot].emplace<VkDescriptorSet>(descSet);
+		}
+
+		void setDescriptorSetArray(uint32_t slot, std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> descSetArr) {
+			mDescriptorSets[slot].emplace<std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT>>(descSetArr);
+		}
+
+		inline uint32_t getDescriptorSetSlotCount() const { return static_cast<uint32_t>(mDescriptorSets.size()); }
 	};
 }

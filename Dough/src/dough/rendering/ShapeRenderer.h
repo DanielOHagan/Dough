@@ -30,6 +30,8 @@ namespace DOH {
 		static const char* CIRCLE_SHADER_PATH_VERT;
 		static const char* CIRCLE_SHADER_PATH_FRAG;
 
+		static const uint32_t CAMERA_UBO_SLOT = 0u;
+
 		RenderingContextVulkan& mContext;
 
 		ShapeRenderingObjects<RenderBatchQuad> mQuadScene;
@@ -103,6 +105,9 @@ namespace DOH {
 		void drawCircleArrayTextured(ShapeRenderingObjects<RenderBatchCircle>& circleGroup, const std::vector<Circle>& circleArr);
 		void drawCircleArraySameTexture(ShapeRenderingObjects<RenderBatchCircle>& circleGroup, const std::vector<Circle>& circleArr);
 
+		void setSceneCameraDataImpl(std::shared_ptr<CameraGpuData> cameraData);
+		void setUiCameraDataImpl(std::shared_ptr<CameraGpuData> cameraData);
+
 	public:
 		ShapeRenderer(RenderingContextVulkan& context);
 
@@ -163,8 +168,8 @@ namespace DOH {
 		static inline const std::vector<std::shared_ptr<RenderBatchCircle>>& getCircleUiBatches() { return INSTANCE->mCircleUi.GeoBatches; }
 		static inline uint32_t getCircleUiBatchCount() { return INSTANCE->mCircleUi.getBatchCount(); }
 
-		static inline void setSceneCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->mSceneCameraData = cameraData; }
-		static inline void setUiCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->mUiCameraData = cameraData; }
+		static inline void setSceneCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->setSceneCameraDataImpl(cameraData); }
+		static inline void setUiCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->setUiCameraDataImpl(cameraData); }
 		static inline void setWarnOnNullSceneCameraData(bool enabled) { INSTANCE->mWarnOnNullSceneCameraData = enabled; }
 		static inline void setWarnOnNullUiCameraData(bool enabled) { INSTANCE->mWarnOnNullUiCameraData = enabled; }
 	};

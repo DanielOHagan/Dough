@@ -36,8 +36,8 @@ namespace DOH {
 		std::vector<std::reference_wrapper<DescriptorSetLayoutVulkan>> linePipelinesDescSets = { mContext.getCommonDescriptorSetLayouts().Ubo };
 		//NOTE:: Line Renderer currently uses the same descriptor set layouts so the one instance can be used for both SCENE and UI
 		std::shared_ptr<ShaderDescriptorSetLayoutsVulkan> lineShadersDescSetLayouts = std::make_shared<ShaderDescriptorSetLayoutsVulkan>(linePipelinesDescSets);
-		std::initializer_list<VkDescriptorSet> descSets = { VK_NULL_HANDLE };
-		std::shared_ptr<DescriptorSetsInstanceVulkan> descSetInstance = std::make_shared<DescriptorSetsInstanceVulkan>(descSets);
+		std::shared_ptr<DescriptorSetsInstanceVulkan> descSetInstance = std::make_shared<DescriptorSetsInstanceVulkan>(1);
+		descSetInstance->setDescriptorSetArray(CAMERA_UBO_SLOT, { VK_NULL_HANDLE, VK_NULL_HANDLE }); //Camera UBO
 		{
 			//Scene
 			const StaticVertexInputLayout& sceneVertexLayout = StaticVertexInputLayout::get(SCENE_LINE_VERTEX_TYPE);
@@ -165,11 +165,9 @@ namespace DOH {
 		}
 
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
-		constexpr uint32_t uboSlot = 0;
 		const uint32_t lineCount = mSceneLineList->Batch->getLineCount();
 
 		if (lineCount > 0) {
-			mSceneLineList->Renderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mSceneCameraData->DescriptorSets[imageIndex];
 			if (currentBindings.Pipeline != mSceneLineList->GraphicsPipeline->get()) {
 				mSceneLineList->GraphicsPipeline->bind(cmd);
 				debugInfo.PipelineBinds++;
@@ -183,7 +181,7 @@ namespace DOH {
 				lineCount * RenderBatchLineList::LINE_3D_SIZE
 			);
 
-			mSceneLineList->GraphicsPipeline->recordDrawCommand(cmd, *mSceneLineList->Renderable, currentBindings, 0);
+			mSceneLineList->GraphicsPipeline->recordDrawCommand(imageIndex, cmd, *mSceneLineList->Renderable, currentBindings, 0);
 			debugInfo.SceneDrawCalls++;
 		}
 
@@ -205,11 +203,9 @@ namespace DOH {
 		}
 
 		AppDebugInfo& debugInfo = Application::get().getDebugInfo();
-		constexpr uint32_t uboSlot = 0;
 		const uint32_t lineCount = mUiLineList->Batch->getLineCount();
 
 		if (lineCount > 0) {
-			mUiLineList->Renderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mUiCameraData->DescriptorSets[imageIndex];
 			if (currentBindings.Pipeline != mUiLineList->GraphicsPipeline->get()) {
 				mUiLineList->GraphicsPipeline->bind(cmd);
 				debugInfo.PipelineBinds++;
@@ -224,7 +220,7 @@ namespace DOH {
 				lineCount * RenderBatchLineList::LINE_2D_SIZE
 			);
 
-			mUiLineList->GraphicsPipeline->recordDrawCommand(cmd, *mUiLineList->Renderable, currentBindings, 0);
+			mUiLineList->GraphicsPipeline->recordDrawCommand(imageIndex, cmd, *mUiLineList->Renderable, currentBindings, 0);
 			debugInfo.UiDrawCalls++;
 		}
 
@@ -343,5 +339,15 @@ namespace DOH {
 		} else {
 			LOG_WARN("LineRenderer::drawUi called when not initialised.");
 		}
+	}
+
+	void LineRenderer::setSceneCameraDataImpl(std::shared_ptr<CameraGpuData> cameraData) {
+		mSceneCameraData = cameraData;
+		mSceneLineList->Renderable->getDescriptorSetsInstance()->setDescriptorSetArray(LineRenderer::CAMERA_UBO_SLOT, { cameraData->DescriptorSets[0], cameraData->DescriptorSets[1] });
+	}
+
+	void LineRenderer::setUiCameraDataImpl(std::shared_ptr<CameraGpuData> cameraData) {
+		mUiCameraData = cameraData;
+		mUiLineList->Renderable->getDescriptorSetsInstance()->setDescriptorSetArray(LineRenderer::CAMERA_UBO_SLOT, { cameraData->DescriptorSets[0], cameraData->DescriptorSets[1] });
 	}
 }

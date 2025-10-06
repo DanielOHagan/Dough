@@ -20,7 +20,7 @@ namespace DOH {
 	:	mContext(context),
 		mFontBitmapPagesDescSet(VK_NULL_HANDLE),
 		mQuadIndexBufferShared(false),
-		mDrawnQuadCount(0),
+		mDrawnQuadCount(0u),
 		mWarnOnNullSceneCameraData(true),
 		mWarnOnNullUiCameraData(true)
 	{}
@@ -73,9 +73,13 @@ namespace DOH {
 			mContext.getEngineDescriptorPool(),
 			texArrSetLayout
 		);
-		std::initializer_list<VkDescriptorSet> fontDescSets = { VK_NULL_HANDLE, mFontBitmapPagesDescSet };
-		mFontRenderingDescSetsInstanceScene = std::make_shared<DescriptorSetsInstanceVulkan>(fontDescSets);
-		mFontRenderingDescSetsInstanceUi = std::make_shared<DescriptorSetsInstanceVulkan>(fontDescSets);
+		const uint32_t descSetCount = 2;
+		mFontRenderingDescSetsInstanceScene = std::make_shared<DescriptorSetsInstanceVulkan>(descSetCount);
+		mFontRenderingDescSetsInstanceScene->setDescriptorSetArray(CAMERA_UBO_SLOT, { VK_NULL_HANDLE, VK_NULL_HANDLE }); // Camera UBO
+		mFontRenderingDescSetsInstanceScene->setDescriptorSetSingle(1, mFontBitmapPagesDescSet);
+		mFontRenderingDescSetsInstanceUi = std::make_shared<DescriptorSetsInstanceVulkan>(descSetCount);
+		mFontRenderingDescSetsInstanceUi->setDescriptorSetArray(CAMERA_UBO_SLOT, { VK_NULL_HANDLE, VK_NULL_HANDLE }); // Camera UBO
+		mFontRenderingDescSetsInstanceUi->setDescriptorSetSingle(1, mFontBitmapPagesDescSet);
 
 		const StaticVertexInputLayout& textVertexLayout = StaticVertexInputLayout::get(EVertexType::VERTEX_3D_TEXTURED_INDEXED);
 		const size_t batchSizeBytes = static_cast<size_t>(EBatchSizeLimits::QUAD_BATCH_MAX_GEO_COUNT) * Quad::BYTE_SIZE;
@@ -419,11 +423,8 @@ namespace DOH {
 		const size_t softMaskQuadCount = mSoftMaskRendering->SceneBatch->getGeometryCount();
 		const size_t textMsdfQuadCount = mMsdfRendering->SceneBatch->getGeometryCount();
 		const StaticVertexInputLayout& textVertexLayout = StaticVertexInputLayout::get(EVertexType::VERTEX_3D_TEXTURED_INDEXED);
-		constexpr const uint32_t uboSlot = 0;
 
 		if (softMaskQuadCount > 0) {
-			//TODO:: clean this up?
-			mSoftMaskRendering->SceneRenderableBatch->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mSceneCameraData->DescriptorSets[imageIndex];
 			VertexArrayVulkan& vao = mSoftMaskRendering->SceneRenderableBatch->getVao();
 			vao.getVertexBuffers()[0]->setDataMapped(
 				logicDevice,
@@ -446,6 +447,7 @@ namespace DOH {
 			}
 
 			mSoftMaskRendering->ScenePipeline->recordDrawCommand(
+				imageIndex,
 				cmd,
 				*mSoftMaskRendering->SceneRenderableBatch,
 				currentBindings,
@@ -458,8 +460,6 @@ namespace DOH {
 
 		//MSDF
 		if (textMsdfQuadCount > 0) {
-			//TODO:: clean this up?
-			mMsdfRendering->SceneRenderableBatch->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mSceneCameraData->DescriptorSets[imageIndex];
 			VertexArrayVulkan& vao = mMsdfRendering->SceneRenderableBatch->getVao();
 			vao.getVertexBuffers()[0]->setDataMapped(
 				logicDevice,
@@ -482,6 +482,7 @@ namespace DOH {
 			}
 
 			mMsdfRendering->ScenePipeline->recordDrawCommand(
+				imageIndex,
 				cmd,
 				*mMsdfRendering->SceneRenderableBatch,
 				currentBindings,
@@ -509,11 +510,8 @@ namespace DOH {
 		const size_t softMaskQuadCount = mSoftMaskRendering->UiBatch->getGeometryCount();
 		const size_t textMsdfQuadCount = mMsdfRendering->UiBatch->getGeometryCount();
 		const StaticVertexInputLayout& textVertexLayout = StaticVertexInputLayout::get(EVertexType::VERTEX_3D_TEXTURED_INDEXED);
-		constexpr uint32_t uboSlot = 0;
 
 		if (softMaskQuadCount > 0) {
-			//TODO:: clean this up?
-			mSoftMaskRendering->UiRenderableBatch->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mUiCameraData->DescriptorSets[imageIndex];
 			VertexArrayVulkan& vao = mSoftMaskRendering->UiRenderableBatch->getVao();
 			vao.getVertexBuffers()[0]->setDataMapped(
 				logicDevice,
@@ -537,6 +535,7 @@ namespace DOH {
 
 			const uint32_t drawCount = mSoftMaskRendering->UiPipeline->getVaoDrawCount();
 			mSoftMaskRendering->UiPipeline->recordDrawCommand(
+				imageIndex,
 				cmd,
 				*mSoftMaskRendering->UiRenderableBatch,
 				currentBindings,
@@ -549,8 +548,6 @@ namespace DOH {
 
 		//MSDF
 		if (textMsdfQuadCount > 0) {
-			//TODO:: clean this up?
-			mMsdfRendering->UiRenderableBatch->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mUiCameraData->DescriptorSets[imageIndex];
 			VertexArrayVulkan& vao = mMsdfRendering->UiRenderableBatch->getVao();
 			vao.getVertexBuffers()[0]->setDataMapped(
 				logicDevice,
@@ -572,7 +569,13 @@ namespace DOH {
 				debugInfo.IndexBufferBinds++;
 			}
 
-			mMsdfRendering->UiPipeline->recordDrawCommand(cmd, *mMsdfRendering->UiRenderableBatch, currentBindings, 0);
+			mMsdfRendering->UiPipeline->recordDrawCommand(
+				imageIndex,
+				cmd,
+				*mMsdfRendering->UiRenderableBatch,
+				currentBindings,
+				0
+			);
 			debugInfo.UiDrawCalls++;
 
 			mMsdfRendering->UiBatch->reset();
@@ -722,5 +725,14 @@ namespace DOH {
 		descInfoTypes.push_back({ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 8u }); //Font Pages Texture Array
 
 		return descInfoTypes;
+	}
+
+	void TextRenderer::setSceneCameraDataImpl(std::shared_ptr<CameraGpuData> cameraData) {
+		mSceneCameraData = cameraData;
+		mFontRenderingDescSetsInstanceScene->setDescriptorSetArray(TextRenderer::CAMERA_UBO_SLOT, { cameraData->DescriptorSets[0], cameraData->DescriptorSets[1] });
+	}
+	void TextRenderer::setUiCameraDataImpl(std::shared_ptr<CameraGpuData> cameraData) {
+		mUiCameraData = cameraData;
+		mFontRenderingDescSetsInstanceUi->setDescriptorSetArray(TextRenderer::CAMERA_UBO_SLOT, { cameraData->DescriptorSets[0], cameraData->DescriptorSets[1] });
 	}
 }

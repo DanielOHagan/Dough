@@ -52,5 +52,7 @@ namespace DOH {
 
 	private:
 		void createSwapChainKHR(VkDevice logicDevice, const SwapChainCreationInfo& scCreate);
+
+		inline static const char* getPresentModeAsString(VkPresentModeKHR presentMode);
 	};
 }

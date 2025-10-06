@@ -35,6 +35,8 @@ namespace DOH {
 	//TODO:: Make some easier way of closing this. Same with ShaderProgram.
 	class CameraGpuData : public IGPUResourceOwnerVulkan {
 	public:
+		//TODO:: Since MAX_FRAMES_IN_FLIGHT will always be 2 should I make these array<buffer, 2> and array<descSet, 2> instead?
+
 		//UniformBufferObject CpuData;
 		std::vector<std::shared_ptr<BufferVulkan>> ValueBuffers;
 		std::vector<VkDescriptorSet> DescriptorSets;

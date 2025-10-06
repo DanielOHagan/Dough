@@ -45,6 +45,8 @@ namespace DOH {
 		static const char* UI_LINE_SHADER_PATH_VERT;
 		static const char* UI_LINE_SHADER_PATH_FRAG;
 
+		static const uint32_t CAMERA_UBO_SLOT = 0u;
+
 		std::unique_ptr<LineRenderingObjects> mSceneLineList;
 		std::unique_ptr<LineRenderingObjects> mUiLineList;
 		std::unique_ptr<DescriptorSetsInstanceVulkan> mLineShadersDescriptorsInstance;
@@ -74,6 +76,9 @@ namespace DOH {
 		void drawQuadSceneImpl(const Quad& quad, const glm::vec4& colour);
 		void drawQuadUiImpl(const Quad& quad, const glm::vec4& colour);
 
+		void setSceneCameraDataImpl(std::shared_ptr<CameraGpuData> cameraData);
+		void setUiCameraDataImpl(std::shared_ptr<CameraGpuData> cameraData);
+
 		static void drawScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 		static void drawUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 
@@ -95,8 +100,8 @@ namespace DOH {
 		static inline uint32_t getUiLineCount() { return INSTANCE->mUiLineList->Batch->getLineCount(); }
 		static inline uint32_t getUiMaxLineCount() { return INSTANCE->mUiLineList->Batch->getMaxLineCount(); }
 
-		static inline void setSceneCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->mSceneCameraData = cameraData; }
-		static inline void setUiCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->mUiCameraData = cameraData; }
+		static inline void setSceneCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->setSceneCameraDataImpl(cameraData); }
+		static inline void setUiCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->setUiCameraDataImpl(cameraData); }
 		//Set to true if you want warnings to display each frame the scene camera data is null.
 		static inline void setWarnOnNullSceneCameraData(bool enabled) { INSTANCE->mWarnOnNullSceneCameraData = enabled; }
 		//Set to true if you want warnings to display each frame the ui camera data is null.

@@ -139,17 +139,17 @@ namespace DOH {
 
 		for (const auto& availablePresentMode : availablePresentModes) {
 			if (availablePresentMode == desiredPresentMode) {
-				//LOG_INFO("Desired present mode found.");
+				//LOG_INFO("Desired present mode found:" << SwapChainVulkan::getPresentModeAsString(desiredPresentMode));
 				return availablePresentMode;
 			}
 		}
 
 		if (fallbackToImmediatePresentMode) {
-			LOG_WARN("Desired present mode (" << desiredPresentMode << ") not found, falling back on enabled optional default (VK_PRESENT_MODE_IMMEDIATE_KHR)");
+			LOG_WARN("Desired present mode " << SwapChainVulkan::getPresentModeAsString(desiredPresentMode) << " not found, falling back on enabled optional default VK_PRESENT_MODE_IMMEDIATE_KHR");
 			return VK_PRESENT_MODE_IMMEDIATE_KHR;
 		}
 
-		LOG_WARN("Desired present mode (" << desiredPresentMode << ") not found, falling back on default (VK_PRESENT_MODE_FIFO_KHR)");
+		LOG_WARN("Desired present mode " << SwapChainVulkan::getPresentModeAsString(desiredPresentMode) << " not found, falling back on default VK_PRESENT_MODE_FIFO_KHR");
 		return VK_PRESENT_MODE_FIFO_KHR;
 	}
 
@@ -249,5 +249,20 @@ namespace DOH {
 		}
 
 		mUsingGpuResource = true;
+	}
+
+	const char* SwapChainVulkan::getPresentModeAsString(VkPresentModeKHR presentMode) {
+		//Taken from doc: https://registry.khronos.org/vulkan/specs/latest/man/html/VkPresentModeKHR.html
+		switch (presentMode) {
+			case VK_PRESENT_MODE_IMMEDIATE_KHR: return "VK_PRESENT_MODE_IMMEDIATE_KHR (0)";
+			case VK_PRESENT_MODE_MAILBOX_KHR: return "VK_PRESENT_MODE_MAILBOX_KHR (1)";
+			case VK_PRESENT_MODE_FIFO_KHR: return "VK_PRESENT_MODE_FIFO_KHR (2)";
+			case VK_PRESENT_MODE_FIFO_RELAXED_KHR: return "VK_PRESENT_MODE_FIFO_RELAXED_KHR (3)"; 
+			case VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR: return "VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR (1000111000)"; // Provided by VK_KHR_shared_presentable_image
+			case VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR: return "VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR (1000111001)"; // Provided by VK_KHR_shared_presentable_image
+			//case VK_PRESENT_MODE_FIFO_LATEST_READY_KHR: return "VK_PRESENT_MODE_FIFO_LATEST_READY_KHR (1000361000)"; // Provided by VK_KHR_present_mode_fifo_latest_ready
+			//case VK_PRESENT_MODE_FIFO_LATEST_READY_EXT: return "VK_PRESENT_MODE_FIFO_LATEST_READY_EXT (VK_PRESENT_MODE_FIFO_LATEST_READY_KHR)"; // Provided by VK_EXT_present_mode_fifo_latest_ready
+			default: return "Unknown present mode"; //This should NOT happen!
+		}
 	}
 }

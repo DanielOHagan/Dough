@@ -421,8 +421,10 @@ namespace DOH::EDITOR {
 			LoadedModels.emplace_back(ModelVulkan::createModel(filePath, ColouredVertexInputLayout));
 		}
 
-		std::initializer_list<VkDescriptorSet> sceneDescSetsInstance = { VK_NULL_HANDLE };
-		SceneDescSetsInstance = std::make_shared<DescriptorSetsInstanceVulkan>(sceneDescSetsInstance);
+		const std::vector<VkDescriptorSet>& perspSceneCameraDescSets = SharedResources.PerspectiveSceneCamera->getGpuData()->DescriptorSets;
+
+		SceneDescSetsInstance = std::make_shared<DescriptorSetsInstanceVulkan>(1);
+		SceneDescSetsInstance->setDescriptorSetArray(0, { perspSceneCameraDescSets[0], perspSceneCameraDescSets[1] }); //Camera Ubo
 	
 		//Spwan objects on incrementing x/y values of a grid with random z value
 		constexpr float padding = 0.5f;
@@ -493,8 +495,9 @@ namespace DOH::EDITOR {
 		WireframePipelineConveyor = context.createPipelineInCurrentRenderState(SceneWireframePipelineName, *SceneWireframePipelineInfo);
 
 		TexturedModel = ModelVulkan::createModel("Dough/Dough/res/models/textured_cube.obj", TexturedVertexInputLayout);
-		std::initializer_list<VkDescriptorSet> descSets = { VK_NULL_HANDLE, SharedResources.TestTexture1DescSet };
-		TexturedModelDescriptorSets = std::make_shared<DescriptorSetsInstanceVulkan>(descSets);
+		TexturedModelDescriptorSets = std::make_shared<DescriptorSetsInstanceVulkan>(2);
+		TexturedModelDescriptorSets->setDescriptorSetArray(0, { perspSceneCameraDescSets[0], perspSceneCameraDescSets[1] }); //Camera UBO
+		TexturedModelDescriptorSets->setDescriptorSetSingle(1, SharedResources.TestTexture1DescSet);
 		RenderableTexturedModel = std::make_shared<RenderableModelVulkan>("TexturedObjModel", TexturedModel, TexturedModelDescriptorSets);
 
 		GpuResourcesLoaded = true;
@@ -541,8 +544,8 @@ namespace DOH::EDITOR {
 				const bool renderAllWireframe = RenderAllWireframe;
 		
 				for (auto& obj : RenderableObjects) {
-					obj->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] =
-						SharedResources.PerspectiveSceneCamera->getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
+					//obj->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] =
+					//	SharedResources.PerspectiveSceneCamera->getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
 					if (renderAllStandard || obj->Render) {
 						ScenePipelineConveyor.addRenderable(obj);
 					}
@@ -553,8 +556,8 @@ namespace DOH::EDITOR {
 			}
 		
 			if (SharedResources.TexturedConveyor.isValid() && RenderableTexturedModel->Render) {
-				RenderableTexturedModel->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] =
-					SharedResources.PerspectiveSceneCamera->getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
+				//RenderableTexturedModel->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] =
+				//	SharedResources.PerspectiveSceneCamera->getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
 				SharedResources.TexturedConveyor.addRenderable(RenderableTexturedModel);
 			}
 		}
@@ -791,6 +794,8 @@ namespace DOH::EDITOR {
 		//}
 
 		RenderingContextVulkan& context = Application::get().getRenderer().getContext();
+		const std::vector<VkDescriptorSet>& perspSceneCameraDescSets = SharedResources.PerspectiveSceneCamera->getGpuData()->DescriptorSets;
+		const std::vector<VkDescriptorSet>& uiCameraDescSets = SharedResources.OrthoUiCamera->getGpuData()->DescriptorSets;
 
 		SceneVao = context.createVertexArray();
 		std::shared_ptr<VertexBufferVulkan> sceneVb = context.createStagedVertexBuffer(
@@ -807,8 +812,9 @@ namespace DOH::EDITOR {
 		);
 		SceneVao->setDrawCount(static_cast<uint32_t>(Indices.size()));
 		SceneVao->setIndexBuffer(sceneIb);
-		std::initializer_list<VkDescriptorSet> sceneDescSetsInstance = { VK_NULL_HANDLE, SharedResources.TestTexture1DescSet };
-		SceneDescSetsInstance = std::make_shared<DescriptorSetsInstanceVulkan>(sceneDescSetsInstance);
+		SceneDescSetsInstance = std::make_shared<DescriptorSetsInstanceVulkan>(2);
+		SceneDescSetsInstance->setDescriptorSetArray(0, { perspSceneCameraDescSets[0], perspSceneCameraDescSets[1] }); //Camera UBO
+		SceneDescSetsInstance->setDescriptorSetSingle(1, SharedResources.TestTexture1DescSet);
 		SceneRenderable = std::make_shared<SimpleRenderable>(SceneVao, SceneDescSetsInstance);
 	
 		DescriptorSetLayoutVulkan& uboLayout = context.getCommonDescriptorSetLayouts().Ubo;
@@ -838,7 +844,8 @@ namespace DOH::EDITOR {
 		UiVao->setDrawCount(static_cast<uint32_t>(UiIndices.size()));
 		UiVao->setIndexBuffer(appUiIb);
 		std::initializer_list<VkDescriptorSet> uiDescSets = { VK_NULL_HANDLE };
-		std::shared_ptr<DescriptorSetsInstanceVulkan> uiDescSetsInstance = std::make_shared<DescriptorSetsInstanceVulkan>(uiDescSets);
+		std::shared_ptr<DescriptorSetsInstanceVulkan> uiDescSetsInstance = std::make_shared<DescriptorSetsInstanceVulkan>(1);
+		uiDescSetsInstance->setDescriptorSetArray(0, { uiCameraDescSets[0], uiCameraDescSets[1] }); //Camera UBO
 		UiRenderable = std::make_shared<SimpleRenderable>(UiVao, uiDescSetsInstance);
 	
 		UiPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
@@ -878,11 +885,11 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::CustomDemo::render() {
 		const uint32_t uboSlot = 0;
 		if (RenderScene) {
-			SceneRenderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = SharedResources.PerspectiveSceneCamera->getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
+			//SceneRenderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = SharedResources.PerspectiveSceneCamera->getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
 			SharedResources.TexturedConveyor.safeAddRenderable(SceneRenderable);
 		}
 		if (RenderUi) {
-			UiRenderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = SharedResources.OrthoUiCamera->getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
+			//UiRenderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = SharedResources.OrthoUiCamera->getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
 			CustomUiConveyor.safeAddRenderable(UiRenderable);
 		}
 	}
@@ -1969,7 +1976,10 @@ namespace DOH::EDITOR {
 			PerspectiveUiCamera->getGpuData()->DescriptorSets[context.getCurrentFrame()]
 			//SharedResources.mOrthoUiCamera->getGpuData()->DescriptorSets[context.getCurrentFrame()]
 		};
-		Ui3dDescSetsInstance = std::make_shared<DescriptorSetsInstanceVulkan>(ui3dDescSetsInstance);
+		const std::vector<VkDescriptorSet>& perspUiCamDescSets = PerspectiveUiCamera->getGpuData()->DescriptorSets;
+		Ui3dDescSetsInstance = std::make_shared<DescriptorSetsInstanceVulkan>(1);
+		Ui3dDescSetsInstance->setDescriptorSetArray(0, { perspUiCamDescSets[0], perspUiCamDescSets[1] }); //Camera UBO
+
 
 		Ui3dPipelineInfo = std::make_unique<GraphicsPipelineInstanceInfo>(
 			ColouredVertexInputLayout,
@@ -2025,7 +2035,7 @@ namespace DOH::EDITOR {
 			//TODO:: A much better way than this!!
 			//	This points to the WRONG imageIndex as this is done before the swap chain retrieves the next image. This WILL be fixed.
 			const uint32_t uboSlot = 0;
-			Ui3dModelInstance->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = PerspectiveUiCamera->getGpuData()->DescriptorSets[context.getCurrentFrame()];
+			//Ui3dModelInstance->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = PerspectiveUiCamera->getGpuData()->DescriptorSets[context.getCurrentFrame()];
 			Ui3dPipelineConveyor.addRenderable(Ui3dModelInstance);
 		}
 	}

@@ -70,9 +70,13 @@ namespace DOH {
 		};
 		DescriptorApiVulkan::updateDescriptorSet(mContext.getLogicDevice(), texArrUpdate);
 
-		std::initializer_list<VkDescriptorSet> descSets = { VK_NULL_HANDLE, mTextureArrayDescSet };
-		mShapesDescSetsInstanceScene = std::make_shared<DescriptorSetsInstanceVulkan>(descSets);
-		mShapesDescSetsInstanceUi = std::make_shared<DescriptorSetsInstanceVulkan>(descSets);
+		const uint32_t descSetCount = 2;
+		mShapesDescSetsInstanceScene = std::make_shared<DescriptorSetsInstanceVulkan>(descSetCount);
+		mShapesDescSetsInstanceScene->setDescriptorSetArray(CAMERA_UBO_SLOT, { VK_NULL_HANDLE , VK_NULL_HANDLE });
+		mShapesDescSetsInstanceScene->setDescriptorSetSingle(1, mTextureArrayDescSet);
+		mShapesDescSetsInstanceUi = std::make_shared<DescriptorSetsInstanceVulkan>(descSetCount);
+		mShapesDescSetsInstanceUi->setDescriptorSetArray(CAMERA_UBO_SLOT, { VK_NULL_HANDLE , VK_NULL_HANDLE });
+		mShapesDescSetsInstanceUi->setDescriptorSetSingle(1, mTextureArrayDescSet);
 
 		initQuad();
 		initCircle();
@@ -835,8 +839,6 @@ namespace DOH {
 				if (quadCount > 0) {
 					SimpleRenderable& batchRenderable = *mQuadScene.Renderables[i];
 					VertexArrayVulkan& vao = batchRenderable.getVao();
-					static constexpr uint32_t uboSlot = 0;
-					batchRenderable.getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mSceneCameraData->DescriptorSets[imageIndex];
 
 					vao.getVertexBuffers()[0]->setDataMapped(
 						logicDevice,
@@ -857,7 +859,7 @@ namespace DOH {
 						debugInfo.IndexBufferBinds++;
 					}
 
-					mQuadScene.Pipeline->recordDrawCommand(cmd, batchRenderable, currentBindings, 0);
+					mQuadScene.Pipeline->recordDrawCommand(imageIndex, cmd, batchRenderable, currentBindings, 0);
 					debugInfo.SceneDrawCalls++;
 
 					batch.reset();
@@ -873,9 +875,6 @@ namespace DOH {
 				if (geoCount > 0) {
 					SimpleRenderable& batchRenderable = *mCircleScene.Renderables[i];
 					VertexArrayVulkan& vao = batchRenderable.getVao();
-					//Update desc set instance to point camera slot to current frame's desc set
-					static constexpr uint32_t uboSlot = 0;
-					batchRenderable.getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mSceneCameraData->DescriptorSets[imageIndex];
 		
 					vao.getVertexBuffers()[0]->setDataMapped(
 						logicDevice,
@@ -896,7 +895,7 @@ namespace DOH {
 						debugInfo.IndexBufferBinds++;
 					}
 		
-					mCircleScene.Pipeline->recordDrawCommand(cmd, batchRenderable, currentBindings, 0);
+					mCircleScene.Pipeline->recordDrawCommand(imageIndex, cmd, batchRenderable, currentBindings, 0);
 					debugInfo.SceneDrawCalls++;
 		
 					batch.reset();
@@ -926,9 +925,6 @@ namespace DOH {
 				if (quadCount > 0) {
 					SimpleRenderable& batchRenderable = *mQuadUi.Renderables[i];
 					VertexArrayVulkan& vao = batchRenderable.getVao();
-					//Update desc set instance to point camera slot to current frame's desc set
-					static constexpr uint32_t uboSlot = 0;
-					batchRenderable.getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mUiCameraData->DescriptorSets[imageIndex];
 
 					vao.getVertexBuffers()[0]->setDataMapped(
 						logicDevice,
@@ -950,7 +946,7 @@ namespace DOH {
 						debugInfo.IndexBufferBinds++;
 					}
 
-					mQuadUi.Pipeline->recordDrawCommand(cmd, batchRenderable, currentBindings, 0);
+					mQuadUi.Pipeline->recordDrawCommand(imageIndex, cmd, batchRenderable, currentBindings, 0);
 					debugInfo.UiDrawCalls++;
 
 					batch.reset();
@@ -966,9 +962,6 @@ namespace DOH {
 				if (geoCount > 0) {
 					SimpleRenderable& batchRenderable = *mCircleUi.Renderables[i];
 					VertexArrayVulkan& vao = batchRenderable.getVao();
-					//Update desc set instance to point camera slot to current frame's desc set
-					static constexpr uint32_t uboSlot = 0;
-					batchRenderable.getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = mUiCameraData->DescriptorSets[imageIndex];
 			
 					vao.getVertexBuffers()[0]->setDataMapped(
 						logicDevice,
@@ -989,7 +982,7 @@ namespace DOH {
 						debugInfo.IndexBufferBinds++;
 					}
 			
-					mCircleUi.Pipeline->recordDrawCommand(cmd, batchRenderable, currentBindings, 0);
+					mCircleUi.Pipeline->recordDrawCommand(imageIndex, cmd, batchRenderable, currentBindings, 0);
 					debugInfo.UiDrawCalls++;
 			
 					batch.reset();
@@ -1208,5 +1201,14 @@ namespace DOH {
 	
 		//NOTE:: Currently there are no Descriptors owned by the ShapeRenderer::INSTANCE so this function is empty.
 		//return { };
+	}
+
+	void ShapeRenderer::setSceneCameraDataImpl(std::shared_ptr<CameraGpuData> cameraData) {
+		mSceneCameraData = cameraData;
+		mShapesDescSetsInstanceScene->setDescriptorSetArray(ShapeRenderer::CAMERA_UBO_SLOT, { cameraData->DescriptorSets[0], cameraData->DescriptorSets[1] });
+	}
+	void ShapeRenderer::setUiCameraDataImpl(std::shared_ptr<CameraGpuData> cameraData) {
+		mUiCameraData = cameraData;
+		mShapesDescSetsInstanceUi->setDescriptorSetArray(ShapeRenderer::CAMERA_UBO_SLOT, { cameraData->DescriptorSets[0], cameraData->DescriptorSets[1] });
 	}
 }

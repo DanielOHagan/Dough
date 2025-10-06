@@ -28,6 +28,8 @@ namespace DOH {
 		static const char* MSDF_SHADER_PATH_VERT;
 		static const char* MSDF_SHADER_PATH_FRAG;
 
+		static const uint32_t CAMERA_UBO_SLOT = 0u;
+
 		std::unordered_map<std::string, std::shared_ptr<FontBitmap>> mFontBitmaps;
 		std::unique_ptr<TextureArray> mFontBitmapPagesTextureArary;
 		std::shared_ptr<IndexBufferVulkan> mQuadIndexBuffer;
@@ -84,6 +86,9 @@ namespace DOH {
 		void drawTextSameTextureFromQuadsImpl(const std::vector<Quad>& quadArr, const FontBitmap& bitmap, RenderBatchQuad& renderBatch);
 		void drawTextStringImpl(TextString& string, RenderBatchQuad& renderBatch);
 
+		void setSceneCameraDataImpl(std::shared_ptr<CameraGpuData> cameraData);
+		void setUiCameraDataImpl(std::shared_ptr<CameraGpuData> cameraData);
+
 		RenderBatchQuad& getSuitableTextBatchSceneImpl(const FontBitmap& bitmap);
 		RenderBatchQuad& getSuitableTextBatchUiImpl(const FontBitmap& bitmap);
 		static inline RenderBatchQuad& getSuitableTextBatchScene(TextString& string) { return INSTANCE->getSuitableTextBatchSceneImpl(string.getCurrentFontBitmap()); }
@@ -123,8 +128,8 @@ namespace DOH {
 		static inline void drawTextStringScene(TextString& string) { INSTANCE->drawTextStringImpl(string, INSTANCE->getSuitableTextBatchSceneImpl(string.getCurrentFontBitmap())); }
 		static inline void drawTextStringUi(TextString& string) { INSTANCE->drawTextStringImpl(string, INSTANCE->getSuitableTextBatchUiImpl(string.getCurrentFontBitmap())); }
 
-		static inline void setSceneCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->mSceneCameraData = cameraData; }
-		static inline void setUiCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->mUiCameraData = cameraData; }
+		static inline void setSceneCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->setSceneCameraDataImpl(cameraData); }
+		static inline void setUiCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->setUiCameraDataImpl(cameraData); }
 		static inline void setWarnOnNullSceneCameraData(bool enabled) { INSTANCE->mWarnOnNullSceneCameraData = enabled; }
 		static inline void setWarnOnNullUiCameraData(bool enabled) { INSTANCE->mWarnOnNullUiCameraData = enabled; }
 	};
