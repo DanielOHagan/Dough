@@ -73,10 +73,7 @@ namespace DOH {
 			const char c = mChars[i];
 
 			switch (c) {
-				case ' ':
-				case '\t':
-				case '\r':
-				case '\n':
+				case ' ': case '\t': case '\r': case '\n':
 					if (c == '\n') {
 						debugLineNumber++;
 						debugLineChar = 0;
@@ -140,16 +137,7 @@ namespace DOH {
 					}
 					continue;
 
-				case '0':
-				case '1':
-				case '2':
-				case '3':
-				case '4':
-				case '5':
-				case '6':
-				case '7':
-				case '8':
-				case '9':
+				case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
 					if (isInString) {
 						break;
 					} else if (isSearchingForElementValue) {
@@ -204,6 +192,14 @@ namespace DOH {
 							//Reset to default value
 							isInteger = true;
 						}
+					}
+
+					if (currentElement.get().isArray()) {
+						isSearchingForElementName = false;
+						isSearchingForElementValue = true;
+					} else if (currentElement.get().isObject()) {
+						isSearchingForElementName = true;
+						isSearchingForElementValue = false;
 					}
 					break;
 
