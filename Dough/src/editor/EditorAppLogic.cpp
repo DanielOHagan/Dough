@@ -753,7 +753,6 @@ UPS displayed is the count of frames in the last full second interval)"
 			ImGui::SameLine();
 			ImGui::Text(initSettings.FileName.c_str());
 
-			initSettings.ApplicationName = "Dough Application";
 			char appNameBuf[512] = {};
 			initSettings.ApplicationName.copy(appNameBuf, sizeof(initSettings.ApplicationName));
 			if (ImGui::InputText(ApplicationInitSettings::APPLICATION_NAME_LABEL, appNameBuf, sizeof(appNameBuf))) {
@@ -763,7 +762,7 @@ UPS displayed is the count of frames in the last full second interval)"
 			//NOTE:: Max width & height set to arbitrary value of 5000
 			int tempWindowWidth = static_cast<int>(initSettings.WindowWidth);
 			if (ImGui::DragInt(ApplicationInitSettings::WINDOW_WIDTH_LABEL, &tempWindowWidth, 1, 1, 5000)) {
-				initSettings.WindowWidth = static_cast<uint32_t>(tempWindowWidth );
+				initSettings.WindowWidth = static_cast<uint32_t>(tempWindowWidth);
 			}
 			int tempWindowHeight = static_cast<int>(initSettings.WindowHeight);
 			if (ImGui::DragInt(ApplicationInitSettings::WINDOW_HEIGHT_LABEL, &tempWindowHeight, 1, 1, 5000)) {
