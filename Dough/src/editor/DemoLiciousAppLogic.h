@@ -509,7 +509,6 @@ namespace DOH::EDITOR {
 		class MultiCameraPassDemo : public ADemo {
 		public:
 			//Some cameras and textured shaders are owned by mSharedDemoResources
-
 			static const char* ORTHO_SCENE_CAM_NAME;
 			static const char* PERSP_UI_CAM_NAME;
 			std::unique_ptr<DOH::OrthographicCamera> OrthoSceneCamera;
@@ -555,6 +554,26 @@ namespace DOH::EDITOR {
 			virtual const char* getName() override { return "MultiCameraPass"; }
 		};
 
+		//To show how to read/write and edit a .json file
+		class JsonDemo : public ADemo {
+		public:
+			std::shared_ptr<JsonFileData> ExampleDataFromFile;
+			std::shared_ptr<JsonFileData> EditableData;
+			char FileNameBuffer[1024];
+
+			JsonDemo(SharedDemoResources& sharedResources)
+			:	ADemo(sharedResources),
+				FileNameBuffer("localSave_0")
+			{}
+			virtual void init() override;
+			virtual void close() override;
+			virtual void update(float delta) override;
+			virtual void render() override;
+			virtual void renderImGuiMainTab() override;
+			virtual void renderImGuiExtras() override;
+			virtual const char* getName() override { return "JsonDemo"; }
+		};
+
 		struct ImGuiSettings {
 			bool CurrentDemoCollapseMenuOpen = true;
 			bool RenderObjModelsList = false;
@@ -569,6 +588,7 @@ namespace DOH::EDITOR {
 		std::unique_ptr<BoundingBoxDemo> mBoundingBoxDemo;
 		std::unique_ptr<TileMapDemo> mTileMapDemo;
 		std::unique_ptr<MultiCameraPassDemo> mMultiCameraPassDemo;
+		std::unique_ptr<JsonDemo> mJsonDemo;
 		//References to usable demos (mShapesDemo is just a wrapper of "inner" demos so it's not needed here).
 		// This is primarily used for convenience for Editor GUI. 
 		// IMPORTANT:: NOT TO BE USED FOR OBJECT LIFETIME!

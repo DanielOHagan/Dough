@@ -18,6 +18,7 @@ namespace DOH {
 	//TODO:: create a DynamicBatchArray<RenderBatchQuad> or something like that.
 
 	class RenderingContextVulkan;
+	enum class EImGuiContainerType;
 
 	class ShapeRenderer {
 		friend class RenderingContextVulkan;
@@ -29,6 +30,9 @@ namespace DOH {
 		static const char* QUAD_SHADER_PATH_FRAG;
 		static const char* CIRCLE_SHADER_PATH_VERT;
 		static const char* CIRCLE_SHADER_PATH_FRAG;
+
+		static const char* NAME_SHORT_HAND;
+		static const char* NAME_LONG_HAND;
 
 		static const uint32_t CAMERA_UBO_SLOT = 0u;
 
@@ -108,6 +112,8 @@ namespace DOH {
 		void setSceneCameraDataImpl(std::shared_ptr<CameraGpuData> cameraData);
 		void setUiCameraDataImpl(std::shared_ptr<CameraGpuData> cameraData);
 
+		void drawImGuiImpl(EImGuiContainerType type);
+
 	public:
 		ShapeRenderer(RenderingContextVulkan& context);
 
@@ -172,5 +178,8 @@ namespace DOH {
 		static inline void setUiCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->setUiCameraDataImpl(cameraData); }
 		static inline void setWarnOnNullSceneCameraData(bool enabled) { INSTANCE->mWarnOnNullSceneCameraData = enabled; }
 		static inline void setWarnOnNullUiCameraData(bool enabled) { INSTANCE->mWarnOnNullUiCameraData = enabled; }
+
+		//Draw ImGui elements.
+		static inline void drawImGui(EImGuiContainerType type) { INSTANCE->drawImGuiImpl(type); }
 	};
 }

@@ -172,6 +172,21 @@ namespace DOH::EDITOR {
 
 		if (mEditorSettings->RenderDebugWindow) {
 			imGuiRenderDebugWindow(delta);
+
+			//NOTE:: Currently enforcing all renderers to use the same container type for easier code here.
+			if (mEditorSettings->EngineSysContainerType == EImGuiContainerType::TAB) { //Separate window with a tab bar for each sys
+				ImGui::Begin("Engine Sys");
+				ImGui::BeginTabBar("Renderers");
+				ShapeRenderer::drawImGui(mEditorSettings->EngineSysContainerType);
+				TextRenderer::drawImGui(mEditorSettings->EngineSysContainerType);
+				LineRenderer::drawImGui(mEditorSettings->EngineSysContainerType);
+				ImGui::EndTabBar();
+				ImGui::End();
+			} else if (mEditorSettings->EngineSysContainerType == EImGuiContainerType::WINDOW) { //Individual windows for each sys
+				ShapeRenderer::drawImGui(mEditorSettings->EngineSysContainerType);
+				TextRenderer::drawImGui(mEditorSettings->EngineSysContainerType);
+				LineRenderer::drawImGui(mEditorSettings->EngineSysContainerType);
+			}
 		}
 
 		if (mEditorSettings->InnerAppEditorWindowDisplay) {
@@ -652,7 +667,7 @@ UPS displayed is the count of frames in the last full second interval)"
 				EditorGui::displayHelpTooltip(
 					"Input is passed through the Input Layer Stack, the first layer is indexed at 0 (the highest priority layer). Input Layers may handle the event and prevent the event from being passed through the stack further, or it may just ignore the event and pass it on to the next layer."
 				);
-				
+
 				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(252.0f / 255.0f, 182.0f / 255.0f, 3.0f / 255.0f, 1.0f));
 				ImGui::PopStyleColor(1);
 				uint32_t i = 0;
@@ -720,12 +735,85 @@ UPS displayed is the count of frames in the last full second interval)"
 				ImGui::Text("No device extensions enabled.");
 			}
 
-			
+
 			ImGui::Text("Rendering Device Name: ");
 			ImGui::SameLine();
 			ImGui::Text(deviceInfo.DeviceName.c_str());
 
 			//TODO:: device driver version, these are vendor specific so need to implement a way of extracting it from AMD/NVIDIA/other
+
+			ImGui::EndTabItem();
+		}
+
+		if (ImGui::BeginTabItem("Init Settings")) {
+			Application& app = Application::get();
+			ApplicationInitSettings& initSettings = app.getInitSettings();
+
+			ImGui::Text("Init settings from: ");
+			ImGui::SameLine();
+			ImGui::Text(initSettings.FileName.c_str());
+
+			initSettings.ApplicationName = "Dough Application";
+			char appNameBuf[512] = {};
+			initSettings.ApplicationName.copy(appNameBuf, sizeof(initSettings.ApplicationName));
+			if (ImGui::InputText(ApplicationInitSettings::APPLICATION_NAME_LABEL, appNameBuf, sizeof(appNameBuf))) {
+				initSettings.ApplicationName = appNameBuf;
+			}
+
+			//NOTE:: Max width & height set to arbitrary value of 5000
+			int tempWindowWidth = static_cast<int>(initSettings.WindowWidth);
+			if (ImGui::DragInt(ApplicationInitSettings::WINDOW_WIDTH_LABEL, &tempWindowWidth, 1, 1, 5000)) {
+				initSettings.WindowWidth = static_cast<uint32_t>(tempWindowWidth );
+			}
+			int tempWindowHeight = static_cast<int>(initSettings.WindowHeight);
+			if (ImGui::DragInt(ApplicationInitSettings::WINDOW_HEIGHT_LABEL, &tempWindowHeight, 1, 1, 5000)) {
+				initSettings.WindowHeight = static_cast<uint32_t>(tempWindowHeight);
+			}
+			initSettings.WindowDisplayMode = EWindowDisplayMode::WINDOWED;
+
+			ImGui::DragFloat(
+				ApplicationInitSettings::TARGET_FOREGROUND_FPS_LABEL,
+				&initSettings.TargetForegroundFps,
+				1.0f,
+				ApplicationLoop::MIN_TARGET_FPS,
+				ApplicationLoop::MAX_TARGET_FPS
+			);
+			ImGui::DragFloat(
+				ApplicationInitSettings::TARGET_FOREGROUND_UPS_LABEL,
+				&initSettings.TargetForegroundUps,
+				1.0f,
+				ApplicationLoop::MIN_TARGET_UPS,
+				ApplicationLoop::MAX_TARGET_UPS
+			);
+			ImGui::Checkbox(ApplicationInitSettings::RUN_IN_BACKGROUND_LABEL, &initSettings.RunInBackground);
+			ImGui::DragFloat(
+				ApplicationInitSettings::TARGET_BACKGROUND_FPS_LABEL,
+				&initSettings.TargetBackgroundFps,
+				1.0f,
+				ApplicationLoop::MIN_TARGET_FPS,
+				ApplicationLoop::MAX_TARGET_FPS
+			);
+			ImGui::DragFloat(
+				ApplicationInitSettings::TARGET_BACKGROUND_UPS_LABEL,
+				&initSettings.TargetBackgroundUps,
+				1.0f,
+				ApplicationLoop::MIN_TARGET_UPS,
+				ApplicationLoop::MAX_TARGET_UPS
+			);
+
+			//TODO:: Value checking? i.e. making sure the mins are lower than max, etc...
+			//TODO:: Saving & reading from a specific fileName
+
+			if (ImGui::Button("Save")) {
+				app.saveAppInitSettings(initSettings.FileName.c_str());
+			}
+			EditorGui::displayWarningTooltip("This will OVERWRITE a file if one exists with the same name!");
+			
+			if (ImGui::Button("Reset default")) {
+				app.resetAppInitSettings();
+			}
+			EditorGui::displayHelpTooltip("Reset default values but keep the same name.");
+
 
 			ImGui::EndTabItem();
 		}

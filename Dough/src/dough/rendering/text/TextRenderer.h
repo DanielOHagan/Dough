@@ -13,6 +13,7 @@ namespace DOH {
 
 	class RenderingContextVulkan;
 	class CameraGpuData;
+	enum class EImGuiContainerType;
 
 	class TextRenderer {
 
@@ -27,6 +28,9 @@ namespace DOH {
 		static const char* SOFT_MASK_SHADER_PATH_FRAG;
 		static const char* MSDF_SHADER_PATH_VERT;
 		static const char* MSDF_SHADER_PATH_FRAG;
+
+		static const char* NAME_SHORT_HAND;
+		static const char* NAME_LONG_HAND;
 
 		static const uint32_t CAMERA_UBO_SLOT = 0u;
 
@@ -94,12 +98,16 @@ namespace DOH {
 		static inline RenderBatchQuad& getSuitableTextBatchScene(TextString& string) { return INSTANCE->getSuitableTextBatchSceneImpl(string.getCurrentFontBitmap()); }
 		static inline RenderBatchQuad& getSuitableTextBatchUi(TextString& string) { return INSTANCE->getSuitableTextBatchUiImpl(string.getCurrentFontBitmap()); }
 
+		void drawImGuiImpl(EImGuiContainerType type);
+
 	public:
 
 		static constexpr const char* ARIAL_SOFT_MASK_NAME = "Arial-SoftMask";
 		static constexpr const char* ARIAL_MSDF_NAME = "Arial-MSDF";
 
 		TextRenderer(RenderingContextVulkan& context);
+		TextRenderer(const TextRenderer& copy) = delete;
+		void operator=(const TextRenderer& assignment) = delete;
 
 		static void init(RenderingContextVulkan& context);
 		static void close();
@@ -132,5 +140,7 @@ namespace DOH {
 		static inline void setUiCameraData(std::shared_ptr<CameraGpuData> cameraData) { INSTANCE->setUiCameraDataImpl(cameraData); }
 		static inline void setWarnOnNullSceneCameraData(bool enabled) { INSTANCE->mWarnOnNullSceneCameraData = enabled; }
 		static inline void setWarnOnNullUiCameraData(bool enabled) { INSTANCE->mWarnOnNullUiCameraData = enabled; }
+
+		static inline void drawImGui(EImGuiContainerType type) { INSTANCE->drawImGuiImpl(type); }
 	};
 }

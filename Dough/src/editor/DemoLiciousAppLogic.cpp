@@ -5,6 +5,7 @@
 #include "dough/application/Application.h"
 #include "dough/rendering/ShapeRenderer.h"
 #include "dough/rendering/text/TextRenderer.h"
+#include "dough/files/readers/JsonFileReader.h"
 
 #include <tracy/public/tracy/Tracy.hpp>
 
@@ -41,6 +42,7 @@ namespace DOH::EDITOR {
 		mBoundingBoxDemo->update(delta);
 		mTileMapDemo->update(delta);
 		mMultiCameraPassDemo->update(delta);
+		mJsonDemo->update(delta);
 	}
 
 	void DemoLiciousAppLogic::render() {
@@ -54,6 +56,7 @@ namespace DOH::EDITOR {
 		mBoundingBoxDemo->render();
 		mTileMapDemo->render();
 		mMultiCameraPassDemo->render();
+		mJsonDemo->render();
 	}
 
 	void DemoLiciousAppLogic::imGuiRender(float delta) {
@@ -75,23 +78,25 @@ namespace DOH::EDITOR {
 				EditorGui::controlsEditorOrthoCameraController(*mMultiCameraPassDemo->OrthoSceneCameraController, MultiCameraPassDemo::ORTHO_SCENE_CAM_NAME);
 			}
 
-			ImGui::Text("Demo Settings & Info:");
+			if (ImGui::CollapsingHeader("Demo Selection")) {
+				ImGui::Text("Demo Settings & Info:");
 
-			if (ImGui::BeginCombo("Demo", mSelectedDemoIndex != UINT32_MAX ? mDemos[mSelectedDemoIndex].get().getName() : "Click Here To Select a Demo")) {
-				uint32_t i = 0;
-				for (auto& demo : mDemos) {
-					bool selected = false;
-					ImGui::Selectable(demo.get().getName(), &selected);
-					if (selected) {
-						mSelectedDemoIndex = i;
+				if (ImGui::BeginCombo("Demo", mSelectedDemoIndex != UINT32_MAX ? mDemos[mSelectedDemoIndex].get().getName() : "Click Here To Select a Demo")) {
+					uint32_t i = 0;
+					for (auto& demo : mDemos) {
+						bool selected = false;
+						ImGui::Selectable(demo.get().getName(), &selected);
+						if (selected) {
+							mSelectedDemoIndex = i;
+						}
+						i++;
 					}
-					i++;
+					ImGui::EndCombo();
 				}
-				ImGui::EndCombo();
-			}
 
-			if (mSelectedDemoIndex != UINT32_MAX) {
-				mDemos[mSelectedDemoIndex].get().renderImGuiMainTab();
+				if (mSelectedDemoIndex != UINT32_MAX) {
+					mDemos[mSelectedDemoIndex].get().renderImGuiMainTab();
+				}
 			}
 
 			ImGui::NewLine();
@@ -124,6 +129,9 @@ namespace DOH::EDITOR {
 
 				mMultiCameraPassDemo->Render = false;
 				mMultiCameraPassDemo->Update = false;
+
+				//mJsonDemo->Render = false;
+				//mJsonDemo->Update = false;
 			}
 			if (ImGui::Button("View atlas texture")) {
 				EditorGui::openMonoSpaceTextureAtlasViewerWindow(*ShapeRenderer::getTestMonoSpaceTextureAtlas());
@@ -145,6 +153,7 @@ namespace DOH::EDITOR {
 		mBoundingBoxDemo->renderImGuiExtras();
 		mTileMapDemo->renderImGuiExtras();
 		mMultiCameraPassDemo->renderImGuiExtras();
+		mJsonDemo->renderImGuiExtras();
 	}
 
 	void DemoLiciousAppLogic::close() {
@@ -169,7 +178,7 @@ namespace DOH::EDITOR {
 		//populateTestGrid(static_cast<uint32_t>(mGridDemo.TestGridSize[0]), static_cast<uint32_t>(mGridDemo.TestGridSize[1]));
 
 		initSharedResources(aspectRatio);
-		mDemos.reserve(10);
+		mDemos.reserve(11);
 
 		mShapesDemo = std::make_unique<ShapesDemo>(*mSharedDemoResources);
 		mShapesDemo->init();
@@ -204,6 +213,10 @@ namespace DOH::EDITOR {
 		mMultiCameraPassDemo = std::make_unique<MultiCameraPassDemo>(*mSharedDemoResources);
 		mMultiCameraPassDemo->init();
 		mDemos.emplace_back(*mMultiCameraPassDemo);
+
+		mJsonDemo = std::make_unique<JsonDemo>(*mSharedDemoResources);
+		mJsonDemo->init();
+		mDemos.emplace_back(*mJsonDemo);
 	}
 
 	void DemoLiciousAppLogic::closeDemos() {
@@ -236,6 +249,9 @@ namespace DOH::EDITOR {
 
 		mMultiCameraPassDemo->close();
 		mMultiCameraPassDemo.release();
+
+		mJsonDemo->close();
+		mJsonDemo.release();
 
 		closeSharedResources();
 	}
@@ -544,8 +560,6 @@ namespace DOH::EDITOR {
 				const bool renderAllWireframe = RenderAllWireframe;
 		
 				for (auto& obj : RenderableObjects) {
-					//obj->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] =
-					//	SharedResources.PerspectiveSceneCamera->getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
 					if (renderAllStandard || obj->Render) {
 						ScenePipelineConveyor.addRenderable(obj);
 					}
@@ -556,8 +570,6 @@ namespace DOH::EDITOR {
 			}
 		
 			if (SharedResources.TexturedConveyor.isValid() && RenderableTexturedModel->Render) {
-				//RenderableTexturedModel->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] =
-				//	SharedResources.PerspectiveSceneCamera->getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
 				SharedResources.TexturedConveyor.addRenderable(RenderableTexturedModel);
 			}
 		}
@@ -885,11 +897,9 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::CustomDemo::render() {
 		const uint32_t uboSlot = 0;
 		if (RenderScene) {
-			//SceneRenderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = SharedResources.PerspectiveSceneCamera->getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
 			SharedResources.TexturedConveyor.safeAddRenderable(SceneRenderable);
 		}
 		if (RenderUi) {
-			//UiRenderable->getDescriptorSetsInstance()->getDescriptorSets()[uboSlot] = SharedResources.OrthoUiCamera->getGpuData()->DescriptorSets[GET_RENDERER.getContext().getCurrentFrame()];
 			CustomUiConveyor.safeAddRenderable(UiRenderable);
 		}
 	}
@@ -2118,6 +2128,90 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::MultiCameraPassDemo::renderImGuiExtras() {
-		
+
+	}
+
+	void DemoLiciousAppLogic::JsonDemo::init() {
+		ExampleDataFromFile = ResourceHandler::loadJsonFile("dough/dough/res/demos/jsonDemo_example.json");
+		if (ExampleDataFromFile == nullptr) {
+			LOG_WARN("JsonDemo::init failed to load example json data.");
+		}
+
+		//Manual creation (can also be read from a file like above)
+		//Needs root element object
+		EditableData = std::make_unique<JsonFileData>();
+		EditableData->FileData.emplace(JSON_ROOT_OBJECT_NAME, createElementObject());
+	}
+
+	void DemoLiciousAppLogic::JsonDemo::close() {
+		if (ExampleDataFromFile != nullptr) {
+			ExampleDataFromFile.reset();
+		}
+		if (EditableData != nullptr) {
+			EditableData.reset();
+		}
+	}
+
+	void DemoLiciousAppLogic::JsonDemo::update(float delta) {
+
+	}
+
+	void DemoLiciousAppLogic::JsonDemo::render() {
+
+	}
+
+	void DemoLiciousAppLogic::JsonDemo::renderImGuiMainTab() {
+		static bool showExampleDataWindow = false;
+		ImGui::Checkbox("Show Example Data Window", &showExampleDataWindow);
+		if (showExampleDataWindow && ExampleDataFromFile != nullptr) {
+			EditorGui::jsonElementWindow(ExampleDataFromFile->getRoot(), "Example Data From File");
+		}
+
+		if (ImGui::Button("Reload Example JSON")) {
+			ExampleDataFromFile.reset();
+			ExampleDataFromFile = nullptr;
+
+			ExampleDataFromFile = ResourceHandler::loadJsonFile("dough/dough/res/demos/jsonDemo_example.json");
+		}
+
+		static bool showEditableDataWindow = false;
+		ImGui::Checkbox("Show Editable Data Window", &showEditableDataWindow);
+		if (showEditableDataWindow && EditableData != nullptr) {
+			EditorGui::jsonElementWindow(EditableData->getRoot(), "Editable Data");
+		}
+
+		//Very simple example of editing the data.
+		if (ImGui::Button("Clear Editable Data")) {
+			EditableData->getRoot().getObject().clear();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Reload Editable JSON")) {
+			EditableData.reset();
+			EditableData = nullptr;
+
+			EditableData = ResourceHandler::loadJsonFile("dough/dough/res/demos/jsonDemo_example.json");
+		}
+		EditorGui::displayHelpTooltip("Load jsonDemo_example.json into EditableData");
+
+		static bool nameTaken = false;
+		static std::string filePath = std::string(FileNameBuffer).append(".json");
+		if (ImGui::InputText("FileName", FileNameBuffer, sizeof(FileNameBuffer))) {
+			filePath = std::string(FileNameBuffer).append(".json");
+			nameTaken = ResourceHandler::doesFileExist(filePath.c_str());
+		}
+		EditorGui::displayHelpTooltip("Give FilePath to create a JSON file. The .json suffix is added to the given name.");
+		if (ImGui::Button("Save EditableData locally")) {
+			if (!ResourceHandler::doesFileExist(filePath.c_str())) {
+				ResourceHandler::writeJsonFile(filePath.c_str(), EditableData);
+				nameTaken = true;
+			}
+		}
+		if (nameTaken) {
+			EditorGui::displayWarningTooltip("Name taken, please choose another.");
+		}
+	}
+
+	void DemoLiciousAppLogic::JsonDemo::renderImGuiExtras() {
+
 	}
 }

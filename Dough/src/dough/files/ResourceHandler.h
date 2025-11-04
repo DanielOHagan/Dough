@@ -15,6 +15,7 @@ namespace DOH {
 	struct JsonFileData;
 	struct ObjFileData;
 	struct IndexedAtlasInfoFileData;
+	struct ApplicationInitSettings;
 
 	struct TextureCreationData {
 		void* Data;
@@ -60,6 +61,7 @@ namespace DOH {
 		std::shared_ptr<IndexedAtlasInfoFileData> loadIndexedTextureAtlasImpl(const char* atlasInfoFilePath);
 		std::shared_ptr<FntFileData> loadFntFileImpl(const char* filePath);
 		std::shared_ptr<JsonFileData> loadJsonFileImpl(const char* filePath);
+		bool writeJsonFileImpl(const char* filePath, std::shared_ptr<JsonFileData> fileData);
 		std::shared_ptr<Model3dCreationData> loadObjModelImpl(const std::string& filePath, const AVertexInputLayout& vertexInputLayout);
 
 		static std::pair<std::vector<float>, std::vector<uint32_t>> extractObjFileDataAsVertex3d(
@@ -96,6 +98,7 @@ namespace DOH {
 		static std::shared_ptr<Model3dCreationData> loadObjModel(const std::string& filePath);
 		static std::shared_ptr<FntFileData> loadFntFile(const char* filePath);
 		static std::shared_ptr<JsonFileData> loadJsonFile(const char* filePath);
+		static bool writeJsonFile(const char* filePath, std::shared_ptr<JsonFileData> fileData);
 
 
 		//------String parsing helpers-----
@@ -105,6 +108,13 @@ namespace DOH {
 
 		//-----File type helpers-----
 		static const bool isFileOfType(const char* filePath, const char* type);
+
+		//-----File helpers-----
+		static bool doesFileExist(const char* filePath);
+
+		//-----Settings loading-----
+		static std::shared_ptr<ApplicationInitSettings> loadAppInitSettings(const char* fileName);
+		static void wrtieAppInitSettings(const char* fileName, std::shared_ptr<ApplicationInitSettings> initSettings);
 
 		static std::shared_ptr<Model3dCreationData> loadObjModel(const std::string& filePath, const AVertexInputLayout& vertexInputLayout);
 	};

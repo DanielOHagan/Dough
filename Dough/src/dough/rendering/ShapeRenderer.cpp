@@ -3,6 +3,7 @@
 #include "dough/rendering/RenderingContextVulkan.h"
 #include "dough/Logging.h"
 #include "dough/application/Application.h"
+#include "dough/ImGuiWrapper.h"
 
 #include <tracy/public/tracy/Tracy.hpp>
 
@@ -13,6 +14,8 @@ namespace DOH {
 	const char* ShapeRenderer::QUAD_SHADER_PATH_FRAG = "Dough/Dough/res/shaders/spv/QuadBatch.frag.spv";
 	const char* ShapeRenderer::CIRCLE_SHADER_PATH_VERT = "Dough/Dough/res/shaders/spv/CircleBatch.vert.spv";
 	const char* ShapeRenderer::CIRCLE_SHADER_PATH_FRAG = "Dough/Dough/res/shaders/spv/CircleBatch.frag.spv";
+	const char* ShapeRenderer::NAME_SHORT_HAND = "ShapeRdr";
+	const char* ShapeRenderer::NAME_LONG_HAND = "ShapeRenderer";
 
 	ShapeRenderer::ShapeRenderer(RenderingContextVulkan& context)
 	:	mContext(context),
@@ -1207,8 +1210,90 @@ namespace DOH {
 		mSceneCameraData = cameraData;
 		mShapesDescSetsInstanceScene->setDescriptorSetArray(ShapeRenderer::CAMERA_UBO_SLOT, { cameraData->DescriptorSets[0], cameraData->DescriptorSets[1] });
 	}
+
 	void ShapeRenderer::setUiCameraDataImpl(std::shared_ptr<CameraGpuData> cameraData) {
 		mUiCameraData = cameraData;
 		mShapesDescSetsInstanceUi->setDescriptorSetArray(ShapeRenderer::CAMERA_UBO_SLOT, { cameraData->DescriptorSets[0], cameraData->DescriptorSets[1] });
+	}
+
+	void ShapeRenderer::drawImGuiImpl(EImGuiContainerType type) {
+		ZoneScoped;
+
+		bool open = false;
+		//IMPORTANT:: Works because there are only two options.
+		bool isWindow = type == EImGuiContainerType::WINDOW;
+
+		if (isWindow) {
+			open = ImGui::Begin(ShapeRenderer::NAME_LONG_HAND);
+		} else {
+			open = ImGui::BeginTabItem(ShapeRenderer::NAME_SHORT_HAND);
+		}
+
+		if (open) {
+
+			//TODO:: Fill this out with info and controls.
+
+			if (ImGui::CollapsingHeader("Quad Scene")) {
+				ImGui::Text("Batch Count: %i", mQuadScene.getBatchCount());
+
+				int i = 0;
+				size_t totalGeoCount = 0;
+				for (std::shared_ptr<RenderBatchQuad> batch : mQuadScene.GeoBatches) {
+					size_t geoCount = batch->getGeometryCount();
+					ImGui::Text("Batch [%i] GeoCount: %i ", i, geoCount);
+					totalGeoCount += geoCount;
+				}
+				ImGui::Text("Total GeoCount: %i", totalGeoCount);
+			}
+
+			if (ImGui::CollapsingHeader("Quad UI")) {
+				ImGui::Text("Batch Count: %i", mQuadUi.getBatchCount());
+
+				int i = 0;
+				size_t totalGeoCount = 0;
+				for (std::shared_ptr<RenderBatchQuad> batch : mQuadUi.GeoBatches) {
+					size_t geoCount = batch->getGeometryCount();
+					ImGui::Text("Batch [%i] GeoCount: %i ", i, geoCount);
+					i++;
+					totalGeoCount += geoCount;
+				}
+				ImGui::Text("Total GeoCount: %i", totalGeoCount);
+			}
+
+			if (ImGui::CollapsingHeader("Circle Scene")) {
+				ImGui::Text("Batch Count: %i", mCircleScene.getBatchCount());
+
+				int i = 0;
+				size_t totalGeoCount = 0;
+				for (std::shared_ptr<RenderBatchCircle> batch : mCircleScene.GeoBatches) {
+					size_t geoCount = batch->getGeometryCount();
+					ImGui::Text("Batch [%i] GeoCount: %i ", i, geoCount);
+					totalGeoCount += geoCount;
+				}
+				ImGui::Text("Total GeoCount: %i", totalGeoCount);
+			}
+
+			if (ImGui::CollapsingHeader("Circle UI")) {
+				ImGui::Text("Batch Count: %i", mCircleUi.getBatchCount());
+
+				int i = 0;
+				size_t totalGeoCount = 0;
+				for (std::shared_ptr<RenderBatchCircle> batch : mCircleUi.GeoBatches) {
+					size_t geoCount = batch->getGeometryCount();
+					ImGui::Text("Batch [%i] GeoCount: %i ", i, geoCount);
+					totalGeoCount += geoCount;
+				}
+				ImGui::Text("Total GeoCount: %i", totalGeoCount);
+			}
+
+
+			ImGui::Text("TODO:: This will be filled with more related info.");
+		}
+
+		if (isWindow) {
+			ImGui::End();
+		} else if (open) { //Here type MUST be TAB
+			ImGui::EndTabItem();
+		}
 	}
 }

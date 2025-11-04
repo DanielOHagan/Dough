@@ -1,6 +1,7 @@
 #include "dough/application/Application.h"
 
 #include "dough/Logging.h"
+#include "dough/files/ResourceHandler.h"
 
 #include <tracy/public/tracy/Tracy.hpp>
 
@@ -24,7 +25,7 @@ namespace DOH {
 		mAppInfoTimer->recordInterval("AppLoop.run() end");
 	}
 
-	void Application::init(std::shared_ptr<IApplicationLogic> appLogic, const ApplicationInitSettings& initSettings) {
+	void Application::init(std::shared_ptr<IApplicationLogic> appLogic, const char* appInitSettingsFileName) {
 		ZoneScoped;
 
 		{
@@ -50,6 +51,20 @@ namespace DOH {
 			}
 		}
 
+		{ //App init settings
+			std::shared_ptr<ApplicationInitSettings> initSettings = nullptr;
+			if (ResourceHandler::doesFileExist(appInitSettingsFileName)) {
+				initSettings = ResourceHandler::loadAppInitSettings(appInitSettingsFileName);
+			}
+
+			//Use default
+			if (initSettings == nullptr) {
+				mAppInitSettings = std::make_shared<ApplicationInitSettings>(Application::INIT_SETTINGS_DEFAULT_FILE_NAME);
+			} else {
+				mAppInitSettings = initSettings;
+			}
+		}
+
 		StaticVertexInputLayout::initEngineDefaultVertexInputLayouts();
 
 		mAppDebugInfo = std::make_unique<AppDebugInfo>();
@@ -57,18 +72,18 @@ namespace DOH {
 		mAppInfoTimer->recordInterval("Application.init() start");
 		mAppLogic = appLogic;
 
-		mWindow = std::make_unique<Window>(initSettings.WindowWidth, initSettings.WindowHeight, initSettings.WindowDisplayMode);
+		mWindow = std::make_unique<Window>(mAppInitSettings->WindowWidth, mAppInitSettings->WindowHeight, mAppInitSettings->WindowDisplayMode);
 		mAppInfoTimer->recordInterval("Window.init() start");
-		mWindow->init(initSettings.ApplicationName);
+		mWindow->init(mAppInitSettings->ApplicationName);
 		mAppInfoTimer->recordInterval("Window.init() end");
 
 		mAppLoop = std::make_unique<ApplicationLoop>(
 			*this,
-			initSettings.TargetForegroundFps,
-			initSettings.TargetForegroundUps,
-			initSettings.RunInBackground,
-			initSettings.TargetBackgroundFps,
-			initSettings.TargetBackgroundUps
+			mAppInitSettings->TargetForegroundFps,
+			mAppInitSettings->TargetForegroundUps,
+			mAppInitSettings->RunInBackground,
+			mAppInitSettings->TargetBackgroundFps,
+			mAppInitSettings->TargetBackgroundUps
 		);
 
 		Input::init();
@@ -140,7 +155,7 @@ namespace DOH {
 		mAppInfoTimer->dump("Application Info");
 	}
 
-	int Application::start(std::shared_ptr<IApplicationLogic> appLogic, ApplicationInitSettings initSettings) {
+	int Application::start(std::shared_ptr<IApplicationLogic> appLogic, const char* appInitSettingsFileName) {
 		ZoneScoped;
 
 		int returnCode = 0;
@@ -149,11 +164,11 @@ namespace DOH {
 			INSTANCE = new Application();
 
 			#if defined (_DEBUG)
-				INSTANCE->init(appLogic, initSettings);
+				INSTANCE->init(appLogic, appInitSettingsFileName);
 				INSTANCE->run();
 			#else
 				try {
-					INSTANCE->init(appLogic, initSettings);
+					INSTANCE->init(appLogic, appInitSettingsFileName);
 					INSTANCE->run();
 					returnCode = EXIT_SUCCESS;
 				} catch (const std::exception& e) {
@@ -294,5 +309,14 @@ namespace DOH {
 			LOG_WARN("Unknown mouse event type");
 			return;
 		}
+	}
+
+	void Application::resetAppInitSettings() {
+		std::string fileName = mAppInitSettings->FileName;
+		mAppInitSettings = std::make_shared<ApplicationInitSettings>(fileName.c_str());
+	}
+
+	void Application::saveAppInitSettings(const char* fileName) {
+		ResourceHandler::wrtieAppInitSettings(fileName, mAppInitSettings);
 	}
 }

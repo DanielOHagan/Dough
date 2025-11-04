@@ -621,6 +621,16 @@ namespace DOH::EDITOR {
 		}
 	}
 
+	void EditorGui::imGuiJsonElementWindowImpl(JsonElement& element, const char* name) {
+		ZoneScoped;
+
+		std::string title = std::string(name).append(" - READ");
+		if (ImGui::Begin(name)) {
+			imGuiJsonElementImpl(element, name);
+		}
+		ImGui::End();
+	}
+
 	bool EditorGui::imGuiIsGuiFocusedImpl() {
 		return ImGui::IsAnyItemActive() ||
 			ImGui::IsAnyItemFocused() ||

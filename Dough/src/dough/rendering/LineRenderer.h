@@ -14,6 +14,7 @@ namespace DOH {
 	class Quad;
 	class SwapChainVulkan;
 	class CameraGpuData;
+	enum class EImGuiContainerType;
 	
 	//NOTE:: Currently only allows for one batch per LineRenderingObjects instance.
 	class LineRenderingObjects : public IGPUResourceOwnerVulkan {
@@ -44,6 +45,9 @@ namespace DOH {
 		static const char* SCENE_LINE_SHADER_PATH_FRAG;
 		static const char* UI_LINE_SHADER_PATH_VERT;
 		static const char* UI_LINE_SHADER_PATH_FRAG;
+
+		static const char* NAME_SHORT_HAND;
+		static const char* NAME_LONG_HAND;
 
 		static const uint32_t CAMERA_UBO_SLOT = 0u;
 
@@ -79,6 +83,8 @@ namespace DOH {
 		void setSceneCameraDataImpl(std::shared_ptr<CameraGpuData> cameraData);
 		void setUiCameraDataImpl(std::shared_ptr<CameraGpuData> cameraData);
 
+		void drawImGuiImpl(EImGuiContainerType type);
+
 		static void drawScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 		static void drawUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 
@@ -88,6 +94,8 @@ namespace DOH {
 
 	public:
 		LineRenderer(RenderingContextVulkan& context);
+		LineRenderer(const LineRenderer& copy) = delete;
+		void operator=(const LineRenderer& assignment) = delete;
 
 		static inline void drawLineScene(const glm::vec3& start, const glm::vec3& end, const glm::vec4& colour) { INSTANCE->drawLineSceneImpl(start, end, colour); }
 		static inline void drawLineUi(const glm::vec2 & start, const glm::vec2 & end, const glm::vec4 & colour) { INSTANCE->drawLineUiImpl(start, end, colour); }
@@ -106,5 +114,7 @@ namespace DOH {
 		static inline void setWarnOnNullSceneCameraData(bool enabled) { INSTANCE->mWarnOnNullSceneCameraData = enabled; }
 		//Set to true if you want warnings to display each frame the ui camera data is null.
 		static inline void setWarnOnNullUiCameraData(bool enabled) { INSTANCE->mWarnOnNullUiCameraData = enabled; }
+
+		static inline void drawImGui(EImGuiContainerType type) { INSTANCE->drawImGuiImpl(type); }
 	};
 }

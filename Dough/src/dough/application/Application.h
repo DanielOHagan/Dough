@@ -77,10 +77,11 @@ namespace DOH {
 	private:
 		static Application* INSTANCE;
 
+		std::shared_ptr<IApplicationLogic> mAppLogic;
+		std::shared_ptr<ApplicationInitSettings> mAppInitSettings;
 		std::unique_ptr<Window> mWindow;
 		std::unique_ptr<ApplicationLoop> mAppLoop;
 		std::unique_ptr<RendererVulkan> mRenderer;
-		std::shared_ptr<IApplicationLogic> mAppLogic;
 		std::unique_ptr<IntervalTimer> mAppInfoTimer;
 		std::unique_ptr<AppDebugInfo> mAppDebugInfo;
 		bool mRunning;
@@ -88,6 +89,8 @@ namespace DOH {
 		bool mIconified;
 
 	public:
+		static constexpr const char* INIT_SETTINGS_DEFAULT_FILE_NAME = "dough_init.json";
+
 		Application(const Application& copy) = delete;
 		void operator=(const Application& assignment) = delete;
 		static Application& get() { return *INSTANCE; }
@@ -99,22 +102,27 @@ namespace DOH {
 		void onKeyEvent(KeyEvent& keyEvent);
 		void onMouseEvent(MouseEvent& mouseEvent);
 
+		void resetAppInitSettings();
+		void saveAppInitSettings(const char* fileName);
+
 		inline RendererVulkan& getRenderer() const { return *mRenderer; }
 		inline Window& getWindow() const { return *mWindow; }
 		inline ApplicationLoop& getLoop() const { return *mAppLoop; }
 		inline IntervalTimer& getAppInfoTimer() const { return *mAppInfoTimer; }
 		inline AppDebugInfo& getDebugInfo() const { return *mAppDebugInfo; }
+		inline ApplicationInitSettings& getInitSettings() const { return *mAppInitSettings; }
 		inline bool isRunning() const { return mRunning; }
 		inline bool isFocused() const { return mFocused; }
 		inline bool isIconified() const { return mIconified; }
 
-		static int start(std::shared_ptr<IApplicationLogic> appLogic, ApplicationInitSettings initSettings);
+		//static int start(std::shared_ptr<IApplicationLogic> appLogic, ApplicationInitSettings initSettings);
+		static int start(std::shared_ptr<IApplicationLogic> appLogic, const char* appInitSettingsFileName = Application::INIT_SETTINGS_DEFAULT_FILE_NAME);
 		static bool isInstantiated() { return INSTANCE != nullptr; }
 
 	private:
 		Application();
 
-		void init(std::shared_ptr<IApplicationLogic> appLogic, const ApplicationInitSettings& initSettings);
+		void init(std::shared_ptr<IApplicationLogic> appLogic, const char* appInitSettingsFileName);
 		inline void pollEvents() const { mWindow->pollEvents(); }
 		void update(float delta);
 		void render(float delta);

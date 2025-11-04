@@ -107,9 +107,8 @@ namespace DOH {
 	public:
 		DescriptorSetsInstanceVulkan(size_t slotCount)
 		:	mDescriptorSets(slotCount)
-		{}
+		{} //TODO:: allow for resizing of mDescriptorSets ?
 
-		
 		/**
 		* Get a descriptor set from the slot, and if necessary the given index.
 		* 
@@ -128,14 +127,39 @@ namespace DOH {
 			}
 		}
 
+		/**
+		* Set descriptor in slot to given descriptor set.
+		* 
+		* @param slot The slot in layout. 0-Indexed. Slot MUST initialised during construction.
+		*/
 		void setDescriptorSetSingle(uint32_t slot, VkDescriptorSet descSet) {
 			mDescriptorSets[slot].emplace<VkDescriptorSet>(descSet);
 		}
 
+		/**
+		* Set slot in layout to an array that will be indexed with swapchain index at render.
+		*
+		* @param slot The slot in layout for given descriptor sets. 0-Inexed.
+		* @param descSetArr Array of descriptor sets, size MAX_FRAMES_IN_FLIGHT, to assign to given slot.
+		*/
 		void setDescriptorSetArray(uint32_t slot, std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> descSetArr) {
 			mDescriptorSets[slot].emplace<std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT>>(descSetArr);
 		}
 
+		/**
+		* Get total count of descriptor set slots in this instance.
+		*
+		* @returns Total count of descriptor set slots in instance.
+		*/
 		inline uint32_t getDescriptorSetSlotCount() const { return static_cast<uint32_t>(mDescriptorSets.size()); }
+
+		/**
+		* Query if instance is using slot. Instance vector index is the slot.
+		* 
+		* @param slot The desired slot for query. 0-Inexed.
+		* 
+		* @returns True if slot exists in array (NOT whether the slot is used or not), false if not.
+		*/
+		inline bool hasSlot(uint32_t slot) const { return slot < static_cast<uint32_t>(mDescriptorSets.size()); }
 	};
 }

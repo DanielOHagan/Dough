@@ -5,6 +5,8 @@
 #include "dough/files/readers/FntFileReader.h"
 #include "dough/files/readers/JsonFileReader.h"
 #include "dough/files/readers/IndexedAtlasInfoFileReader.h"
+#include "dough/files/writers/JsonFileWriter.h"
+#include "dough/application/ApplicationInitSettings.h"
 
 #include <stb/stb_image.h>
 #include <tinyobjloader/tiny_obj_loader.h>
@@ -12,6 +14,8 @@
 #include <glm/gtx/hash.hpp>
 
 #include <tracy/public/tracy/Tracy.hpp>
+
+#include <filesystem>
 
 //Hash function based off of example from https://vulkan-tutorial.com/Loading_models
 namespace std {
@@ -90,6 +94,10 @@ namespace DOH {
 
 	std::shared_ptr<JsonFileData> ResourceHandler::loadJsonFile(const char* filePath) {
 		return ResourceHandler::INSTANCE.loadJsonFileImpl(filePath);
+	}
+
+	bool ResourceHandler::writeJsonFile(const char* filePath, std::shared_ptr<JsonFileData> fileData) {
+		return ResourceHandler::INSTANCE.writeJsonFileImpl(filePath, fileData);
 	}
 
 	void ResourceHandler::freeImage(void* imageData) {
@@ -237,6 +245,14 @@ namespace DOH {
 		return jsonReader.read();
 	}
 
+	bool ResourceHandler::writeJsonFileImpl(const char* filePath, std::shared_ptr<JsonFileData> fileData) {
+		ZoneScoped;
+
+		JsonFileWriter jsonWriter(filePath);
+		//Default to compact JSON
+		return jsonWriter.writeCompact(*fileData);
+	}
+
 	const std::string ResourceHandler::getCurrentLineAsBuffer(const std::vector<char>& chars, const size_t startIndex) {
 		//ZoneScoped;
 
@@ -292,6 +308,61 @@ namespace DOH {
 		}
 
 		return true;
+	}
+
+	bool ResourceHandler::doesFileExist(const char* filePath) {
+		return std::filesystem::exists(filePath);
+	}
+
+	std::shared_ptr<ApplicationInitSettings> ResourceHandler::loadAppInitSettings(const char* fileName) {
+		ZoneScoped;
+
+		std::shared_ptr<JsonFileData> initSettingsJson = ResourceHandler::loadJsonFile(fileName);
+
+		if (initSettingsJson == nullptr) {
+			LOG_ERR("ResourceHandler::loadAppInitSettings failed to load json file: " << fileName);
+			LOG_WARN("App init settings should be in the same directory as the engine executable.");
+			return nullptr;
+		}
+
+		std::shared_ptr<ApplicationInitSettings> initSettings = std::make_shared<ApplicationInitSettings>(fileName);
+		std::unordered_map<std::string, JsonElement>& rootObj = initSettingsJson->getRoot().getObject();
+		initSettings->ApplicationName = rootObj.at(ApplicationInitSettings::APPLICATION_NAME_LABEL).getString();
+		initSettings->WindowWidth = static_cast<uint32_t>(rootObj.at(ApplicationInitSettings::WINDOW_WIDTH_LABEL).getLong());
+		initSettings->WindowHeight = static_cast<uint32_t>(rootObj.at(ApplicationInitSettings::WINDOW_HEIGHT_LABEL).getLong());
+		initSettings->WindowDisplayMode = static_cast<EWindowDisplayMode>(rootObj.at(ApplicationInitSettings::WINDOW_DISPLAY_MODE_LABEL).getLong());
+		initSettings->TargetForegroundFps = rootObj.at(ApplicationInitSettings::TARGET_FOREGROUND_FPS_LABEL).getNumberAsFloat();
+		initSettings->TargetForegroundUps = rootObj.at(ApplicationInitSettings::TARGET_FOREGROUND_UPS_LABEL).getNumberAsFloat();
+		initSettings->RunInBackground = rootObj.at(ApplicationInitSettings::RUN_IN_BACKGROUND_LABEL).getBool();
+		initSettings->TargetBackgroundFps = rootObj.at(ApplicationInitSettings::TARGET_BACKGROUND_FPS_LABEL).getNumberAsFloat();
+		initSettings->TargetBackgroundUps = rootObj.at(ApplicationInitSettings::TARGET_BACKGROUND_UPS_LABEL).getNumberAsFloat();
+
+		return initSettings;
+	}
+
+	void ResourceHandler::wrtieAppInitSettings(const char* fileName, std::shared_ptr<ApplicationInitSettings> initSettings) {
+		std::shared_ptr<JsonFileData> initSettingsJson = std::make_shared<JsonFileData>();
+		
+		auto& rootInsert = initSettingsJson->FileData.insert({ JSON_ROOT_OBJECT_NAME, createElementObject()});
+		if (!rootInsert.second) {
+			LOG_ERR("ResourceHandler::writeAppInitSettings failed to create root for JsonFileData: " << fileName);
+			return;
+		}
+		std::unordered_map<std::string, JsonElement>& root = rootInsert.first->second.getObject();
+		//root.insert({ ApplicationInitSettings::FILE_NAME_LABEL, { EJsonElementType::DATA_STRING, fileName } });
+		root.insert({ ApplicationInitSettings::APPLICATION_NAME_LABEL, { EJsonElementType::DATA_STRING, initSettings->ApplicationName } });
+		root.insert({ ApplicationInitSettings::WINDOW_WIDTH_LABEL, { EJsonElementType::DATA_LONG, static_cast<long>(initSettings->WindowWidth) } });
+		root.insert({ ApplicationInitSettings::WINDOW_HEIGHT_LABEL, { EJsonElementType::DATA_LONG, static_cast<long>(initSettings->WindowHeight) } });
+		root.insert({ ApplicationInitSettings::WINDOW_DISPLAY_MODE_LABEL, { EJsonElementType::DATA_LONG, static_cast<long>(initSettings->WindowDisplayMode) } });
+		root.insert({ ApplicationInitSettings::TARGET_FOREGROUND_FPS_LABEL, { EJsonElementType::DATA_DOUBLE, static_cast<double>(initSettings->TargetForegroundFps) } });
+		root.insert({ ApplicationInitSettings::TARGET_FOREGROUND_UPS_LABEL, { EJsonElementType::DATA_DOUBLE, static_cast<double>(initSettings->TargetForegroundUps) } });
+		root.insert({ ApplicationInitSettings::RUN_IN_BACKGROUND_LABEL, { EJsonElementType::DATA_BOOL, initSettings->RunInBackground } });
+		root.insert({ ApplicationInitSettings::TARGET_BACKGROUND_FPS_LABEL, { EJsonElementType::DATA_DOUBLE, static_cast<double>(initSettings->TargetBackgroundFps) } });
+		root.insert({ ApplicationInitSettings::TARGET_BACKGROUND_UPS_LABEL, { EJsonElementType::DATA_DOUBLE, static_cast<double>(initSettings->TargetBackgroundUps) } });
+
+		//NOTE:: By default app init settings files are stored in the same directory as the .exe
+		//TODO:: Is this necessary? Why not just use FilePath instead of FileName?
+		ResourceHandler::writeJsonFile(fileName, initSettingsJson);
 	}
 	
 	std::pair<std::vector<float>, std::vector<uint32_t>> ResourceHandler::extractObjFileDataAsVertex3d(

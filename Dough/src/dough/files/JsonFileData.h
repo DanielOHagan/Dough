@@ -212,8 +212,10 @@ namespace DOH {
 	}
 
 	struct JsonFileData : public AFileData {
+		//TODO:: Replace this is a JsonElement RootElementObject? Would make getting root easier and faster.
 		std::unordered_map<std::string, JsonElement> FileData;
 
+		//TODO:: FileData MUST have an entry at JSON_ROOT_OBJECT_NAME
 		inline JsonElement& getRoot() { return FileData.at(JSON_ROOT_OBJECT_NAME); }
 	};
 }

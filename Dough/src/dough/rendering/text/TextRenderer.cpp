@@ -4,6 +4,7 @@
 #include "dough/Logging.h"
 #include "dough/application/Application.h"
 #include "dough/rendering/ShapeRenderer.h"
+#include "dough/ImGuiWrapper.h"
 
 #include <tracy/public/tracy/Tracy.hpp>
 
@@ -15,6 +16,8 @@ namespace DOH {
 	const char* TextRenderer::SOFT_MASK_SHADER_PATH_FRAG = "Dough/Dough/res/shaders/spv/TextSoftMask3d.frag.spv";
 	const char* TextRenderer::MSDF_SHADER_PATH_VERT = "Dough/Dough/res/shaders/spv/TextMsdf3d.vert.spv";
 	const char* TextRenderer::MSDF_SHADER_PATH_FRAG = "Dough/Dough/res/shaders/spv/TextMsdf3d.frag.spv";
+	const char* TextRenderer::NAME_SHORT_HAND = "TextRdr";
+	const char* TextRenderer::NAME_LONG_HAND = "TextRenderer";
 
 	TextRenderer::TextRenderer(RenderingContextVulkan& context)
 	:	mContext(context),
@@ -731,8 +734,40 @@ namespace DOH {
 		mSceneCameraData = cameraData;
 		mFontRenderingDescSetsInstanceScene->setDescriptorSetArray(TextRenderer::CAMERA_UBO_SLOT, { cameraData->DescriptorSets[0], cameraData->DescriptorSets[1] });
 	}
+
 	void TextRenderer::setUiCameraDataImpl(std::shared_ptr<CameraGpuData> cameraData) {
 		mUiCameraData = cameraData;
 		mFontRenderingDescSetsInstanceUi->setDescriptorSetArray(TextRenderer::CAMERA_UBO_SLOT, { cameraData->DescriptorSets[0], cameraData->DescriptorSets[1] });
+	}
+
+	void TextRenderer::drawImGuiImpl(EImGuiContainerType type) {
+		ZoneScoped;
+
+		bool open = false;
+		//IMPORTANT:: Works because there are only two options.
+		bool isWindow = type == EImGuiContainerType::WINDOW;
+
+		if (isWindow) {
+			open = ImGui::Begin(TextRenderer::NAME_LONG_HAND);
+		} else {
+			open = ImGui::BeginTabItem(TextRenderer::NAME_SHORT_HAND);
+		}
+
+
+		if (open) {
+
+			ImGui::Text("This is the text renderer");
+
+			ImGui::Text("TODO:: This will be filled with related info.");
+
+			//TODO:: Fill this out with info and controls.
+
+		}
+
+		if (isWindow) {
+			ImGui::End();
+		} else if (open) { //Here type MUST be TAB
+			ImGui::EndTabItem();
+		}
 	}
 }

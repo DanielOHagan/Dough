@@ -4,6 +4,7 @@
 #include "dough/scene/geometry/primitives/Quad.h"
 #include "dough/rendering/pipeline/ShaderDescriptorSetLayoutsVulkan.h"
 #include "dough/rendering/SwapChainVulkan.h"
+#include "dough/ImGuiWrapper.h"
 
 #include <tracy/public/tracy/Tracy.hpp>
 
@@ -15,6 +16,8 @@ namespace DOH {
 	const char* LineRenderer::SCENE_LINE_SHADER_PATH_FRAG = "Dough/Dough/res/shaders/spv/LineRenderer3d.frag.spv";
 	const char* LineRenderer::UI_LINE_SHADER_PATH_VERT = "Dough/Dough/res/shaders/spv/LineRenderer2d.vert.spv";
 	const char* LineRenderer::UI_LINE_SHADER_PATH_FRAG = "Dough/Dough/res/shaders/spv/LineRenderer2d.frag.spv";
+	const char* LineRenderer::NAME_SHORT_HAND = "LineRdr";
+	const char* LineRenderer::NAME_LONG_HAND = "LineRenderer";
 
 	void LineRenderingObjects::addOwnedResourcesToClose(RenderingContextVulkan& context) {
 		ShaderProgram->addOwnedResourcesToClose(context);
@@ -349,5 +352,36 @@ namespace DOH {
 	void LineRenderer::setUiCameraDataImpl(std::shared_ptr<CameraGpuData> cameraData) {
 		mUiCameraData = cameraData;
 		mUiLineList->Renderable->getDescriptorSetsInstance()->setDescriptorSetArray(LineRenderer::CAMERA_UBO_SLOT, { cameraData->DescriptorSets[0], cameraData->DescriptorSets[1] });
+	}
+
+	void LineRenderer::drawImGuiImpl(EImGuiContainerType type) {
+		ZoneScoped;
+
+		bool open = false;
+		//IMPORTANT:: Works because there are only two options.
+		bool isWindow = type == EImGuiContainerType::WINDOW;
+
+		if (isWindow) {
+			open = ImGui::Begin(LineRenderer::NAME_LONG_HAND);
+		} else {
+			open = ImGui::BeginTabItem(LineRenderer::NAME_SHORT_HAND);
+		}
+
+
+		if (open) {
+
+			ImGui::Text("This is the line renderer");
+
+			ImGui::Text("TODO:: This will be filled with related info.");
+
+			//TODO:: Fill this out with info and controls.
+
+		}
+
+		if (isWindow) {
+			ImGui::End();
+		} else if (open) { //Here type MUST be TAB
+			ImGui::EndTabItem();
+		}
 	}
 }

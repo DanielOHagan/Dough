@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <string>
+#include <array>
 
 namespace DOH {
 
@@ -11,6 +12,12 @@ namespace DOH {
 		WINDOWED,
 		BORDERLESS_FULLSCREEN,
 		FULLSCREEN
+	};
+
+	static std::array<const char*, 3> EWindowDisplayModeStrings {
+		"WINDOWED",
+		"BORDERLESS_FULLSCREEN",
+		"FULLSCREEN"
 	};
 
 	class Window {

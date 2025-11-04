@@ -99,6 +99,7 @@ namespace DOH::EDITOR {
 			bool RenderingCollapseMenuOpen = true;
 			bool CameraCollapseMenuOpen = true;
 			bool InputCollapseMenuOpen = true;
+			EImGuiContainerType EngineSysContainerType = EImGuiContainerType::TAB;
 
 			bool InnerAppEditorWindowDisplay = true;
 

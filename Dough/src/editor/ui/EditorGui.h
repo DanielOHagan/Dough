@@ -64,9 +64,11 @@ namespace DOH::EDITOR {
 		void imGuiInfoEditorPerspectiveCameraControllerImpl(EditorPerspectiveCameraController& cameraController, const char* name);
 		void imGuiInfoEditorOrthoCameraControllerImpl(EditorOrthoCameraController& cameraController, const char* name);
 
+		//-----JSON-----
 		void imGuiJsonElementImpl(JsonElement& element, const char* name);
 		void imGuiJsonObjectImpl(JsonElement& object, const char* name);
 		void imGuiJsonArrayImpl(JsonElement& array, const char* name);
+		void imGuiJsonElementWindowImpl(JsonElement& element, const char* name);
 
 		bool imGuiIsGuiFocusedImpl();
 
@@ -367,25 +369,35 @@ namespace DOH::EDITOR {
 		//-----File Data Viewers-----
 		/**
 		* Display a JSON element. The type of the element is used to determine how it is displayed.
+		* Call this the element is NOT an Object or Array, or if you are unsure what type the element is.
 		* 
-		* @param element The JSON element that is to be displayed.
+		* @param element The JSON element to display.
 		* @param name Unique name for JsonElement to display.
 		*/
 		static inline void jsonElement(JsonElement& element, const char* name) { INSTANCE->imGuiJsonElementImpl(element, name); }
 		/** 
 		* Display a JSON object, including its children recursively.
+		* Call this ONLY if the element is of type: Object.
 		* 
-		* @param object JSON object to be displayed, whether it has children elements or not.
+		* @param object JSON object to display, whether it has children elements or not.
 		* @param name Unique name for JsonObject to display.
 		*/
 		static inline void jsonObject(JsonElement& object, const char* name) { INSTANCE->imGuiJsonObjectImpl(object, name); }
 		/**
 		* Display an array of JSON elements.
+		* Call this ONLY if element is of type: Array.
 		* 
-		* @param array JSON array to be displayed, whether it has elements or not.
+		* @param array JSON array to display, whether it has elements or not.
 		* @param name Unique name for JsonArray to display.
 		*/
 		static inline void jsonArray(JsonElement& array, const char* name) { INSTANCE->imGuiJsonArrayImpl(array, name); }
+		/**
+		* Display a new window containing the JSON element, including children.
+		*
+		* @param element The element to be the "root"/top-most for the window.
+		* @param name The name of the element.
+		*/
+		static inline void jsonElementWindow(JsonElement& element, const char* name) { INSTANCE->imGuiJsonElementWindowImpl(element, name); }
 
 		//-----UI State-----
 		/**

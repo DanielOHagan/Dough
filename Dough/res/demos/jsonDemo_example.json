@@ -1,0 +1,29 @@
+{
+  "myObject": {
+    "p": {
+      "p": "awdawda",
+      "arr": [ false, false, true ]
+    },
+    "test":  false
+  },
+  "myArray": [
+    "awdikj",
+    2,
+    "awdhbghfjdhdhrthdthdth",
+    false,
+    [
+      658746,
+      {
+        "name": "i am object 0 in array"
+      },
+      {
+        "name": "i am object 1 in array",
+        "number": 123.1353
+      },
+      5,
+      6456,
+      [ 123213, 23424325 ],
+      [ 876768, "aldkjawdalk" ]
+    ]
+  ]
+}

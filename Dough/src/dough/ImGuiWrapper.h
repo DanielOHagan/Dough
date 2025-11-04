@@ -24,6 +24,11 @@ namespace DOH {
 		VkFormat ImageFormat;
 	};
 
+	enum class EImGuiContainerType {
+		WINDOW,
+		TAB
+	};
+
 	enum class EImGuiConfigFlag {
 		NONE = 0,
 
