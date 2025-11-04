@@ -28,7 +28,7 @@ namespace DOH::EDITOR {
 		std::shared_ptr<AInputLayer> mInputLayer;
 
 	public:
-		EditorOrthoCameraController::EditorOrthoCameraController(OrthographicCamera& camera, std::shared_ptr<AInputLayer> inputLayer, float aspectRatio);
+		EditorOrthoCameraController(OrthographicCamera& camera, std::shared_ptr<AInputLayer> inputLayer, float aspectRatio);
 		EditorOrthoCameraController(const EditorOrthoCameraController& copy) = delete;
 		EditorOrthoCameraController operator=(const EditorOrthoCameraController& assignment) = delete;
 
