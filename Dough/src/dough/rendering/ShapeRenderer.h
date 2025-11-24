@@ -84,6 +84,8 @@ namespace DOH {
 		void closeImpl();
 		void onSwapChainResizeImpl(SwapChainVulkan& swapChain);
 
+		void updateTextureArrayDescriptorSetImpl();
+
 		void drawSceneImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 		void drawUiImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 
@@ -120,6 +122,10 @@ namespace DOH {
 		static void init(RenderingContextVulkan& context);
 		static void close();
 		static void onSwapChainResize(SwapChainVulkan& swapChain);
+
+		//TEMP:: Updates mTextureArrayDescSet to point to textures currently in mTextureArray.
+		//TODO:: Rework this system to allow for more textures and not rely on the app logic to call this function.
+		static void updateTextureArrayDescriptorSet();
 
 		static inline void drawScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) { INSTANCE->drawSceneImpl(imageIndex, cmd, currentBindings); }
 		static inline void drawUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) { INSTANCE->drawUiImpl(imageIndex, cmd, currentBindings); }

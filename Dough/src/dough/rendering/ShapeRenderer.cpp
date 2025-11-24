@@ -66,12 +66,13 @@ namespace DOH {
 			mContext.getEngineDescriptorPool(),
 			texArrSetLayout
 		);
-		const uint32_t texArrBinding = 0;
-		DescriptorSetUpdate texArrUpdate = {
-			{{ texArrSetLayout.getDescriptors()[texArrBinding], *mTextureArray }},
-			mTextureArrayDescSet
-		};
-		DescriptorApiVulkan::updateDescriptorSet(mContext.getLogicDevice(), texArrUpdate);
+		//const uint32_t texArrBinding = 0;
+		//DescriptorSetUpdate texArrUpdate = {
+		//	{{ texArrSetLayout.getDescriptors()[texArrBinding], *mTextureArray }},
+		//	mTextureArrayDescSet
+		//};
+		//DescriptorApiVulkan::updateDescriptorSet(mContext.getLogicDevice(), texArrUpdate);
+		updateTextureArrayDescriptorSet();
 
 		const uint32_t descSetCount = 2;
 		mShapesDescSetsInstanceScene = std::make_shared<DescriptorSetsInstanceVulkan>(descSetCount);
@@ -292,6 +293,16 @@ namespace DOH {
 			swapChain.getExtent(),
 			mContext.getRenderPassUi().get()
 		);
+	}
+
+	void ShapeRenderer::updateTextureArrayDescriptorSetImpl() {
+		const uint32_t texArrBinding = 0;
+		DescriptorSetLayoutVulkan& texArrLayout = mContext.getCommonDescriptorSetLayouts().SingleTextureArray8.get();
+		DescriptorSetUpdate texArrUpdate = {
+			{{ texArrLayout.getDescriptors()[texArrBinding], *mTextureArray}},
+			mTextureArrayDescSet
+		};
+		DescriptorApiVulkan::updateDescriptorSet(mContext.getLogicDevice(), texArrUpdate);
 	}
 
 	void ShapeRenderer::drawQuad(ShapeRenderingObjects<RenderBatchQuad>& quadGroup, const Quad& quad) {
@@ -1167,6 +1178,14 @@ namespace DOH {
 			INSTANCE->onSwapChainResizeImpl(swapChain);
 		} else {
 			LOG_WARN("Attempted onSwapChainResize when ShapeRenderer is un-initialised/closed.");
+		}
+	}
+
+	void ShapeRenderer::updateTextureArrayDescriptorSet() {
+		if (INSTANCE != nullptr) {
+			INSTANCE->updateTextureArrayDescriptorSetImpl();
+		} else {
+			LOG_ERR("Attempted updateTextureArrayDescriptorSet when ShapeRenderer is un-initialised/closed.");
 		}
 	}
 

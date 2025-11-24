@@ -82,6 +82,7 @@ namespace DOH {
 		void onSwapChainResizeImpl(SwapChainVulkan& swapChain);
 		bool createFontBitmapImpl(const char* fontName, const char* filePath, const char* imageDir, ETextRenderMethod textRenderMethod);
 		void addFontBitmapToTextTextureArrayImpl(const FontBitmap& fontBitmap);
+		void updateFontBitmapTextureArrayDescriptorSetImpl();
 
 		void drawSceneImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 		void drawUiImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
@@ -101,7 +102,6 @@ namespace DOH {
 		void drawImGuiImpl(EImGuiContainerType type);
 
 	public:
-
 		static constexpr const char* ARIAL_SOFT_MASK_NAME = "Arial-SoftMask";
 		static constexpr const char* ARIAL_MSDF_NAME = "Arial-MSDF";
 
@@ -115,6 +115,9 @@ namespace DOH {
 		//TODO:: Currently only private impl function is usable because creating font bitmaps post-init is not available.
 		//static void createFontBitmap(const char* fontName, std::shared_ptr<FontBitmap> fontBitmap);
 		static void addFontBitmapToTextTextureArray(const FontBitmap& fontBitmap);
+		//TEMP:: Updates mFontBitmapPagesDescSet to point to textures currently in mFontBitmapPagesTextureArary.
+		//TODO:: Rework this system to allow for more textures and not rely on the app logic to call this function if more font bitmaps are added.
+		static void updateFontBitmapTextureArrayDescriptorSet();
 
 		static inline void drawScene(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) { INSTANCE->drawSceneImpl(imageIndex, cmd, currentBindings); }
 		static inline void drawUi(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) { INSTANCE->drawUiImpl(imageIndex, cmd, currentBindings); }

@@ -112,12 +112,7 @@ namespace DOH {
 		}
 
 		//Update descriptors after fonts have been loaded
-		const uint32_t textureArrBinding = 0;
-		DescriptorSetUpdate texArrUpdate = {
-			{{ texArrSetLayout.getDescriptors()[textureArrBinding], *mFontBitmapPagesTextureArary }},
-			mFontBitmapPagesDescSet
-		};
-		DescriptorApiVulkan::updateDescriptorSet(mContext.getLogicDevice(), texArrUpdate);
+		updateFontBitmapTextureArrayDescriptorSetImpl();
 
 		{ //Soft Mask
 			mSoftMaskRendering->SceneVertexShader = mContext.createShader(EShaderStage::VERTEX, TextRenderer::SOFT_MASK_SHADER_PATH_VERT);
@@ -411,6 +406,16 @@ namespace DOH {
 		}
 	}
 
+	void TextRenderer::updateFontBitmapTextureArrayDescriptorSetImpl() {
+		const uint32_t textureArrBinding = 0;
+		DescriptorSetLayoutVulkan& texArrSetLayout = mContext.getCommonDescriptorSetLayouts().SingleTextureArray8.get();
+		DescriptorSetUpdate texArrUpdate = {
+			{{ texArrSetLayout.getDescriptors()[textureArrBinding], *mFontBitmapPagesTextureArary }},
+			mFontBitmapPagesDescSet
+		};
+		DescriptorApiVulkan::updateDescriptorSet(mContext.getLogicDevice(), texArrUpdate);
+	}
+
 	void TextRenderer::drawSceneImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings) {
 		ZoneScoped;
 
@@ -692,6 +697,14 @@ namespace DOH {
 			INSTANCE->addFontBitmapToTextTextureArrayImpl(fontBitmap);
 		} else {
 			LOG_ERR("addFontBitmapToTextTextureArray called when text renderer is NOT initialised.");
+		}
+	}
+
+	void TextRenderer::updateFontBitmapTextureArrayDescriptorSet() {
+		if (INSTANCE != nullptr) {
+			INSTANCE->updateFontBitmapTextureArrayDescriptorSetImpl();
+		} else {
+			LOG_ERR("updateFontBitmapTextureArrayDescriptorSet called when text renderer is NOT initialised.");
 		}
 	}
 
