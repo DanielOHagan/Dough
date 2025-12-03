@@ -30,7 +30,6 @@ namespace DOH {
 	//};
 
 	class FontBitmap {
-
 	private:
 		constexpr static const uint32_t TAB_SPACE_COUNT = 4;
 		

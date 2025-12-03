@@ -592,6 +592,18 @@ namespace DOH {
 		//TODO:: some kind of function to reduce duplicate code?
 	}
 
+	void TextRenderer::drawTextFromQuadImpl(const Quad& quad, RenderBatchQuad& renderBatch) {
+		ZoneScoped;
+
+		if (renderBatch.hasSpace(1)) {
+			renderBatch.add(
+				quad,
+				mFontBitmapPagesTextureArary->getTextureSlotIndex(quad.getTexture().getId())
+			);
+			mDrawnQuadCount++;
+		}
+	}
+
 	void TextRenderer::drawTextFromQuadsImpl(const std::vector<Quad>& quadArr, const FontBitmap& bitmap, RenderBatchQuad& renderBatch) {
 		ZoneScoped;
 

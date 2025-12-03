@@ -100,6 +100,30 @@ namespace DOH {
 		}
 	}
 
+	bool DeviceInputKeyboardMouse::isKeyPressedConsume(int keyCode) {
+		std::unordered_map<int, EPressedState>::iterator iter = PressedKeysMap.find(keyCode);
+		if (iter != PressedKeysMap.end()) {
+			if (iter->second == EPressedState::PRESSED) {
+				iter->second = EPressedState::NOT_PRESSED;
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool DeviceInputKeyboardMouse::isMouseButtonPressedConsume(int button) {
+		std::unordered_map<int, EPressedState>::iterator iter = PressedMouseButtonsMap.find(button);
+		if (iter != PressedMouseButtonsMap.end()) {
+			if (iter->second == EPressedState::PRESSED) {
+				iter->second = EPressedState::NOT_PRESSED;
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	void DeviceInputKeyboardMouse::reset() {
 		for (auto& key : PressedKeysMap) {
 			key.second = EPressedState::NOT_PRESSED;

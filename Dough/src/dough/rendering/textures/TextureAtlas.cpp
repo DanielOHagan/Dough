@@ -22,6 +22,8 @@ namespace DOH {
 	{}
 
 	std::array<float, 4> MonoSpaceTextureAtlas::getInnerTextureCoords(const uint32_t row, const uint32_t col) const {
+		//Row & Col start from the top left of the texture.
+
 		const glm::vec2 origin = getInnerTextureCoordsOrigin(row, col);
 
 		std::array<float, 4> arr = {

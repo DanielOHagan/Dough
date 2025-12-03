@@ -23,10 +23,14 @@ namespace DOH {
 
 		virtual inline bool hasDeviceInput() const override { return mKeyboardMouseInput != nullptr; }
 
-		virtual bool isKeyPressed(int keyCode) const override { return mKeyboardMouseInput->isKeyPressed(keyCode); }
-		virtual bool isMouseButtonPressed(int button) const override { return mKeyboardMouseInput->isMouseButtonPressed(button); }
+		virtual inline bool isKeyPressed(int keyCode) const override { return mKeyboardMouseInput->isKeyPressed(keyCode); }
+		virtual inline bool isMouseButtonPressed(int button) const override { return mKeyboardMouseInput->isMouseButtonPressed(button); }
 		virtual inline bool isMouseScrollingUp() const override { return mKeyboardMouseInput->isMouseScrollingUp(); }
 		virtual inline bool isMouseScrollingDown() const override { return mKeyboardMouseInput->isMouseScrollingDown(); }
 		virtual inline const glm::vec2 getCursorPos() const override { return mKeyboardMouseInput->getCursorPos(); }
+		virtual inline bool isKeyPressedConsume(int keyCode) const override { return mKeyboardMouseInput->isKeyPressedConsume(keyCode); }
+		virtual inline bool isMouseButtonPressedConsume(int button) const override { return mKeyboardMouseInput->isMouseButtonPressedConsume(button); }
+		virtual inline bool isMouseScrollingUpConsume() const override { return mKeyboardMouseInput->isMouseScrollingUpConsume(); }
+		virtual inline bool isMouseScrollingDownConsume() const override { return mKeyboardMouseInput->isMouseScrollingDownConsume(); }
 	};
 }

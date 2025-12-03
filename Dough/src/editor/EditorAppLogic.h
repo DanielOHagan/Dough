@@ -60,11 +60,16 @@ namespace DOH::EDITOR {
 
 		//virtual inline bool hasDeviceInput() const override { return false; }
 
-		virtual bool isKeyPressed(int keyCode) const override { return !EditorGui::isGuiFocused() && mKeyboardMouseInput->isKeyPressed(keyCode); }
-		virtual bool isMouseButtonPressed(int button) const override { return !EditorGui::isGuiFocused() && mKeyboardMouseInput->isMouseButtonPressed(button); }
+		virtual inline bool isKeyPressed(int keyCode) const override { return !EditorGui::isGuiFocused() && mKeyboardMouseInput->isKeyPressed(keyCode); }
+		virtual inline bool isMouseButtonPressed(int button) const override { return !EditorGui::isGuiFocused() && mKeyboardMouseInput->isMouseButtonPressed(button); }
 		virtual inline bool isMouseScrollingUp() const override { return false; }
 		virtual inline bool isMouseScrollingDown() const override { return false; }
 		virtual inline const glm::vec2 getCursorPos() const override { return { 0.0f, 0.0f }; }
+
+		virtual inline bool isKeyPressedConsume(int keyCode) const override { return !EditorGui::isGuiFocused() && mKeyboardMouseInput->isKeyPressedConsume(keyCode); }
+		virtual inline bool isMouseButtonPressedConsume(int button) const override { return !EditorGui::isGuiFocused() && mKeyboardMouseInput->isMouseButtonPressed(button); }
+		virtual inline bool isMouseScrollingUpConsume() const override { return false; }
+		virtual inline bool isMouseScrollingDownConsume() const override { return false; }
 
 		void enableCameraInput();
 		void disableCameraInput();

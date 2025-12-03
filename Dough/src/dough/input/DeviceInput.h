@@ -43,8 +43,25 @@ namespace DOH {
 
 		bool isKeyPressed(int keyCode) const;
 		bool isMouseButtonPressed(int button) const;
-		inline bool isMouseScrollingUp() const { return MouseScrollOffset.y > 0.0f; };
-		inline bool isMouseScrollingDown() const { return MouseScrollOffset.y < 0.0f; };
+		inline bool isMouseScrollingUp() const { return MouseScrollOffset.y > 0.0f; }
+		inline bool isMouseScrollingDown() const { return MouseScrollOffset.y < 0.0f; }
+
+		bool isKeyPressedConsume(int keyCode);
+		bool isMouseButtonPressedConsume(int button);
+		inline bool isMouseScrollingUpConsume() {
+			if (MouseScrollOffset.y > 0.0f) {
+				MouseScrollOffset.y = 0.0f;
+				return true;
+			}
+			return false;
+		}
+		inline bool isMouseScrollingDownConsume() { 
+			if (MouseScrollOffset.y < 0.0f) {
+				MouseScrollOffset.y = 0.0f;
+				return true;
+			}
+			return false;
+		}
 
 		inline bool isKeyCodeInPossibleMap(int keyCode) const {
 			return PressedKeysMap.find(keyCode) != PressedKeysMap.end();

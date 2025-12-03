@@ -87,6 +87,7 @@ namespace DOH {
 		void drawSceneImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 		void drawUiImpl(uint32_t imageIndex, VkCommandBuffer cmd, CurrentBindingsState& currentBindings);
 
+		void drawTextFromQuadImpl(const Quad& quad, RenderBatchQuad& renderbatch);
 		void drawTextFromQuadsImpl(const std::vector<Quad>& quadArr, const FontBitmap& bitmap, RenderBatchQuad& renderBatch);
 		void drawTextSameTextureFromQuadsImpl(const std::vector<Quad>& quadArr, const FontBitmap& bitmap, RenderBatchQuad& renderBatch);
 		void drawTextStringImpl(TextString& string, RenderBatchQuad& renderBatch);
@@ -130,8 +131,10 @@ namespace DOH {
 		static std::vector<DescriptorTypeInfo> getEngineDescriptorTypeInfos();
 
 		//-----Primitives-----
+		static inline void drawTextFromQuadScene(const Quad& quad, const FontBitmap& bitmap) { INSTANCE->drawTextFromQuadImpl(quad, INSTANCE->getSuitableTextBatchSceneImpl(bitmap)); }
 		static inline void drawTextFromQuadsScene(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) { INSTANCE->drawTextFromQuadsImpl(quadArr, bitmap, INSTANCE->getSuitableTextBatchSceneImpl(bitmap)); }
 		static inline void drawTextSameTextureFromQuadsScene(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) { INSTANCE->drawTextSameTextureFromQuadsImpl(quadArr, bitmap, INSTANCE->getSuitableTextBatchSceneImpl(bitmap)); }
+		static inline void drawTextFromQuadUi(const Quad& quad, const FontBitmap& bitmap) { INSTANCE->drawTextFromQuadImpl(quad, INSTANCE->getSuitableTextBatchUiImpl(bitmap)); }
 		static inline void drawTextFromQuadsUi(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) { INSTANCE->drawTextFromQuadsImpl(quadArr, bitmap, INSTANCE->getSuitableTextBatchUiImpl(bitmap)); }
 		static inline void drawTextSameTextureFromQuadsUi(const std::vector<Quad>& quadArr, const FontBitmap& bitmap) { INSTANCE->drawTextSameTextureFromQuadsImpl(quadArr, bitmap, INSTANCE->getSuitableTextBatchUiImpl(bitmap)); }
 
