@@ -46,7 +46,7 @@ namespace DOH {
 		static std::vector<std::shared_ptr<AInputLayer>>& getInputLayers();
 		static std::optional<std::reference_wrapper<AInputLayer>> getInputLayer(const char* name);
 		static std::optional<std::shared_ptr<AInputLayer>> getInputLayerPtr(const char* name);
-		static float getMousePosX() { return INSTANCE->mMousePosX; }
-		static float getMousePosY() { return INSTANCE->mMousePosY; }
+		inline static float getMousePosX() { return INSTANCE->mMousePosX; }
+		inline static float getMousePosY() { return INSTANCE->mMousePosY; }
 	};
 }

@@ -3,12 +3,15 @@
 #include "dough/Core.h"
 #include "dough/input/AInputLayer.h"
 #include "dough/input/DeviceInput.h"
+#include "dough/input/InputActionMap.h"
 
 namespace DOH {
 
 	class DefaultInputLayer : public AInputLayer {
 	private:
 		std::shared_ptr<DeviceInputKeyboardMouse> mKeyboardMouseInput;
+		//TODO:: std::shared_ptr<DeviceInputController> mControllerInput; //a.k.a Gamepad
+		std::unique_ptr<InputActionMap> mInputActionMapping;
 
 	public:
 		DefaultInputLayer(const char* name);
@@ -27,10 +30,14 @@ namespace DOH {
 		virtual inline bool isMouseButtonPressed(int button) const override { return mKeyboardMouseInput->isMouseButtonPressed(button); }
 		virtual inline bool isMouseScrollingUp() const override { return mKeyboardMouseInput->isMouseScrollingUp(); }
 		virtual inline bool isMouseScrollingDown() const override { return mKeyboardMouseInput->isMouseScrollingDown(); }
+		virtual inline bool isActionActive(const char* action) const override { return mInputActionMapping->isActionActive(action, *this); }
 		virtual inline const glm::vec2 getCursorPos() const override { return mKeyboardMouseInput->getCursorPos(); }
-		virtual inline bool isKeyPressedConsume(int keyCode) const override { return mKeyboardMouseInput->isKeyPressedConsume(keyCode); }
-		virtual inline bool isMouseButtonPressedConsume(int button) const override { return mKeyboardMouseInput->isMouseButtonPressedConsume(button); }
-		virtual inline bool isMouseScrollingUpConsume() const override { return mKeyboardMouseInput->isMouseScrollingUpConsume(); }
-		virtual inline bool isMouseScrollingDownConsume() const override { return mKeyboardMouseInput->isMouseScrollingDownConsume(); }
+		virtual inline bool isKeyPressedConsume(int keyCode) override { return mKeyboardMouseInput->isKeyPressedConsume(keyCode); }
+		virtual inline bool isMouseButtonPressedConsume(int button) override { return mKeyboardMouseInput->isMouseButtonPressedConsume(button); }
+		virtual inline bool isMouseScrollingUpConsume() override { return mKeyboardMouseInput->isMouseScrollingUpConsume(); }
+		virtual inline bool isMouseScrollingDownConsume() override { return mKeyboardMouseInput->isMouseScrollingDownConsume(); }
+		virtual inline bool isActionActiveConsume(const char* action) override { return mInputActionMapping->isActionActiveConsume(action, *this); }
+
+		inline InputActionMap& getActionMap() { return *mInputActionMapping; }
 	};
 }

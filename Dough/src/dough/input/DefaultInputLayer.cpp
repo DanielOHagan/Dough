@@ -4,12 +4,14 @@ namespace DOH {
 
 	DefaultInputLayer::DefaultInputLayer(const char* name)
 	:	AInputLayer(name),
-		mKeyboardMouseInput(std::make_shared<DeviceInputKeyboardMouse>())
+		mKeyboardMouseInput(std::make_shared<DeviceInputKeyboardMouse>()),
+		mInputActionMapping(std::make_unique<InputActionMap>())
 	{}
 
 	DefaultInputLayer::DefaultInputLayer(const char* name, std::shared_ptr<DeviceInputKeyboardMouse> keyboardMouseInput)
 	:	AInputLayer(name),
-		mKeyboardMouseInput(keyboardMouseInput)
+		mKeyboardMouseInput(keyboardMouseInput),
+		mInputActionMapping(std::make_unique<InputActionMap>())
 	{}
 
 	bool DefaultInputLayer::handleKeyPressed(int keyCode, bool pressed) {

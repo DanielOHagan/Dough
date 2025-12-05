@@ -29,12 +29,14 @@ namespace DOH {
 		virtual inline bool isMouseScrollingUp() const = 0;
 		virtual inline bool isMouseScrollingDown() const = 0;
 		virtual inline const glm::vec2 getCursorPos() const = 0;
+		virtual inline bool isActionActive(const char* action) const = 0;
 
 		//Consume functions reset the specified input if true.
-		virtual bool isKeyPressedConsume(int keyCode) const = 0;
-		virtual bool isMouseButtonPressedConsume(int button) const = 0;
-		virtual inline bool isMouseScrollingUpConsume() const = 0;
-		virtual inline bool isMouseScrollingDownConsume() const = 0;
+		virtual bool isKeyPressedConsume(int keyCode) = 0;
+		virtual bool isMouseButtonPressedConsume(int button) = 0;
+		virtual inline bool isMouseScrollingUpConsume() = 0;
+		virtual inline bool isMouseScrollingDownConsume() = 0;
+		virtual inline bool isActionActiveConsume(const char* action) = 0;
 
 		inline void setEnabled(bool enabled) { mEnabled = enabled; }
 		inline const bool isEnabled() const { return mEnabled; }
