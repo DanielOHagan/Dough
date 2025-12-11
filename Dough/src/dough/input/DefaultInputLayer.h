@@ -38,6 +38,8 @@ namespace DOH {
 		virtual inline bool isMouseScrollingDownConsume() override { return mKeyboardMouseInput->isMouseScrollingDownConsume(); }
 		virtual inline bool isActionActiveConsume(const char* action) override { return mInputActionMapping->isActionActiveConsume(action, *this); }
 
+		virtual void consumeAction(InputAction& action) override;
+
 		inline InputActionMap& getActionMap() { return *mInputActionMapping; }
 	};
 }

@@ -65,13 +65,15 @@ namespace DOH::EDITOR {
 		virtual inline bool isMouseScrollingUp() const override { return false; }
 		virtual inline bool isMouseScrollingDown() const override { return false; }
 		virtual inline const glm::vec2 getCursorPos() const override { return { 0.0f, 0.0f }; }
-		virtual inline bool isActionActive(const char* action) const override { return false; }
+		virtual bool isActionActive(const char* action) const override { return false; }
 
 		virtual inline bool isKeyPressedConsume(int keyCode) override { return !EditorGui::isGuiFocused() && mKeyboardMouseInput->isKeyPressedConsume(keyCode); }
 		virtual inline bool isMouseButtonPressedConsume(int button) override { return !EditorGui::isGuiFocused() && mKeyboardMouseInput->isMouseButtonPressed(button); }
 		virtual inline bool isMouseScrollingUpConsume() override { return false; }
 		virtual inline bool isMouseScrollingDownConsume() override { return false; }
 		virtual inline bool isActionActiveConsume(const char* action) override { return false; }
+
+		virtual void consumeAction(InputAction& action) override;
 
 		void enableCameraInput();
 		void disableCameraInput();

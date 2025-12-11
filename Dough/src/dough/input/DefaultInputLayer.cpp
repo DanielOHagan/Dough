@@ -31,4 +31,30 @@ namespace DOH {
 		mKeyboardMouseInput->setMouseScrollOffset(offsetX, offsetY);
 		return true;
 	}
+
+	void DefaultInputLayer::consumeAction(InputAction& action) {
+		for (std::pair<EDeviceInputType, int> actionStep : action.ActionCodesByDevice) {
+			switch (actionStep.first) {
+				case EDeviceInputType::KEY_PRESS:
+					mKeyboardMouseInput->setKeyPressed(actionStep.second, false);;
+					break;
+				case EDeviceInputType::MOUSE_PRESS:
+					mKeyboardMouseInput->setMouseButtonPressed(actionStep.second, false);
+					break;
+				case EDeviceInputType::MOUSE_SCROLL_DOWN:
+					mKeyboardMouseInput->setMouseScrollOffset(mKeyboardMouseInput->getScrollOffset().x, 0.0f);
+					break;
+				case EDeviceInputType::MOUSE_SCROLL_UP:
+					mKeyboardMouseInput->setMouseScrollOffset(mKeyboardMouseInput->getScrollOffset().x, 0.0f);
+					break;
+				case EDeviceInputType::MOUSE_MOVE:
+					continue; //Mouse movement can by handled by "Input::getMousePos()"
+
+					//NONE is used to show that no more actions are expected.
+				default:
+				case EDeviceInputType::NONE:
+					return;
+			}
+		}
+	}
 }

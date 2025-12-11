@@ -85,7 +85,7 @@ namespace DOH {
 				case EDeviceInputType::MOUSE_MOVE:
 					continue; //Mouse movement can by handled by "Input::getMousePos()"
 
-					//NONE is used to show that no more actions are expected.
+				//NONE is used to show that no more actions are expected.
 				default:
 				case EDeviceInputType::NONE:
 					return active;
@@ -95,36 +95,38 @@ namespace DOH {
 		return active;
 	}
 
-	//TODO:: How much of an issue will this be? If an earlier check is true it consumes but a later one may be false so the action as a whole shouldn't consume.
 	bool InputActionMap::isActionActiveConsume(const char* name, AInputLayer& inputLayer) {
 		//Assumes action exists.
 		InputAction& action = mActions.at(name);
 		bool active = true;
 		for (std::pair<EDeviceInputType, int> actionStep : action.ActionCodesByDevice) {
+			if (!active) break;
+			bool stepActive = false;
 			switch (actionStep.first) {
 				case EDeviceInputType::KEY_PRESS:
-					active = active && inputLayer.isKeyPressedConsume(actionStep.second);
+					active = active && (stepActive = inputLayer.isKeyPressed(actionStep.second));
 					break;
 				case EDeviceInputType::MOUSE_PRESS:
-					active = active && inputLayer.isMouseButtonPressedConsume(actionStep.second);
+					active = active && (stepActive = inputLayer.isMouseButtonPressed(actionStep.second));
 					break;
 				case EDeviceInputType::MOUSE_SCROLL_DOWN:
-					active = active && inputLayer.isMouseScrollingDownConsume();
+					active = active && (stepActive = inputLayer.isMouseScrollingDown());
 					break;
 				case EDeviceInputType::MOUSE_SCROLL_UP:
-					active = active && inputLayer.isMouseScrollingUpConsume();
+					active = active && (stepActive = inputLayer.isMouseScrollingUp());
 					break;
 				case EDeviceInputType::MOUSE_MOVE:
 					continue; //Mouse movement can by handled by "Input::getMousePos()"
 
-					//NONE is used to show that no more actions are expected.
+				//NONE is used to show that no more actions are expected.
 				default:
 				case EDeviceInputType::NONE:
+					if (active) inputLayer.consumeAction(action);
 					return active;
-					break;
 			}
 		}
 
+		if (active) inputLayer.consumeAction(action);
 		return active;
 	}
 }
