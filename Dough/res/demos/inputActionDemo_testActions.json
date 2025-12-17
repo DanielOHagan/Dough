@@ -1,0 +1,23 @@
+{
+	"example": [
+		{ "t": 1, "v": 70 },
+		{ "t": 2, "v": 2 }
+	],
+	"shiftCtrlClick": [
+		{ "t": "KEY_PRESS", "v": 340 },
+		{ "t": "KEY_PRESS", "v": 341 },
+		{ "t": "MOUSE_PRESS", "v": 0 }
+	],
+
+	"jump": [
+		{ "t": "KEY_PRESS", "v": 32 }
+	],
+	"paste": [
+		{ "t": 1, "v": 341 },
+		{ "t": 1, "v": 86 }
+	],
+	"copy": [
+		{ "t": "KEY_PRESS", "v": 341 },
+		{ "t": "KEY_PRESS", "v": 67 }
+	]
+}

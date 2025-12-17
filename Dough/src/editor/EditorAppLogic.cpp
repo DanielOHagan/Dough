@@ -35,12 +35,14 @@ namespace DOH::EDITOR {
 	:	AInputLayer(EditorInputLayer::EDITOR_INPUT_LAYER_NAME),
 		mKeyboardMouseInput(nullptr)
 	{
-		std::vector<int> keyCodes(EditorInputLayer::EDITOR_DEFAULT_KEY_CODES.size());
-		std::vector<int> mouseButtons(EditorInputLayer::EDITOR_DEFAULT_MOUSE_CODES.size());
+		std::vector<int> keyCodes = {};
+		std::vector<int> mouseButtons = {};
 
+		keyCodes.reserve(EditorInputLayer::EDITOR_DEFAULT_KEY_CODES.size());
 		for (int keyCode : EditorInputLayer::EDITOR_DEFAULT_KEY_CODES) {
 			keyCodes.emplace_back(keyCode);
 		}
+		mouseButtons.reserve(EditorInputLayer::EDITOR_DEFAULT_MOUSE_CODES.size());
 		for (int button : EditorInputLayer::EDITOR_DEFAULT_MOUSE_CODES) {
 			mouseButtons.emplace_back(button);
 		}
@@ -650,8 +652,8 @@ UPS displayed is the count of frames in the last full second interval)"
 						EditorGui::bulletTextWrapped("Arrow Left, Arrow Right, Arrow Up, Arrow Down, Z, X, Mouse Right Click & Drag: Change camera looking direction");
 						EditorGui::bulletTextWrapped("Hold Left Shift: Increase translation speed");
 
-						const auto pos = mPerspectiveCameraController->getPosition();
-						const auto dir = mPerspectiveCameraController->getDirection();
+						const glm::vec3& pos = mPerspectiveCameraController->getPosition();
+						const glm::vec3& dir = mPerspectiveCameraController->getDirection();
 						float tempPos[3] = { pos.x, pos.y, pos.z };
 						if (ImGui::DragFloat3("Position", tempPos)) {
 							mPerspectiveCameraController->setPositionXYZ(tempPos[0], tempPos[1], tempPos[2]);

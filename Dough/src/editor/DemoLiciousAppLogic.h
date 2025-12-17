@@ -574,6 +574,23 @@ namespace DOH::EDITOR {
 			virtual const char* getName() override { return "JsonDemo"; }
 		};
 
+		//To show how InputActions work
+		class InputActionDemo : public ADemo {
+		public:
+			std::unique_ptr<InputActionMap> ActionMap;
+
+			InputActionDemo(SharedDemoResources& sharedResources)
+			:	ADemo(sharedResources)
+			{}
+			virtual void init() override;
+			virtual void close() override;
+			virtual void update(float delta) override;
+			virtual void render() override;
+			virtual void renderImGuiMainTab() override;
+			virtual void renderImGuiExtras() override;
+			virtual const char* getName() override { return "InputActionDemo"; }
+		};
+
 		struct ImGuiSettings {
 			bool CurrentDemoCollapseMenuOpen = true;
 			bool RenderObjModelsList = false;
@@ -589,6 +606,7 @@ namespace DOH::EDITOR {
 		std::unique_ptr<TileMapDemo> mTileMapDemo;
 		std::unique_ptr<MultiCameraPassDemo> mMultiCameraPassDemo;
 		std::unique_ptr<JsonDemo> mJsonDemo;
+		std::unique_ptr<InputActionDemo> mInputActionDemo;
 		//References to usable demos (mShapesDemo is just a wrapper of "inner" demos so it's not needed here).
 		// This is primarily used for convenience for Editor GUI. 
 		// IMPORTANT:: NOT TO BE USED FOR OBJECT LIFETIME!

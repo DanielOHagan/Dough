@@ -3,6 +3,8 @@
 #include "dough/files/ResourceHandler.h"
 #include "dough/Logging.h"
 #include "dough/input/AInputLayer.h"
+#include "dough/files/JsonFileData.h"
+#include "dough/input/InputCodes.h"
 
 namespace DOH {
 
@@ -10,21 +12,67 @@ namespace DOH {
 	:	mActions({})
 	{}
 
-	//InputActionMap::InputActionMap(const char* filePath)
-	//:	mActions({})
-	//{
-	//	loadActionsFromFile(filePath);
-	//}
-	//
-	//void InputActionMap::loadActionsFromFile(const char* filePath) {
-	//	if (ResourceHandler::isFileOfType(filePath, ".json")) {
-	//
-	//
-	//
-	//	} else {
-	//		LOG_ERR("InputActionMap::loadActionsFromFile given file NOT of type .json: " << filePath);
-	//	}
-	//}
+	InputActionMap::InputActionMap(const char* filePath)
+	:	mActions({})
+	{
+		addActionsFromFile(filePath);
+	}
+	
+	void InputActionMap::addActionsFromFile(const char* filePath) {
+		if (ResourceHandler::isFileOfType(filePath, ".json")) {
+			std::shared_ptr<JsonFileData> fileData = ResourceHandler::loadJsonFile(filePath);
+			if (fileData == nullptr) {
+				LOG_WARN("InputActionMap::loadActionsFromFile failed to load json data: " << filePath);
+			}
+
+			std::unordered_map<std::string, JsonElement>& root = fileData->getRoot().getObject();
+			for (std::pair<std::string, JsonElement> actionEntry : root) {
+				InputAction action = {};
+				uint32_t stepIndex = 0;
+				std::vector<JsonElement>& steps = actionEntry.second.getArray();
+				for (JsonElement& stepJsonElement : steps) {
+					std::unordered_map<std::string, JsonElement>& step = stepJsonElement.getObject();
+					
+					JsonElement& typeElement = step.at(InputAction::JSON_ACTION_TYPE_STRING);
+					EDeviceInputType type = EDeviceInputType::NONE;
+					if (typeElement.isString()) {
+						const std::string& typeString = typeElement.getString();
+						type = InputAction::getEDeviceInputTypeFromString(typeString.c_str());
+					} else if (typeElement.isLong()) {
+						type = static_cast<EDeviceInputType>(typeElement.getLong());
+					} else {
+						LOG_ERR(
+							"InputActionMap::addActionsFromFile action type represented by unsupported type. " << filePath <<
+							"\t action: " << actionEntry.first << " t: " << typeElement.Element.index()
+						);
+						continue;
+					}
+
+					JsonElement& valueElement = step.at(InputAction::JSON_ACTION_VALUE_STRING);
+					int value = -1;
+					if (valueElement.isLong()) {
+						value = static_cast<int>(valueElement.getLong());
+					} else {
+						LOG_ERR(
+							"InputActionMap::addActionsFromFile action value represented by unsupported type. " << filePath <<
+							"\t action: " << actionEntry.first << " v: " << valueElement.Element.index()
+						);
+						continue;
+					}
+
+					action.ActionCodesByDevice[stepIndex] = { type, value };
+					stepIndex++;
+				}
+
+				if (stepIndex > 0) {
+					mActions.emplace(actionEntry.first.c_str(), action);
+				}
+			}
+	
+		} else {
+			LOG_ERR("InputActionMap::loadActionsFromFile given file NOT of type .json: " << filePath);
+		}
+	}
 
 	bool InputActionMap::addAction(const char* name, InputAction& action) {
 		auto result = mActions.find(name);
@@ -65,8 +113,14 @@ namespace DOH {
 	}
 
 	bool InputActionMap::isActionActive(const char* name, const AInputLayer& inputLayer) {
+		auto& actionItr = mActions.find(name);
+		if (actionItr == mActions.end()) {
+			LOG_WARN("isActionActive action not found: " << name);
+			return false;
+		}
+
 		//Assumes action exists.
-		InputAction& action = mActions.at(name);
+		InputAction& action = actionItr->second;
 		bool active = true;
 		for (std::pair<EDeviceInputType, int> actionStep : action.ActionCodesByDevice) {
 			switch (actionStep.first) {
@@ -96,8 +150,14 @@ namespace DOH {
 	}
 
 	bool InputActionMap::isActionActiveConsume(const char* name, AInputLayer& inputLayer) {
+		auto& actionItr = mActions.find(name);
+		if (actionItr == mActions.end()) {
+			LOG_WARN("isActionActiveConsume action not found: " << name);
+			return false;
+		}
+
 		//Assumes action exists.
-		InputAction& action = mActions.at(name);
+		InputAction& action = actionItr->second;
 		bool active = true;
 		for (std::pair<EDeviceInputType, int> actionStep : action.ActionCodesByDevice) {
 			if (!active) break;
@@ -128,5 +188,15 @@ namespace DOH {
 
 		if (active) inputLayer.consumeAction(action);
 		return active;
+	}
+
+	EDeviceInputType InputAction::getEDeviceInputTypeFromString(const char* string) {
+		for (int i = 1; i < EDeviceInputTypeCount; i++) {
+			if (strcmp(string, EDeviceInputType_Strings[i]) == 0) {
+				return static_cast<EDeviceInputType>(i);
+			}
+		}
+
+		return EDeviceInputType::NONE;
 	}
 }

@@ -6,6 +6,7 @@
 #include "dough/rendering/ShapeRenderer.h"
 #include "dough/rendering/text/TextRenderer.h"
 #include "dough/files/readers/JsonFileReader.h"
+#include "dough/input/InputCodes.h"
 
 #include <tracy/public/tracy/Tracy.hpp>
 
@@ -43,6 +44,7 @@ namespace DOH::EDITOR {
 		mTileMapDemo->update(delta);
 		mMultiCameraPassDemo->update(delta);
 		mJsonDemo->update(delta);
+		mInputActionDemo->update(delta);
 	}
 
 	void DemoLiciousAppLogic::render() {
@@ -57,6 +59,7 @@ namespace DOH::EDITOR {
 		mTileMapDemo->render();
 		mMultiCameraPassDemo->render();
 		mJsonDemo->render();
+		mInputActionDemo->render();
 	}
 
 	void DemoLiciousAppLogic::imGuiRender(float delta) {
@@ -132,6 +135,8 @@ namespace DOH::EDITOR {
 
 				//mJsonDemo->Render = false;
 				//mJsonDemo->Update = false;
+				//mInputActionDemo->Render = false;
+				//mInputActionDemo->Update = false;
 			}
 			if (ImGui::Button("View atlas texture")) {
 				EditorGui::openMonoSpaceTextureAtlasViewerWindow(*ShapeRenderer::getTestMonoSpaceTextureAtlas());
@@ -154,6 +159,7 @@ namespace DOH::EDITOR {
 		mTileMapDemo->renderImGuiExtras();
 		mMultiCameraPassDemo->renderImGuiExtras();
 		mJsonDemo->renderImGuiExtras();
+		mInputActionDemo->renderImGuiExtras();
 	}
 
 	void DemoLiciousAppLogic::close() {
@@ -217,6 +223,10 @@ namespace DOH::EDITOR {
 		mJsonDemo = std::make_unique<JsonDemo>(*mSharedDemoResources);
 		mJsonDemo->init();
 		mDemos.emplace_back(*mJsonDemo);
+
+		mInputActionDemo = std::make_unique<InputActionDemo>(*mSharedDemoResources);
+		mInputActionDemo ->init();
+		mDemos.emplace_back(*mInputActionDemo);
 	}
 
 	void DemoLiciousAppLogic::closeDemos() {
@@ -252,6 +262,9 @@ namespace DOH::EDITOR {
 
 		mJsonDemo->close();
 		mJsonDemo.release();
+
+		mInputActionDemo->close();
+		mInputActionDemo.release();
 
 		closeSharedResources();
 	}
@@ -2212,6 +2225,59 @@ namespace DOH::EDITOR {
 	}
 
 	void DemoLiciousAppLogic::JsonDemo::renderImGuiExtras() {
+
+	}
+
+	void DemoLiciousAppLogic::InputActionDemo::init() {
+		ActionMap = std::make_unique<InputActionMap>();
+
+		//Code example of adding an action.
+		InputAction exampleAction = {
+			{ EDeviceInputType::KEY_PRESS, DOH_KEY_1 },
+			{ EDeviceInputType::KEY_PRESS, DOH_KEY_2 }
+		};
+		ActionMap->addAction("example", exampleAction);
+
+		//Action maps are generally stored by an InputLayer but can be stored serparately, like in this example demo.
+		ActionMap->addActionsFromFile("Dough/Dough/res/demos/inputActionDemo_testActions.json");
+	}
+
+	void DemoLiciousAppLogic::InputActionDemo::close() {
+		ActionMap.release();
+		ActionMap = nullptr;
+	}
+
+	void DemoLiciousAppLogic::InputActionDemo::update(float delta) {
+		for (const std::pair<std::string, InputAction>& action : ActionMap->getActions()) {
+			if (ActionMap->isActionActive(action.first.c_str(), *SharedResources.InputLayer)) {
+				LOGLN_BRIGHT_GREEN("active: " << action.first.c_str());
+			}
+		}
+
+		//"__Consume" functions reset the values of the inputs to their defualt states if the action is active.
+		if (ActionMap->isActionActiveConsume("example", *SharedResources.InputLayer)) {
+			LOG_INFO("example action is active.");
+		}
+
+		if (ActionMap->isActionActiveConsume("jump", *SharedResources.InputLayer)) {
+			LOG_INFO("jump action is active.");
+		}
+
+		
+		if (ActionMap->isActionActiveConsume("shiftCtrlClick", *SharedResources.InputLayer)) {
+			LOG_INFO("shiftCtrlClick action is active.");
+		}
+	}
+
+	void DemoLiciousAppLogic::InputActionDemo::render() {
+
+	}
+
+	void DemoLiciousAppLogic::InputActionDemo::renderImGuiMainTab() {
+
+	}
+
+	void DemoLiciousAppLogic::InputActionDemo::renderImGuiExtras() {
 
 	}
 }

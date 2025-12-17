@@ -9,12 +9,13 @@ namespace DOH {
 	:	MouseScreenPos(0.0f, 0.0f),
 		MouseScrollOffset(0.0f, 0.0f)
 	{
+		//TODO:: This makes it so all keys and mouse buttons are tracked by this instance.
 		std::vector<int> keyCodes = {};
-		keyCodes.reserve(Input::DEFAULT_KEY_CODES.size());
+		keyCodes.reserve(Input::ALL_KEY_CODES.size());
 		std::vector<int> mouseButtons = {};
 		mouseButtons.reserve(Input::DEFAULT_MOUSE_BUTTON_CODES.size());
 
-		for (int keyCode : Input::DEFAULT_KEY_CODES) {
+		for (int keyCode : Input::ALL_KEY_CODES) {
 			keyCodes.emplace_back(keyCode);
 		}
 

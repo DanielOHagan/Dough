@@ -197,7 +197,7 @@ namespace DOH {
 				stop();
 				return;
 			case EEventType::WINDOW_FOCUS_CHANGE:
-				mFocused = ((WindowFocusChangeEvent&) windowEvent).isFocused();
+				mFocused = (static_cast<WindowFocusChangeEvent&>(windowEvent)).isFocused();
 				mAppLoop->onFocusChange(mFocused);
 
 				//If fullscreen iconify window so it doesn't display frozen on monitor
@@ -214,7 +214,7 @@ namespace DOH {
 				return;
 			case EEventType::WINDOW_RESIZE:
 			{
-				WindowResizeEvent& e = (WindowResizeEvent&) windowEvent;
+				WindowResizeEvent& e = static_cast<WindowResizeEvent&>(windowEvent);
 				mRenderer->onResize(
 					e.getWidth(),
 					e.getHeight()
@@ -224,7 +224,7 @@ namespace DOH {
 				return;
 			}
 			case EEventType::WINDOW_ICONIFY_CHANGE:
-				mIconified = ((WindowIconifyChangeEvent&) windowEvent).isIconified();
+				mIconified = (static_cast<WindowIconifyChangeEvent&>(windowEvent)).isIconified();
 				if (mIconified) {
 					mRenderer->deviceWaitIdle("Forcing GPU wait while iconified");
 				}
@@ -232,7 +232,7 @@ namespace DOH {
 
 			case EEventType::WINDOW_MONITOR_CHANGE:
 			{
-				WindowMonitorChangeEvent& e = (WindowMonitorChangeEvent&) windowEvent;
+				WindowMonitorChangeEvent& e = static_cast<WindowMonitorChangeEvent&>(windowEvent);
 
 				//Resize swap chain if fullscreen & size is different
 				if (e.getDisplayMode() != EWindowDisplayMode::WINDOWED) {
@@ -246,7 +246,7 @@ namespace DOH {
 
 			case EEventType::WINDOW_DISPLAY_MODE_CHANGE:
 			{
-				WindowDisplayModeChangeEvent& e = (WindowDisplayModeChangeEvent&) windowEvent;
+				WindowDisplayModeChangeEvent& e = static_cast<WindowDisplayModeChangeEvent&>(windowEvent);
 
 				if (e.getDisplayMode() == EWindowDisplayMode::FULLSCREEN) {
 					mRenderer->getContext().getImGuiWrapper().setEnabledConfigFlag(EImGuiConfigFlag::VIEWPORTS, false);
@@ -286,21 +286,21 @@ namespace DOH {
 		switch (mouseEvent.getType()) {
 			case EEventType::MOUSE_MOVE:
 			{
-				MouseMoveEvent& move = (MouseMoveEvent&) mouseEvent;
+				MouseMoveEvent& move = static_cast<MouseMoveEvent&>(mouseEvent);
 				Input::get().onMouseMoveEvent(move.getPosX(), move.getPosY());
 				return;
 			}
 
 			case EEventType::MOUSE_BUTTON_DOWN:
-				Input::get().onMouseButtonPressedEvent(((MouseButtonEvent&) mouseEvent).getButton(), true);
+				Input::get().onMouseButtonPressedEvent((static_cast<MouseButtonEvent&>(mouseEvent)).getButton(), true);
 				return;
 
 			case EEventType::MOUSE_BUTTON_UP:
-				Input::get().onMouseButtonPressedEvent(((MouseButtonEvent&) mouseEvent).getButton(), false);
+				Input::get().onMouseButtonPressedEvent((static_cast<MouseButtonEvent&>(mouseEvent)).getButton(), false);
 				return;
 			
 			case EEventType::MOUSE_SCROLL: {
-				MouseScrollEvent& scroll = (MouseScrollEvent&) mouseEvent;
+				MouseScrollEvent& scroll = static_cast<MouseScrollEvent&>(mouseEvent);
 				Input::get().onMouseScrollEvent(scroll.getOffsetX(), scroll.getOffsetY());
 				return;
 			}

@@ -50,7 +50,7 @@ namespace DOH {
 				case EDeviceInputType::MOUSE_MOVE:
 					continue; //Mouse movement can by handled by "Input::getMousePos()"
 
-					//NONE is used to show that no more actions are expected.
+				//NONE is used to show that no more actions are expected.
 				default:
 				case EDeviceInputType::NONE:
 					return;

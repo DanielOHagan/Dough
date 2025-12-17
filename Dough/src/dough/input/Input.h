@@ -34,8 +34,9 @@ namespace DOH {
 		inline static Input& get() { return *INSTANCE; }
 
 	public:
+		static const std::array<int, 120> ALL_KEY_CODES;
 		static const std::array<int, 53> DEFAULT_KEY_CODES;
-		static const std::array<int, 3> DEFAULT_MOUSE_BUTTON_CODES;
+		static const std::array<int, 8> DEFAULT_MOUSE_BUTTON_CODES;
 
 		Input();
 
@@ -48,5 +49,8 @@ namespace DOH {
 		static std::optional<std::shared_ptr<AInputLayer>> getInputLayerPtr(const char* name);
 		inline static float getMousePosX() { return INSTANCE->mMousePosX; }
 		inline static float getMousePosY() { return INSTANCE->mMousePosY; }
+
+		static const char* getInputString(int keyCode);
+		static const char* getInputStringShortHand(int keyCode);
 	};
 }
