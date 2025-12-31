@@ -27,45 +27,69 @@ namespace DOH {
 
 			std::unordered_map<std::string, JsonElement>& root = fileData->getRoot().getObject();
 			for (std::pair<std::string, JsonElement> actionEntry : root) {
+				std::unordered_map<std::string, JsonElement>& actionData = actionEntry.second.getObject();
 				InputAction action = {};
 				uint32_t stepIndex = 0;
-				std::vector<JsonElement>& steps = actionEntry.second.getArray();
-				for (JsonElement& stepJsonElement : steps) {
-					std::unordered_map<std::string, JsonElement>& step = stepJsonElement.getObject();
-					
-					JsonElement& typeElement = step.at(InputAction::JSON_ACTION_TYPE_STRING);
-					EDeviceInputType type = EDeviceInputType::NONE;
-					if (typeElement.isString()) {
-						const std::string& typeString = typeElement.getString();
-						type = InputAction::getEDeviceInputTypeFromString(typeString.c_str());
-					} else if (typeElement.isLong()) {
-						type = static_cast<EDeviceInputType>(typeElement.getLong());
-					} else {
-						LOG_ERR(
-							"InputActionMap::addActionsFromFile action type represented by unsupported type. " << filePath <<
-							"\t action: " << actionEntry.first << " t: " << typeElement.Element.index()
-						);
-						continue;
+				//If no actions (for any device type) have been found.
+				bool emptyAction = true;
+				const auto& kbmEntry = actionData.find(InputAction::JSON_KEYBOARD_AND_MOUSE_STRING);
+				if (kbmEntry != actionData.end()) {
+					std::vector<JsonElement>& steps = kbmEntry->second.getArray();
+
+					for (JsonElement& stepJsonElement : steps) {
+						std::unordered_map<std::string, JsonElement>& step = stepJsonElement.getObject();
+						JsonElement& typeElement = step.at(InputAction::JSON_ACTION_TYPE_STRING);
+						EDeviceInputType type = EDeviceInputType::NONE;
+
+						if (typeElement.isString()) {
+							const std::string& typeString = typeElement.getString();
+							type = InputAction::getEDeviceInputTypeFromString(typeString.c_str());
+						} else if (typeElement.isLong()) {
+							type = static_cast<EDeviceInputType>(typeElement.getLong());
+						} else {
+							LOG_ERR(
+								"InputActionMap::addActionsFromFile action type represented by unsupported type. " << filePath <<
+								"\t action: " << actionEntry.first << " t: " << typeElement.Element.index()
+							);
+							continue;
+						}
+
+						JsonElement& valueElement = step.at(InputAction::JSON_ACTION_VALUE_STRING);
+						int value = -1;
+						if (valueElement.isLong()) {
+							value = static_cast<int>(valueElement.getLong());
+						} else {
+							LOG_ERR(
+								"InputActionMap::addActionsFromFile action value represented by unsupported type. " << filePath <<
+								"\t action: " << actionEntry.first << " v: " << valueElement.Element.index()
+							);
+							continue;
+						}
+
+						action.ActionCodesByDevice[stepIndex] = { type, value };
+						stepIndex++;
 					}
 
-					JsonElement& valueElement = step.at(InputAction::JSON_ACTION_VALUE_STRING);
-					int value = -1;
-					if (valueElement.isLong()) {
-						value = static_cast<int>(valueElement.getLong());
-					} else {
-						LOG_ERR(
-							"InputActionMap::addActionsFromFile action value represented by unsupported type. " << filePath <<
-							"\t action: " << actionEntry.first << " v: " << valueElement.Element.index()
-						);
-						continue;
+					if (stepIndex > 0) {
+						mActions.emplace(actionEntry.first.c_str(), action);
+						emptyAction = false;
 					}
-
-					action.ActionCodesByDevice[stepIndex] = { type, value };
-					stepIndex++;
 				}
 
-				if (stepIndex > 0) {
-					mActions.emplace(actionEntry.first.c_str(), action);
+				const auto& conEntry = actionData.find(InputAction::JSON_CONTROLLER_STRING);
+				if (conEntry != actionData.end()) {
+					//TODO:: Controller support.
+
+					//TEMP:: Prevent multiple warnings from same file.
+					static bool alreadyWarned = false;
+					if (!alreadyWarned) {
+						LOG_WARN(filePath << " uses controller inputs when NOT SUPPORTED!");
+						alreadyWarned = true;
+					}
+				}
+
+				if (emptyAction) {
+					LOG_WARN("No inputs found for action: " << actionEntry.first << " - " << filePath);
 				}
 			}
 	
@@ -112,17 +136,27 @@ namespace DOH {
 		return result == mActions.end();
 	}
 
-	bool InputActionMap::isActionActive(const char* name, const AInputLayer& inputLayer) {
+	bool InputActionMap::isActionActiveAND(const char* name, const AInputLayer& inputLayer) const {
 		auto& actionItr = mActions.find(name);
 		if (actionItr == mActions.end()) {
 			LOG_WARN("isActionActive action not found: " << name);
 			return false;
 		}
+		return actionItr->second.isActiveAND(inputLayer);
+	}
 
-		//Assumes action exists.
-		InputAction& action = actionItr->second;
+	bool InputActionMap::isActionActiveANDConsume(const char* name, AInputLayer& inputLayer) {
+		auto& actionItr = mActions.find(name);
+		if (actionItr == mActions.end()) {
+			LOG_WARN("isActionActiveConsume action not found: " << name);
+			return false;
+		}
+		return actionItr->second.isActiveANDConsume(inputLayer);
+	}
+
+	bool InputAction::isActiveAND(const AInputLayer& inputLayer) const {
 		bool active = true;
-		for (std::pair<EDeviceInputType, int> actionStep : action.ActionCodesByDevice) {
+		for (std::pair<EDeviceInputType, int> actionStep : ActionCodesByDevice) {
 			switch (actionStep.first) {
 				case EDeviceInputType::KEY_PRESS:
 					active = active && inputLayer.isKeyPressed(actionStep.second);
@@ -139,27 +173,18 @@ namespace DOH {
 				case EDeviceInputType::MOUSE_MOVE:
 					continue; //Mouse movement can by handled by "Input::getMousePos()"
 
-				//NONE is used to show that no more actions are expected.
+					//NONE is used to show that no more actions are expected.
 				default:
 				case EDeviceInputType::NONE:
 					return active;
 			}
 		}
-
 		return active;
 	}
-
-	bool InputActionMap::isActionActiveConsume(const char* name, AInputLayer& inputLayer) {
-		auto& actionItr = mActions.find(name);
-		if (actionItr == mActions.end()) {
-			LOG_WARN("isActionActiveConsume action not found: " << name);
-			return false;
-		}
-
-		//Assumes action exists.
-		InputAction& action = actionItr->second;
+	
+	bool InputAction::isActiveANDConsume(AInputLayer& inputLayer) {
 		bool active = true;
-		for (std::pair<EDeviceInputType, int> actionStep : action.ActionCodesByDevice) {
+		for (std::pair<EDeviceInputType, int> actionStep : ActionCodesByDevice) {
 			if (!active) break;
 			bool stepActive = false;
 			switch (actionStep.first) {
@@ -181,12 +206,12 @@ namespace DOH {
 				//NONE is used to show that no more actions are expected.
 				default:
 				case EDeviceInputType::NONE:
-					if (active) inputLayer.consumeAction(action);
+					if (active) inputLayer.consumeAction(*this);
 					return active;
 			}
 		}
 
-		if (active) inputLayer.consumeAction(action);
+		if (active) inputLayer.consumeAction(*this);
 		return active;
 	}
 

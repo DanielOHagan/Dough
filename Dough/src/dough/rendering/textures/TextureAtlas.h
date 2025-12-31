@@ -11,6 +11,8 @@ namespace DOH {
 	
 	/**
 	* Description of texture within a texture atlas.
+	*
+	* TODO:: Shouldn't this just be std::array<float, 4> TextureCoords; TopLeft->BotRight. And have many functions like getLeft() { return TextureCoords[1]; } etc... And Texels just cast to uint.
 	*/
 	struct InnerTexture {
 		//Texel coords of inner texture, origin at Top-Left, store order is Top-Left, Top-Right, Bottom-Right, Bottom-Left.
@@ -29,6 +31,7 @@ namespace DOH {
 		inline std::array<float, 2> getBottomRightTexCoords() const { return { TextureCoords[4], TextureCoords[5] }; }
 		inline std::array<float, 2> getBottomLeftTexCoords() const { return { TextureCoords[6], TextureCoords[7] }; }
 		//Return array of 4 floats of the texture coords, ordered botLeft.x, botLeft.y, topRight.x, topRight.y to match quad renderer input.
+		//TODO:: This ordering botLeft->... is different from TextureCoords and may cause confusion.
 		inline std::array<float, 4> getTexCoordsAsSquare() const { return { TextureCoords[6], TextureCoords[7], TextureCoords[2], TextureCoords[3] }; }
 
 

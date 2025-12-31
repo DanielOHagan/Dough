@@ -2249,22 +2249,22 @@ namespace DOH::EDITOR {
 
 	void DemoLiciousAppLogic::InputActionDemo::update(float delta) {
 		for (const std::pair<std::string, InputAction>& action : ActionMap->getActions()) {
-			if (ActionMap->isActionActive(action.first.c_str(), *SharedResources.InputLayer)) {
+			if (ActionMap->isActionActiveAND(action.first.c_str(), *SharedResources.InputLayer)) {
 				LOGLN_BRIGHT_GREEN("active: " << action.first.c_str());
 			}
 		}
 
 		//"__Consume" functions reset the values of the inputs to their defualt states if the action is active.
-		if (ActionMap->isActionActiveConsume("example", *SharedResources.InputLayer)) {
+		if (ActionMap->isActionActiveANDConsume("example", *SharedResources.InputLayer)) {
 			LOG_INFO("example action is active.");
 		}
 
-		if (ActionMap->isActionActiveConsume("jump", *SharedResources.InputLayer)) {
+		if (ActionMap->isActionActiveANDConsume("jump", *SharedResources.InputLayer)) {
 			LOG_INFO("jump action is active.");
 		}
 
 		
-		if (ActionMap->isActionActiveConsume("shiftCtrlClick", *SharedResources.InputLayer)) {
+		if (ActionMap->isActionActiveANDConsume("shiftCtrlClick", *SharedResources.InputLayer)) {
 			LOG_INFO("shiftCtrlClick action is active.");
 		}
 	}

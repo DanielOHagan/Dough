@@ -107,9 +107,8 @@ namespace DOH::EDITOR {
 		bool mMatchWindowSize;
 		float mScale;
 		float mPreviewScale;
-		const char* mPreviewedInnerTexture;
-		std::array<float, 4> mPreviewTexelCoords;
-		std::array<float, 4> mPreviewTextureCoords;
+		std::string mPreviewName;
+		std::optional<InnerTexture> mPreviewedInnerTexture;
 
 	public:
 		ResourceViewerUiIndexedTextureAtlas(
@@ -122,9 +121,7 @@ namespace DOH::EDITOR {
 			mMatchWindowSize(matchWindowSize),
 			mScale(scale),
 			mPreviewScale(1.0f),
-			mPreviewedInnerTexture("No Preview"),
-			mPreviewTexelCoords(),
-			mPreviewTextureCoords()
+			mPreviewName("No Preview")
 		{}
 
 		virtual void draw(bool openAsWindow = false) override;

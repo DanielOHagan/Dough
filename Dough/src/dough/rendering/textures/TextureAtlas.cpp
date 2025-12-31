@@ -71,25 +71,25 @@ namespace DOH {
 		std::shared_ptr<IndexedAtlasInfoFileData> atlasFileData = ResourceHandler::loadIndexedTextureAtlas(atlasInfoFilePath);
 
 		if (atlasFileData == nullptr) {
-			//TODO:: Handle this
+			//TODO:: Handle this OUTSIDE of this function, maybe have mName = "FAILED" or mChannels = INT_MAX to signal that the texture creation failed.
 			LOG_ERR("Failed to loadIndexedTextureAtlas: " << atlasInfoFilePath);
-			return;
-		}
-
-		std::string imageFilePath = atlasTextureDir;
-		imageFilePath.append(atlasFileData->TextureFileName);
-
-		TextureCreationData textureCreationData = ResourceHandler::loadTexture(imageFilePath.c_str());
-
-		if (textureCreationData.Failed) {
-			//TODO:: Handle this
-			LOG_ERR("IndexedAtlas " << atlasFileData->Name << "failed to loadTexture: " << imageFilePath);
 			return;
 		}
 
 		mName = atlasFileData->Name;
 		mInnerTextureMap = atlasFileData->InnerTextures;
 		mAnimations = atlasFileData->Animations;
+
+		std::string imageFilePath = atlasTextureDir;
+		imageFilePath.append(atlasFileData->TextureFileName);
+
+		TextureCreationData textureCreationData = ResourceHandler::loadTexture(imageFilePath.c_str());
+		if (textureCreationData.Failed) {
+			//TODO:: Handle this OUTSIDE of this function, maybe have mName = "FAILED" or mChannels = INT_MAX to signal that the texture creation failed.
+			LOG_ERR("IndexedAtlas " << atlasFileData->Name << " failed to loadTexture: " << imageFilePath);
+			return;
+		}
+
 		mWidth = textureCreationData.Width;
 		mHeight = textureCreationData.Height;
 		mChannels = textureCreationData.Channels;

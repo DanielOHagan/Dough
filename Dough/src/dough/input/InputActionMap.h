@@ -31,13 +31,33 @@ namespace DOH {
 
 	struct InputAction {
 	public:
+		constexpr static const char* JSON_KEYBOARD_AND_MOUSE_STRING = "kbm";
+		constexpr static const char* JSON_CONTROLLER_STRING = "con";
 		constexpr static const char* JSON_ACTION_TYPE_STRING = "t";
 		constexpr static const char* JSON_ACTION_VALUE_STRING = "v";
+		//Arbitrary maximum value. Can't see why this would need changing. Famous last words...
+		constexpr static const uint32_t MAX_INPUTS_PER_ACTION = 3;
 
 		//DeviceInputType (method of action e.g. key_press, mouse_press, etc...) with corresponding input code.
-		std::array<std::pair<EDeviceInputType, int>, 3> ActionCodesByDevice;
+		std::array<std::pair<EDeviceInputType, int>, InputAction::MAX_INPUTS_PER_ACTION> ActionCodesByDevice;
 
-		InputAction() = default;
+		InputAction() {
+			for (uint32_t i = 0; i < InputAction::MAX_INPUTS_PER_ACTION; i++) {
+				ActionCodesByDevice[i] = { EDeviceInputType::NONE, 0 };
+			}
+		}
+
+		InputAction(const InputAction& copy) {
+			for (uint32_t i = 0; i < InputAction::MAX_INPUTS_PER_ACTION; i++) {
+				ActionCodesByDevice[i] = copy.ActionCodesByDevice[i];
+			}
+		}
+
+		InputAction operator=(const InputAction& assignment) {
+			for (uint32_t i = 0; i < InputAction::MAX_INPUTS_PER_ACTION; i++) {
+				ActionCodesByDevice[i] = assignment.ActionCodesByDevice[i];
+			}
+		}
 
 		InputAction(std::initializer_list<std::pair<EDeviceInputType, int>> actionCodesByDevice) {
 			uint32_t i = 0;
@@ -51,10 +71,17 @@ namespace DOH {
 			}
 
 			//Fill remaining to NONE
-			for (uint32_t remaining = i; remaining < 3; remaining++) {
+			for (uint32_t remaining = i; remaining < InputAction::MAX_INPUTS_PER_ACTION; remaining++) {
 				ActionCodesByDevice[remaining] = { EDeviceInputType::NONE, 0 };
 			}
 		}
+
+		bool isActiveAND(const AInputLayer& inputLayer) const;
+		bool isActiveANDConsume(AInputLayer& inputLayer);
+		//bool isActiveOR() const;
+		//bool isActiveORConsume(AInputLayer& inputLayer) const;
+		//bool isActiveNOT() const;
+		//bool isActiveNOTConsume(AInputLayer& inputLayer) const;
 
 		static EDeviceInputType getEDeviceInputTypeFromString(const char* string);
 	};
@@ -75,9 +102,16 @@ namespace DOH {
 		void removeAction(const char* name);
 		bool hasAction(const char* name);
 
-		bool isActionActive(const char* name, const AInputLayer& inputLayer);
-		bool isActionActiveConsume(const char* name, AInputLayer& inputLayer);
+		//AND - All steps in action must be true.
+		bool isActionActiveAND(const char* name, const AInputLayer& inputLayer) const;
+		//AND - All steps in action must be true. All steps are consumed if true.
+		bool isActionActiveANDConsume(const char* name, AInputLayer& inputLayer);
+		//TODO::
+		//OR - Only one step in action must be true.
+		//bool isActionActiveOR(const char* name, const AInputLayer& inputLayer);
+		//OR - Only one step in action must be true. TODO:: Should all steps (if true) be consumed or just the first found?
+		//bool isActionActiveORConsume(const char* name, const AInputLayer& inputLayer);
 
-		inline std::unordered_map<std::string, InputAction> getActions() { return mActions; }
+		inline std::unordered_map<std::string, InputAction>& getActions() { return mActions; }
 	};
 }

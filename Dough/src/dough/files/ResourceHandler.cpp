@@ -272,13 +272,16 @@ namespace DOH {
 			return 0;
 		}
 
-		for (size_t i = 0; i < chars.size(); i++) {
+		for (size_t i = 0; startIndex + i < chars.size(); i++) {
 			if (chars[startIndex + i] == targetChar) {
+				return i;
+			} else if (startIndex + i == chars.size() - 1) {
 				return i;
 			}
 		}
 
-		return 0;
+		LOG_WARN("Returned end of line/file since target char not found: " << targetChar);
+		return 1;
 	}
 
 	const size_t ResourceHandler::getLengthOfCurrentLine(const std::vector<char>& chars, const size_t currentLineStartIndex) {

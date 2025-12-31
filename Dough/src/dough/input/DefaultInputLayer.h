@@ -30,13 +30,13 @@ namespace DOH {
 		virtual inline bool isMouseButtonPressed(int button) const override { return mKeyboardMouseInput->isMouseButtonPressed(button); }
 		virtual inline bool isMouseScrollingUp() const override { return mKeyboardMouseInput->isMouseScrollingUp(); }
 		virtual inline bool isMouseScrollingDown() const override { return mKeyboardMouseInput->isMouseScrollingDown(); }
-		virtual inline bool isActionActive(const char* action) const override { return mInputActionMapping->isActionActive(action, *this); }
+		virtual inline bool isActionActiveAND(const char* action) const override { return mInputActionMapping->isActionActiveAND(action, *this); }
 		virtual inline const glm::vec2 getCursorPos() const override { return mKeyboardMouseInput->getCursorPos(); }
 		virtual inline bool isKeyPressedConsume(int keyCode) override { return mKeyboardMouseInput->isKeyPressedConsume(keyCode); }
 		virtual inline bool isMouseButtonPressedConsume(int button) override { return mKeyboardMouseInput->isMouseButtonPressedConsume(button); }
 		virtual inline bool isMouseScrollingUpConsume() override { return mKeyboardMouseInput->isMouseScrollingUpConsume(); }
 		virtual inline bool isMouseScrollingDownConsume() override { return mKeyboardMouseInput->isMouseScrollingDownConsume(); }
-		virtual inline bool isActionActiveConsume(const char* action) override { return mInputActionMapping->isActionActiveConsume(action, *this); }
+		virtual inline bool isActionActiveANDConsume(const char* action) override { return mInputActionMapping->isActionActiveANDConsume(action, *this); }
 
 		virtual void consumeAction(InputAction& action) override;
 
