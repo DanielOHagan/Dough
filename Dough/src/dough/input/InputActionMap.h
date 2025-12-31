@@ -78,10 +78,10 @@ namespace DOH {
 
 		bool isActiveAND(const AInputLayer& inputLayer) const;
 		bool isActiveANDConsume(AInputLayer& inputLayer);
-		//bool isActiveOR() const;
-		//bool isActiveORConsume(AInputLayer& inputLayer) const;
+		bool isActiveOR(const AInputLayer& inputLayer) const;
+		bool isActiveORConsume(AInputLayer& inputLayer);
 		//bool isActiveNOT() const;
-		//bool isActiveNOTConsume(AInputLayer& inputLayer) const;
+		//bool isActiveNOTConsume(AInputLayer& inputLayer);
 
 		static EDeviceInputType getEDeviceInputTypeFromString(const char* string);
 	};
@@ -106,11 +106,13 @@ namespace DOH {
 		bool isActionActiveAND(const char* name, const AInputLayer& inputLayer) const;
 		//AND - All steps in action must be true. All steps are consumed if true.
 		bool isActionActiveANDConsume(const char* name, AInputLayer& inputLayer);
-		//TODO::
 		//OR - Only one step in action must be true.
-		//bool isActionActiveOR(const char* name, const AInputLayer& inputLayer);
+		bool isActionActiveOR(const char* name, const AInputLayer& inputLayer) const;
 		//OR - Only one step in action must be true. TODO:: Should all steps (if true) be consumed or just the first found?
-		//bool isActionActiveORConsume(const char* name, const AInputLayer& inputLayer);
+		bool isActionActiveORConsume(const char* name, AInputLayer& inputLayer);
+		//TODO::
+		//bool isActionActiveNOT(const char* name, const AInputLayer& inputLayer) const;
+		//bool isActionActiveNOTConsume(const char* name, AInputLayer& inputLayer);
 
 		inline std::unordered_map<std::string, InputAction>& getActions() { return mActions; }
 	};

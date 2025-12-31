@@ -139,7 +139,7 @@ namespace DOH {
 	bool InputActionMap::isActionActiveAND(const char* name, const AInputLayer& inputLayer) const {
 		auto& actionItr = mActions.find(name);
 		if (actionItr == mActions.end()) {
-			LOG_WARN("isActionActive action not found: " << name);
+			LOG_WARN("isActionActiveAND action not found: " << name);
 			return false;
 		}
 		return actionItr->second.isActiveAND(inputLayer);
@@ -148,10 +148,28 @@ namespace DOH {
 	bool InputActionMap::isActionActiveANDConsume(const char* name, AInputLayer& inputLayer) {
 		auto& actionItr = mActions.find(name);
 		if (actionItr == mActions.end()) {
-			LOG_WARN("isActionActiveConsume action not found: " << name);
+			LOG_WARN("isActionActiveANDConsume action not found: " << name);
 			return false;
 		}
 		return actionItr->second.isActiveANDConsume(inputLayer);
+	}
+
+	bool InputActionMap::isActionActiveOR(const char* name, const AInputLayer& inputLayer) const {
+		auto& actionItr = mActions.find(name);
+		if (actionItr == mActions.end()) {
+			LOG_WARN("isActionActiveOR action not found: " << name);
+			return false;
+		}
+		return actionItr->second.isActiveOR(inputLayer);
+	}
+	
+	bool InputActionMap::isActionActiveORConsume(const char* name, AInputLayer& inputLayer) {
+		auto& actionItr = mActions.find(name);
+		if (actionItr == mActions.end()) {
+			LOG_WARN("isActionActiveORConsume action not found: " << name);
+			return false;
+		}
+		return actionItr->second.isActiveORConsume(inputLayer);
 	}
 
 	bool InputAction::isActiveAND(const AInputLayer& inputLayer) const {
@@ -204,6 +222,66 @@ namespace DOH {
 					continue; //Mouse movement can by handled by "Input::getMousePos()"
 
 				//NONE is used to show that no more actions are expected.
+				default:
+				case EDeviceInputType::NONE:
+					if (active) inputLayer.consumeAction(*this);
+					return active;
+			}
+		}
+
+		if (active) inputLayer.consumeAction(*this);
+		return active;
+	}
+
+	bool InputAction::isActiveOR(const AInputLayer& inputLayer) const {
+		for (std::pair<EDeviceInputType, int> actionStep : ActionCodesByDevice) {
+			switch (actionStep.first) {
+				case EDeviceInputType::KEY_PRESS:
+					if (inputLayer.isKeyPressed(actionStep.second)) return true;
+					break;
+				case EDeviceInputType::MOUSE_PRESS:
+					if (inputLayer.isMouseButtonPressed(actionStep.second)) return true;
+					break;
+				case EDeviceInputType::MOUSE_SCROLL_DOWN:
+					if (inputLayer.isMouseScrollingDown()) return true;
+					break;
+				case EDeviceInputType::MOUSE_SCROLL_UP:
+					if (inputLayer.isMouseScrollingUp()) return true;
+					break;
+				case EDeviceInputType::MOUSE_MOVE:
+					continue; //Mouse movement can by handled by "Input::getMousePos()"
+
+				//NONE is used to show that no more actions are expected.
+				default:
+				case EDeviceInputType::NONE:
+					return false;
+			}
+		}
+
+		return false;
+	}
+
+	bool InputAction::isActiveORConsume(AInputLayer& inputLayer) {
+		bool active = false;
+		for (std::pair<EDeviceInputType, int> actionStep : ActionCodesByDevice) {
+			if (active) break;
+			switch (actionStep.first) {
+				case EDeviceInputType::KEY_PRESS:
+					active = active || inputLayer.isKeyPressed(actionStep.second);
+					break;
+				case EDeviceInputType::MOUSE_PRESS:
+					active = active || inputLayer.isMouseButtonPressed(actionStep.second);
+					break;
+				case EDeviceInputType::MOUSE_SCROLL_DOWN:
+					active = active || inputLayer.isMouseScrollingDown();
+					break;
+				case EDeviceInputType::MOUSE_SCROLL_UP:
+					active = active || inputLayer.isMouseScrollingUp();
+					break;
+				case EDeviceInputType::MOUSE_MOVE:
+					continue; //Mouse movement can by handled by "Input::getMousePos()"
+
+					//NONE is used to show that no more actions are expected.
 				default:
 				case EDeviceInputType::NONE:
 					if (active) inputLayer.consumeAction(*this);

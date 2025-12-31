@@ -32,7 +32,7 @@ namespace DOH {
 		virtual inline bool isMouseScrollingDown() const = 0;
 		virtual inline const glm::vec2 getCursorPos() const = 0;
 		virtual bool isActionActiveAND(const char* action) const = 0;
-		//TODO:: virtual bool isActionActiveOR(const char* action) const = 0;
+		virtual bool isActionActiveOR(const char* action) const = 0;
 		//TODO:: virtual bool isActionActiveNOT(const char* action) const = 0;
 
 		//Consume functions reset the specified input if true.
@@ -41,7 +41,7 @@ namespace DOH {
 		virtual inline bool isMouseScrollingUpConsume() = 0;
 		virtual inline bool isMouseScrollingDownConsume() = 0;
 		virtual inline bool isActionActiveANDConsume(const char* action) = 0;
-		//TODO:: virtual inline bool isActionActiveORConsume(const char* action) = 0;
+		virtual inline bool isActionActiveORConsume(const char* action) = 0;
 		//TODO:: virtual inline bool isActionActiveNOTConsume(const char* action) = 0;
 
 		//Manually consume the inputs required for this action to be "active".
