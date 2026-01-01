@@ -31,8 +31,8 @@ namespace DOH {
 		inline std::array<float, 2> getBottomRightTexCoords() const { return { TextureCoords[4], TextureCoords[5] }; }
 		inline std::array<float, 2> getBottomLeftTexCoords() const { return { TextureCoords[6], TextureCoords[7] }; }
 		//Return array of 4 floats of the texture coords, ordered botLeft.x, botLeft.y, topRight.x, topRight.y to match quad renderer input.
-		//TODO:: This ordering botLeft->... is different from TextureCoords and may cause confusion.
-		inline std::array<float, 4> getTexCoordsAsSquare() const { return { TextureCoords[6], TextureCoords[7], TextureCoords[2], TextureCoords[3] }; }
+		//TODO:: This ordering botLeft->... is different from TextureCoords BUT is the same as Quad.TextureCoords, this may cause confusion.
+		inline std::array<float, 4> getTexCoordsAsQuad() const { return { TextureCoords[6], TextureCoords[7], TextureCoords[2], TextureCoords[3] }; }
 
 
 		inline uint32_t getWidthTexels() const { return TexelCoords[2] - TexelCoords[0]; } //Any ___Right.x value - and ___Left.x value

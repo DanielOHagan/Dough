@@ -1882,7 +1882,14 @@ namespace DOH::EDITOR {
 		PreviewQuad = { { 0.0f, -1.0f, 1.0f }, { 2.0f, 2.0f }, { 1.f, 1.0f, 1.0f, 1.0f }, 0.0f, texAtlas };
 		PreviewQuad.setTexture(*texAtlas);
 
-		AnimatedQuad = { { -2.0f, -1.0f, 1.0f }, { 2.0f, 2.0f }, { 1.f, 1.0f, 1.0f, 1.0f }, 0.0f, texAtlas, PreviewAnimationController->getCurrentInnerTexture().getTexCoordsAsSquare() };
+		AnimatedQuad = {
+			{ -2.0f, -1.0f, 1.0f },
+			{ 2.0f, 2.0f },
+			{ 1.f, 1.0f, 1.0f, 1.0f },
+			0.0f,
+			texAtlas,
+			PreviewAnimationController->getCurrentInnerTexture().getTexCoordsAsQuad()
+		};
 		AnimatedQuad.setTexture(*texAtlas);
 	}
 
@@ -1893,7 +1900,7 @@ namespace DOH::EDITOR {
 	void DemoLiciousAppLogic::TileMapDemo::update(float delta) {
 		if (Update) {
 			if (PreviewAnimationController->update(delta)) {
-				AnimatedQuad.TextureCoords = PreviewAnimationController->getCurrentInnerTexture().getTexCoordsAsSquare();
+				AnimatedQuad.TextureCoords = PreviewAnimationController->getCurrentInnerTexture().getTexCoordsAsQuad();
 			}
 		}
 	}
@@ -1930,7 +1937,7 @@ namespace DOH::EDITOR {
 			}
 			if (ImGui::Button(innerTexture.first.c_str())) {
 				PreviewedInnerTexture = innerTexture.first.c_str();
-				PreviewQuad.TextureCoords = innerTexture.second.getTexCoordsAsSquare();
+				PreviewQuad.TextureCoords = innerTexture.second.getTexCoordsAsQuad();
 			}
 			if (previewButton) {
 				ImGui::PopStyleColor(1);
@@ -1949,7 +1956,7 @@ namespace DOH::EDITOR {
 		}
 		if (ImGui::Button("Reset Animation")) {
 			PreviewAnimationController->reset();
-			AnimatedQuad.TextureCoords = PreviewAnimationController->getCurrentInnerTexture().getTexCoordsAsSquare();
+			AnimatedQuad.TextureCoords = PreviewAnimationController->getCurrentInnerTexture().getTexCoordsAsQuad();
 		}
 	}
 
