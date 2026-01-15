@@ -169,8 +169,8 @@ namespace DOH::EDITOR {
 		mEditorGuiFocused = EditorGui::isGuiFocused();
 
 		//NOTE:: If mEditorSettings->mCurrentCamera is NONE then update perspective
-		if (mEditorSettings->mCurrentCamera != EEditorCamera::INNER_APP_CHOSEN) {
-			if (mEditorSettings->mCurrentCamera == EEditorCamera::EDITOR_ORTHOGRAPHIC) {
+		if (mEditorSettings->CurrentCamera != EEditorCamera::INNER_APP_CHOSEN) {
+			if (mEditorSettings->CurrentCamera == EEditorCamera::EDITOR_ORTHOGRAPHIC) {
 				mOrthoCameraController->onUpdate(delta);
 			} else {
 				mPerspectiveCameraController->onUpdate(delta);
@@ -582,6 +582,9 @@ UPS displayed is the count of frames in the last full second interval)"
 							//TODO:: re-initialise/reset inner app 
 							mInnerAppState = EInnerAppState::PLAYING;
 							mInnerAppTimer->start();
+							if (mEditorSettings->SwitchToInnerAppCamOnPlay) {
+								setCurrentCamera(EEditorCamera::INNER_APP_CHOSEN);
+							}
 						}
 						break;
 
@@ -598,34 +601,27 @@ UPS displayed is the count of frames in the last full second interval)"
 			//TODO:: Use different formats, currently looks bad
 			ImGui::SetNextItemOpen(mEditorSettings->CameraCollapseMenuOpen);
 			if (mEditorSettings->CameraCollapseMenuOpen = ImGui::CollapsingHeader("Camera")) {
-				const bool orthoCameraActive = mEditorSettings->mCurrentCamera == EEditorCamera::EDITOR_ORTHOGRAPHIC;
-				const bool perspectiveCameraActive = mEditorSettings->mCurrentCamera == EEditorCamera::EDITOR_PERSPECTIVE;
-				const bool inAppCameraActive = mEditorSettings->mCurrentCamera == EEditorCamera::INNER_APP_CHOSEN;
-				const EEditorCamera lastCamera = mEditorSettings->mCurrentCamera;
+				const bool orthoCameraActive = mEditorSettings->CurrentCamera == EEditorCamera::EDITOR_ORTHOGRAPHIC;
+				const bool perspectiveCameraActive = mEditorSettings->CurrentCamera == EEditorCamera::EDITOR_PERSPECTIVE;
+				const bool inAppCameraActive = mEditorSettings->CurrentCamera == EEditorCamera::INNER_APP_CHOSEN;
+				const EEditorCamera lastCamera = mEditorSettings->CurrentCamera;
 				if (ImGui::RadioButton(EEditorCameraStrings[static_cast<uint32_t>(EEditorCamera::EDITOR_ORTHOGRAPHIC)], orthoCameraActive)) {
-					mEditorSettings->mCurrentCamera = EEditorCamera::EDITOR_ORTHOGRAPHIC;
-					if (lastCamera == EEditorCamera::INNER_APP_CHOSEN) {
-						mEditorInputLayer->enableCameraInput();
-					}
+					setCurrentCamera(EEditorCamera::EDITOR_ORTHOGRAPHIC);
 				}
 				ImGui::SameLine();
 				if (ImGui::RadioButton(EEditorCameraStrings[static_cast<uint32_t>(EEditorCamera::EDITOR_PERSPECTIVE)], perspectiveCameraActive)) {
-					mEditorSettings->mCurrentCamera = EEditorCamera::EDITOR_PERSPECTIVE;
-					if (lastCamera == EEditorCamera::INNER_APP_CHOSEN) {
-						mEditorInputLayer->enableCameraInput();
-					}
+					setCurrentCamera(EEditorCamera::EDITOR_PERSPECTIVE);
+					
 				}
 				if (ImGui::RadioButton(EEditorCameraStrings[static_cast<uint32_t>(EEditorCamera::INNER_APP_CHOSEN)], inAppCameraActive)) {
-					mEditorSettings->mCurrentCamera = EEditorCamera::INNER_APP_CHOSEN;
-					if (lastCamera != EEditorCamera::INNER_APP_CHOSEN) {
-						mEditorInputLayer->disableCameraInput();
-					}
+					setCurrentCamera(EEditorCamera::INNER_APP_CHOSEN);
 				}
+				ImGui::Checkbox("Switch To Inner App Camera on Play", &mEditorSettings->SwitchToInnerAppCamOnPlay);
 				ImGui::Text("Current Camera: ");
 				ImGui::SameLine();
-				ImGui::Text(EEditorCameraStrings[static_cast<uint32_t>(mEditorSettings->mCurrentCamera)]);
+				ImGui::Text(EEditorCameraStrings[static_cast<uint32_t>(mEditorSettings->CurrentCamera)]);
 
-				switch (mEditorSettings->mCurrentCamera) {
+				switch (mEditorSettings->CurrentCamera) {
 					case EEditorCamera::EDITOR_ORTHOGRAPHIC: {
 						ImGui::Text("Orthographic Camera Controls");
 						ImGui::BulletText("W, A, S, D: Move Camera");
@@ -867,5 +863,24 @@ UPS displayed is the count of frames in the last full second interval)"
 
 		mOrthoCameraController->onViewportResize(aspectRatio);
 		mInnerAppLogic->onResize(aspectRatio);
+	}
+
+	void EditorAppLogic::setCurrentCamera(EEditorCamera camera) {
+		const EEditorCamera lastCamera = mEditorSettings->CurrentCamera;
+		if (camera == lastCamera) {
+			return;
+		}
+
+		//Enable/Disable editor camera controls.
+		if (
+			camera == EEditorCamera::INNER_APP_CHOSEN &&
+			(lastCamera == EEditorCamera::EDITOR_ORTHOGRAPHIC || lastCamera == EEditorCamera::EDITOR_PERSPECTIVE)
+		) { //Switching from an editor camera to an inner-app camera.
+			mEditorInputLayer->disableCameraInput();
+		} else if (lastCamera == EEditorCamera::INNER_APP_CHOSEN) { //From inner-app to editor camera.
+			mEditorInputLayer->enableCameraInput();
+		}
+
+		mEditorSettings->CurrentCamera = camera;
 	}
 }

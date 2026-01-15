@@ -123,7 +123,8 @@ namespace DOH::EDITOR {
 
 			//-----Editor Camera(s)-----
 			//Current camera in which the scene/UI is to be viewed
-			EEditorCamera mCurrentCamera = EEditorCamera::EDITOR_ORTHOGRAPHIC;
+			EEditorCamera CurrentCamera = EEditorCamera::EDITOR_ORTHOGRAPHIC;
+			bool SwitchToInnerAppCamOnPlay = true;
 
 			//-----Close App Functionality-----
 			const float QuitHoldTimeRequired = 1.5f;
@@ -159,6 +160,8 @@ namespace DOH::EDITOR {
 		virtual void close() override;
 
 		virtual void onResize(float aspectRatio) override;
+
+		void setCurrentCamera(EEditorCamera camera);
 
 	private:
 		//This renders the Editor windows
