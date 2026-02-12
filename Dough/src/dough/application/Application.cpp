@@ -11,7 +11,7 @@ namespace DOH {
 
 	Application::Application()
 	:	mRunning(false),
-		mFocused(true),
+		mFocussed(true),
 		mIconified(false)
 	{}
 
@@ -196,22 +196,36 @@ namespace DOH {
 			case EEventType::WINDOW_CLOSE:
 				stop();
 				return;
-			case EEventType::WINDOW_FOCUS_CHANGE:
-				mFocused = (static_cast<WindowFocusChangeEvent&>(windowEvent)).isFocused();
-				mAppLoop->onFocusChange(mFocused);
+			case EEventType::WINDOW_FOCUS_CHANGE: {
+				bool focussed = (static_cast<WindowFocusChangeEvent&>(windowEvent)).isFocused();
+				if (focussed != mFocussed) {
 
-				//If fullscreen iconify window so it doesn't display frozen on monitor
-				if (!mFocused && mWindow->getDisplayMode() == EWindowDisplayMode::FULLSCREEN) {
-					mWindow->iconify();
+					//TODO:: This only half works. Clicking on an item works fine
+					// but when clicking on an enpty part of the window it doesn't.
+					if (
+						ImGui::IsAnyItemActive() ||
+						ImGui::IsAnyItemFocused() ||
+						ImGui::IsAnyItemHovered() ||
+						ImGui::IsAnyMouseDown()
+					) {
+						return;
+					}
+					mFocussed = focussed;
+					mAppLoop->onFocusChange(mFocussed);
+
+					//If fullscreen iconify window so it doesn't display frozen on monitor
+					if (!mFocussed && mWindow->getDisplayMode() == EWindowDisplayMode::FULLSCREEN) {
+						mWindow->iconify();
+					}
+
+					if (mFocussed) {
+						LOGLN("Focus Change: " << TEXT_GREEN("FOCUSED"));
+					} else {
+						LOGLN("Focus Change: " << TEXT_RED("NOT FOCUSED"));
+					}
 				}
-
-				if (mFocused) {
-					LOGLN("Focus Change: " << TEXT_GREEN("FOCUSED"));
-				} else {
-					LOGLN("Focus Change: " << TEXT_RED("NOT FOCUSED"));
-				}
-
 				return;
+			}
 			case EEventType::WINDOW_RESIZE:
 			{
 				WindowResizeEvent& e = static_cast<WindowResizeEvent&>(windowEvent);

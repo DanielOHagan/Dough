@@ -85,7 +85,7 @@ namespace DOH {
 		std::unique_ptr<IntervalTimer> mAppInfoTimer;
 		std::unique_ptr<AppDebugInfo> mAppDebugInfo;
 		bool mRunning;
-		bool mFocused;
+		bool mFocussed;
 		bool mIconified;
 
 	public:
@@ -112,7 +112,7 @@ namespace DOH {
 		inline AppDebugInfo& getDebugInfo() const { return *mAppDebugInfo; }
 		inline ApplicationInitSettings& getInitSettings() const { return *mAppInitSettings; }
 		inline bool isRunning() const { return mRunning; }
-		inline bool isFocused() const { return mFocused; }
+		inline bool isFocussed() const { return mFocussed; }
 		inline bool isIconified() const { return mIconified; }
 
 		//static int start(std::shared_ptr<IApplicationLogic> appLogic, ApplicationInitSettings initSettings);

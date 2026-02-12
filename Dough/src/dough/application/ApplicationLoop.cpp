@@ -31,8 +31,8 @@ namespace DOH {
 		mPreviousUps(0.0f),
 		mRunInBackground(runInBackground)
 	{
-		updateTargetFrameTime(app.isFocused());
-		updateTargetUpdateTime(app.isFocused());
+		updateTargetFrameTime(app.isFocussed());
+		updateTargetUpdateTime(app.isFocussed());
 	}
 
 	void ApplicationLoop::run() {
@@ -117,13 +117,13 @@ namespace DOH {
 			mTargetBackgroundFps = mTargetFps;
 		}
 
-		updateTargetFrameTime(mApplication.isFocused());
+		updateTargetFrameTime(mApplication.isFocussed());
 	}
 
 	void ApplicationLoop::setTargetBackgroundFps(float targetBackgroundFps) {
 		mTargetBackgroundFps = std::clamp(targetBackgroundFps, MIN_TARGET_FPS, MAX_TARGET_FPS);
 
-		updateTargetFrameTime(mApplication.isFocused());
+		updateTargetFrameTime(mApplication.isFocussed());
 	}
 
 	void ApplicationLoop::setTargetUps(float targetUps, bool includeTargetBackgroundUps) {
@@ -133,12 +133,12 @@ namespace DOH {
 			mTargetBackgroundUps = mTargetUps;
 		}
 
-		updateTargetUpdateTime(mApplication.isFocused());
+		updateTargetUpdateTime(mApplication.isFocussed());
 	}
 
 	void ApplicationLoop::setTargetBackgroundUps(float targetBackgroundUps) {
 		mTargetBackgroundUps = std::clamp(targetBackgroundUps, std::max(mTargetBackgroundUps, MIN_TARGET_UPS), MAX_TARGET_UPS);
 
-		updateTargetUpdateTime(mApplication.isFocused());
+		updateTargetUpdateTime(mApplication.isFocussed());
 	}
 }

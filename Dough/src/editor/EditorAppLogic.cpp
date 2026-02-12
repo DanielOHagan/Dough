@@ -237,7 +237,7 @@ namespace DOH::EDITOR {
 			if (mEditorSettings->EditorCollapseMenuOpen = ImGui::CollapsingHeader("Editor")) {
 				ApplicationLoop& loop = Application::get().getLoop();
 				Window& window = Application::get().getWindow();
-				bool focused = Application::get().isFocused();
+				bool focused = Application::get().isFocussed();
 				
 				ImGui::Text("Editor Runtime: %fs", Time::convertMillisToSeconds(Application::get().getAppInfoTimer().getCurrentTickingTimeMillis()));
 				const std::vector<std::pair<GLFWmonitor*, std::string>>& monitors = window.getAllAvailableMonitors();
