@@ -68,6 +68,19 @@ namespace DOH {
 		return slotIndex;
 	}
 
+	void TextureArray::removeTexture(TextureVulkan& texture) {
+		for (
+			std::vector<std::reference_wrapper<TextureVulkan>>::iterator itr = mTextureSlots.begin();
+			itr != mTextureSlots.end();
+			++itr
+		) {
+			if (itr->get().getId() == texture.getId()) {
+				mTextureSlots.erase(itr);
+				break;
+			}
+		}
+	}
+
 	const int TextureArray::isTextureInUse(const uint32_t textureId) const {
 		for (int i = 0; i < mTextureSlots.size(); i++) {
 			if (mTextureSlots[i].get().getId() == textureId) {

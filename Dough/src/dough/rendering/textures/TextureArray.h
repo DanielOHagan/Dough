@@ -6,7 +6,6 @@
 namespace DOH {
 
 	class TextureArray {
-
 	private:
 		const uint32_t MAX_TEXTURE_COUNT;
 		const TextureVulkan& FALLBACK_TEXTURE;
@@ -39,13 +38,14 @@ namespace DOH {
 
 		// Attemp to add a new texture, if successful return its index, else return 0
 		uint32_t addNewTexture(TextureVulkan& texture);
+		void removeTexture(TextureVulkan& textureId);
 
 		inline void reset() {
 			mTextureSlots.clear();
 			mNextTextureSlotIndex = 0;
 		}
 
-		inline const std::vector<std::reference_wrapper<TextureVulkan>> getTextureSlots() const { return mTextureSlots; }
+		inline const std::vector<std::reference_wrapper<TextureVulkan>>& getTextureSlots() const { return mTextureSlots; }
 		inline bool hasTextureSlotAvailable() const { return mNextTextureSlotIndex < MAX_TEXTURE_COUNT; }
 		inline bool hasTextureSlotsAvailable(uint32_t slotCount) const { return (mNextTextureSlotIndex + slotCount) < MAX_TEXTURE_COUNT - 1; }
 		inline const uint32_t getMaxTextureCount() const { return MAX_TEXTURE_COUNT; }
