@@ -38,7 +38,8 @@ namespace DOH {
 
 		// Attemp to add a new texture, if successful return its index, else return 0
 		uint32_t addNewTexture(TextureVulkan& texture);
-		void removeTexture(TextureVulkan& textureId);
+		void removeTexture(TextureVulkan& texture);
+		void removeTextures(std::initializer_list<std::reference_wrapper<TextureVulkan>>& textures);
 
 		inline void reset() {
 			mTextureSlots.clear();

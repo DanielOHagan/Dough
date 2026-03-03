@@ -305,6 +305,18 @@ namespace DOH {
 		DescriptorApiVulkan::updateDescriptorSet(mContext.getLogicDevice(), texArrUpdate);
 	}
 
+	uint32_t ShapeRenderer::addTextureToTextureArrayImpl(TextureVulkan& texture) {
+		return mTextureArray->addNewTexture(texture);
+	}
+
+	void ShapeRenderer::removeTextureFromTextureArrayImpl(TextureVulkan& texture) {
+		mTextureArray->removeTexture(texture);
+	}
+
+	void ShapeRenderer::removeTexturesFromTextureArrayImpl(std::initializer_list<std::reference_wrapper<TextureVulkan>> textures) {
+		mTextureArray->removeTextures(textures);
+	}
+
 	void ShapeRenderer::drawQuad(ShapeRenderingObjects<RenderBatchQuad>& quadGroup, const Quad& quad) {
 		ZoneScoped;
 
@@ -1186,6 +1198,31 @@ namespace DOH {
 			INSTANCE->updateTextureArrayDescriptorSetImpl();
 		} else {
 			LOG_ERR("Attempted updateTextureArrayDescriptorSet when ShapeRenderer is un-initialised/closed.");
+		}
+	}
+
+	uint32_t ShapeRenderer::addTextureToTextureArray(TextureVulkan& texture) {
+		if (INSTANCE != nullptr) {
+			return INSTANCE->addTextureToTextureArrayImpl(texture);
+		} else {
+			LOG_ERR("Attempted addTextureToTextureArray when ShapeRenderer is un-initialised/closed.");
+		}
+		return 0u;
+	}
+
+	void ShapeRenderer::removeTextureFromTextureArray(TextureVulkan& texture) {
+		if (INSTANCE != nullptr) {
+			return INSTANCE->removeTextureFromTextureArrayImpl(texture);
+		} else {
+			LOG_ERR("Attempted removeTextureFromTextureArray when ShapeRenderer is un-initialised/closed.");
+		}
+	}
+
+	void ShapeRenderer::removeTexturesFromTextureArray(std::initializer_list<std::reference_wrapper<TextureVulkan>> textures) {
+		if (INSTANCE != nullptr) {
+			return INSTANCE->removeTexturesFromTextureArrayImpl(textures);
+		} else {
+			LOG_ERR("Attempted removeTexturesFromTextureArray when ShapeRenderer is un-initialised/closed.");
 		}
 	}
 
