@@ -114,6 +114,9 @@ namespace DOH {
 		inline bool isRunning() const { return mRunning; }
 		inline bool isFocussed() const { return mFocussed; }
 		inline bool isIconified() const { return mIconified; }
+		//TODO:: Need a way of checking that covers more than just window.shouldClose().
+		//	Use bool to flag if closing so this function works for when the application decides to close not just mWindow.
+		inline bool isClosing() const { return mWindow->shouldClose(); }
 
 		//static int start(std::shared_ptr<IApplicationLogic> appLogic, ApplicationInitSettings initSettings);
 		static int start(std::shared_ptr<IApplicationLogic> appLogic, const char* appInitSettingsFileName = Application::INIT_SETTINGS_DEFAULT_FILE_NAME);

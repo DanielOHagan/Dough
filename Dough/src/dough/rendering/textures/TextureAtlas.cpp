@@ -99,6 +99,9 @@ namespace DOH {
 
 		load(textureCreationData.Data, imageSize);
 
+		//loadTexture uses stbi so we use it's free image function here.
+		ResourceHandler::freeImage(textureCreationData.Data);
+
 		mId = ResourceHandler::getNextUniqueTextureId();
 	}
 }
