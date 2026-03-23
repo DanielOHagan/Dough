@@ -32,7 +32,7 @@ namespace DOH {
 		mStringQuads = TextString::getStringAsQuads(mString, mFontBitmap, Position, mScale, mColour);
 	}
 
-	void TextString::setRoot(glm::vec3 root) {
+	void TextString::setRoot(glm::vec3& root) {
 		glm::vec3 delta = (Position - root) * mScale;
 		for (Quad& quad : mStringQuads) {
 			quad.Position -= delta;
@@ -80,6 +80,15 @@ namespace DOH {
 		//Immediately change quad data
 		for (Quad& quad : mStringQuads) {
 			quad.Colour = colourRgba;
+		}
+	}
+
+	void TextString::setColourRGBA(float r, float g, float b, float a) {
+		mColour = { r, g, b, a };
+
+		//Immediately change quad data
+		for (Quad& quad : mStringQuads) {
+			quad.Colour = mColour;
 		}
 	}
 

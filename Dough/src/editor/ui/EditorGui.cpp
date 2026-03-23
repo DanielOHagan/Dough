@@ -3,6 +3,7 @@
 #include "dough/application/Application.h"
 #include "editor/EditorPerspectiveCameraController.h"
 #include "editor/EditorOrthoCameraController.h"
+#include "dough/scene/geometry/collections/TextString.h"
 
 #include <tracy/public/tracy/Tracy.hpp>
 
@@ -332,13 +333,16 @@ namespace DOH::EDITOR {
 		ImGui::ColorEdit4(colourLabel.c_str(), tempColour);
 		EditorGui::displayHelpTooltip("ImGui doesn't have a non-edit colour picker, this doesn't change the actual colour value/");
 
-		const char* text = (quad.hasTexture() ? quad.getTexture().getName().c_str() : "No Texture");
-		ImGui::Text("Texture: %s", text);
-		ImGui::TextWrapped(
-			"Texture Coords: bl.x %f, bl.y %f, tr.x %f, tr.y %f",
-			quad.TextureCoords[0], quad.TextureCoords[1],
-			quad.TextureCoords[2], quad.TextureCoords[3]
-		);
+		if (quad.hasTexture()) {
+			ImGui::Text("Texture: %s", quad.getTexture().getName().c_str());
+			ImGui::TextWrapped(
+				"Texture Coords: bl.x %f, bl.y %f, tr.x %f, tr.y %f",
+				quad.TextureCoords[0], quad.TextureCoords[1],
+				quad.TextureCoords[2], quad.TextureCoords[3]
+			);
+		} else {
+			ImGui::Text("Texture: NONE");
+		}
 	}
 
 	void EditorGui::imGuiInfoCircleImpl(Circle& circle, const char* name) {
@@ -359,6 +363,54 @@ namespace DOH::EDITOR {
 		);
 
 		//TODO:: Decorations
+	}
+
+	void EditorGui::imGuiControlsTextStringImpl(TextString& textString, const char* name) {
+		imGuiControlsAGeometryImpl(textString, name);
+
+		//std::string textLabel = "Text##";
+		//textLabel.append(name);
+		//std::string fontBitmapLabel = "Font Bitmap##";
+		//fontBitmap.append(name);
+		std::string scaleLabel = "Scale##";
+		scaleLabel.append(name);
+		std::string colourLabel = "Colour##";
+		colourLabel.append(name);
+
+		//TODO::
+		//	Text
+		//	FontBitmap
+		float tempScale = textString.getScale();
+		if (ImGui::DragFloat(scaleLabel.c_str(), &tempScale)) {
+			textString.setScale(tempScale);
+		}
+		ImVec4 tempColour = { textString.getColour().r, textString.getColour().g, textString.getColour().b, textString.getColour().a };
+		if (ImGui::ColorButton(colourLabel.c_str(), tempColour)) {
+			textString.setColourRGBA(tempColour.x, tempColour.y, tempColour.z, tempColour.w);
+		}
+		//	Quads
+	}
+
+	void EditorGui::imGuiInfoTextStringImpl(TextString& textString, const char* name) {
+		imGuiInfoAGeometryImpl(textString, name);
+
+		ImGui::Text("Text: %s", textString.getString());
+		//TODO:: FontBitmap viewer function
+		ImGui::Text("Scale: %f", textString.getScale());
+		std::string colourPickerLabel = "Text Solid: ";
+		colourPickerLabel.append("##").append(name);
+		//NOTE:: Colour picker doesn't change the value because this is an "info" display.
+		float rgba[4] = { textString.getColour().r, textString.getColour().g, textString.getColour().b, textString.getColour().a };
+		ImGui::ColorEdit4(colourPickerLabel.c_str(), rgba);
+
+		//TODO:: Individual quads? could foreach them but would take up a lot of space without some kind of toggle to hide/display
+		uint16_t i = 0u;
+		for (Quad& quad : textString.getQuads()) {
+			std::string quadLabel = std::string(name) + " Quad: ";
+			quadLabel.append(std::to_string(i));
+			imGuiInfoQuadImpl(quad, quadLabel.c_str());
+			i++;
+		}
 	}
 
 	void EditorGui::imGuiControlsEditorPerspectiveCameraControllerImpl(EditorPerspectiveCameraController& cameraController, const char* name) {

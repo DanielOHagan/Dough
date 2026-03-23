@@ -8,6 +8,8 @@
 namespace DOH {
 
 	//TODO:: keep this as AGeometry or make a "ACollection" that extends AGeometry
+	//TODO:: How to handle AGeometry.translate_() functions since these don't change the positions of the individual quads of mStringsQuads
+	//	To move the quads use setRoot()
 	class TextString : public AGeometry {
 	private:
 		std::vector<Quad> mStringQuads;
@@ -22,9 +24,10 @@ namespace DOH {
 		TextString& operator=(const TextString& assignment) = delete;
 
 		void setString(const char* string);
-		void setRoot(glm::vec3 root);
+		void setRoot(glm::vec3& root);
 		void setScale(const float scale);
 		void setColour(const glm::vec4& colourRgba);
+		void setColourRGBA(float r, float g, float b, float a);
 		//void setFontBitmap(const FontBitmap& fontBitmap);
 
 		inline std::vector<Quad>& getQuads() { return mStringQuads; }

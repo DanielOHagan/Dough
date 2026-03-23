@@ -1527,7 +1527,8 @@ namespace DOH::EDITOR {
 		}
 		float tempRootPos[3] = { SoftMaskScene->Position.x, SoftMaskScene->Position.y, SoftMaskScene->Position.z };
 		if (ImGui::DragFloat3("Root Pos", tempRootPos, 0.05f, -10.0f, 10.0f)) {
-			SoftMaskScene->setRoot({ tempRootPos[0], tempRootPos[1], tempRootPos[2] });
+			glm::vec3 root = { tempRootPos[0], tempRootPos[1], tempRootPos[2] };
+			SoftMaskScene->setRoot(root);
 		}
 
 		//MSDF Scene
@@ -1542,7 +1543,8 @@ namespace DOH::EDITOR {
 		}
 		float tempMsdfRootPos[3] = { MsdfTextScene->Position.x, MsdfTextScene->Position.y, MsdfTextScene->Position.z };
 		if (ImGui::DragFloat3("MSDF Root Pos", tempMsdfRootPos, 0.05f, -10.0f, 10.0f)) {
-			MsdfTextScene->setRoot({ tempMsdfRootPos[0], tempMsdfRootPos[1], tempMsdfRootPos[2] });
+			glm::vec3 root = { tempMsdfRootPos[0], tempMsdfRootPos[1], tempMsdfRootPos[2] };
+			MsdfTextScene->setRoot(root);
 		}
 
 		ImGui::Text("UI Text");
@@ -1558,7 +1560,8 @@ namespace DOH::EDITOR {
 		}
 		float tempSoftMaskUiRootPos[3] = { SoftMaskTextUi->Position.x, SoftMaskTextUi->Position.y, SoftMaskTextUi->Position.z };
 		if (ImGui::DragFloat3("Soft Mask UI Root Pos", tempSoftMaskUiRootPos, 0.05f, -10.0f, 10.0f)) {
-			SoftMaskTextUi->setRoot({ tempSoftMaskUiRootPos[0], tempSoftMaskUiRootPos[1], tempSoftMaskUiRootPos[2] });
+			glm::vec3 root = { tempSoftMaskUiRootPos[0], tempSoftMaskUiRootPos[1], tempSoftMaskUiRootPos[2] };
+			SoftMaskTextUi->setRoot(root);
 		}
 		//MSDF UI
 		if (ImGui::InputTextMultiline("MSDF UI Text", MsdfUiStringBuffer, sizeof(MsdfUiStringBuffer))) {
@@ -1572,7 +1575,8 @@ namespace DOH::EDITOR {
 		}
 		float tempMsdfUiRootPos[3] = { MsdfTextUi->Position.x, MsdfTextUi->Position.y, MsdfTextUi->Position.z };
 		if (ImGui::DragFloat3("MSDF UI Root Pos", tempMsdfUiRootPos, 0.05f, -10.0f, 10.0f)) {
-			MsdfTextUi->setRoot({ tempMsdfUiRootPos[0], tempMsdfUiRootPos[1], tempMsdfUiRootPos[2] });
+			glm::vec3 root = { tempMsdfUiRootPos[0], tempMsdfUiRootPos[1], tempMsdfUiRootPos[2] };
+			MsdfTextUi->setRoot(root);
 		}
 
 		//Colour for all strings, all strings (and even individual characters) can have separate colours, this is limited for brevity.

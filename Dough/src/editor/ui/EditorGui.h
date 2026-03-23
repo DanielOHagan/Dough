@@ -10,6 +10,10 @@
 
 #include "editor/ui/EditorResourceUiViewer.h"
 
+namespace DOH {
+	class TextString;
+}
+
 namespace DOH::EDITOR {
 
 	class EditorPerspectiveCameraController;
@@ -57,6 +61,10 @@ namespace DOH::EDITOR {
 		void imGuiInfoAGeometryImpl(AGeometry& geo, const char* name);
 		void imGuiInfoQuadImpl(Quad& quad, const char* name);
 		void imGuiInfoCircleImpl(Circle& circle, const char* name);
+
+		void imGuiControlsTextStringImpl(TextString& textString, const char* name);
+
+		void imGuiInfoTextStringImpl(TextString& textString, const char* name);
 
 		void imGuiControlsEditorPerspectiveCameraControllerImpl(EditorPerspectiveCameraController& cameraController, const char* name);
 		void imGuiControlsEditorOrthoCameraControllerImpl(EditorOrthoCameraController& cameraController, const char* name);
@@ -333,6 +341,24 @@ namespace DOH::EDITOR {
 		*/
 		static inline void infoCircle(Circle& circle, const char* name) { INSTANCE->imGuiInfoCircleImpl(circle, name); }
 		static inline void infoCircle(const Circle& circle, const char* name) { INSTANCE->imGuiInfoCircleImpl((Circle&) circle, name); }
+
+		//-----Collections Controls-----
+		/**
+		* Display controls for the primitive: TextString
+		* 
+		* @param textString The TextString to display a set of controls (a.k.a editable properties) for.
+		* @param name Unique name for TextString to display.
+		*/
+		static inline void controlsTextString(TextString& textString, const char* name) { INSTANCE->imGuiControlsTextStringImpl(textString, name); }
+
+		//-----Collections Info-----
+		/**
+		* Display information for the primitive: TextString
+		*
+		* @param textString The TextString to display.
+		* @param name Unique name for TextString to display.
+		*/
+		static inline void infoTextString(TextString& textString, const char* name) { INSTANCE->imGuiInfoTextStringImpl(textString, name); }
 
 		//-----Camera Controls-----
 		/**
