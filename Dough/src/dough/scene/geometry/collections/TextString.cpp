@@ -33,7 +33,7 @@ namespace DOH {
 	}
 
 	void TextString::setRoot(glm::vec3& root) {
-		glm::vec3 delta = (Position - root) * mScale;
+		glm::vec3 delta = (Position - root);
 		for (Quad& quad : mStringQuads) {
 			quad.Position -= delta;
 		}
