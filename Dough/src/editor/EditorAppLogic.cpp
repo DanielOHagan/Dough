@@ -76,6 +76,12 @@ namespace DOH::EDITOR {
 		}
 	}
 
+	void EditorInputLayer::consumeAction(const char* action) {
+		LOG_WARN("Editor doesn't currently have any InputActions. This shouldn't have been called.");
+
+		//TODO:: Have editor specific InputActions.
+	}
+
 	void EditorInputLayer::enableCameraInput() {
 		//IMPORTANT:: These are the default key codes/mouse buttons, if they change in the future they MUST be changed here.
 		static constexpr std::array<int, 13> cameraInputKeyCodes = {

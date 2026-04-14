@@ -299,7 +299,7 @@ namespace DOH {
 		const uint32_t texArrBinding = 0;
 		DescriptorSetLayoutVulkan& texArrLayout = mContext.getCommonDescriptorSetLayouts().SingleTextureArray8.get();
 		DescriptorSetUpdate texArrUpdate = {
-			{{ texArrLayout.getDescriptors()[texArrBinding], *mTextureArray}},
+			{{ texArrLayout.getDescriptors()[texArrBinding], *mTextureArray }},
 			mTextureArrayDescSet
 		};
 		DescriptorApiVulkan::updateDescriptorSet(mContext.getLogicDevice(), texArrUpdate);

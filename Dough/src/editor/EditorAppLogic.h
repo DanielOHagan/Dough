@@ -75,7 +75,10 @@ namespace DOH::EDITOR {
 		virtual inline bool isActionActiveANDConsume(const char* action) override { return false; }
 		virtual inline bool isActionActiveORConsume(const char* action) override { return false; }
 
+		//NOTE:: Editor doesn't currently have any InputActions, this function consumes the input steps of the given action.
 		virtual void consumeAction(InputAction& action) override;
+		//NOTE:: Editor doesn't currently have any InputActions so this function is useless.
+		virtual void consumeAction(const char* action) override;
 
 		void enableCameraInput();
 		void disableCameraInput();

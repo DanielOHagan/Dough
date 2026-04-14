@@ -306,6 +306,13 @@ namespace DOH {
 		VkCommandBuffer cmd = mCommandBuffers[imageIndex];
 		beginCommandBuffer(cmd);
 
+		//ISSUE: 0 - Used to figure out which which cmd buffer is used in which frame
+		//LOG_INFO(
+		//	"Frame: " << Application::get().getLoop().getCurrentFrame() <<
+		//	"\tImage: " << imageIndex <<
+		//	"\tCmd: " << cmd
+		//);
+
 		//TODO:: CurrentBindings should last after a frame is done, recreating here is in-efficient
 		CurrentBindingsState currentBindings = {};
 

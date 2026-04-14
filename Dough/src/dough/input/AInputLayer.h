@@ -46,6 +46,8 @@ namespace DOH {
 
 		//Manually consume the inputs required for this action to be "active".
 		virtual void consumeAction(InputAction& action) = 0;
+		//If input layer has this action then manually consume the inputs required for this action to be "active".
+		virtual void consumeAction(const char* action) = 0;
 
 		inline void setEnabled(bool enabled) { mEnabled = enabled; }
 		inline const bool isEnabled() const { return mEnabled; }

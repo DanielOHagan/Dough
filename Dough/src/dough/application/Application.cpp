@@ -11,6 +11,7 @@ namespace DOH {
 
 	Application::Application()
 	:	mRunning(false),
+		mClosing(false),
 		mFocussed(true),
 		mIconified(false)
 	{}
@@ -142,6 +143,8 @@ namespace DOH {
 
 	void Application::close() {
 		ZoneScoped;
+
+		mClosing = true;
 
 		mAppInfoTimer->recordInterval("Closing start");
 		mAppLogic->close();

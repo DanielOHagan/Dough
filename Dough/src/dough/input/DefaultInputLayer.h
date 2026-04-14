@@ -41,6 +41,7 @@ namespace DOH {
 		virtual inline bool isActionActiveORConsume(const char* action) override { return mInputActionMapping->isActionActiveORConsume(action, *this); }
 
 		virtual void consumeAction(InputAction& action) override;
+		virtual void consumeAction(const char* action) override;
 
 		inline InputActionMap& getActionMap() { return *mInputActionMapping; }
 	};

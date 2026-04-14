@@ -57,4 +57,11 @@ namespace DOH {
 			}
 		}
 	}
+
+	void DefaultInputLayer::consumeAction(const char* action) {
+		std::unordered_map<std::string, InputAction>::iterator result = mInputActionMapping->getActions().find(action);
+		if (result != mInputActionMapping->getActions().end()) {
+			consumeAction(result->second);
+		}
+	}
 }
