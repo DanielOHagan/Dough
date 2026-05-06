@@ -30,7 +30,9 @@ namespace DOH {
 		void setColourRGBA(float r, float g, float b, float a);
 		//void setFontBitmap(const FontBitmap& fontBitmap);
 
+		inline bool hasQuad() const { return !mStringQuads.empty(); }
 		inline std::vector<Quad>& getQuads() { return mStringQuads; }
+		inline Quad& getEndQuad() { return mStringQuads.back(); };
 		inline const char* getString() const { return mString; }
 		inline const FontBitmap& getCurrentFontBitmap() const { return mFontBitmap; }
 		inline float getScale() const { return mScale; }
