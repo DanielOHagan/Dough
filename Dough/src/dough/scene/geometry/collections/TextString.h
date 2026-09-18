@@ -56,5 +56,43 @@ namespace DOH {
 			const glm::vec4& colour = { 1.0f, 1.0f, 1.0f, 1.0f },
 			const ETextFlags2d flags = ETextFlags2d::NONE
 		);
+		static void swapSingleDigitQuad(
+			uint32_t newDigit,
+			FontBitmap& fontBitmap,
+			Quad& quad,
+			const float scale = 1.0f
+		);
+		static Quad getSingleDigitAsQuad(
+			uint32_t digit,
+			const FontBitmap& fontBitmap,
+			const glm::vec3 rootPos,
+			const float scale = 1.0f,
+			const glm::vec4& colour = { 1.0f, 1.0f, 1.0f, 1.0f }
+		);
+		//TODO:: static std::vector<Quad>? getMultipleSingleDigitsAsQuads(std::initializer_list<uint32_t> digits, ...);
+		//TODO:: static std::vector<Quad>? getNumberAsQuads_uint32(
+		// uint32_t number,
+		// FontBitmap& fontBitmap,
+		// const glm::vec3 rootPos,
+		// const char thousandsSeparator = ',',
+		// const float scale = 1.0f,
+		// const glm::vec4& colour = { 1.0f, 1.0f, 1.0f, 1.0f }
+		//);
+		//TODO:: static std::vector<Quad>? getNumberAsQuads_int32(
+		// int32_t number,
+		// FontBitmap& fontBitmap,
+		// const glm::vec3 rootPos,
+		// const float scale = 1.0f,
+		// const glm::vec4& colour = { 1.0f, 1.0f, 1.0f, 1.0f }
+		//);
+		//TODO:: static std::vector<Quad>? getNumberAsQuads_float( //TODO:: how to handle rounding & num of decimal places?
+		//	float number,
+		//	FontBitmap& fontBitmap,
+		//	const glm::vec3 rootPos,
+		//	const char thousandsSeparator = ',',
+		//	const char delimeter = '.',
+		//	const float scale = 1.0f,
+		//	const glm::vec4& colour = { 1.0f, 1.0f, 1.0f, 1.0f }
+		//);
 	};
 }

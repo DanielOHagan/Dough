@@ -12,6 +12,7 @@ namespace DOH {
 
 	FontBitmap::FontBitmap(const char* filePath, const char* imageDir, ETextRenderMethod textRenderMethod)
 	:	mTextRenderMethod(textRenderMethod),
+		mSingleDigitGlyphs(),
 		mPageCount(0),
 		mSpaceWidthNorm(0.0f),
 		mLineHeightNorm(0.0f),
@@ -20,6 +21,8 @@ namespace DOH {
 		ZoneScoped;
 
 		//IMPORTANT:: Assumes charset is ASCII or unicode
+
+		mSingleDigitGlyphs[0] = nullptr;
 
 		//Prefer to use MSDF where possible
 		if (ResourceHandler::isFileOfType(filePath, "json")) {
@@ -56,7 +59,7 @@ namespace DOH {
 				THROW("");
 				return;
 			} else if (textureNames.isString()) {
-				auto& context = Application::get().getRenderer().getContext();
+				RenderingContextVulkan& context = Application::get().getRenderer().getContext();
 				std::string textureFileName = atlasAndTextureInfo["textureName"].getString();
 				std::string textureFilePath = imageDir + textureFileName;
 				std::shared_ptr<TextureVulkan> texture = context.createTexture(textureFilePath);
@@ -137,6 +140,8 @@ namespace DOH {
 				mGlyphMap.emplace(unicode, g);
 			}
 
+			storeSingleDigitGlyphs();
+
 			//TODO:: Kernings, cause z-fighting when in a Perspective camera but not when in an Orthographic camera.
 			//std::vector<JsonElement>& kernings = root["kernings"].getArray();
 
@@ -200,6 +205,8 @@ namespace DOH {
 				mSpaceWidthNorm = (pixelSize * 0.25f) / pixelSize; //Default to 1/4 of general glyph size.
 			}
 
+			storeSingleDigitGlyphs();
+
 			//for (const FntFileKerningData& fileKerning : fileData->Kernings) {
 			//	KerningData k = {
 			//		fileKerning.FirstGlyphId,
@@ -208,6 +215,20 @@ namespace DOH {
 			//	};
 			//	mKernings.emplace_back(k);
 			//}
+		}
+	}
+
+	void FontBitmap::storeSingleDigitGlyphs() {
+		//Store pointers to number glyph data in much more easily accessbile storage
+		int i = 0u;
+		constexpr static const uint32_t UNICODE_DIGIT_CODE_0 = 48u;
+		constexpr static const uint32_t UNICODE_DIGIT_CODE_9 = 57u;
+		for (uint32_t charId = UNICODE_DIGIT_CODE_0; charId < UNICODE_DIGIT_CODE_9 + 1; charId++) {
+			auto& itr = mGlyphMap.find(charId);
+			if (itr != mGlyphMap.end()) {
+				mSingleDigitGlyphs[i] = &itr->second;
+			}
+			i++;
 		}
 	}
 }

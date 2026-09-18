@@ -92,6 +92,67 @@ namespace DOH {
 		}
 	}
 
+	void TextString::swapSingleDigitQuad(uint32_t newDigit, FontBitmap& fontBitmap, Quad& quad, const float scale) {
+		if (newDigit > 9u) {
+			LOG_ERR("TextString::swapSingleDigitQuad given non-single digit number: " << newDigit);
+			newDigit = 0u;
+
+			//TODO:: return a quad with an error symbol?
+		}
+
+		GlyphData& glyph = fontBitmap.getSingleDigitGlyph(newDigit);
+		quad.Size = glyph.Size * scale;
+		quad.TextureCoords = {
+			//botLeft
+			glyph.TexCoordTopLeft.x,
+			glyph.TexCoordBotRight.y,
+
+			//topRight
+			glyph.TexCoordBotRight.x,
+			glyph.TexCoordTopLeft.y
+		};
+		quad.setTexture(*fontBitmap.getPageTexture(glyph.PageId));
+	}
+
+	Quad TextString::getSingleDigitAsQuad(
+		uint32_t digit,
+		const FontBitmap& fontBitmap,
+		const glm::vec3 rootPos,
+		const float scale,
+		const glm::vec4& colour
+	) {
+		if (digit > 9u) {
+			LOG_ERR("TextString::getSingleDigitAsQuad given non-single digit number: " << digit);
+			digit = 0u;
+
+			//TODO:: return a quad with an error symbol?
+		}
+
+		if (!fontBitmap.hasSingleDigitGlyphs()) {
+			//TODO:: Should this return a quad with Colour::MAGENTA to help show that it's erroneous?
+			return { rootPos, { scale, scale }, colour };
+		}
+
+		GlyphData& glyph = fontBitmap.getSingleDigitGlyph(digit);
+
+		Quad quad = {};
+		quad.Position = rootPos;
+		quad.Size = glyph.Size * scale;
+		quad.TextureCoords = {
+			//botLeft
+			glyph.TexCoordTopLeft.x,
+			glyph.TexCoordBotRight.y,
+
+			//topRight
+			glyph.TexCoordBotRight.x,
+			glyph.TexCoordTopLeft.y
+		};
+		quad.Colour = colour;
+		quad.setTexture(*fontBitmap.getPageTexture(glyph.PageId));
+
+		return quad;
+	}
+
 	std::vector<Quad> TextString::getStringAsQuads(
 		const char* string,
 		const FontBitmap& bitmap,

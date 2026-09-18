@@ -36,6 +36,7 @@ namespace DOH {
 		const ETextRenderMethod mTextRenderMethod;
 		std::vector<std::shared_ptr<TextureVulkan>> mPageTextures;
 		std::unordered_map<uint32_t, GlyphData> mGlyphMap;
+		std::array<GlyphData*, 10u> mSingleDigitGlyphs; //TODO:: Maybe change to pair<GlyphData*, KerningData*> if kerning support is added.
 		//std::unordered_map<KerningMapKey, float> mKerningMap;
 		//std::vector<KerningData> mKernings;
 		uint32_t mPageCount;
@@ -61,5 +62,11 @@ namespace DOH {
 		inline const std::vector<std::shared_ptr<TextureVulkan>>& getPageTextures() const { return mPageTextures; }
 		inline const uint32_t getPageCount() const { return mPageCount; }
 		inline const ETextRenderMethod getTextRenderMethod() const { return mTextRenderMethod; }
+
+		inline bool hasSingleDigitGlyphs() const { return mSingleDigitGlyphs[0] != nullptr; }
+		inline GlyphData& getSingleDigitGlyph(uint32_t digit) const { return *mSingleDigitGlyphs[digit]; }
+
+	private:
+		void storeSingleDigitGlyphs();
 	};
 }
