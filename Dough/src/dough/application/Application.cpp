@@ -94,6 +94,11 @@ namespace DOH {
 		mRenderer->init(*mWindow);
 		mAppInfoTimer->recordInterval("Renderer.init() end");
 
+		mAudioEngine = std::make_unique<AudioEngine>();
+		mAppInfoTimer->recordInterval("AudioEngine.init() start");
+		mAudioEngine->init();
+		mAppInfoTimer->recordInterval("AudioEngine.init() end");
+
 		mAppInfoTimer->recordInterval("AppLogic.init() start");
 		mAppLogic->init(static_cast<float>(mWindow->getWidth()) / mWindow->getHeight());
 		mAppInfoTimer->recordInterval("AppLogic.init() end");
@@ -106,6 +111,11 @@ namespace DOH {
 			THROW("Thrown: Renderer not ready");
 		}
 
+		if (!mAudioEngine->isReady()) {
+			LOG_ERR("Audio Engine is not ready, forcing stop");
+			THROW("Thrown: Audio Engine not ready.");
+		}
+
 		mAppInfoTimer->recordInterval("Applicaiton.init() end");
 	}
 
@@ -115,6 +125,8 @@ namespace DOH {
 		const double preUpdate = Time::getCurrentTimeMillis();
 
 		mAppLogic->update(delta);
+
+		mAudioEngine->update();
 
 		Input::get().resetCycleData();
 
@@ -149,6 +161,7 @@ namespace DOH {
 		mAppInfoTimer->recordInterval("Closing start");
 		mAppLogic->close();
 		mWindow->close();
+		mAudioEngine->close();
 		mRenderer->close();
 
 		Input::close();

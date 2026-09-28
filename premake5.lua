@@ -28,6 +28,9 @@ GLFW_DIR = "%{wks.location}/Dough/Dough/libs/glfw-3.3.8.bin.WIN64/"
 VULKAN_LABEL = "Vulkan"
 VULKAN_DIR = "%{wks.location}/Dough/Dough/libs/Vulkan/"
 
+SDL3_LABEL = "SDL3"
+SDL3_DIR = "%{wks.location}/Dough/Dough/libs/SDL3/"
+
 --Build from source libs
 GLM_LABEL = "GLM"
 GLM_DIR = "%{wks.location}/Dough/Dough/libs/glm/"
@@ -46,7 +49,8 @@ TRACY_DIR = "%{wks.location}/Dough/Dough/libs/tracy/"
 
 libIncludeDirs = {
 	[GLFW_LABEL] = GLFW_DIR .. "include/",
-	[VULKAN_LABEL] = VULKAN_DIR .. "include/"
+	[VULKAN_LABEL] = VULKAN_DIR .. "include/",
+	[SDL3_LABEL] = SDL3_DIR .. "include/"
 }
 
 configurations { "DEBUG", "TRACING", "RELEASE" }
@@ -85,6 +89,12 @@ project(ENGINE_PROJ_NAME)
 	libdirs { GLFW_DIR .. glfwTargetVcVersion, VULKAN_DIR }
 	links { "glfw3", "vulkan-1" }
 
+	--NOTE:: These are required for statically linking SDL3.
+	--	Will requiring "winmm" & "version" here cause problems for non windows?
+	--	SDL3 would prefer we use the .dll but I'm dumb.
+	libdirs { SDL3_DIR, os.findlib("winmm") }
+	links { "SDL3-static", "winmm", "version" }
+
 	--NOTE:: Architecture is placed before config because only one architecture is used. This results in less folders being made.
 	outputDir = "%{cfg.architecture}/%{cfg.buildcfg}/"
 	targetdir(outputDir .. "final/")
@@ -105,7 +115,7 @@ project(ENGINE_PROJ_NAME)
 		TINY_OBJ_LOADER_DIR .. "tinyobjloader.h"
 	}
 
-		tracyFiles = {
+	tracyFiles = {
 		TRACY_DIR .. "public/tracy/Tracy.hpp",
 		TRACY_DIR .. "public/TracyClient.cpp"
 	}

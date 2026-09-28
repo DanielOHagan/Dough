@@ -11,6 +11,7 @@
 #include "dough/application/ApplicationLoop.h"
 #include "dough/time/IntervalTimer.h"
 #include "dough/application/ApplicationInitSettings.h"
+#include "dough/audio/AudioEngine.h"
 
 namespace DOH {
 
@@ -82,6 +83,7 @@ namespace DOH {
 		std::unique_ptr<Window> mWindow;
 		std::unique_ptr<ApplicationLoop> mAppLoop;
 		std::unique_ptr<RendererVulkan> mRenderer;
+		std::unique_ptr<AudioEngine> mAudioEngine;
 		std::unique_ptr<IntervalTimer> mAppInfoTimer;
 		std::unique_ptr<AppDebugInfo> mAppDebugInfo;
 		bool mRunning;
