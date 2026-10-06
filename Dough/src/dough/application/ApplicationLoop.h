@@ -25,6 +25,10 @@ namespace DOH {
 		double mTargetUpdateTimeSpan;
 		double mDeltaUpdateTimeSpan;
 
+		double mDeltaAudioTransferTimeSpan;
+		double mAudioTransferTimeSpan;
+		int mAudioTransfersPerSecond;
+
 		float mFps;
 		float mTargetFps;
 		float mTargetBackgroundFps;

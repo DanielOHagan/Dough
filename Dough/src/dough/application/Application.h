@@ -2,18 +2,20 @@
 
 #include "dough/Utils.h"
 #include "dough/Window.h"
-#include "dough/rendering/RendererVulkan.h"
 #include "dough/events/WindowEvent.h"
 #include "dough/events/KeyEvent.h"
 #include "dough/events/MouseEvent.h"
 #include "dough/input/Input.h"
-#include "dough/application/IApplicationLogic.h"
-#include "dough/application/ApplicationLoop.h"
-#include "dough/time/IntervalTimer.h"
-#include "dough/application/ApplicationInitSettings.h"
-#include "dough/audio/AudioEngine.h"
 
 namespace DOH {
+
+	class IApplicationLogic;
+	struct ApplicationInitSettings;
+	class Window;
+	class ApplicationLoop;
+	class RendererVulkan;
+	class AudioEngine;
+	class IntervalTimer;
 
 	struct AppDebugInfo {
 		static constexpr int FrameTimesCount = 1000;
@@ -109,6 +111,7 @@ namespace DOH {
 		void saveAppInitSettings(const char* fileName);
 
 		inline RendererVulkan& getRenderer() const { return *mRenderer; }
+		inline AudioEngine& getAudioEngine() const { return *mAudioEngine; }
 		inline Window& getWindow() const { return *mWindow; }
 		inline ApplicationLoop& getLoop() const { return *mAppLoop; }
 		inline IntervalTimer& getAppInfoTimer() const { return *mAppInfoTimer; }
@@ -130,6 +133,8 @@ namespace DOH {
 		inline void pollEvents() const { mWindow->pollEvents(); }
 		void update(float delta);
 		void render(float delta);
+		//Transfer the audio samples prepared by "update()" to the audio streams
+		void transferAudio();
 		void close();
 	};
 }

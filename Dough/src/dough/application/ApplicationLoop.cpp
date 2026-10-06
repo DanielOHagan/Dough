@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <tracy/public/tracy/Tracy.hpp>
 
+#include "dough/audio/AudioEngine.h"
+
 namespace DOH {
 
 	ApplicationLoop::ApplicationLoop(
@@ -29,7 +31,10 @@ namespace DOH {
 		mTargetBackgroundUps(targetBackgroundUps),
 		mPreviousFps(0.0f),
 		mPreviousUps(0.0f),
-		mRunInBackground(runInBackground)
+		mRunInBackground(runInBackground),
+		mDeltaAudioTransferTimeSpan(0),
+		mAudioTransferTimeSpan(5),
+		mAudioTransfersPerSecond(0)
 	{
 		updateTargetFrameTime(app.isFocussed());
 		updateTargetUpdateTime(app.isFocussed());
@@ -48,24 +53,28 @@ namespace DOH {
 
 			mDeltaUpdateTimeSpan += deltaCycleTimeSpan;
 			mDeltaRenderTimeSpan += deltaCycleTimeSpan;
+			mDeltaAudioTransferTimeSpan += deltaCycleTimeSpan;
 			mPerSecondCountersTimeSpan += deltaCycleTimeSpan;
 
+			//Per second logging
 			if (mPerSecondCountersTimeSpan > 1000.0) {
 				mPreviousFps = mFps;
 				mFps = 0.0f;
 				mPreviousUps = mUps;
 				mUps = 0.0f;
 
-				////Log FPS and UPS each second
-				//const bool noLimitFps = mApplication.isFocused() || mRunInBackground;
-				//LOG(
-				//	"FPS: " << mPreviousFps << " (" <<
-				//	(noLimitFps ? mTargetFps : mTargetBackgroundFps) << ")"
-				//);
-				//LOGLN(
-				//	"\tUPS: " << mPreviousUps << " (" <<
-				//	(noLimitFps ? mTargetUps : mTargetBackgroundUps) << ")"
-				//);
+				//Log FPS and UPS each second
+				const bool noLimitFps = mApplication.isFocussed() || mRunInBackground;
+				LOG(
+					"FPS: " << mPreviousFps << " (" <<
+					(noLimitFps ? mTargetFps : mTargetBackgroundFps) << ")"
+				);
+				LOG(
+					"\tUPS: " << mPreviousUps << " (" <<
+					(noLimitFps ? mTargetUps : mTargetBackgroundUps) << ")"
+				);
+				LOGLN("\tAudioTransfers: " << mAudioTransfersPerSecond);
+				mAudioTransfersPerSecond = 0;
 
 				//Add last second's fps count to debug array
 				if (debugInfo.FpsCountIndex == AppDebugInfo::FpsCount) {
@@ -78,12 +87,22 @@ namespace DOH {
 				mPerSecondCountersTimeSpan = 0.0;
 			}
 
+			//Update
 			if (!(mDeltaUpdateTimeSpan < mTargetUpdateTimeSpan)) {
 				mApplication.update(Time::convertMillisToSeconds(mDeltaUpdateTimeSpan));
 				mUps++;
-				mDeltaUpdateTimeSpan = 0.0;
+				//mDeltaUpdateTimeSpan = 0.0;
+				mDeltaUpdateTimeSpan -= mTargetUpdateTimeSpan;
 			}
 
+			//Audio
+			if (!(mDeltaAudioTransferTimeSpan < mAudioTransferTimeSpan)) {
+				mApplication.transferAudio();
+				mAudioTransfersPerSecond++;
+				mDeltaAudioTransferTimeSpan -= mAudioTransferTimeSpan;
+			}
+
+			//Render
 			if (!(mDeltaRenderTimeSpan < mTargetFrameTimeSpan)) {
 				//NOTE:: When Iconified the app doesn't call any render functions even though
 				//	it is called here and the FPS increments here
@@ -93,7 +112,8 @@ namespace DOH {
 					mApplication.render(deltaRender);
 					mCurrentFrame++;
 					mFps++;
-					mDeltaRenderTimeSpan = 0.0;
+					//mDeltaRenderTimeSpan = 0.0;
+					mDeltaRenderTimeSpan -= mTargetFrameTimeSpan;
 				}
 
 				//IMPORTANT:: Update and render calls are not gauranteed to be 1-to-1 and there can be more update calls per frame than render calls.

@@ -1,6 +1,7 @@
 #include "dough/rendering/LineRenderer.h"
 
 #include "dough/application/Application.h"
+#include "dough/rendering/RenderingContextVulkan.h"
 #include "dough/scene/geometry/primitives/Quad.h"
 #include "dough/rendering/pipeline/ShaderDescriptorSetLayoutsVulkan.h"
 #include "dough/rendering/SwapChainVulkan.h"

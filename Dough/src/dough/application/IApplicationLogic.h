@@ -1,5 +1,7 @@
 #pragma once
 
+#include "dough/audio/AudioTransferTickData.h"
+
 namespace DOH {
 
 	class IApplicationLogic {
@@ -17,5 +19,6 @@ namespace DOH {
 		virtual void close() = 0;
 
 		virtual void onResize(float aspectRatio) = 0;
+		virtual AudioTransferTickData getAudioTransferTickData() { return AudioTransferTickData(nullptr, 0u); }
 	};
 }

@@ -5,6 +5,7 @@
 #include "dough/scene/geometry/primitives/Quad.h"
 #include "dough/files/readers/JsonFileReader.h"
 #include "dough/application/Application.h"
+#include "dough/rendering/RendererVulkan.h"
 
 #include <tracy/public/tracy/Tracy.hpp>
 

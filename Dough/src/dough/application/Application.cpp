@@ -2,6 +2,13 @@
 
 #include "dough/Logging.h"
 #include "dough/files/ResourceHandler.h"
+#include "dough/application/IApplicationLogic.h"
+#include "dough/application/ApplicationInitSettings.h"
+#include "dough/Window.h"
+#include "dough/application/ApplicationLoop.h"
+#include "dough/rendering/RendererVulkan.h"
+#include "dough/audio/AudioEngine.h"
+#include "dough/time/IntervalTimer.h"
 
 #include <tracy/public/tracy/Tracy.hpp>
 
@@ -113,7 +120,7 @@ namespace DOH {
 
 		if (!mAudioEngine->isReady()) {
 			LOG_ERR("Audio Engine is not ready, forcing stop");
-			THROW("Thrown: Audio Engine not ready.");
+			//THROW("Thrown: Audio Engine not ready.");
 		}
 
 		mAppInfoTimer->recordInterval("Applicaiton.init() end");
@@ -125,8 +132,6 @@ namespace DOH {
 		const double preUpdate = Time::getCurrentTimeMillis();
 
 		mAppLogic->update(delta);
-
-		mAudioEngine->update();
 
 		Input::get().resetCycleData();
 
@@ -151,6 +156,33 @@ namespace DOH {
 		mAppDebugInfo->LastRenderTimeMillis = Time::getCurrentTimeMillis() - preRender;
 
 		FrameMark;
+	}
+
+	void Application::transferAudio() {
+		ZoneScoped;
+
+		if (!mAudioEngine->hasOutput()) {
+			return;
+		}
+
+		//TEMP:: for testing & debug.
+		mAudioEngine->update();
+
+		//TODO:: Get desired amount of samples from audio sources. Should probably look something like:
+		// mAppLogic->getNextAudioSamples(mAudioEngine->getPrimaryOutputTarget().ChunkSampleCount);
+		// 
+		// 
+		//AudioTransferTickData transfer = mAppLogic->getAudioTransferTickData();
+		//if (transfer.QueuedSampleCount > 0) {
+		//	mAudioEngine->addToAudioStream(transfer);
+		//
+		//	if (transfer.QueuedSampleCount < mAudioEngine.SamplesPerTransferTick) {
+		//		mAudioEngine->addSilenceSamples(transfer /*mAudioEngine.SamplesPerTransferTick - transferableSampleCount*/);
+		//	}
+		//}
+		//else {
+		//	mAudioEngine->addSilenceSamples(mAudioEngine.SamplesPerTransferTick);
+		//}
 	}
 
 	void Application::close() {

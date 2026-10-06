@@ -2,6 +2,7 @@
 
 #include "dough/Logging.h"
 #include "dough/application/Application.h"
+#include "dough/rendering/RendererVulkan.h"
 
 #include <tracy/public/tracy/Tracy.hpp>
 

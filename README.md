@@ -18,6 +18,7 @@ I hope to include a much nicer automated version check and install script for sa
 - [MSDF Font Rendering](https://github.com/Chlumsky/msdfgen) - GLSL code used for shader and atlas generator used to create texture altasses.
 - [Tracy Profiler](https://github.com/wolfpld/tracy)
 - [Premake](https://premake.github.io/) - Used to build workspace/solution files.
+- [SDL3](https://github.com/libsdl-org/SDL) - Used for Audio interface. NOTE:: This is statically linked and requires "winmm.lib" & "version.lib".
 
 ## Getting Started
 This repository just includes the engine and is required components. To find out how to get started go to https://github.com/DanielOHagan/DoughTemplate.

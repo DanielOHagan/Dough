@@ -4,6 +4,8 @@
 #include "editor/EditorPerspectiveCameraController.h"
 #include "editor/EditorOrthoCameraController.h"
 #include "dough/scene/geometry/collections/TextString.h"
+#include "dough/rendering/RendererVulkan.h"
+#include "dough/time/Time.h"
 
 #include <tracy/public/tracy/Tracy.hpp>
 

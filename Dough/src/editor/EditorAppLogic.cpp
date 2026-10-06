@@ -6,6 +6,10 @@
 #include "dough/rendering/ShapeRenderer.h"
 #include "dough/rendering/text/TextRenderer.h"
 #include "dough/input/InputActionMap.h"
+#include "dough/rendering/RendererVulkan.h"
+#include "dough/time/IntervalTimer.h"
+#include "dough/application/ApplicationLoop.h"
+#include "dough/application/ApplicationInitSettings.h"
 
 #include <tracy/public/tracy/Tracy.hpp>
 #include <imgui/imgui.h>
@@ -35,19 +39,20 @@ namespace DOH::EDITOR {
 	:	AInputLayer(EditorInputLayer::EDITOR_INPUT_LAYER_NAME),
 		mKeyboardMouseInput(nullptr)
 	{
-		std::vector<int> keyCodes = {};
-		std::vector<int> mouseButtons = {};
+		//std::vector<int> keyCodes = {};
+		//std::vector<int> mouseButtons = {};
+		//
+		//keyCodes.reserve(EditorInputLayer::EDITOR_DEFAULT_KEY_CODES.size());
+		//for (int keyCode : EditorInputLayer::EDITOR_DEFAULT_KEY_CODES) {
+		//	keyCodes.emplace_back(keyCode);
+		//}
+		//mouseButtons.reserve(EditorInputLayer::EDITOR_DEFAULT_MOUSE_CODES.size());
+		//for (int button : EditorInputLayer::EDITOR_DEFAULT_MOUSE_CODES) {
+		//	mouseButtons.emplace_back(button);
+		//}
 
-		keyCodes.reserve(EditorInputLayer::EDITOR_DEFAULT_KEY_CODES.size());
-		for (int keyCode : EditorInputLayer::EDITOR_DEFAULT_KEY_CODES) {
-			keyCodes.emplace_back(keyCode);
-		}
-		mouseButtons.reserve(EditorInputLayer::EDITOR_DEFAULT_MOUSE_CODES.size());
-		for (int button : EditorInputLayer::EDITOR_DEFAULT_MOUSE_CODES) {
-			mouseButtons.emplace_back(button);
-		}
-
-		mKeyboardMouseInput = std::make_shared<DeviceInputKeyboardMouse>(keyCodes, mouseButtons);
+		//mKeyboardMouseInput = std::make_shared<DeviceInputKeyboardMouse>(keyCodes, mouseButtons);
+		mKeyboardMouseInput = std::make_shared<DeviceInputKeyboardMouse>();
 	}
 
 	void EditorInputLayer::consumeAction(InputAction& action) {
