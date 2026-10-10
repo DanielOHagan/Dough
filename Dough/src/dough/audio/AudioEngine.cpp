@@ -131,7 +131,7 @@ namespace DOH {
 		//Add current "time slot of samples" and next slot's as a buffer
  		const int queuedSampleBytes = mOutputTarget->getQueuedSampleSizeBytes();
 		const int thresholdToAddSamples = mOutputTarget->BufferSizeBytes + AudioEngine::EXTRA_BUFFERS_SIZE_BYTES;
-		LOG_INFO("queued bytes: " << queuedSampleBytes);
+		//LOG_INFO("queued bytes: " << queuedSampleBytes);
 		if (queuedSampleBytes <= thresholdToAddSamples) {
 			static float samples[AudioEngine::BUFFER_SAMPLE_COUNT];
 			const float noteFreq0 = getNoteFreq(note0, octave0);

@@ -1,6 +1,7 @@
 #include "dough/rendering/SwapChainVulkan.h"
 
 #include "dough/application/Application.h"
+#include "dough/rendering/RendererVulkan.h"
 #include "dough/Logging.h"
 #include "dough/time/Time.h"
 
