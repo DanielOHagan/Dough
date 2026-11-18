@@ -11,6 +11,8 @@
 #include "dough/physics/BoundingBox2d.h"
 #include "dough/scene/geometry/collections/TileMap.h"
 #include "dough/scene/geometry/primitives/Circle.h"
+#include "dough/audio/AudioEngine.h"
+#include "dough/files/ResourceHandler.h"
 #include "editor/EditorPerspectiveCameraController.h"
 #include "editor/EditorOrthoCameraController.h"
 
@@ -571,7 +573,7 @@ namespace DOH::EDITOR {
 			virtual void render() override;
 			virtual void renderImGuiMainTab() override;
 			virtual void renderImGuiExtras() override;
-			virtual const char* getName() override { return "JsonDemo"; }
+			virtual const char* getName() override { return "Json"; }
 		};
 
 		//To show how InputActions work
@@ -588,7 +590,60 @@ namespace DOH::EDITOR {
 			virtual void render() override;
 			virtual void renderImGuiMainTab() override;
 			virtual void renderImGuiExtras() override;
-			virtual const char* getName() override { return "InputActionDemo"; }
+			virtual const char* getName() override { return "InputAction"; }
+		};
+
+		//Simple note and WAV file playback.
+		class AudioDemo : public ADemo {
+		public:
+			//TODO:: Lots of audio examples, might be worth having a separate demo for some.
+			//	Input, mulitple & switching output devices.
+			//	Sample mixing. Effects.
+			//	"Scheduling" samples for playback at certain times.
+			//	IMPORTANT:: How to handle working nicely with update() given that transferAudio and update use different tick times?
+			AudioEngine& AudioEngineRef;
+
+			constexpr static const char* MIXED_AUDIO_FILE_PATH = "Dough/Dough/res/demos/audioDemo_songSnippet.wav";
+			constexpr static const char* BASS_TRACK_FILE_PATH = "Dough/Dough/res/demos/audioDemo_bassSnippet.wav";
+			constexpr static const char* GUITAR_1_TRACK_FILE_PATH = "Dough/Dough/res/demos/audioDemo_guitar1Snippet.wav";
+			constexpr static const char* GUITAR_2_TRACK_FILE_PATH = "Dough/Dough/res/demos/audioDemo_guitar2Snippet.wav";
+			constexpr static const char* GUITAR_SPOOK_TRACK_FILE_PATH = "Dough/Dough/res/demos/audioDemo_guitarSpookSnippet.wav";
+
+			//Whole mixed song. (With some of the missing tracks)
+			std::shared_ptr<WavFileData> MixedAudioFile;
+			//TODO:: Attach these to some kind of "SampleSourceViewer" class to keep track of current position
+			//Current index (progress) into the samples for MixedAudioFile
+			uint32_t MixedAudioFileSampleIndex;
+			bool MixedAudioFilePlaying;
+			//TODO:: Time is controlled by upate() whereas audio can be outside of this causing a mismatch (vs SampleIndex).
+			// Would it be better to just do everything by samples and then just calculate time in seconds when needed?
+			//float MixedAudioFilePlayTime;
+
+
+			//Song separated into individual tracks.
+			//TODO:: These will have to be mixed to produce an audio stream to play.
+			constexpr static const uint16_t TRACK_COUNT = 4u;
+			constexpr static const uint16_t BASS_TRACK_INDEX = 0u;
+			constexpr static const uint16_t GUITAR_1_TRACK_INDEX = 1u;
+			constexpr static const uint16_t GUITAR_2_TRACK_INDEX = 2u;
+			constexpr static const uint16_t GUITAR_SPOOK_TRACK_INDEX = 3u;
+			std::array<std::shared_ptr<WavFileData>, TRACK_COUNT> AudioFileTracks;
+
+			AudioDemo(SharedDemoResources& sharedResources);
+			virtual void init() override;
+			virtual void close() override;
+			virtual void update(float delta) override;
+			virtual void render() override;
+			virtual void renderImGuiMainTab() override;
+			virtual void renderImGuiExtras() override;
+			virtual const char* getName() override { return "Audio"; }
+
+			void loadMixedFile();
+			void closeMixedFile();
+			void loadIndividualTracks();
+			void closeIndividualTracks();
+
+			AudioTransferTickData getAudioTransferTickData(uint32_t desiredSampleCount);
 		};
 
 		struct ImGuiSettings {
@@ -607,6 +662,7 @@ namespace DOH::EDITOR {
 		std::unique_ptr<MultiCameraPassDemo> mMultiCameraPassDemo;
 		std::unique_ptr<JsonDemo> mJsonDemo;
 		std::unique_ptr<InputActionDemo> mInputActionDemo;
+		std::unique_ptr<AudioDemo> mAudioDemo;
 		//References to usable demos (mShapesDemo is just a wrapper of "inner" demos so it's not needed here).
 		// This is primarily used for convenience for Editor GUI. 
 		// IMPORTANT:: NOT TO BE USED FOR OBJECT LIFETIME!
@@ -626,6 +682,8 @@ namespace DOH::EDITOR {
 		virtual void render() override;
 		virtual void imGuiRender(float delta) override;
 		virtual void close() override;
+
+		virtual AudioTransferTickData getAudioTransferTickData(uint32_t desiredSampleCount) override;
 
 		virtual void onResize(float aspectRatio) override;
 

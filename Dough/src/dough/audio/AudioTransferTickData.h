@@ -14,6 +14,6 @@ namespace DOH {
 		uint32_t QueuedSampleCount = 0;
 		//TODO:: EDataType DataType; EDataType::FLOAT / INT
 
-		inline bool isValid() const { return Data != nullptr || QueuedSampleCount == 0; }
+		inline bool isValid() const { return Data != nullptr && QueuedSampleCount != 0; }
 	};
 }

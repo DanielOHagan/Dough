@@ -113,11 +113,11 @@ namespace DOH {
 		//TODO:: Some kind of post app.init preparation?
 		//mRenderer->prepareCurrentRenderState();
 
+		//TODO:: Should these checks be before mAppLogic->init() ?
 		if (!mRenderer->isReady()) {
 			LOG_ERR("Renderer is not ready, forcing stop");
 			THROW("Thrown: Renderer not ready");
 		}
-
 		if (!mAudioEngine->isReady()) {
 			LOG_ERR("Audio Engine is not ready, forcing stop");
 			//THROW("Thrown: Audio Engine not ready.");
@@ -168,21 +168,18 @@ namespace DOH {
 		//TEMP:: for testing & debug.
 		mAudioEngine->update();
 
-		//TODO:: Get desired amount of samples from audio sources. Should probably look something like:
-		// mAppLogic->getNextAudioSamples(mAudioEngine->getPrimaryOutputTarget().ChunkSampleCount);
-		// 
-		// 
-		//AudioTransferTickData transfer = mAppLogic->getAudioTransferTickData();
-		//if (transfer.QueuedSampleCount > 0) {
-		//	mAudioEngine->addToAudioStream(transfer);
-		//
-		//	if (transfer.QueuedSampleCount < mAudioEngine.SamplesPerTransferTick) {
-		//		mAudioEngine->addSilenceSamples(transfer /*mAudioEngine.SamplesPerTransferTick - transferableSampleCount*/);
-		//	}
-		//}
-		//else {
-		//	mAudioEngine->addSilenceSamples(mAudioEngine.SamplesPerTransferTick);
-		//}
+		//IMPORTANT:: Since we are likely only going to support one output target at a time this shouldn't matter but
+		// here is where we pick which device to get X amount of samples for.
+		AudioOutputTarget& audioTarget = mAudioEngine->getPrimaryAudioOutputTarget();
+
+		//If needed, limit the amount of samples to add to the sample queue.
+		const uint32_t sampleCountToAdd = audioTarget.getDesiredSampleCountToAdd();
+		if (sampleCountToAdd > 0u) {
+			AudioTransferTickData appLogicAudio = mAppLogic->getAudioTransferTickData(sampleCountToAdd);
+			if (appLogicAudio.isValid()) {
+				mAudioEngine->addToAudioStream(audioTarget, appLogicAudio);
+			}
+		};
 	}
 
 	void Application::close() {

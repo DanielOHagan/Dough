@@ -7,6 +7,7 @@
 #include "dough/files/readers/IndexedAtlasInfoFileReader.h"
 #include "dough/files/writers/JsonFileWriter.h"
 #include "dough/application/ApplicationInitSettings.h"
+#include "dough/files/AudioFileData.h"
 
 #include <stb/stb_image.h>
 #include <tinyobjloader/tiny_obj_loader.h>
@@ -98,6 +99,10 @@ namespace DOH {
 
 	bool ResourceHandler::writeJsonFile(const char* filePath, std::shared_ptr<JsonFileData> fileData) {
 		return ResourceHandler::INSTANCE.writeJsonFileImpl(filePath, fileData);
+	}
+
+	std::shared_ptr<WavFileData> ResourceHandler::loadWavFile(const char* filePath) {
+		return ResourceHandler::INSTANCE.loadWavFileImpl(filePath);
 	}
 
 	void ResourceHandler::freeImage(void* imageData) {
@@ -251,6 +256,25 @@ namespace DOH {
 		JsonFileWriter jsonWriter(filePath);
 		//Default to compact JSON
 		return jsonWriter.writeCompact(*fileData);
+	}
+
+	std::shared_ptr<WavFileData> ResourceHandler::loadWavFileImpl(const char* filePath) {
+		ZoneScoped;
+
+		std::shared_ptr<WavFileData> wavFileData = std::make_shared<WavFileData>(filePath);
+		if (!SDL_LoadWAV(filePath, &wavFileData->Spec, &wavFileData->Data, &wavFileData->DataLengthBytes)) {
+			LOG_ERR("Couldn't load .wav file: " << SDL_GetError());
+			return nullptr;
+		}
+
+		//TODO:: Allow for reformatting to a desired format.
+		if (wavFileData->Spec.format != SDL_AUDIO_F32) {
+			LOG_ERR("ResourceHandler::loadWavFileImpl wav file format not supported: " << wavFileData->Spec.format);
+			wavFileData->close();
+			return nullptr;
+		}
+
+		return wavFileData;
 	}
 
 	const std::string ResourceHandler::getCurrentLineAsBuffer(const std::vector<char>& chars, const size_t startIndex) {

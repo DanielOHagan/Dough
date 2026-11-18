@@ -134,6 +134,7 @@ namespace DOH {
 		void update(float delta);
 		void render(float delta);
 		//Transfer the audio samples prepared by "update()" to the audio streams
+		//The term "transfer audio" is to represent taking the data from, typically mAppLogic, and copying to the audio output.
 		void transferAudio();
 		void close();
 	};

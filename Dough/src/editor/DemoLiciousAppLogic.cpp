@@ -7,8 +7,10 @@
 #include "dough/rendering/text/TextRenderer.h"
 #include "dough/files/readers/JsonFileReader.h"
 #include "dough/input/InputCodes.h"
+#include "dough/files/AudioFileData.h"
 
 #include <tracy/public/tracy/Tracy.hpp>
+#include <algorithm>
 
 #define GET_RENDERER Application::get().getRenderer()
 
@@ -45,6 +47,7 @@ namespace DOH::EDITOR {
 		mMultiCameraPassDemo->update(delta);
 		mJsonDemo->update(delta);
 		mInputActionDemo->update(delta);
+		mAudioDemo->update(delta);
 	}
 
 	void DemoLiciousAppLogic::render() {
@@ -60,6 +63,7 @@ namespace DOH::EDITOR {
 		mMultiCameraPassDemo->render();
 		mJsonDemo->render();
 		mInputActionDemo->render();
+		mAudioDemo->render();
 	}
 
 	void DemoLiciousAppLogic::imGuiRender(float delta) {
@@ -137,6 +141,8 @@ namespace DOH::EDITOR {
 				//mJsonDemo->Update = false;
 				//mInputActionDemo->Render = false;
 				//mInputActionDemo->Update = false;
+				//mAudioDemo->Render = false;
+				//mAudioDemo->Update = false;
 			}
 			if (ImGui::Button("View atlas texture")) {
 				EditorGui::openMonoSpaceTextureAtlasViewerWindow(*ShapeRenderer::getTestMonoSpaceTextureAtlas());
@@ -160,12 +166,25 @@ namespace DOH::EDITOR {
 		mMultiCameraPassDemo->renderImGuiExtras();
 		mJsonDemo->renderImGuiExtras();
 		mInputActionDemo->renderImGuiExtras();
+		mAudioDemo->renderImGuiExtras();
 	}
 
 	void DemoLiciousAppLogic::close() {
 		ZoneScoped;
 
 		closeDemos();
+	}
+
+	AudioTransferTickData DemoLiciousAppLogic::getAudioTransferTickData(uint32_t desiredSampleCount) {
+		//ZoneScoped;
+
+		//NOTE:: Only one demo has audio currently.
+		//	If more than one demo uses sound at the same time then the samples could be mixed here.
+		if (mAudioDemo != nullptr) {
+			return mAudioDemo->getAudioTransferTickData(desiredSampleCount);
+		}
+
+		return { nullptr, 0u };
 	}
 
 	void DemoLiciousAppLogic::onResize(float aspectRatio) {
@@ -225,8 +244,12 @@ namespace DOH::EDITOR {
 		mDemos.emplace_back(*mJsonDemo);
 
 		mInputActionDemo = std::make_unique<InputActionDemo>(*mSharedDemoResources);
-		mInputActionDemo ->init();
+		mInputActionDemo->init();
 		mDemos.emplace_back(*mInputActionDemo);
+
+		mAudioDemo = std::make_unique<AudioDemo>(*mSharedDemoResources);
+		mAudioDemo->init();
+		mDemos.emplace_back(*mAudioDemo);
 	}
 
 	void DemoLiciousAppLogic::closeDemos() {
@@ -235,36 +258,39 @@ namespace DOH::EDITOR {
 		if (mObjModelsDemo->GpuResourcesLoaded) {
 			mObjModelsDemo->close();
 		}
-		mObjModelsDemo.release();
+		mObjModelsDemo.reset();
 		
 		if (mCustomDemo->GpuResourcesLoaded) {
 			mCustomDemo->close();
 		}
-		mCustomDemo.release();
+		mCustomDemo.reset();
 		
 		mTextDemo->close();
-		mTextDemo.release();
+		mTextDemo.reset();
 		
 		mShapesDemo->close();
-		mShapesDemo.release();
+		mShapesDemo.reset();
 		
 		mLineDemo->close();
-		mLineDemo.release();
+		mLineDemo.reset();
 		
 		mBoundingBoxDemo->close();
-		mBoundingBoxDemo.release();
-		
+		mBoundingBoxDemo.reset();
+
 		mTileMapDemo->close();
-		mTileMapDemo.release();
+		mTileMapDemo.reset();
 
 		mMultiCameraPassDemo->close();
-		mMultiCameraPassDemo.release();
+		mMultiCameraPassDemo.reset();
 
 		mJsonDemo->close();
-		mJsonDemo.release();
+		mJsonDemo.reset();
 
 		mInputActionDemo->close();
-		mInputActionDemo.release();
+		mInputActionDemo.reset();
+
+		mAudioDemo->close();
+		mAudioDemo.reset();
 
 		closeSharedResources();
 	}
@@ -2290,5 +2316,185 @@ namespace DOH::EDITOR {
 
 	void DemoLiciousAppLogic::InputActionDemo::renderImGuiExtras() {
 
+	}
+
+	DemoLiciousAppLogic::AudioDemo::AudioDemo(SharedDemoResources& sharedResources)
+	:	ADemo(sharedResources),
+		AudioEngineRef(Application::get().getAudioEngine()),
+		AudioFileTracks({ nullptr })
+		,
+		MixedAudioFileSampleIndex(0u),
+		MixedAudioFilePlaying(false)//,
+		//MixedAudioFilePlayTime(0.0f)
+	{}
+
+	void DemoLiciousAppLogic::AudioDemo::init() {
+		//TODO:: Should this by loaded by default?
+		loadMixedFile();
+		//loadIndividualTracks();
+
+		LOG_INFO("Total Sample: " << MixedAudioFile->DataLengthBytes);
+		//SDL_PutAudioStreamData(Application::get().getAudioEngine().getPrimaryAudioOutputTarget().AudioStream, MixedAudioFile->Data, static_cast<int>(MixedAudioFile->DataLength));
+
+	}
+
+	void DemoLiciousAppLogic::AudioDemo::close() {
+		closeMixedFile();
+		closeIndividualTracks();
+	}
+
+	void DemoLiciousAppLogic::AudioDemo::update(float delta) {
+		//if (MixedAudioFilePlaying) {
+		//	MixedAudioFilePlayTime += delta;
+		//} else if (MixedAudioFileSampleIndex == 0u) {
+		//	MixedAudioFilePlayTime = 0.0f;
+		//}
+	}
+
+	void DemoLiciousAppLogic::AudioDemo::render() {
+
+	}
+
+	void DemoLiciousAppLogic::AudioDemo::renderImGuiMainTab() {
+		if (MixedAudioFilePlaying) {
+			if (ImGui::Button("Pause")) {
+				MixedAudioFilePlaying = false;
+			}
+			if (ImGui::Button("Stop")) {
+				MixedAudioFileSampleIndex = 0u;
+				MixedAudioFilePlaying = false;
+			}
+		} else {
+			if (ImGui::Button("Play")) {
+				MixedAudioFilePlaying = true;
+			}
+		}
+		ImGui::Text("Sample: %u", MixedAudioFileSampleIndex);
+		//ImGui::Text("Time: %f", MixedAudioFilePlayTime);
+
+		ImGui::Text("MixedAudioFile: ");
+		ImGui::SameLine();
+		ImGui::Text(MixedAudioFile == nullptr ? "NOT Loaded" : "Loaded");
+
+		ImGui::Text("Individual Tracks: ");
+		ImGui::SameLine();
+		ImGui::Text(AudioFileTracks[0] == nullptr ? "NOT Loaded" : "Loaded");
+		//for (uint16_t i = 0u; i < AudioFileTracks.size(); i++) {
+		//	if (AudioFileTracks[i] == nullptr);
+		//	ImGui::Text("");
+		//}
+
+		//TODO:: Select audio output device
+
+		//TODO:: Note playing controls
+
+		//TODO:: Controls for playback
+
+		//TODO:: Controls for loading/unloading files
+
+		//TODO:: Some kind of bar to show progress
+	}
+
+	void DemoLiciousAppLogic::AudioDemo::renderImGuiExtras() {
+
+	}
+
+	void DemoLiciousAppLogic::AudioDemo::loadMixedFile() {
+		if (MixedAudioFile != nullptr) {
+			LOG_WARN("AudioDemo::loadMixedFile MixedAudioFile already loaded.");
+			return;
+		}
+
+		MixedAudioFile = ResourceHandler::loadWavFile(AudioDemo::MIXED_AUDIO_FILE_PATH);
+		if (!MixedAudioFile->isCompatible(AudioEngineRef.getPrimaryAudioOutputTarget().Spec)) {
+			LOG_ERR("AudioDemo::init audio file not compatible with primary audio output target: " << AudioDemo::MIXED_AUDIO_FILE_PATH);
+
+			//TODO:: What to do in this situation.
+			//It tepends on which doesn't match.
+			//1. Frequency can be resampled.
+			//2. Format can be converted.
+			//3. Channels:
+			//	FileChannelCount -> OutputTargetChannelCount
+			//	1 -> X : Just insert the single channel data into X channels
+			//	2 -> 1 : Can this me merged some way?
+		}
+	}
+
+	void DemoLiciousAppLogic::AudioDemo::closeMixedFile() {
+		if (MixedAudioFile != nullptr) {
+			MixedAudioFile->close();
+			MixedAudioFile = nullptr;
+		}
+	}
+
+	void DemoLiciousAppLogic::AudioDemo::loadIndividualTracks() {
+		if (AudioFileTracks[AudioDemo::BASS_TRACK_INDEX] == nullptr) {
+			AudioFileTracks[AudioDemo::BASS_TRACK_INDEX] = ResourceHandler::loadWavFile(AudioDemo::BASS_TRACK_FILE_PATH);
+			if (!AudioFileTracks[AudioDemo::BASS_TRACK_INDEX]->isCompatible(AudioEngineRef.getPrimaryAudioOutputTarget().Spec)) {
+				LOG_ERR("AudioDemo::init audio file not compatible with primary audio output target: " << AudioDemo::BASS_TRACK_FILE_PATH);
+			}
+		} else {
+			LOG_WARN("AudioDemo::loadIndividualTracks track already loaded: " << AudioDemo::BASS_TRACK_FILE_PATH);
+		}
+
+		if (AudioFileTracks[AudioDemo::GUITAR_1_TRACK_INDEX] == nullptr) {
+			AudioFileTracks[AudioDemo::GUITAR_1_TRACK_INDEX] = ResourceHandler::loadWavFile(AudioDemo::GUITAR_1_TRACK_FILE_PATH);
+			if (!AudioFileTracks[AudioDemo::GUITAR_1_TRACK_INDEX]->isCompatible(AudioEngineRef.getPrimaryAudioOutputTarget().Spec)) {
+				LOG_ERR("AudioDemo::init audio file not compatible with primary audio output target: " << AudioDemo::GUITAR_1_TRACK_FILE_PATH);
+			}
+		} else {
+			LOG_WARN("AudioDemo::loadIndividualTracks track already loaded: " << AudioDemo::GUITAR_1_TRACK_FILE_PATH);
+		}
+
+		if (AudioFileTracks[AudioDemo::GUITAR_2_TRACK_INDEX] == nullptr) {
+			AudioFileTracks[AudioDemo::GUITAR_2_TRACK_INDEX] = ResourceHandler::loadWavFile(AudioDemo::GUITAR_2_TRACK_FILE_PATH);
+			if (!AudioFileTracks[AudioDemo::GUITAR_2_TRACK_INDEX]->isCompatible(AudioEngineRef.getPrimaryAudioOutputTarget().Spec)) {
+				LOG_ERR("AudioDemo::init audio file not compatible with primary audio output target: " << AudioDemo::GUITAR_2_TRACK_FILE_PATH);
+			}
+		} else {
+			LOG_WARN("AudioDemo::loadIndividualTracks track already loaded: " << AudioDemo::GUITAR_2_TRACK_FILE_PATH);
+		}
+
+		if (AudioFileTracks[AudioDemo::GUITAR_SPOOK_TRACK_INDEX] == nullptr) {
+			AudioFileTracks[AudioDemo::GUITAR_SPOOK_TRACK_INDEX] = ResourceHandler::loadWavFile(AudioDemo::GUITAR_SPOOK_TRACK_FILE_PATH);
+			if (!AudioFileTracks[AudioDemo::GUITAR_SPOOK_TRACK_INDEX]->isCompatible(AudioEngineRef.getPrimaryAudioOutputTarget().Spec)) {
+				LOG_ERR("AudioDemo::init audio file not compatible with primary audio output target: " << AudioDemo::GUITAR_SPOOK_TRACK_FILE_PATH);
+			}
+		} else {
+			LOG_WARN("AudioDemo::loadIndividualTracks track already loaded: " << AudioDemo::GUITAR_SPOOK_TRACK_FILE_PATH);
+		}
+	}
+
+	void DemoLiciousAppLogic::AudioDemo::closeIndividualTracks() {
+		for (uint16_t i = 0u; i < AudioFileTracks.size(); i++) {
+			if (AudioFileTracks[i] != nullptr) {
+				AudioFileTracks[i]->close();
+				AudioFileTracks[i] = nullptr;
+			}
+		}
+	}
+
+	AudioTransferTickData DemoLiciousAppLogic::AudioDemo::getAudioTransferTickData(uint32_t desiredSampleCount) {
+		//TODO:: Since we do 512 samples (5.8ms worth of samples) per tick every 5ms we build up .8ms of samples each tick.
+		//	I think this function passing a uint32_t desiredSampleCount should be done and we keep track of the "excess" samples
+		//	elsewhere (probably audio engine and tie it to a device) to decide when to lower desiredSampleCount
+
+		void* dataPtr = nullptr;
+		uint32_t sampleCount = 0u;
+
+		if (MixedAudioFilePlaying) {
+			//TODO:: Currently only float32 is supported.
+			const uint32_t totalSampleCount = MixedAudioFile->DataLengthBytes / sizeof(float);
+			const uint32_t remainingSampleCount = totalSampleCount - MixedAudioFileSampleIndex;
+
+			//TODO:: Only float32 is supported currently
+			dataPtr = MixedAudioFile->Data + (sizeof(float) * MixedAudioFileSampleIndex);
+			sampleCount = std::min(remainingSampleCount, desiredSampleCount);
+
+			//Update the owner of the data how many samples are to be transfered.
+			MixedAudioFileSampleIndex += sampleCount;
+		}
+
+		return { dataPtr, sampleCount };
 	}
 }

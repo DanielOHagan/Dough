@@ -19,6 +19,6 @@ namespace DOH {
 		virtual void close() = 0;
 
 		virtual void onResize(float aspectRatio) = 0;
-		virtual AudioTransferTickData getAudioTransferTickData() { return AudioTransferTickData(nullptr, 0u); }
+		virtual AudioTransferTickData getAudioTransferTickData(uint32_t desiredSampleCount) { return AudioTransferTickData(nullptr, 0u); }
 	};
 }

@@ -13,20 +13,33 @@ namespace DOH {
 		SDL_AudioStream* AudioStream;
 		int BufferSampleCount;
 		int BufferSizeBytes;
+		//Total number of samples the current "buffer" and any extras can hold.
+		//This is NOT a hard limit 
+		uint32_t TotalBuffersSampleCount;
 
-		AudioOutputTarget(SDL_AudioFormat format, int channelCount, int frequency, int bufferSampleCount);
+		AudioOutputTarget(SDL_AudioFormat format, int channelCount, int frequency, int bufferSampleCount, uint32_t totalBuffersSampleCount);
 
 		void open();
+		uint32_t getDesiredSampleCountToAdd();
 
 		//Get the size of queued samples in bytes.
 		inline int getQueuedSampleSizeBytes() const { return SDL_GetAudioStreamQueued(AudioStream); }
+		inline uint32_t getQueuedSampleCount() const { return static_cast<uint32_t>(getQueuedSampleSizeBytes() / sizeof(float)); }
 		//TODO:: how to handle different sample types
-		inline bool hasEnoughSamplesInBytes(int bytes) const { return getQueuedSampleSizeBytes() > (bytes * Spec.freq); }
+		inline bool hasEnoughSamplesInBytes(int bytes) const { return getQueuedSampleSizeBytes() >= (bytes * Spec.freq); }
+		inline bool hasEnoughSamples(uint32_t sampleCount) const {
+			return static_cast<uint32_t>(getQueuedSampleSizeBytes() / sizeof(float)) >= sampleCount;
+		}
+		//inline bool hasSpaceForSamples(uint32_t sampleCount) const {
+		//	return TotalBufferSampleCount > sampleCount;
+		//}
 
 		inline bool isOpen() const { return AudioStream != nullptr; }
 	};
 
-	//TODO:: Handle int16 format as a backup.
+	//TODO:: Handle int format as a backup.
+	//TODO:: SDL uses int, would it be better for me to use uint32_t as that's the preferred int type in the engine.
+	//	Maybe just use it for init settings and not runtime as it would require more type casting.
 	class AudioEngine {
 	private:
 		//TODO:: Link sample transfer sizes to mAppLoop.AudioTransferTime
@@ -42,6 +55,7 @@ namespace DOH {
 		constexpr static const int EXTRA_BUFFERS_COUNT = 1;
 		constexpr static const int EXTRA_BUFFERS_SAMPLE_COUNT = BUFFER_SAMPLE_COUNT * EXTRA_BUFFERS_COUNT;
 		constexpr static const int EXTRA_BUFFERS_SIZE_BYTES = EXTRA_BUFFERS_SAMPLE_COUNT * sizeof(float);
+		constexpr static const int TOTAL_BUFFER_SAMPLE_COUNT = BUFFER_SAMPLE_COUNT + EXTRA_BUFFERS_SAMPLE_COUNT;
 
 		std::unique_ptr<AudioOutputTarget> mOutputTarget;
 		bool mReady;
@@ -54,8 +68,22 @@ namespace DOH {
 
 		void update();
 
-		//Assumes there is a valid output target
-		void addToAudioStream(AudioTransferTickData data);
+		/**
+		* Add audio data to target audio ouput, data.QueuedSampleCount of samples from data.Data is added.
+		* This way you queue up as many samples as you want.
+		* 
+		* @param target The audio output target, this is usually a device (e.g. headset or speaker).
+		* @param data The data to transfer to the audio stream. data.QueuedSampleCount MUST be > 0u and data.Data MUST be a valid pointer.
+		*/
+		void addToAudioStream(AudioOutputTarget& target, AudioTransferTickData& data);
+		/**
+		* Add audio data to target audio output up to a desired number of total queued samples.
+		* If ouput target's queued sample count is already over the limit then no samples are added.
+		* 
+		* @param target The audio output target, this is usually a device (e.g. headset or speaker).
+		* @param data The data to transfer to the audio stream. data.QueuedSampleCount MUST be > 0u and data.Data MUST be a valid pointer.
+		*/
+		void addToAudioStreamUpToLimit(AudioOutputTarget& target, AudioTransferTickData& data, uint32_t sampleLimit);
 
 		inline bool isReady() const { return mReady; }
 		inline bool hasOutput() const { return mOutputTarget != nullptr && mOutputTarget->isOpen(); }

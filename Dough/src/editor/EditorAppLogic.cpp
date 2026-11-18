@@ -876,6 +876,14 @@ UPS displayed is the count of frames in the last full second interval)"
 		mInnerAppLogic->onResize(aspectRatio);
 	}
 
+	AudioTransferTickData EditorAppLogic::getAudioTransferTickData(uint32_t desiredSampleCount) {
+		//ZoneScoped;
+
+		//TODO:: If any engine sounds need to be added/mixed do it here.
+
+		return mInnerAppLogic->getAudioTransferTickData(desiredSampleCount);
+	}
+
 	void EditorAppLogic::setCurrentCamera(EEditorCamera camera) {
 		const EEditorCamera lastCamera = mEditorSettings->CurrentCamera;
 		if (camera == lastCamera) {

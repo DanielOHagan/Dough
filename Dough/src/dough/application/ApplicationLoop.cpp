@@ -64,16 +64,16 @@ namespace DOH {
 				mUps = 0.0f;
 
 				//Log FPS and UPS each second
-				const bool noLimitFps = mApplication.isFocussed() || mRunInBackground;
-				LOG(
-					"FPS: " << mPreviousFps << " (" <<
-					(noLimitFps ? mTargetFps : mTargetBackgroundFps) << ")"
-				);
-				LOG(
-					"\tUPS: " << mPreviousUps << " (" <<
-					(noLimitFps ? mTargetUps : mTargetBackgroundUps) << ")"
-				);
-				LOGLN("\tAudioTransfers: " << mAudioTransfersPerSecond);
+				//const bool noLimitFps = mApplication.isFocussed() || mRunInBackground;
+				//LOG(
+				//	"FPS: " << mPreviousFps << " (" <<
+				//	(noLimitFps ? mTargetFps : mTargetBackgroundFps) << ")"
+				//);
+				//LOG(
+				//	"\tUPS: " << mPreviousUps << " (" <<
+				//	(noLimitFps ? mTargetUps : mTargetBackgroundUps) << ")"
+				//);
+				//LOGLN("\tAudioTransfers: " << mAudioTransfersPerSecond);
 				mAudioTransfersPerSecond = 0;
 
 				//Add last second's fps count to debug array

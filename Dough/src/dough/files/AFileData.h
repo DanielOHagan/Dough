@@ -2,6 +2,7 @@
 
 namespace DOH {
 
+	//TODO:: Some kind of universal EFileType for analytics?
 	struct AFileData {
 	protected:
 		AFileData() = default;

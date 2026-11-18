@@ -164,6 +164,8 @@ namespace DOH::EDITOR {
 
 		virtual void onResize(float aspectRatio) override;
 
+		virtual AudioTransferTickData getAudioTransferTickData(uint32_t desiredSampleCount) override;
+
 		void setCurrentCamera(EEditorCamera camera);
 
 	private:

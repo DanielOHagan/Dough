@@ -7,16 +7,21 @@
 #include "dough/input/InputCodes.h"
 #include "dough/time/Time.h"
 
+#include <tracy/public/tracy/Tracy.hpp>
+
 namespace DOH {
 
-	AudioOutputTarget::AudioOutputTarget(SDL_AudioFormat format, int channelCount, int frequency, int bufferSampleCount)
+	AudioOutputTarget::AudioOutputTarget(SDL_AudioFormat format, int channelCount, int frequency, int bufferSampleCount, uint32_t totalBuffersSampleCount)
 	:	Spec({ format, channelCount, frequency }),
 		AudioStream(nullptr),
 		BufferSampleCount(bufferSampleCount),
-		BufferSizeBytes(bufferSampleCount * sizeof(float))
+		BufferSizeBytes(bufferSampleCount * sizeof(float)),
+		TotalBuffersSampleCount(totalBuffersSampleCount)
 	{}
 
 	void AudioOutputTarget::open() {
+		ZoneScoped;
+
 		AudioStream = SDL_OpenAudioDeviceStream(
 			SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
 			&Spec,
@@ -31,11 +36,21 @@ namespace DOH {
 		SDL_ResumeAudioStreamDevice(AudioStream);
 	}
 
+	uint32_t AudioOutputTarget::getDesiredSampleCountToAdd() {
+		if (getQueuedSampleCount() > TotalBuffersSampleCount) {
+			return 0u;
+		} else {
+			return static_cast<uint32_t>(BufferSampleCount);
+		}
+	}
+
 	AudioEngine::AudioEngine()
 	:	mReady(false)
 	{}
 
 	void AudioEngine::init() {
+		ZoneScoped;
+
 		if (!SDL_Init(SDL_INIT_AUDIO)) {
 			LOG_ERR("Failed to initialise SDL Audio");
 			mReady = false;
@@ -43,10 +58,11 @@ namespace DOH {
 		}
 
 		mOutputTarget = std::make_unique<AudioOutputTarget>(
-			SDL_AUDIO_F32,
+			SDL_AudioFormat::SDL_AUDIO_F32,
 			AudioEngine::CHANNEL_COUNT,
 			AudioEngine::FREQUENCY,
-			AudioEngine::BUFFER_SAMPLE_COUNT
+			AudioEngine::BUFFER_SAMPLE_COUNT,
+			AudioEngine::TOTAL_BUFFER_SAMPLE_COUNT
 		);
 		mOutputTarget->open();
 
@@ -54,6 +70,7 @@ namespace DOH {
 	}
 
 	void AudioEngine::update() {
+		ZoneScoped;
 
 		if (Input::getInputLayers().size() > 0) {
 			auto& inputLayer = Input::getInputLayers().front();
@@ -109,17 +126,50 @@ namespace DOH {
 		}
 	}
 
-	void AudioEngine::addToAudioStream(AudioTransferTickData data) {
-		if (data.QueuedSampleCount > 0) {
-			SDL_PutAudioStreamData(
-				mOutputTarget->AudioStream,
-				data.Data,
-				data.QueuedSampleCount * sizeof(float)
-			);
+	void AudioEngine::addToAudioStream(AudioOutputTarget& target, AudioTransferTickData& data) {
+		ZoneScoped;
+
+		//TODO:: This will be called upto, ideally, 200 times a second so this has to be fast.
+
+		//TODO:: inline this and make it work for different sample types.
+		SDL_PutAudioStreamData(
+			mOutputTarget->AudioStream,
+			data.Data,
+			data.QueuedSampleCount * sizeof(float)
+		);
+	}
+
+	void AudioEngine::addToAudioStreamUpToLimit(AudioOutputTarget& target, AudioTransferTickData& data, uint32_t sampleLimit) {
+		ZoneScoped;
+
+		//TODO:: ~5.8ms of samples is added every 5ms, I want to keep track of that 0.8ms extra and when that reaches a certain amount
+		// I only ask AppLogic for a smaller amount of samples once, this is to use up the upcoming samples and reduce audio lag.
+
+		//TODO:: Should I have the sampleLimit or equivalent as a member of AudioOutputTarget ?
+
+		const int alreadyQueuedSampleBytes = target.getQueuedSampleSizeBytes();
+		const int desiredSamplesBytes = static_cast<int>(data.QueuedSampleCount) * sizeof(float);
+		//TODO:: Currently only float32 is supported.
+		const int sampleLimitBytes = static_cast<int>(sampleLimit) * sizeof(float);
+		const int samplesToAddBytes = std::min(sampleLimitBytes, alreadyQueuedSampleBytes + desiredSamplesBytes);
+
+		if (samplesToAddBytes > 0) {
+			//Add all of audio tick data to queue, this may go over the  size which is fine but will mean that
+			//	we'll just have to wait until those extra samples are finished with.
+			if (data.QueuedSampleCount > 0u) {
+				SDL_PutAudioStreamData(
+					target.AudioStream,
+					data.Data,
+					samplesToAddBytes
+				);
+			// 	//LOG_INFO("Put Samples: " << data.QueuedSampleCount);
+			}
 		}
 	}
 
 	void AudioEngine::close() {
+		ZoneScoped;
+
 		if (mOutputTarget != nullptr && mOutputTarget->isOpen()) {
 			SDL_DestroyAudioStream(mOutputTarget->AudioStream);
 			mOutputTarget = nullptr;
@@ -127,11 +177,12 @@ namespace DOH {
 	}
 
 	void AudioEngine::DEBUG_playNoise(EMusicNote note0, float octave0, EMusicNote note1, float octave1) {
+		ZoneScoped;
+
 		//My own attempt
 		//Add current "time slot of samples" and next slot's as a buffer
  		const int queuedSampleBytes = mOutputTarget->getQueuedSampleSizeBytes();
 		const int thresholdToAddSamples = mOutputTarget->BufferSizeBytes + AudioEngine::EXTRA_BUFFERS_SIZE_BYTES;
-		//LOG_INFO("queued bytes: " << queuedSampleBytes);
 		if (queuedSampleBytes <= thresholdToAddSamples) {
 			static float samples[AudioEngine::BUFFER_SAMPLE_COUNT];
 			const float noteFreq0 = getNoteFreq(note0, octave0);
@@ -169,8 +220,6 @@ namespace DOH {
 			if (currentSineSample > 0) {} else currentSineSample++;
 
 			SDL_PutAudioStreamData(mOutputTarget->AudioStream, samples, addedBytes);
-
-			//LOGLN_BRIGHT_RED("added bytes: " << addedBytes);
 		}
 	}
 }

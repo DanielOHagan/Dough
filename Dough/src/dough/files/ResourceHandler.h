@@ -16,6 +16,8 @@ namespace DOH {
 	struct ObjFileData;
 	struct IndexedAtlasInfoFileData;
 	struct ApplicationInitSettings;
+	//enum class EAudioFileType;
+	struct WavFileData;
 
 	struct TextureCreationData {
 		void* Data;
@@ -63,6 +65,7 @@ namespace DOH {
 		std::shared_ptr<JsonFileData> loadJsonFileImpl(const char* filePath);
 		bool writeJsonFileImpl(const char* filePath, std::shared_ptr<JsonFileData> fileData);
 		std::shared_ptr<Model3dCreationData> loadObjModelImpl(const std::string& filePath, const AVertexInputLayout& vertexInputLayout);
+		std::shared_ptr<WavFileData> loadWavFileImpl(const char* filePath);
 
 		static std::pair<std::vector<float>, std::vector<uint32_t>> extractObjFileDataAsVertex3d(
 			const tinyobj::attrib_t& attrib,
@@ -99,6 +102,7 @@ namespace DOH {
 		static std::shared_ptr<FntFileData> loadFntFile(const char* filePath);
 		static std::shared_ptr<JsonFileData> loadJsonFile(const char* filePath);
 		static bool writeJsonFile(const char* filePath, std::shared_ptr<JsonFileData> fileData);
+		static std::shared_ptr<WavFileData> loadWavFile(const char* filePath);
 
 
 		//------String parsing helpers-----

@@ -130,6 +130,7 @@ namespace DOH {
 		auto extensions = Application::get().getWindow().getRequiredExtensions(mValidationLayersEnabled);
 		createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
 		createInfo.ppEnabledExtensionNames = extensions.data();
+		createInfo.ppEnabledLayerNames = nullptr;
 
 		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
 		if (mValidationLayersEnabled) {
